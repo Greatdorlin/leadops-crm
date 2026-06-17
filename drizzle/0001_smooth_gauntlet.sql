@@ -1,0 +1,1 @@
+ALTER TABLE "leads" ADD COLUMN "public_report" jsonb;

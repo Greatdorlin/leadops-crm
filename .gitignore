@@ -1,0 +1,16 @@
+.next/
+out/
+build/
+dist/
+node_modules/
+.codex/
+.codex-shots/
+.env
+.env.local
+.env.production
+.env*.local
+npm-debug.log*
+.DS_Store
+
+.vercel
+.env*

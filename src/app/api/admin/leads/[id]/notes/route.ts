@@ -1,0 +1,47 @@
+import { NextResponse } from "next/server";
+import { getAdminRequestContext } from "@/lib/admin";
+import { canManageLeadRecord } from "@/lib/admin-permissions";
+import { leadNoteSchema } from "@/lib/pathway-engine/schemas";
+import { leadStore } from "@/lib/storage";
+
+export async function POST(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  const context = await getAdminRequestContext();
+  if (!context) {
+    return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
+  }
+
+  const payload = (await request.json().catch(() => null)) as Record<string, unknown> | null;
+  const parsed = leadNoteSchema.safeParse(payload);
+
+  if (!parsed.success) {
+    return NextResponse.json({ error: "Invalid note payload." }, { status: 400 });
+  }
+
+  const { id } = await params;
+  const lead = await leadStore.getById(id);
+  if (!lead) {
+    return NextResponse.json({ error: "Lead not found." }, { status: 404 });
+  }
+
+  if (lead.deletedAt) {
+    return NextResponse.json(
+      { error: "Restore this lead before adding notes." },
+      { status: 409 },
+    );
+  }
+
+  if (!canManageLeadRecord(context.accessLevel, lead, context.session.user?.email)) {
+    return NextResponse.json({ error: "Forbidden." }, { status: 403 });
+  }
+
+  const note = await leadStore.addLeadNote({
+    leadId: id,
+    note: parsed.data.note,
+    createdBy: context.session.user?.email ?? null,
+  });
+
+  return NextResponse.json({ note });
+}

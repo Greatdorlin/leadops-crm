@@ -1,0 +1,81 @@
+"use client";
+
+import type { PropsWithChildren, ReactNode } from "react";
+import { useState } from "react";
+import type { AdminAccessLevel } from "@/lib/admin-permissions";
+import type { CrmUserRole } from "@/lib/pathway-engine/types";
+import { AdminSidebar } from "./AdminSidebar";
+import { AdminTopbar } from "./AdminTopbar";
+
+interface AdminShellProps extends PropsWithChildren {
+  activeNav: string;
+  accessLevel?: AdminAccessLevel;
+  role?: CrmUserRole | null;
+  actualAccessLevel?: AdminAccessLevel;
+  canSwitchAccessViews?: boolean;
+  title: string;
+  description?: string;
+  actions?: ReactNode;
+  sidebarFooter?: ReactNode;
+  searchSlot?: ReactNode;
+}
+
+export function AdminShell({
+  activeNav,
+  accessLevel = "master_admin",
+  role,
+  actualAccessLevel,
+  canSwitchAccessViews,
+  title,
+  description,
+  actions,
+  sidebarFooter,
+  searchSlot,
+  children,
+}: AdminShellProps) {
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+
+  function toggleSidebar() {
+    setIsSidebarCollapsed((current) => !current);
+  }
+
+  return (
+    <div className="admin-shell text-slate-950">
+      <div className="relative z-10 min-h-screen p-3 sm:p-4">
+        <div
+          className={[
+            "grid min-h-[calc(100vh-1.5rem)] gap-4 xl:gap-5",
+            isSidebarCollapsed
+              ? "xl:grid-cols-[92px_minmax(0,1fr)]"
+              : "xl:grid-cols-[248px_minmax(0,1fr)] 2xl:grid-cols-[260px_minmax(0,1fr)]",
+          ].join(" ")}
+        >
+          <AdminSidebar
+            activeKey={activeNav}
+            accessLevel={accessLevel}
+            role={role}
+            footer={sidebarFooter}
+            collapsed={isSidebarCollapsed}
+            onToggleCollapse={toggleSidebar}
+          />
+          <div className="min-w-0">
+            <AdminTopbar
+              activeNav={activeNav}
+              accessLevel={accessLevel}
+              role={role}
+              actualAccessLevel={actualAccessLevel}
+              canSwitchAccessViews={canSwitchAccessViews}
+              title={title}
+              description={description}
+              actions={actions}
+              searchSlot={searchSlot}
+            />
+            <main className="px-0 pb-6 pt-4 sm:pt-5">
+              <div className="w-full">{children}</div>
+            </main>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}

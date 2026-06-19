@@ -1,6 +1,6 @@
 import { cn } from "@/lib/cn";
 import { formatLeadSourceLabel } from "@/lib/crm/formatters";
-import type { LeadSource } from "@/lib/pathway-engine/types";
+import type { LeadSource } from "@/lib/crm/types";
 
 const sourceClassMap: Record<LeadSource, string> = {
   pathway_finder: "border-cyan-200 bg-cyan-50 text-cyan-700",
@@ -18,22 +18,24 @@ const sourceClassMap: Record<LeadSource, string> = {
 
 export function SourceBadge({
   source,
+  label,
   className,
 }: {
   source: LeadSource | null;
+  label?: string;
   className?: string;
 }) {
   if (!source) {
     return (
       <span className={cn("inline-flex rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs text-slate-500", className)}>
-        Unknown source
+        {label || "Unknown source"}
       </span>
     );
   }
 
   return (
     <span className={cn("inline-flex rounded-full border px-3 py-1.5 text-xs font-semibold", sourceClassMap[source], className)}>
-      {formatLeadSourceLabel(source)}
+      {label || formatLeadSourceLabel(source)}
     </span>
   );
 }

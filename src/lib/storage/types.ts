@@ -21,7 +21,7 @@ import type {
   SyncJobRecord,
   SyncJobStatus,
   SyncStatus,
-} from "../pathway-engine/types";
+} from "../crm/types";
 
 export interface LeadListFilters {
   completionStatus?: "all" | LeadRecord["completionStatus"];
@@ -339,3 +339,10 @@ export interface LeadStorage {
   getIntegration(provider: IntegrationProvider): Promise<IntegrationRecord | null>;
   upsertIntegration(input: IntegrationUpsertInput): Promise<IntegrationRecord>;
 }
+
+// Neutral compatibility aliases for future Leads Desk storage work.
+export type LeadStore = LeadStorage;
+export type LeadListResult = LeadRecord[];
+export type LeadDetailResult = LeadRecord | null;
+export type LeadCreateInput = ExternalLeadUpsertInput;
+export type LeadUpdateInput = LeadProfileUpdateInput;

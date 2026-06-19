@@ -12,11 +12,9 @@ import {
   PhoneCall,
   UserRound,
 } from "lucide-react";
-import { formatLeadAssigneeSummary } from "@/lib/crm/lead-assignees";
-import { buildLeadDisplayNameMap } from "@/lib/crm/lead-identity";
-import { crmLabelize, formatCrmDateTime, formatLeadStateLabel } from "@/lib/crm/formatters";
+import { formatCrmDateTime } from "@/lib/crm/formatters";
 import { cn } from "@/lib/cn";
-import type { LeadRecord } from "@/lib/pathway-engine/types";
+import type { AdminLeadListItem } from "@/lib/crm/view-models";
 import { AdminCollapsibleSection } from "./AdminCollapsibleSection";
 import { EmptyState } from "./EmptyState";
 import { LeadOwnerQuickAssign } from "./LeadOwnerQuickAssign";
@@ -29,68 +27,25 @@ function buildWhatsAppHref(value?: string | null) {
   return sanitized ? `https://wa.me/${sanitized}` : null;
 }
 
-function payloadString(payload: Record<string, unknown> | null, keys: string[]) {
-  if (!payload) {
-    return null;
-  }
-
-  for (const key of keys) {
-    const value = payload[key];
-    if (typeof value === "string" && value.trim().length > 0) {
-      return value.trim();
-    }
-  }
-
-  return null;
-}
-
-function getWebsiteLeadContext(lead: LeadRecord) {
+function getWebsiteLeadContext(lead: AdminLeadListItem) {
   if (lead.source !== "website_form") {
     return null;
   }
 
   return {
-    routeId: payloadString(lead.sourcePayload, ["routeId", "route_id"]) ?? lead.sourceDetail,
-    routeLabel:
-      payloadString(lead.sourcePayload, ["routeLabel", "route_label"]) ??
-      lead.topPathwayTitle ??
-      null,
-    nigeriaState: payloadString(lead.sourcePayload, ["nigeriaState", "nigeria_state"]),
+    routeId: lead.routeId,
+    routeLabel: lead.routeLabel,
+    nigeriaState: lead.nigeriaState,
   };
 }
 
-function formatLeadSummary(lead: LeadRecord) {
+function formatLeadSummary(lead: AdminLeadListItem) {
   const websiteContext = getWebsiteLeadContext(lead);
-  return (
-    websiteContext?.routeLabel ||
-    websiteContext?.routeId ||
-    lead.topPathwayTitle ||
-    lead.readinessLevel ||
-    "Awaiting report"
-  );
+  return websiteContext?.routeLabel || websiteContext?.routeId || lead.interestLabel;
 }
 
 function buildFollowUpHref(leadId: string) {
   return `/admin/tasks?leadId=${encodeURIComponent(leadId)}#task-action-center`;
-}
-
-function getLeadInitials(lead: LeadRecord) {
-  return [lead.firstName, lead.lastName]
-    .filter(Boolean)
-    .map((value) => value?.trim().charAt(0).toUpperCase())
-    .join("")
-    .slice(0, 2) || "LD";
-}
-
-function ownerLabel(lead: LeadRecord) {
-  const summary = formatLeadAssigneeSummary(lead.assignedToList);
-  if (!summary.primary) {
-    return "Unassigned";
-  }
-
-  return summary.additionalCount > 0
-    ? `${summary.primary} +${summary.additionalCount} more`
-    : summary.primary;
 }
 
 function LeadMetric({
@@ -141,15 +96,19 @@ function LeadMetric({
 
 function LeadProgressPanel({
   crmStatus,
+  stageLabel,
   completionStatus,
   priority,
   source,
+  sourceLabel,
   lastActivityAt,
 }: {
-  crmStatus: LeadRecord["crmStatus"];
-  completionStatus: LeadRecord["completionStatus"];
-  priority: LeadRecord["priority"];
-  source: LeadRecord["source"];
+  crmStatus: AdminLeadListItem["stage"];
+  stageLabel: string;
+  completionStatus: AdminLeadListItem["completionStatus"];
+  priority: AdminLeadListItem["priority"];
+  source: AdminLeadListItem["source"];
+  sourceLabel: string;
   lastActivityAt: string;
 }) {
   return (
@@ -160,23 +119,23 @@ function LeadProgressPanel({
             Lead stage
           </p>
           <div className="mt-3">
-            <StatusBadge status={crmStatus} />
+            <StatusBadge status={crmStatus} label={stageLabel} />
           </div>
         </div>
         <span className="rounded-full border border-[#cad8ff] bg-white px-3 py-1.5 text-sm font-medium tracking-[-0.02em] text-slate-700 shadow-[0_8px_18px_rgba(34,82,219,0.06)]">
-          {completionStatus === "complete" ? "Assessment ready" : "Assessment active"}
+          {completionStatus === "complete" ? "Profile ready" : "Profile active"}
         </span>
       </div>
 
       <div className="mt-4 flex flex-wrap gap-2">
         <PriorityBadge priority={priority} />
-        <SourceBadge source={source} />
+        <SourceBadge source={source} label={sourceLabel} />
       </div>
 
       <div className="mt-4 grid gap-3 text-sm text-slate-600 sm:grid-cols-2 xl:grid-cols-1 2xl:grid-cols-2">
         <div>
           <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-400">
-            Assessment
+            Profile
           </p>
           <p className="mt-1 font-medium text-slate-900">
             {completionStatus === "complete" ? "Completed" : "In progress"}
@@ -236,12 +195,10 @@ function LeadActions({
 
 function LeadHeader({
   lead,
-  leadDisplayName,
   badgeClassName,
   compact = false,
 }: {
-  lead: LeadRecord;
-  leadDisplayName: string;
+  lead: AdminLeadListItem;
   badgeClassName?: string;
   compact?: boolean;
 }) {
@@ -253,13 +210,13 @@ function LeadHeader({
           compact ? "h-14 w-14 text-xl" : "h-20 w-20 text-[2rem]",
         )}
       >
-        {getLeadInitials(lead)}
+        {lead.initials}
       </div>
 
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap gap-2">
-          <SourceBadge source={lead.source} className={badgeClassName} />
-          <StatusBadge status={lead.crmStatus} className={badgeClassName} />
+          <SourceBadge source={lead.source} label={lead.sourceLabel} className={badgeClassName} />
+          <StatusBadge status={lead.stage} label={lead.stageLabel} className={badgeClassName} />
           <PriorityBadge priority={lead.priority} className={badgeClassName} />
         </div>
 
@@ -270,7 +227,7 @@ function LeadHeader({
             compact ? "text-[1.45rem]" : "text-[2rem]",
           )}
         >
-          {leadDisplayName}
+          {lead.displayName}
         </Link>
 
         <div
@@ -289,13 +246,13 @@ function LeadHeader({
           <div className="flex items-start gap-2.5">
             <PhoneCall className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" />
             <p className="min-w-0 leading-6 text-slate-600 [overflow-wrap:anywhere]">
-              {lead.whatsappNumber || "No phone yet"}
+              {lead.phone || "No phone yet"}
             </p>
           </div>
           <div className="flex items-start gap-2.5">
             <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-sky-600" />
             <p className="min-w-0 leading-6 text-slate-600 [overflow-wrap:anywhere]">
-              {lead.state ? formatLeadStateLabel(lead.state) : "State not captured yet"}
+              {lead.stateLabel}
             </p>
           </div>
         </div>
@@ -306,7 +263,6 @@ function LeadHeader({
 
 export function LeadTable({
   leads,
-  nextFollowUpByLeadId = {},
   eyebrow = "Lead queue",
   title = "Leads needing action",
   description = "The clearest next leads to review, contact, or assign.",
@@ -315,8 +271,7 @@ export function LeadTable({
   actions,
   assigneeOptions = [],
 }: {
-  leads: LeadRecord[];
-  nextFollowUpByLeadId?: Record<string, string | null>;
+  leads: AdminLeadListItem[];
   eyebrow?: string;
   title?: string;
   description?: string;
@@ -325,8 +280,6 @@ export function LeadTable({
   actions?: ReactNode;
   assigneeOptions?: Array<{ label: string; value: string }>;
 }) {
-  const leadDisplayNameById = buildLeadDisplayNameMap(leads);
-
   return (
     <AdminCollapsibleSection
       eyebrow={eyebrow}
@@ -346,8 +299,7 @@ export function LeadTable({
 
       <div id="lead-pipeline" className={cn("grid gap-3 md:hidden", leads.length === 0 && "hidden")}>
         {leads.map((lead) => {
-          const whatsappHref = buildWhatsAppHref(lead.whatsappNumber);
-          const nextTouch = nextFollowUpByLeadId[lead.id];
+          const whatsappHref = buildWhatsAppHref(lead.phone);
           const leadSummary = formatLeadSummary(lead);
           const websiteContext = getWebsiteLeadContext(lead);
           const websiteContextLine = [websiteContext?.routeId, websiteContext?.nigeriaState]
@@ -365,7 +317,6 @@ export function LeadTable({
                 <div className="flex items-start justify-between gap-3">
                   <LeadHeader
                     lead={lead}
-                    leadDisplayName={leadDisplayNameById[lead.id]}
                     compact
                     badgeClassName="px-2.5 py-1 text-[11px] shadow-[0_6px_14px_rgba(15,23,42,0.04)]"
                   />
@@ -382,17 +333,19 @@ export function LeadTable({
 
                 <div className="mt-4">
                   <LeadProgressPanel
-                    crmStatus={lead.crmStatus}
+                    crmStatus={lead.stage}
+                    stageLabel={lead.stageLabel}
                     completionStatus={lead.completionStatus}
                     priority={lead.priority}
                     source={lead.source}
+                    sourceLabel={lead.sourceLabel}
                     lastActivityAt={lead.lastActivityAt}
                   />
                 </div>
               </div>
 
               <div className="grid gap-3 px-4 py-4">
-                <LeadMetric icon={FileText} label="Pathway summary" tone="blue">
+                <LeadMetric icon={FileText} label="Lead summary" tone="blue">
                   <p className="font-medium text-slate-900 [overflow-wrap:anywhere]">{leadSummary}</p>
                   {websiteContextLine ? (
                     <p className="mt-2 text-xs font-semibold uppercase tracking-[0.12em] text-amber-700">
@@ -400,35 +353,35 @@ export function LeadTable({
                     </p>
                   ) : null}
                   <p className="mt-2 text-sm leading-6 text-slate-500">
-                    Primary direction and report outcome for this lead.
+                    Primary interest and current summary for this lead.
                   </p>
                 </LeadMetric>
 
                 <div className="grid gap-3 sm:grid-cols-2">
-                        <LeadMetric icon={UserRound} label="Owner" tone="violet">
-                          <p className="font-medium text-slate-900 [overflow-wrap:anywhere]">
-                            {ownerLabel(lead)}
-                          </p>
-                          {assigneeOptions.length > 0 ? (
-                            <div className="mt-3">
-                              <LeadOwnerQuickAssign
-                                leadId={lead.id}
-                                initialAssignedTo={lead.assignedTo}
-                                crmStatus={lead.crmStatus}
-                                priority={lead.priority}
-                                assigneeOptions={assigneeOptions}
-                              />
-                            </div>
-                          ) : (
-                            <p className="mt-2 text-sm leading-6 text-slate-500">
-                              Keep ownership clear before the next follow-up.
-                            </p>
-                          )}
-                        </LeadMetric>
+                  <LeadMetric icon={UserRound} label="Owner" tone="violet">
+                    <p className="font-medium text-slate-900 [overflow-wrap:anywhere]">
+                      {lead.assignedUserName}
+                    </p>
+                    {assigneeOptions.length > 0 ? (
+                      <div className="mt-3">
+                        <LeadOwnerQuickAssign
+                          leadId={lead.id}
+                          initialAssignedTo={lead.assignedTo}
+                          crmStatus={lead.stage}
+                          priority={lead.priority}
+                          assigneeOptions={assigneeOptions}
+                        />
+                      </div>
+                    ) : (
+                      <p className="mt-2 text-sm leading-6 text-slate-500">
+                        Keep ownership clear before the next follow-up.
+                      </p>
+                    )}
+                  </LeadMetric>
 
                   <LeadMetric icon={MapPin} label="State" tone="blue">
                     <p className="font-medium text-slate-900 [overflow-wrap:anywhere]">
-                      {lead.state ? formatLeadStateLabel(lead.state) : "State not captured yet"}
+                      {lead.stateLabel}
                     </p>
                     <p className="mt-2 text-sm leading-6 text-slate-500">
                       Use this to route follow-up to the right branch team.
@@ -447,10 +400,10 @@ export function LeadTable({
 
                 <LeadMetric icon={CalendarDays} label="Next touch" tone="emerald">
                   <p className="font-medium text-slate-900">
-                    {nextTouch ? formatCrmDateTime(nextTouch) : "Not scheduled"}
+                    {lead.nextFollowUpAt ? formatCrmDateTime(lead.nextFollowUpAt) : "Not scheduled"}
                   </p>
                   <p className="mt-2 text-sm leading-6 text-slate-500">
-                    {nextTouch ? "Already queued in the task list." : "Add a follow-up when ready."}
+                    {lead.nextFollowUpAt ? "Already queued in the task list." : "Add a follow-up when ready."}
                   </p>
                 </LeadMetric>
               </div>
@@ -459,7 +412,7 @@ export function LeadTable({
                 <LeadActions
                   leadId={lead.id}
                   email={lead.email}
-                  phone={lead.whatsappNumber}
+                  phone={lead.phone}
                   whatsappHref={whatsappHref}
                 />
               </div>
@@ -470,8 +423,7 @@ export function LeadTable({
 
       <div className={cn("hidden gap-3 md:grid", leads.length === 0 && "hidden")}>
         {leads.map((lead) => {
-          const whatsappHref = buildWhatsAppHref(lead.whatsappNumber);
-          const nextTouch = nextFollowUpByLeadId[lead.id];
+          const whatsappHref = buildWhatsAppHref(lead.phone);
           const leadSummary = formatLeadSummary(lead);
           const websiteContext = getWebsiteLeadContext(lead);
           const websiteContextLine = [websiteContext?.routeId, websiteContext?.nigeriaState]
@@ -489,12 +441,11 @@ export function LeadTable({
                 <div className="grid gap-5">
                   <LeadHeader
                     lead={lead}
-                    leadDisplayName={leadDisplayNameById[lead.id]}
                     badgeClassName="px-3 py-1.5 text-xs shadow-[0_6px_14px_rgba(15,23,42,0.04)]"
                   />
 
                   <div className="grid gap-3 xl:items-start xl:grid-cols-[minmax(0,1.22fr)_minmax(320px,0.9fr)]">
-                    <LeadMetric icon={FileText} label="Pathway summary" tone="blue" className="self-start">
+                    <LeadMetric icon={FileText} label="Lead summary" tone="blue" className="self-start">
                       <p className="font-medium text-slate-900 [overflow-wrap:anywhere]">{leadSummary}</p>
                       {websiteContextLine ? (
                         <p className="mt-2 text-xs font-semibold uppercase tracking-[0.12em] text-amber-700">
@@ -502,17 +453,17 @@ export function LeadTable({
                         </p>
                       ) : null}
                       <p className="mt-2 text-sm leading-6 text-slate-500">
-                        {lead.readinessLevel
-                          ? `Readiness: ${lead.readinessLevel}`
-                          : "Readiness will appear after the assessment is completed."}
+                        {lead.fitSignalLabel !== "Not provided"
+                          ? `Fit: ${lead.fitSignalLabel}`
+                          : "Fit will appear after more details are captured."}
                       </p>
                       <div className="mt-4 grid gap-3 sm:grid-cols-2">
                         <div>
                           <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-400">
-                            Goal
+                            Category
                           </p>
                           <p className="mt-1 text-sm font-medium text-slate-700 [overflow-wrap:anywhere]">
-                            {lead.primaryGoal ? crmLabelize(lead.primaryGoal) : "Not set"}
+                            {lead.categoryLabel}
                           </p>
                         </div>
                         <div>
@@ -528,7 +479,7 @@ export function LeadTable({
                             State
                           </p>
                           <p className="mt-1 text-sm font-medium text-slate-700 [overflow-wrap:anywhere]">
-                            {lead.state ? formatLeadStateLabel(lead.state) : "State not captured yet"}
+                            {lead.stateLabel}
                           </p>
                         </div>
                       </div>
@@ -536,24 +487,26 @@ export function LeadTable({
 
                     <div className="grid gap-3">
                       <LeadProgressPanel
-                        crmStatus={lead.crmStatus}
+                        crmStatus={lead.stage}
+                        stageLabel={lead.stageLabel}
                         completionStatus={lead.completionStatus}
                         priority={lead.priority}
                         source={lead.source}
+                        sourceLabel={lead.sourceLabel}
                         lastActivityAt={lead.lastActivityAt}
                       />
 
                       <div className="grid gap-3">
                         <LeadMetric icon={UserRound} label="Owner" tone="violet">
                           <p className="font-medium text-slate-900 [overflow-wrap:anywhere]">
-                            {ownerLabel(lead)}
+                            {lead.assignedUserName}
                           </p>
                           {assigneeOptions.length > 0 ? (
                             <div className="mt-3">
                               <LeadOwnerQuickAssign
                                 leadId={lead.id}
                                 initialAssignedTo={lead.assignedTo}
-                                crmStatus={lead.crmStatus}
+                                crmStatus={lead.stage}
                                 priority={lead.priority}
                                 assigneeOptions={assigneeOptions}
                               />
@@ -567,9 +520,9 @@ export function LeadTable({
 
                         <LeadMetric icon={CalendarDays} label="Next touch" tone="emerald">
                           <p className="font-medium text-slate-900">
-                            {nextTouch ? formatCrmDateTime(nextTouch) : "Not scheduled"}
+                            {lead.nextFollowUpAt ? formatCrmDateTime(lead.nextFollowUpAt) : "Not scheduled"}
                           </p>
-                          {nextTouch ? (
+                          {lead.nextFollowUpAt ? (
                             <p className="mt-2 text-sm leading-6 text-slate-500">
                               Already queued in the task list.
                             </p>
@@ -599,7 +552,7 @@ export function LeadTable({
                             {lead.email || "No email yet"}
                           </p>
                           <p className="mt-1 text-sm text-slate-500 [overflow-wrap:anywhere]">
-                            {lead.whatsappNumber || "No phone yet"}
+                            {lead.phone || "No phone yet"}
                           </p>
                         </div>
                       </div>
@@ -608,7 +561,7 @@ export function LeadTable({
                     <LeadActions
                       leadId={lead.id}
                       email={lead.email}
-                      phone={lead.whatsappNumber}
+                      phone={lead.phone}
                       whatsappHref={whatsappHref}
                       className="xl:justify-end xl:pt-1"
                     />

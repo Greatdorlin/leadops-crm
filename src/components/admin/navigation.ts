@@ -1,6 +1,7 @@
 import type { LucideIcon } from "lucide-react";
 import {
   BarChart3,
+  Bell,
   BriefcaseBusiness,
   LayoutDashboard,
   ListTodo,
@@ -12,7 +13,7 @@ import {
   getVisibleAdminNavKeys,
   type AdminAccessLevel,
 } from "@/lib/admin-permissions";
-import type { CrmUserRole } from "@/lib/pathway-engine/types";
+import type { CrmUserRole } from "@/lib/crm/types";
 
 export interface AdminNavigationItem {
   key: string;
@@ -57,6 +58,13 @@ const adminNavigation: AdminNavigationItem[] = [
     href: "/admin/reports",
     icon: BarChart3,
     description: "Pipeline, source, and conversion performance.",
+  },
+  {
+    key: "notifications",
+    label: "Notifications",
+    href: "/admin/notifications",
+    icon: Bell,
+    description: "Assigned leads, follow-up alerts, and intake activity.",
   },
   {
     key: "integrations",

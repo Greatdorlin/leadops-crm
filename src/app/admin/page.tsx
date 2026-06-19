@@ -10,6 +10,7 @@ import Link from "next/link";
 import { AdminCollapsibleSection } from "@/components/admin/AdminCollapsibleSection";
 import { AdminDashboardWidgetDeck } from "@/components/admin/AdminDashboardWidgetDeck";
 import { AdminLeadExportButton } from "@/components/admin/AdminLeadExportButton";
+import { SalesCommandOverview } from "@/components/admin/SalesCommandOverview";
 import { AdminWorkspaceComposer } from "@/components/admin/AdminWorkspaceComposer";
 import { AdminShell } from "@/components/admin/AdminShell";
 import { ErrorState } from "@/components/admin/ErrorState";
@@ -26,7 +27,6 @@ import { StatusBadge } from "@/components/admin/StatusBadge";
 import { TaskQueueTable } from "@/components/admin/TaskQueueTable";
 import { TimelineItem } from "@/components/admin/TimelineItem";
 import { getAdminAccessContext } from "@/lib/admin";
-import { canExportLeadData } from "@/lib/admin-access";
 import {
   buildNextFollowUpByLeadId,
   buildTeamPerformance,
@@ -49,8 +49,13 @@ import {
   formatLeadStateLabel,
   formatLeadSourceLabel,
 } from "@/lib/crm/formatters";
+import { canExportLeads } from "@/lib/crm/authz";
+import { listCustomFields } from "@/lib/crm/custom-fields-admin";
+import { listLeadIntakeEvents } from "@/lib/crm/intake-runtime";
 import { getCrmPageErrorCopy, logCrmPageError } from "@/lib/crm/runtime";
-import type { LeadRecord } from "@/lib/pathway-engine/types";
+import { buildSalesDashboardSummary } from "@/lib/crm/sales-metrics";
+import { getActiveGlobalSalesTarget } from "@/lib/crm/sales-targets-admin";
+import type { LeadRecord } from "@/lib/crm/types";
 import { leadStore } from "@/lib/storage";
 
 export const dynamic = "force-dynamic";
@@ -264,11 +269,13 @@ export default async function AdminPage({
         tasks: Awaited<ReturnType<typeof leadStore.listLeadTasks>>;
         users: Awaited<ReturnType<typeof leadStore.listCrmUsers>>;
         integrations: Awaited<ReturnType<typeof leadStore.listIntegrations>>;
+        intakeEvents: Awaited<ReturnType<typeof listLeadIntakeEvents>>;
+        activeTarget: Awaited<ReturnType<typeof getActiveGlobalSalesTarget>>;
       }
     | null = null;
 
   try {
-    const [leads, stats, tasks, users, integrations] = await Promise.all([
+    const [leads, stats, tasks, users, integrations, intakeEvents, activeTarget] = await Promise.all([
       leadStore.list({
         ...scopedFilters,
         limit: 120,
@@ -279,6 +286,8 @@ export default async function AdminPage({
       }),
       showTeamViews ? leadStore.listCrmUsers() : Promise.resolve([]),
       showTechnicalSummary ? leadStore.listIntegrations() : Promise.resolve([]),
+      accessLevel === "sales_rep" ? Promise.resolve([]) : listLeadIntakeEvents({ limit: 8 }),
+      getActiveGlobalSalesTarget(),
     ]);
 
     pageData = {
@@ -287,6 +296,8 @@ export default async function AdminPage({
       tasks,
       users,
       integrations,
+      intakeEvents,
+      activeTarget,
     };
   } catch (error) {
     pageError = error;
@@ -298,7 +309,9 @@ export default async function AdminPage({
       <div className="hidden rounded-full border border-white/70 bg-white/76 px-4 py-2 text-sm text-slate-600 shadow-[inset_0_1px_0_rgba(255,255,255,0.72)] md:block">
         {session.user?.email}
       </div>
-      {canExportLeadData(session.user?.email) ? <AdminLeadExportButton /> : null}
+      {canExportLeads({ accessLevel, email: session.user?.email, role }) ? (
+        <AdminLeadExportButton />
+      ) : null}
       <AdminSignOutButton />
     </>
   );
@@ -326,7 +339,16 @@ export default async function AdminPage({
     );
   }
 
-  const { leads, stats, tasks, users, integrations } = pageData;
+  let leadCaptureCustomFields = [] as Awaited<ReturnType<typeof listCustomFields>>;
+  try {
+    leadCaptureCustomFields = (await listCustomFields()).filter(
+      (field) => field.showInForm && !field.archived,
+    );
+  } catch (error) {
+    logCrmPageError("dashboard-custom-fields", error);
+  }
+
+  const { leads, stats, tasks, users, integrations, intakeEvents, activeTarget } = pageData;
   const openTasks = tasks.filter((task) => !task.completedAt);
   const nextFollowUpByLeadId = buildNextFollowUpByLeadId(tasks);
   const includeAssignmentSignals = accessLevel !== "sales_rep";
@@ -465,6 +487,13 @@ export default async function AdminPage({
       icon: Users2,
     },
   ] as const;
+  const salesDashboardSummary = buildSalesDashboardSummary({
+    leads,
+    tasks,
+    users,
+    intakeEvents,
+    activeTarget,
+  });
   const searchSlot = (
     <FilterBar>
       <form action="/admin" className="flex flex-col gap-3">
@@ -619,6 +648,10 @@ export default async function AdminPage({
           </div>
         </section>
 
+        {accessLevel === "sales_rep" ? null : (
+          <SalesCommandOverview summary={salesDashboardSummary} />
+        )}
+
         <AdminDashboardWidgetDeck
           widgets={[
             {
@@ -743,6 +776,7 @@ export default async function AdminPage({
                     assignmentLeadOptions={assignmentLeadOptions}
                     assigneeOptions={assigneeOptions}
                     defaultAssignedTo={defaultAssignedTo}
+                    leadCaptureCustomFields={leadCaptureCustomFields}
                   />
                 </div>
               ),

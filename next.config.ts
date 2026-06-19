@@ -25,6 +25,7 @@ const securityHeaders = [
 
 const nextConfig: NextConfig = {
   devIndicators: false,
+  output: "standalone",
   turbopack: {
     root: projectRoot,
   },

@@ -3,7 +3,7 @@
 import type { PropsWithChildren, ReactNode } from "react";
 import { useState } from "react";
 import type { AdminAccessLevel } from "@/lib/admin-permissions";
-import type { CrmUserRole } from "@/lib/pathway-engine/types";
+import type { CrmUserRole } from "@/lib/crm/types";
 import { AdminSidebar } from "./AdminSidebar";
 import { AdminTopbar } from "./AdminTopbar";
 
@@ -22,7 +22,7 @@ interface AdminShellProps extends PropsWithChildren {
 
 export function AdminShell({
   activeNav,
-  accessLevel = "master_admin",
+  accessLevel = "general_admin",
   role,
   actualAccessLevel,
   canSwitchAccessViews,

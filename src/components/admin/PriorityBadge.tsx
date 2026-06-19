@@ -1,6 +1,6 @@
 import { cn } from "@/lib/cn";
 import { crmLabelize } from "@/lib/crm/formatters";
-import type { LeadPriority } from "@/lib/pathway-engine/types";
+import type { LeadPriority } from "@/lib/crm/types";
 
 const priorityClassMap: Record<LeadPriority, string> = {
   low: "border-slate-200 bg-white text-slate-600",

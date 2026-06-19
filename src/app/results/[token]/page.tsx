@@ -1,5 +1,5 @@
-import { ResultsClient } from "./ResultsClient";
+import { redirect } from "next/navigation";
 
 export default function ResultPage() {
-  return <ResultsClient />;
+  redirect("/");
 }

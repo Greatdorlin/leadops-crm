@@ -1,3 +1,5 @@
+> Internal legacy compatibility only. Not part of the Leads Desk customer-facing product.
+
 # Fly Connect Pathway Finder Handover
 
 ## Project Identity

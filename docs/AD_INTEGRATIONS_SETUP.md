@@ -1,3 +1,5 @@
+> Internal legacy compatibility only. Not part of the Leads Desk customer-facing product.
+
 # Ad Integrations Setup
 
 ## Production base URL

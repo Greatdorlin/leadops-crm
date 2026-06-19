@@ -4,17 +4,17 @@ export default function TermsPage() {
   return (
     <LegalPageLayout
       title="Terms of Service"
-      description="These placeholder terms explain the basic expectations for using the Fly Connect Global Pathway Finder experience."
+      description="These placeholder terms explain the basic expectations for using the Leads Desk workspace."
       sections={[
         {
-          heading: "Service scope",
+          heading: "Workspace use",
           body:
-            "The tool provides directional insight based on the information you submit. Reports are intended to help you prepare for the next step, not guarantee approvals or outcomes.",
+            "Leads Desk provides a private workspace for lead capture, assignment, follow-up, customization, reporting, and exports. Availability and configuration depend on your deployment setup.",
         },
         {
-          heading: "User responsibility",
+          heading: "Customer responsibility",
           body:
-            "You are responsible for ensuring the information you provide is accurate and up to date. Inaccurate answers can reduce the quality and relevance of your report.",
+            "You are responsible for the accuracy of the data you enter, the users you authorize, and the policies you apply to communication, retention, and export activity.",
         },
       ]}
     />

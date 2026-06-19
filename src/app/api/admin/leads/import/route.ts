@@ -2,8 +2,13 @@ import { NextResponse } from "next/server";
 import { normalizeAdminEmail } from "@/lib/admin-access";
 import { getAdminRequestContext } from "@/lib/admin";
 import { canImportLeadRecords } from "@/lib/admin-permissions";
+import { listCustomFields } from "@/lib/crm/custom-fields-admin";
+import { upsertLeadCustomFieldValues } from "@/lib/crm/custom-field-values-store";
+import { validateCustomFieldValues } from "@/lib/crm/custom-field-values";
 import { parseLeadImportCsv } from "@/lib/crm/csv";
-import { adminLeadImportSchema } from "@/lib/pathway-engine/schemas";
+import { normalizeAdminLeadImportPayload } from "@/lib/crm/form-contracts";
+import { mapAdminImportRowToLegacyLeadPayload } from "@/lib/crm/input-mapping";
+import { createNotificationEvent } from "@/lib/crm/notification-events";
 import { leadStore } from "@/lib/storage";
 
 function normalizeEmail(value?: string | null) {
@@ -21,16 +26,19 @@ export async function POST(request: Request) {
   }
 
   const payload = (await request.json().catch(() => null)) as Record<string, unknown> | null;
-  const parsed = adminLeadImportSchema.safeParse(payload);
+  const parsed = payload ? normalizeAdminLeadImportPayload(payload) : { success: false as const };
 
   if (!parsed.success) {
     return NextResponse.json({ error: "Invalid import payload." }, { status: 400 });
   }
 
   let rows;
+  const activeCustomFieldDefinitions = (await listCustomFields()).filter((field) => !field.archived);
 
   try {
-    rows = parseLeadImportCsv(parsed.data.csvText);
+    rows = parseLeadImportCsv(parsed.data.csvText, {
+      customFieldDefinitions: activeCustomFieldDefinitions,
+    });
   } catch (error) {
     return NextResponse.json(
       {
@@ -50,19 +58,32 @@ export async function POST(request: Request) {
 
   for (const row of rows) {
     try {
+      const customFieldValidation = validateCustomFieldValues(
+        activeCustomFieldDefinitions,
+        row.customFieldValues ?? {},
+      );
+
+      if (!customFieldValidation.success) {
+        throw new Error(
+          Object.values(customFieldValidation.fieldErrors)[0] ??
+            "Custom field values are invalid.",
+        );
+      }
+
       const assignedTo =
         row.assignedTo ?? parsed.data.assignedTo ?? null;
+      const legacyRow = mapAdminImportRowToLegacyLeadPayload(row);
       const result = await leadStore.upsertExternalLead({
-        source: row.source,
-        sourceDetail: row.sourceDetail ?? parsed.data.sourceDetail ?? "csv_import",
-        firstName: row.firstName,
-        lastName: row.lastName || null,
-        email: row.email,
-        whatsappNumber: row.whatsappNumber,
-        state: row.state,
-        primaryGoal: row.primaryGoal,
-        crmStatus: row.crmStatus,
-        priority: row.priority,
+        source: legacyRow.source,
+        sourceDetail: legacyRow.sourceDetail ?? parsed.data.sourceDetail ?? "csv_import",
+        firstName: legacyRow.firstName,
+        lastName: legacyRow.lastName,
+        email: legacyRow.email,
+        whatsappNumber: legacyRow.whatsappNumber,
+        state: legacyRow.state,
+        primaryGoal: legacyRow.primaryGoal,
+        crmStatus: legacyRow.crmStatus,
+        priority: legacyRow.priority,
         assignedTo,
       });
 
@@ -82,10 +103,10 @@ export async function POST(request: Request) {
         }
       }
 
-      if (lead.crmStatus !== row.crmStatus) {
+      if (lead.crmStatus !== legacyRow.crmStatus) {
         const updated = await leadStore.updateCrmStatus(
           lead.id,
-          row.crmStatus,
+          legacyRow.crmStatus,
           context.session.user?.email ?? null,
         );
         if (updated) {
@@ -93,16 +114,18 @@ export async function POST(request: Request) {
         }
       }
 
-      if (lead.priority !== row.priority) {
+      if (lead.priority !== legacyRow.priority) {
         const updated = await leadStore.updateLeadPriority(
           lead.id,
-          row.priority,
+          legacyRow.priority,
           context.session.user?.email ?? null,
         );
         if (updated) {
           lead = updated;
         }
       }
+
+      await upsertLeadCustomFieldValues(lead.id, customFieldValidation.values);
 
       if (result.created) {
         createdLeadIds.push(lead.id);
@@ -115,6 +138,15 @@ export async function POST(request: Request) {
         error: error instanceof Error ? error.message : "This row could not be imported.",
       });
     }
+  }
+
+  if (context.crmUser?.id) {
+    await createNotificationEvent({
+      type: "import_completed",
+      recipientUserId: context.crmUser.id,
+      title: "Lead import completed",
+      message: `${createdLeadIds.length} created, ${updatedLeadIds.length} updated, ${failedRows.length} failed.`,
+    });
   }
 
   return NextResponse.json({

@@ -1,3 +1,5 @@
+> Internal legacy compatibility only. Not part of the Leads Desk customer-facing product.
+
 # Report Knowledge Map
 
 This map exists so report content can be updated safely without guessing which file owns a user-facing section.

@@ -1,4 +1,8 @@
-import { isAllowedAdminEmail, normalizeAdminEmail } from "@/lib/admin-access";
+import {
+  isAllowedAdminEmail,
+  isEmailDomainAllowed,
+  normalizeAdminEmail,
+} from "@/lib/admin-access";
 import { isCrmConfigurationError } from "@/lib/crm/runtime";
 import { leadStore } from "@/lib/storage";
 
@@ -20,6 +24,10 @@ export async function getStoredAdminUserByEmail(email?: string | null) {
 
 export async function hasAdminWorkspaceAccess(email?: string | null) {
   if (!email) {
+    return false;
+  }
+
+  if (!isEmailDomainAllowed(email)) {
     return false;
   }
 

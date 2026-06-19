@@ -40,7 +40,6 @@ import {
   canViewLeadRecord,
   canViewTechnicalLeadContext,
 } from "@/lib/admin-permissions";
-import { buildLeadAttributionSummary } from "@/lib/crm/attribution";
 import { normalizeEmail, normalizePhone } from "@/lib/crm/dedupe";
 import {
   crmLabelize,
@@ -51,27 +50,13 @@ import {
   formatLeadSourceLabel,
   formatSyncStateLabel,
 } from "@/lib/crm/formatters";
+import { loadAdminLeadReadContext } from "@/lib/crm/admin-read-context";
+import { listCustomFields } from "@/lib/crm/custom-fields-admin";
 import { getCrmPageErrorCopy, logCrmPageError } from "@/lib/crm/runtime";
-import { normalizeGeneratedReport } from "@/lib/pathway-engine/report-generator";
+import { buildAdminLeadDetailView } from "@/lib/crm/view-models";
 import { leadStore } from "@/lib/storage";
 
 export const dynamic = "force-dynamic";
-
-function formatAnswerValue(value: boolean | string | null, key?: string) {
-  if (typeof value === "boolean") {
-    return value ? "Yes" : "No";
-  }
-
-  if (!value) {
-    return "Not provided";
-  }
-
-  if (key === "stateOfResidence") {
-    return formatLeadStateLabel(value);
-  }
-
-  return crmLabelize(value);
-}
 
 function buildWhatsAppHref(value?: string | null) {
   const sanitized = value?.replace(/[^\d]/g, "") ?? "";
@@ -221,10 +206,6 @@ export default async function AdminLeadDetailPage({
     return sameEmail || samePhone;
   });
 
-  const attribution = buildLeadAttributionSummary(lead);
-  const leadRouteLine = [attribution.routeLabel ?? attribution.routeId, attribution.nigeriaState]
-    .filter(Boolean)
-    .join(" • ");
   const nextTask = tasks
     .filter((task) => !task.completedAt)
     .sort((left, right) => {
@@ -232,37 +213,19 @@ export default async function AdminLeadDetailPage({
       const rightTime = right.dueAt ? new Date(right.dueAt).getTime() : Number.MAX_SAFE_INTEGER;
       return leftTime - rightTime;
     })[0];
-  const answerEntries = Object.entries(lead.answers).filter(([, value]) => {
-    return typeof value === "boolean" || (typeof value === "string" && value.length > 0) || value !== null;
-  });
-  const report = lead.report ? normalizeGeneratedReport(lead.report, lead.answers) : null;
   const whatsappHref = buildWhatsAppHref(lead.whatsappNumber);
-  const leadSummary =
-    lead.topPathwayTitle ||
-    report?.topMatches?.[0]?.title ||
-    report?.recommendedOffer?.title ||
-    "Awaiting completed report";
-  const completionLabel =
-    lead.completionStatus === "complete" ? "Assessment complete" : "Assessment in progress";
-  const leadName = `${(lead.firstName || "Lead").trim()} ${lead.lastName}`.trim();
-  const leadInitials = [lead.firstName, lead.lastName]
-    .filter(Boolean)
-    .map((value) => value?.trim().charAt(0).toUpperCase())
-    .join("")
-    .slice(0, 2) || "LD";
-  const keyAnswerRows: Array<[string, boolean | string | null]> = [
-    ["State", lead.state ? formatLeadStateLabel(lead.state) : null],
-    ["Destination", lead.answers.destinationInterest],
-    ["Primary goal", lead.primaryGoal],
-    ["Highest qualification", lead.answers.highestQualification || lead.answers.highestEducation || null],
-    ["Grade", lead.answers.degreeClass ?? null],
-    ["Preferred UK course", lead.answers.desiredCourse || lead.answers.targetField || null],
-    ["Funding readiness", lead.answers.fundingReadiness || lead.answers.studyFundingReadiness],
-    ["Target intake", lead.answers.targetIntake || lead.answers.timeline || null],
-    ["Assessment readiness", lead.answers.assessmentReadiness ?? null],
-    ["Needs human support", lead.answers.wantsHumanSupport],
-    ["Passport status", lead.answers.passportStatus],
-  ];
+  const readContext = await loadAdminLeadReadContext([lead], { includeCustomFields: true });
+  const editableCustomFields = (await listCustomFields()).filter(
+    (field) => field.showInForm && !field.archived,
+  );
+  const leadView = buildAdminLeadDetailView(lead, {
+    nextFollowUpAt: lead.nextFollowUpAt ?? nextTask?.dueAt ?? null,
+    stage: lead.stageId ? readContext.stagesById.get(lead.stageId) ?? null : null,
+    source: lead.sourceId ? readContext.sourcesById.get(lead.sourceId) ?? null : null,
+    owner: lead.assignedUserId ? readContext.ownersById.get(lead.assignedUserId) ?? null : null,
+    customFieldDefinitions: readContext.customFieldDefinitionsByLeadId.get(lead.id) ?? [],
+    customFieldValues: readContext.customFieldValuesByLeadId.get(lead.id) ?? [],
+  });
 
   return (
     <AdminShell
@@ -271,7 +234,7 @@ export default async function AdminLeadDetailPage({
       role={role}
       actualAccessLevel={actualAccessLevel}
       canSwitchAccessViews={canSwitchAccessViews}
-      title={`${lead.firstName || "Lead"} ${lead.lastName}`.trim()}
+      title={leadView.leadName}
       description="Contact actions, next steps, notes, and lead context in one place."
       actions={
         <>
@@ -300,19 +263,19 @@ export default async function AdminLeadDetailPage({
             <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(320px,0.92fr)] xl:items-center">
               <div className="flex items-start gap-4 sm:gap-5">
                 <div className="flex h-18 w-18 shrink-0 items-center justify-center rounded-[28px] bg-[linear-gradient(180deg,#dbe7ff_0%,#cfdcff_100%)] text-[2rem] font-semibold tracking-[-0.05em] text-[#132d78] shadow-[inset_0_1px_0_rgba(255,255,255,0.9)] sm:h-24 sm:w-24 sm:text-[2.5rem]">
-                  {leadInitials}
+                    {leadView.initials}
                 </div>
 
                 <div className="min-w-0">
                   <h2 className="font-[family:var(--font-heading)] text-[2.4rem] leading-[0.94] tracking-[-0.06em] text-slate-950 sm:text-[3.3rem]">
-                    {leadName}
+                    {leadView.leadName}
                   </h2>
                   <p className="mt-3 max-w-[24ch] text-base leading-7 text-slate-700 sm:max-w-none sm:text-[1.05rem] [overflow-wrap:anywhere]">
                     {lead.email || "No email yet"}
                   </p>
-                  {leadRouteLine ? (
+                  {leadView.routeLine ? (
                     <p className="mt-2 text-xs font-semibold uppercase tracking-[0.14em] text-amber-700">
-                      {leadRouteLine}
+                      {leadView.routeLine}
                     </p>
                   ) : null}
                 </div>
@@ -320,8 +283,8 @@ export default async function AdminLeadDetailPage({
 
               <div className="space-y-4 xl:justify-self-end xl:text-right">
                 <div className="flex flex-wrap gap-2 xl:justify-end">
-                  <SourceBadge source={lead.source} />
-                  <StatusBadge status={lead.crmStatus} />
+                  <SourceBadge source={lead.source} label={leadView.sourceLabel} />
+                  <StatusBadge status={lead.crmStatus} label={leadView.stageLabel} />
                   <PriorityBadge priority={lead.priority} />
                   {lead.state ? (
                     <span className="inline-flex items-center gap-1.5 rounded-full border border-sky-200 bg-sky-50 px-3 py-1.5 text-sm font-medium text-sky-700 shadow-[0_8px_18px_rgba(56,132,255,0.08)]">
@@ -334,19 +297,19 @@ export default async function AdminLeadDetailPage({
                 <div className="flex flex-wrap items-center gap-3 text-base text-slate-700 xl:justify-end">
                   <span className="inline-flex items-center gap-2 font-medium text-slate-800">
                     <BadgeCheck className="h-5 w-5 text-[#2252db]" />
-                    {crmLabelize(lead.crmStatus)}
+                    {leadView.stageLabel}
                   </span>
                   <span className="text-slate-400">•</span>
-                  <span>{completionLabel}</span>
+                  <span>{leadView.completionLabel}</span>
                 </div>
 
                 <div className="flex flex-wrap items-center gap-2 xl:justify-end">
                   <span className="rounded-full border border-[#cad8ff] bg-white px-3 py-1.5 text-sm font-medium text-slate-700 shadow-[0_8px_18px_rgba(34,82,219,0.06)]">
-                    {completionLabel}
+                    {leadView.completionLabel}
                   </span>
-                  {lead.readinessLevel ? (
+                  {leadView.fitSignalLabel !== "Not provided" ? (
                     <span className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 shadow-[0_8px_18px_rgba(15,23,42,0.04)]">
-                      {lead.readinessLevel}
+                      {leadView.fitSignalLabel}
                     </span>
                   ) : null}
                 </div>
@@ -410,7 +373,7 @@ export default async function AdminLeadDetailPage({
                   <div className="min-w-0">
                     <p className="text-sm font-medium text-slate-500">Lead summary</p>
                     <p className="mt-1 text-[1.05rem] leading-8 text-slate-950 [overflow-wrap:anywhere]">
-                      {leadSummary}
+                      {leadView.summaryLabel}
                     </p>
                   </div>
                 </div>
@@ -422,7 +385,7 @@ export default async function AdminLeadDetailPage({
                   <div className="min-w-0">
                     <p className="text-sm font-medium text-slate-500">Owner</p>
                     <p className="mt-1 text-[1.05rem] leading-8 text-slate-950 [overflow-wrap:anywhere]">
-                      {lead.assignedTo || "Unassigned"}
+                      {leadView.assignedUserName}
                     </p>
                   </div>
                 </div>
@@ -479,21 +442,12 @@ export default async function AdminLeadDetailPage({
 
           <div className="border-t border-slate-200/80 px-5 py-5 sm:px-6">
             <div className="flex flex-wrap gap-3">
-              {lead.reportToken ? (
-                <Link
-                  href={`/results/${lead.reportToken}`}
-                  className="inline-flex h-12 items-center justify-center rounded-2xl bg-[linear-gradient(135deg,#09174b_0%,#17348b_100%)] px-6 text-base font-semibold text-white shadow-[0_16px_34px_rgba(14,28,88,0.24)] transition hover:brightness-[1.04]"
-                >
-                  Public report
-                </Link>
-              ) : (
-                <a
-                  href="#lead-tasks"
-                  className="inline-flex h-12 items-center justify-center rounded-2xl bg-[linear-gradient(135deg,#09174b_0%,#17348b_100%)] px-6 text-base font-semibold text-white shadow-[0_16px_34px_rgba(14,28,88,0.24)] transition hover:brightness-[1.04]"
-                >
-                  Add next touch
-                </a>
-              )}
+              <a
+                href="#lead-tasks"
+                className="inline-flex h-12 items-center justify-center rounded-2xl bg-[linear-gradient(135deg,#09174b_0%,#17348b_100%)] px-6 text-base font-semibold text-white shadow-[0_16px_34px_rgba(14,28,88,0.24)] transition hover:brightness-[1.04]"
+              >
+                Add next touch
+              </a>
               {whatsappHref ? (
                 <a
                   href={whatsappHref}
@@ -609,6 +563,7 @@ export default async function AdminLeadDetailPage({
                     initialPriority={lead.priority}
                     initialAssignedTo={lead.assignedTo}
                     initialAssignedToList={lead.assignedToList}
+                    initialNextFollowUpAt={leadView.nextFollowUpAt}
                     assigneeOptions={assigneeOptions}
                   />
                 )}
@@ -631,20 +586,37 @@ export default async function AdminLeadDetailPage({
                   <LeadProfileForm
                     key={`${lead.id}-${lead.updatedAt}`}
                     leadId={lead.id}
-                    initialFirstName={lead.firstName}
-                    initialLastName={lead.lastName}
-                    initialEmail={lead.email}
-                    initialWhatsappNumber={lead.whatsappNumber}
-                    initialState={lead.state}
-                    initialPrimaryGoal={lead.primaryGoal}
+                    initialFirstName={leadView.profile.firstName}
+                    initialLastName={leadView.profile.lastName}
+                    initialEmail={leadView.profile.email}
+                    initialWhatsappNumber={leadView.profile.whatsappNumber}
+                    initialState={leadView.profile.state}
+                    initialCompanyName={leadView.companyName}
+                    initialPrimaryGoal={leadView.profile.primaryGoal}
+                    initialEstimatedValue={leadView.estimatedValue}
+                    initialCloseProbability={leadView.closeProbability}
+                    initialExpectedCloseDate={leadView.expectedCloseDate}
+                    initialNextFollowUpAt={leadView.nextFollowUpAt}
+                    initialWonValue={leadView.wonValue}
+                    initialLostReason={leadView.lostReason}
+                    customFieldDefinitions={editableCustomFields}
+                    initialCustomFieldValues={readContext.customFieldValuesByLeadId.get(lead.id) ?? []}
                   />
                 )}
 
                 <div className="grid gap-4 text-sm text-slate-600">
                   {[
-                    ["Readiness", lead.readinessLevel || "Still qualifying"],
-                    ["Top interest", lead.topPathwayTitle || "Awaiting report"],
-                    ["Completed", formatCrmDateTime(lead.completedAt)],
+                    ["Company", leadView.companyName || "Not set"],
+                    ["Next follow-up", leadView.nextFollowUpAt ? formatCrmDateTime(leadView.nextFollowUpAt) : "Not scheduled"],
+                    ["Estimated value", leadView.estimatedValue ? `NGN ${leadView.estimatedValue.toLocaleString()}` : "Not set"],
+                    ["Expected value", leadView.expectedValue ? `NGN ${leadView.expectedValue.toLocaleString()}` : "Not set"],
+                    ["Close probability", leadView.closeProbability !== null && leadView.closeProbability !== undefined ? `${leadView.closeProbability}%` : "Not set"],
+                    ["Expected close", leadView.expectedCloseDate ? formatCrmDateTime(leadView.expectedCloseDate) : "Not set"],
+                    ["Won value", leadView.wonValue ? `NGN ${leadView.wonValue.toLocaleString()}` : "Not set"],
+                    ["Lost reason", leadView.lostReason || "Not set"],
+                    ["Fit signal", leadView.fitSignalLabel],
+                    ["Top interest", leadView.interestLabel],
+                    ["Completed", lead.completedAt ? formatCrmDateTime(lead.completedAt) : "Not completed yet"],
                   ].map(([label, value]) => (
                     <div key={label} className="rounded-2xl border border-slate-200 bg-slate-50/80 px-4 py-3">
                       <p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">{label}</p>
@@ -663,22 +635,39 @@ export default async function AdminLeadDetailPage({
                   description="Secondary source and campaign context connected to this lead."
                 />
                 <div className="mt-4 grid gap-4 text-sm text-slate-600">
-                  {[
-                    ["Route", attribution.routeLabel || attribution.routeId],
-                    ["State", attribution.nigeriaState],
-                    ["Form type", attribution.formType],
-                    ["Campaign", attribution.campaignId],
-                    ["Ad group", attribution.adGroupId],
-                    ["Ad ID", attribution.adId],
-                    ["UTM source", attribution.utmSource],
-                    ["UTM campaign", attribution.utmCampaign],
-                    ["Landing page", attribution.landingPage],
-                  ].map(([label, value]) => (
+                  {leadView.attributionDetails.map(({ label, value }) => (
                     <div key={label} className="rounded-2xl border border-slate-200 bg-slate-50/80 px-4 py-3">
                       <p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">{label}</p>
-                      <p className="mt-1.5 text-sm text-slate-800">{value || "Not captured yet"}</p>
+                      <p className="mt-1.5 text-sm text-slate-800">{value}</p>
                     </div>
                   ))}
+                </div>
+              </section>
+            ) : null}
+
+            {leadView.customFieldDisplayValues.some(
+              (field) => field.showInDetails && field.displayValue,
+            ) ? (
+              <section className="admin-surface rounded-[24px] p-5">
+                <SectionHeader
+                  eyebrow="Custom fields"
+                  title="Extra lead details"
+                  description="Additional business-specific details captured for this lead."
+                />
+                <div className="mt-4 grid gap-4 text-sm text-slate-600">
+                  {leadView.customFieldDisplayValues
+                    .filter((field) => field.showInDetails && field.displayValue)
+                    .map((field) => (
+                      <div
+                        key={field.fieldId}
+                        className="rounded-2xl border border-slate-200 bg-slate-50/80 px-4 py-3"
+                      >
+                        <p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">
+                          {field.label}
+                        </p>
+                        <p className="mt-1.5 text-sm text-slate-800">{field.displayValue}</p>
+                      </div>
+                    ))}
                 </div>
               </section>
             ) : null}
@@ -713,7 +702,7 @@ export default async function AdminLeadDetailPage({
                   </div>
                 </div>
                 <div className="mt-4">
-                  <LeadSyncActions leadId={lead.id} canSyncSender={lead.answers.marketingConsent} />
+                  <LeadSyncActions leadId={lead.id} canSyncSender={leadView.marketingConsent} />
                 </div>
               </section>
             ) : null}
@@ -821,31 +810,33 @@ export default async function AdminLeadDetailPage({
             </section>
             <section className="admin-surface rounded-[24px] p-5">
               <SectionHeader
-                eyebrow="Pathway summary"
+                eyebrow="Lead summary"
                 title="What this lead wants"
                 description="What this person wants, how ready they are, and what to do next."
               />
-              {report ? (
+              {leadView.reportSummary ? (
                 <div className="mt-4 space-y-4">
                   <div className="rounded-2xl border border-slate-200 bg-[#0b123f] p-5 text-white">
                     <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-white/56">
                       Summary
                     </p>
-                    <p className="mt-2 text-sm leading-7 text-white/84">{report.summaryDiagnosis}</p>
+                    <p className="mt-2 text-sm leading-7 text-white/84">{leadView.reportSummary.summaryDiagnosis}</p>
                   </div>
                   <div className="grid gap-3 sm:grid-cols-2">
                     <div className="admin-surface-muted rounded-2xl p-4">
                       <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">
-                        Readiness
+                        Fit signal
                       </p>
-                      <p className="mt-2 text-base font-semibold text-slate-950">{report.readinessLevel}</p>
-                      <p className="mt-1.5 text-sm leading-6 text-slate-600">{report.readinessSummary}</p>
+                      <p className="mt-2 text-base font-semibold text-slate-950">
+                        {leadView.reportSummary.fitSignalLabel}
+                      </p>
+                      <p className="mt-1.5 text-sm leading-6 text-slate-600">{leadView.reportSummary.fitSignalSummary}</p>
                     </div>
                     <div className="admin-surface-muted rounded-2xl p-4">
                       <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">
                         First practical step
                       </p>
-                      <p className="mt-2 text-sm leading-6 text-slate-700">{report.firstPracticalStep}</p>
+                      <p className="mt-2 text-sm leading-6 text-slate-700">{leadView.reportSummary.firstAction}</p>
                     </div>
                   </div>
                   <div className="admin-surface-muted rounded-2xl p-4">
@@ -853,19 +844,19 @@ export default async function AdminLeadDetailPage({
                       Recommended offer
                     </p>
                     <p className="mt-2 text-base font-semibold text-slate-950">
-                      {report.recommendedOffer.title}
+                      {leadView.reportSummary.recommendedOfferTitle}
                     </p>
                     <p className="mt-1.5 text-sm leading-6 text-slate-600">
-                      {report.recommendedOffer.description}
+                      {leadView.reportSummary.recommendedOfferDescription}
                     </p>
-                    <p className="mt-2 text-sm leading-6 text-slate-600">{report.recommendedOfferReason}</p>
+                    <p className="mt-2 text-sm leading-6 text-slate-600">{leadView.reportSummary.recommendedOfferReason}</p>
                   </div>
                 </div>
               ) : (
                 <div className="mt-4">
                   <EmptyState
                     title="No final report yet"
-                    description="This lead is still incomplete, so the advisory summary will appear after a full Pathway Finder submission."
+                    description="This lead is still incomplete, so the summary will appear after more intake details are captured."
                   />
                 </div>
               )}
@@ -878,10 +869,10 @@ export default async function AdminLeadDetailPage({
                 description="The quickest answers to scan before outreach."
               />
               <div className="mt-4 grid gap-3">
-                {keyAnswerRows.map(([label, value]) => (
+                {leadView.keyFacts.map(({ label, value }) => (
                   <div key={label} className="admin-surface-muted rounded-2xl px-4 py-3">
                     <p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">{label}</p>
-                    <p className="mt-1.5 text-sm text-slate-800">{formatAnswerValue(value ?? null)}</p>
+                    <p className="mt-1.5 text-sm text-slate-800">{value}</p>
                   </div>
                 ))}
               </div>
@@ -891,25 +882,25 @@ export default async function AdminLeadDetailPage({
 
         <section className="admin-surface rounded-[24px] p-5">
           <SectionHeader
-            eyebrow="Assessment"
-            title="Full Pathway Finder answers"
-            description="Assessment responses that inform qualification and next-step guidance."
+            eyebrow="Lead intake"
+            title="Captured intake answers"
+            description="Submitted answers that inform qualification and next-step guidance."
           />
           <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-            {answerEntries.length > 0 ? (
-              answerEntries.map(([key, value]) => (
-                <div key={key} className="admin-surface-muted rounded-2xl p-4">
+            {leadView.intakeAnswers.length > 0 ? (
+              leadView.intakeAnswers.map(({ label, value }) => (
+                <div key={label} className="admin-surface-muted rounded-2xl p-4">
                   <p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">
-                    {crmLabelize(key)}
+                    {label}
                   </p>
-                  <p className="mt-2 text-sm leading-6 text-slate-700">{formatAnswerValue(value, key)}</p>
+                  <p className="mt-2 text-sm leading-6 text-slate-700">{value}</p>
                 </div>
               ))
             ) : (
               <div className="md:col-span-2 xl:col-span-3">
                 <EmptyState
-                  title="No Pathway Finder answers yet"
-                  description="Assessment answers will appear here after the lead completes more of the intake journey."
+                  title="No intake answers yet"
+                  description="Captured answers will appear here after the lead completes more of the intake journey."
                 />
               </div>
             )}

@@ -5,13 +5,7 @@ import { ChevronDown } from "lucide-react";
 import { startTransition, useState } from "react";
 import type { AdminAccessLevel } from "@/lib/admin-permissions";
 import { cn } from "@/lib/cn";
-
-const labels: Record<AdminAccessLevel, string> = {
-  master_admin: "Master admin",
-  general_admin: "General admin",
-  lead_sales_rep: "Sales manager",
-  sales_rep: "Sales rep",
-};
+import { formatAdminAccessLevelLabel } from "@/lib/crm/formatters";
 
 export function AdminAccessViewSwitcher({
   actualAccessLevel,
@@ -54,7 +48,8 @@ export function AdminAccessViewSwitcher({
             View mode
           </p>
           <p className="mt-1 text-sm leading-5 text-slate-600">
-            Signed in as {labels[actualAccessLevel]}. Viewing as {labels[activeAccessLevel]}.
+            Signed in as {formatAdminAccessLevelLabel(actualAccessLevel)}. Viewing as{" "}
+            {formatAdminAccessLevelLabel(activeAccessLevel)}.
           </p>
         </div>
         <button
@@ -69,7 +64,9 @@ export function AdminAccessViewSwitcher({
 
       {isOpen ? (
         <div className="mt-3 flex flex-wrap gap-2 border-t border-slate-200 pt-3">
-          {(Object.keys(labels) as AdminAccessLevel[]).map((level) => {
+          {(
+            ["master_admin", "general_admin", "lead_sales_rep", "sales_rep"] as AdminAccessLevel[]
+          ).map((level) => {
             const isActive = level === activeAccessLevel;
             const isPending = pendingLevel === level;
 
@@ -87,7 +84,7 @@ export function AdminAccessViewSwitcher({
                   isPending && "opacity-70",
                 )}
               >
-                {isPending ? "Switching..." : labels[level]}
+                {isPending ? "Switching..." : formatAdminAccessLevelLabel(level)}
               </button>
             );
           })}

@@ -1,6 +1,14 @@
 import { getServerSession } from "next-auth";
+import type { Session } from "next-auth";
 import { redirect } from "next/navigation";
-import { isAdminAuthConfigured, isMasterAdminEmail } from "@/lib/admin-access";
+import {
+  getInitialAdminName,
+  isAdminAuthConfigured,
+  isLocalAdminPreviewEnabled,
+  isMasterAdminEmail,
+  LOCAL_ADMIN_PREVIEW_EMAIL,
+  LOCAL_ADMIN_PREVIEW_NAME,
+} from "@/lib/admin-access";
 import { getStoredAdminUserByEmail, hasAdminWorkspaceAccess } from "@/lib/admin-directory";
 import { resolveAdminAccessLevel } from "@/lib/admin-permissions";
 import {
@@ -17,8 +25,23 @@ function normalizeEmail(value?: string | null) {
   return value?.trim().toLowerCase() ?? "";
 }
 
+function buildLocalPreviewSession(): Session {
+  return {
+    user: {
+      email: LOCAL_ADMIN_PREVIEW_EMAIL,
+      name: LOCAL_ADMIN_PREVIEW_NAME,
+      image: null,
+    },
+    expires: new Date(Date.now() + 8 * 60 * 60 * 1000).toISOString(),
+  };
+}
+
 export async function getAdminSession() {
   if (!isAdminAuthConfigured()) {
+    if (isLocalAdminPreviewEnabled()) {
+      return buildLocalPreviewSession();
+    }
+
     return null;
   }
 
@@ -39,6 +62,10 @@ export async function getAdminSession() {
 
 export async function requireAdminSession(callbackPath = "/admin") {
   if (!isAdminAuthConfigured()) {
+    if (isLocalAdminPreviewEnabled()) {
+      return buildLocalPreviewSession();
+    }
+
     redirect(`/admin/signin?callbackUrl=${encodeURIComponent(callbackPath)}&error=Configuration`);
   }
 
@@ -99,9 +126,20 @@ export async function getCrmUserByEmail(email?: string | null) {
       return existingUser;
     }
 
+    const initialAdminName = getInitialAdminName();
+    if (!initialAdminName) {
+      if (process.env.NODE_ENV !== "production") {
+        console.warn(
+          "[crm:getCrmUserByEmail] INITIAL_ADMIN_NAME is required to bootstrap the initial admin user.",
+        );
+      }
+
+      return existingUser;
+    }
+
     return await leadStore.upsertCrmUser({
       email: normalizedEmail,
-      fullName: existingUser?.fullName || "Greatdorlin Wisdom",
+      fullName: existingUser?.fullName || initialAdminName,
       role: "admin",
       isActive: true,
     });

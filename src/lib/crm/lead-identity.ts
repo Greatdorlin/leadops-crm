@@ -1,4 +1,4 @@
-import type { LeadRecord } from "@/lib/pathway-engine/types";
+import type { LeadRecord } from "@/lib/crm/types";
 
 type LeadIdentity = Pick<LeadRecord, "id" | "firstName" | "lastName">;
 

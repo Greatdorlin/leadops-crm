@@ -7,7 +7,11 @@ import { LeadDataTable } from "@/components/admin/LeadDataTable";
 import { LeadLifecycleButton } from "@/components/admin/LeadLifecycleButton";
 import { getAdminAccessContext } from "@/lib/admin";
 import { canAccessLeadTrash } from "@/lib/admin-permissions";
+import { loadAdminLeadReadContext } from "@/lib/crm/admin-read-context";
+import { listCustomFields } from "@/lib/crm/custom-fields-admin";
+import { getTableVisibleCustomFields } from "@/lib/crm/custom-field-values";
 import { getCrmPageErrorCopy, logCrmPageError } from "@/lib/crm/runtime";
+import { buildAdminLeadListItem } from "@/lib/crm/view-models";
 import { leadStore } from "@/lib/storage";
 
 export const dynamic = "force-dynamic";
@@ -50,7 +54,7 @@ export default async function AdminLeadTrashPage({
       >
         <ErrorState
           title="Lead trash is not available"
-          description="Only master admin and general admin can open deleted leads."
+          description="Only owners and admins can open deleted leads."
         />
       </AdminShell>
     );
@@ -108,6 +112,17 @@ export default async function AdminLeadTrashPage({
   const { leads, totalLeads } = pageData;
   const totalPages = Math.max(1, Math.ceil(totalLeads / PAGE_SIZE));
   const currentPage = Math.min(requestedPage, totalPages);
+  const tableVisibleCustomFields = getTableVisibleCustomFields(await listCustomFields(), { limit: 4 });
+  const readContext = await loadAdminLeadReadContext(leads, { includeCustomFields: true });
+  const leadRows = leads.map((lead) =>
+    buildAdminLeadListItem(lead, {
+      stage: lead.stageId ? readContext.stagesById.get(lead.stageId) ?? null : null,
+      source: lead.sourceId ? readContext.sourcesById.get(lead.sourceId) ?? null : null,
+      owner: lead.assignedUserId ? readContext.ownersById.get(lead.assignedUserId) ?? null : null,
+      customFieldDefinitions: tableVisibleCustomFields,
+      customFieldValues: readContext.customFieldValuesByLeadId.get(lead.id) ?? [],
+    }),
+  );
 
   return (
     <AdminShell
@@ -132,7 +147,7 @@ export default async function AdminLeadTrashPage({
     >
       <div className="space-y-4">
         <LeadDataTable
-          leads={leads}
+          leads={leadRows}
           emptyTitle="Trash is empty"
           emptyDescription="Deleted leads will appear here until they are restored or removed permanently."
           renderActions={(lead) => (

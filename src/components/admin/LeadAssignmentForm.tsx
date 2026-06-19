@@ -3,9 +3,9 @@
 import { startTransition } from "react";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { CRM_STATUSES, LEAD_PRIORITIES } from "@/lib/crm/constants";
 import { crmLabelize } from "@/lib/crm/formatters";
-import type { CrmStatus, LeadPriority } from "@/lib/pathway-engine/types";
-import { CRM_STATUSES, LEAD_PRIORITIES } from "@/lib/pathway-engine/types";
+import type { CrmStatus, LeadPriority } from "@/lib/crm/types";
 import { AdminSelect } from "./AdminSelect";
 
 export interface LeadAssignmentOption {

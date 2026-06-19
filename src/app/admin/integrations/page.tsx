@@ -14,9 +14,9 @@ import {
   formatSyncJobTypeLabel,
 } from "@/lib/crm/formatters";
 import { getCrmPageErrorCopy, logCrmPageError } from "@/lib/crm/runtime";
+import type { IntegrationProvider, IntegrationRecord } from "@/lib/crm/types";
 import { hasConfiguredEnvValue } from "@/lib/env-utils";
 import { redirect } from "next/navigation";
-import type { IntegrationProvider, IntegrationRecord } from "@/lib/pathway-engine/types";
 import { leadStore } from "@/lib/storage";
 
 export const dynamic = "force-dynamic";

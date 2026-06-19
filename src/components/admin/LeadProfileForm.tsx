@@ -2,10 +2,24 @@
 
 import { startTransition, useState } from "react";
 import { useRouter } from "next/navigation";
+import {
+  buildCustomFieldInputModel,
+  type CustomFieldDefinitionWithOptions,
+} from "@/lib/crm/custom-field-values";
+import { PRIMARY_GOALS } from "@/lib/crm/constants";
 import { crmLabelize } from "@/lib/crm/formatters";
 import { nigeriaStateOptions } from "@/lib/nigeria-state-options";
-import { PRIMARY_GOALS, type PrimaryGoal } from "@/lib/pathway-engine/types";
+import type { PrimaryGoal } from "@/lib/crm/types";
+import { CustomFieldValueInputs } from "./CustomFieldValueInputs";
 import { AdminSelect } from "./AdminSelect";
+
+function formatDateTimeLocalValue(value?: string | null) {
+  if (!value) {
+    return "";
+  }
+
+  return value.slice(0, 16);
+}
 
 export function LeadProfileForm({
   leadId,
@@ -14,7 +28,16 @@ export function LeadProfileForm({
   initialEmail,
   initialWhatsappNumber,
   initialState,
+  initialCompanyName,
   initialPrimaryGoal,
+  initialEstimatedValue,
+  initialCloseProbability,
+  initialExpectedCloseDate,
+  initialNextFollowUpAt,
+  initialWonValue,
+  initialLostReason,
+  customFieldDefinitions = [],
+  initialCustomFieldValues = [],
 }: {
   leadId: string;
   initialFirstName: string;
@@ -22,15 +45,50 @@ export function LeadProfileForm({
   initialEmail: string;
   initialWhatsappNumber: string;
   initialState: string | null;
+  initialCompanyName?: string | null;
   initialPrimaryGoal: PrimaryGoal | null;
+  initialEstimatedValue?: number | null;
+  initialCloseProbability?: number | null;
+  initialExpectedCloseDate?: string | null;
+  initialNextFollowUpAt?: string | null;
+  initialWonValue?: number | null;
+  initialLostReason?: string | null;
+  customFieldDefinitions?: CustomFieldDefinitionWithOptions[];
+  initialCustomFieldValues?: Array<{ customFieldId: string; value: unknown }>;
 }) {
+  const customFieldInputModel = buildCustomFieldInputModel(
+    customFieldDefinitions.filter((field) => field.showInForm),
+    initialCustomFieldValues,
+  );
   const router = useRouter();
   const [firstName, setFirstName] = useState(initialFirstName);
   const [lastName, setLastName] = useState(initialLastName);
   const [email, setEmail] = useState(initialEmail);
   const [whatsappNumber, setWhatsappNumber] = useState(initialWhatsappNumber);
   const [state, setState] = useState(initialState ?? "");
-  const [primaryGoal, setPrimaryGoal] = useState<PrimaryGoal | "">(initialPrimaryGoal ?? "");
+  const [companyName, setCompanyName] = useState(initialCompanyName ?? "");
+  const [category, setCategory] = useState<PrimaryGoal | "">(initialPrimaryGoal ?? "");
+  const [estimatedValue, setEstimatedValue] = useState(
+    initialEstimatedValue === null || initialEstimatedValue === undefined ? "" : String(initialEstimatedValue),
+  );
+  const [closeProbability, setCloseProbability] = useState(
+    initialCloseProbability === null || initialCloseProbability === undefined
+      ? ""
+      : String(initialCloseProbability),
+  );
+  const [expectedCloseDate, setExpectedCloseDate] = useState(
+    formatDateTimeLocalValue(initialExpectedCloseDate),
+  );
+  const [nextFollowUpAt, setNextFollowUpAt] = useState(
+    formatDateTimeLocalValue(initialNextFollowUpAt),
+  );
+  const [wonValue, setWonValue] = useState(
+    initialWonValue === null || initialWonValue === undefined ? "" : String(initialWonValue),
+  );
+  const [lostReason, setLostReason] = useState(initialLostReason ?? "");
+  const [customFieldValues, setCustomFieldValues] = useState<Record<string, unknown>>(() =>
+    Object.fromEntries(customFieldInputModel.map((field) => [field.fieldId, field.value])),
+  );
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState("");
 
@@ -60,7 +118,15 @@ export function LeadProfileForm({
           email: email.trim() || null,
           whatsappNumber: whatsappNumber.trim() || null,
           state: state || null,
-          primaryGoal: primaryGoal || null,
+          companyName: companyName.trim() || null,
+          category: category || null,
+          estimatedValue: estimatedValue ? Number(estimatedValue) : null,
+          closeProbability: closeProbability ? Number(closeProbability) : null,
+          expectedCloseDate: expectedCloseDate || null,
+          nextFollowUpAt: nextFollowUpAt || null,
+          wonValue: wonValue ? Number(wonValue) : null,
+          lostReason: lostReason.trim() || null,
+          customFieldValues,
         }),
       });
 
@@ -83,10 +149,6 @@ export function LeadProfileForm({
 
   return (
     <div className="rounded-[24px] border border-slate-200/85 bg-[linear-gradient(180deg,rgba(250,251,255,0.98)_0%,rgba(255,252,247,0.95)_100%)] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.8)]">
-      <div className="mb-4 rounded-[18px] border border-slate-200/70 bg-white/72 px-4 py-3 text-sm leading-6 text-slate-500">
-        Keep the lead profile accurate so exports, follow-ups, and attribution stay reliable.
-      </div>
-
       <div className="grid gap-3 sm:grid-cols-2">
         <label className="space-y-2">
           <span className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">First name</span>
@@ -140,10 +202,10 @@ export function LeadProfileForm({
           </AdminSelect>
         </label>
         <label className="space-y-2">
-          <span className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Goal</span>
+          <span className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Category</span>
           <AdminSelect
-            value={primaryGoal}
-            onChange={(event) => setPrimaryGoal(event.target.value as PrimaryGoal | "")}
+            value={category}
+            onChange={(event) => setCategory(event.target.value as PrimaryGoal | "")}
             className="h-11"
           >
             <option value="">Not set yet</option>
@@ -154,7 +216,111 @@ export function LeadProfileForm({
             ))}
           </AdminSelect>
         </label>
+        <label className="space-y-2">
+          <span className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Company</span>
+          <input
+            type="text"
+            value={companyName}
+            onChange={(event) => setCompanyName(event.target.value)}
+            placeholder="Northwind Ventures"
+            className="admin-input h-11 w-full rounded-2xl px-4 text-sm outline-none"
+          />
+        </label>
       </div>
+
+      <section className="mt-4 space-y-3 rounded-[24px] border border-slate-200/85 bg-slate-50/70 p-4">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
+            Sales details
+          </p>
+          <p className="mt-1 text-sm text-slate-600">Keep pipeline value, follow-up timing, and outcomes current as the lead moves.</p>
+        </div>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <label className="space-y-2">
+            <span className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Next follow-up</span>
+            <input
+              type="datetime-local"
+              value={nextFollowUpAt}
+              onChange={(event) => setNextFollowUpAt(event.target.value)}
+              className="admin-input h-11 w-full rounded-2xl px-4 text-sm outline-none"
+            />
+          </label>
+          <label className="space-y-2">
+            <span className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Estimated value</span>
+            <input
+              type="number"
+              min="0"
+              step="0.01"
+              value={estimatedValue}
+              onChange={(event) => setEstimatedValue(event.target.value)}
+              className="admin-input h-11 w-full rounded-2xl px-4 text-sm outline-none"
+            />
+          </label>
+          <label className="space-y-2">
+            <span className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Close probability</span>
+            <input
+              type="number"
+              min="0"
+              max="100"
+              step="1"
+              value={closeProbability}
+              onChange={(event) => setCloseProbability(event.target.value)}
+              className="admin-input h-11 w-full rounded-2xl px-4 text-sm outline-none"
+            />
+          </label>
+          <label className="space-y-2">
+            <span className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Expected close date</span>
+            <input
+              type="datetime-local"
+              value={expectedCloseDate}
+              onChange={(event) => setExpectedCloseDate(event.target.value)}
+              className="admin-input h-11 w-full rounded-2xl px-4 text-sm outline-none"
+            />
+          </label>
+          <label className="space-y-2">
+            <span className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Won value</span>
+            <input
+              type="number"
+              min="0"
+              step="0.01"
+              value={wonValue}
+              onChange={(event) => setWonValue(event.target.value)}
+              className="admin-input h-11 w-full rounded-2xl px-4 text-sm outline-none"
+            />
+          </label>
+          <label className="space-y-2 sm:col-span-2">
+            <span className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Lost reason</span>
+            <textarea
+              value={lostReason}
+              onChange={(event) => setLostReason(event.target.value)}
+              rows={3}
+              placeholder="Why the lead was lost, if known."
+              className="admin-textarea min-h-[104px] w-full rounded-2xl px-4 py-3 text-sm outline-none"
+            />
+          </label>
+        </div>
+      </section>
+
+      {customFieldInputModel.length > 0 ? (
+        <section className="mt-4 space-y-3 rounded-[24px] border border-slate-200/85 bg-slate-50/70 p-4">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
+              Extra lead details
+            </p>
+            <p className="mt-1 text-sm text-slate-600">Keep the business-specific details current as this lead moves.</p>
+          </div>
+          <CustomFieldValueInputs
+            fields={customFieldInputModel}
+            values={customFieldValues}
+            onChange={(fieldId, value) =>
+              setCustomFieldValues((current) => ({
+                ...current,
+                [fieldId]: value,
+              }))
+            }
+          />
+        </section>
+      ) : null}
 
       <div className="mt-4 flex flex-col gap-3 border-t border-slate-200/80 pt-4">
         <button

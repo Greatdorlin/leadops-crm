@@ -1,334 +1,377 @@
-# Fly Connect Pathway Finder Agent Guide
+# Leads Desk Agent Guide
 
-This is a production Next.js App Router application. Treat correctness, system consistency, and local/live parity as higher priority than speed.
+This repository is in transition from an inherited FlyConnect / Pathway Finder codebase to a commercial private lead operations product called Leads Desk.
 
-## Workspace rules
+Treat the old FlyConnect, Pathway Finder, travel, study, visa, and relocation code as inherited reference material, not as the product definition.
 
-- Canonical local app root: `C:\Users\USER\OneDrive\Documents\Fly Connect Pathway Finder`
-- Canonical branch for parity checks: `main`
-- Local dev server for parity checks should run from the canonical root, not an older or side worktree.
-- Do not push directly to `main` unless the user explicitly asks for that. Use a branch and PR.
-- Do not treat this as a greenfield rebuild.
-- Do not create a new project or migrate the app to Astro, Vite, or another framework.
+## Product Identity
 
-## Read first
+- Commercial product name: `Leads Desk`
+- Do not use these names for the commercial product:
+  - `FlyConnect`
+  - `Fly Connect`
+  - `Pathway Finder`
+  - `LeadOps`
+  - `FunnelDesk`
+- Product promise: `Every lead, from every source, captured, assigned, followed up, customized, and reported in one private system.`
 
-Before making changes, read these files and use them as the primary source of truth:
+## Business Context
 
-- `docs/HANDOVER.md`
+Leads Desk is a productized private lead management offer, not generic contract development.
+
+Rules:
+
+- do not sell raw code
+- do not frame the work as generic CRM development
+- do not treat the repo like a dashboard experiment
+- package the value as a branded business system clients can buy and use
+- do not expose inherited FlyConnect logic, assets, copy, or internal language to customers
+
+## Current Repo Reality
+
+The current repo still contains:
+
+- FlyConnect branding and metadata
+- public assessment routes and a pathway engine
+- travel/study-specific copy and assets
+- Neon-specific storage naming
+- hardcoded personal/admin email behavior
+- early CRM/admin functionality that may be reusable in parts
+
+Important:
+
+- Do not assume inherited behavior is correct for Leads Desk.
+- Do not blindly rename old files and call the migration complete.
+- Do not remove risky legacy files until replacement architecture is ready and verified.
+- Do not present legacy public flows as part of the Leads Desk product.
+
+## Read First
+
+Before making non-trivial changes, read:
+
+- `AGENTS.md`
+- `docs/IMPLEMENTATION_PLAN.md`
+- `docs/INFRASTRUCTURE_STRATEGY.md`
+- `docs/MVP_SCOPE.md`
+- `docs/CODEX_WORKFLOW.md`
+- `docs/CUSTOMIZATION_ARCHITECTURE.md`
+- `docs/VERTICAL_PRESETS.md`
+- `docs/UI_CUSTOMIZATION_STANDARD.md`
+- `docs/COPY_AND_CONTENT_STANDARD.md`
+- `docs/SECURITY_AND_PERMISSIONS.md`
+- `docs/DATA_MODEL_PLAN.md`
+- `docs/DEPLOYMENT_BUCKETS.md`
 - `package.json`
 - `next.config.ts`
 - `tsconfig.json`
-- `src/app/page.tsx`
-- `src/app/start/page.tsx`
-- `src/app/pathway-finder/page.tsx`
-- `src/app/results/[token]/page.tsx`
-- `src/app/privacy/page.tsx`
-- `src/app/delete-my-data/page.tsx`
-- `src/app/globals.css`
-- `src/components/brand/PathwayFinderLogo.tsx`
-- `src/components/assessment/StitchEntryFlow.tsx`
-- `src/components/assessment/AssessmentShell.tsx`
-- `src/components/assessment/AssessmentStep.tsx`
-- `src/components/assessment/OptionCard.tsx`
-- `src/components/assessment/ProgressHeader.tsx`
-- `src/store/assessment-store.ts`
-- `src/lib/pathway-engine/types.ts`
-- `src/lib/pathway-engine/schemas.ts`
-- `src/lib/pathway-engine/questions.ts`
-- `src/lib/pathway-engine/study-knowledge.ts`
-- `src/lib/pathway-engine/report-generator.ts`
-- `src/lib/storage/index.ts`
-- `src/lib/storage/neon-store.ts`
-- `src/lib/google-sheets/*`
-- `src/lib/sender/*`
-- `src/app/api/assessment/submit/route.ts`
-- `src/app/api/assessment/draft/route.ts`
-- `src/app/api/assessment/report/[token]/route.ts`
-- `src/app/api/waitlist/submit/route.ts`
-- `src/app/api/admin/leads/route.ts`
-- `src/components/admin/*`
+- `.env.example`
+- `src/lib/db/schema.ts`
+- `src/lib/db/env.ts`
+- `src/lib/db/client.ts`
+- `src/lib/auth.ts`
 - `src/lib/admin.ts`
+- `src/lib/admin-access.ts`
+- `src/lib/storage/index.ts`
 
-If one listed path appears missing, inspect nearby folders before assuming the architecture changed. Example: bracketed App Router paths such as `src/app/results/[token]/page.tsx` and `src/app/api/assessment/report/[token]/route.ts` exist and must be read with literal-path-safe commands.
+If the task touches a reused legacy area, also inspect the relevant inherited files before editing them.
 
-## Stack and architecture
+Legacy reference documents that may still explain inherited behavior:
 
-- Framework: Next.js 16 App Router
-- Language: TypeScript with `strict: true`
-- UI: React, Tailwind CSS v4, local brand assets, `lucide-react`, `framer-motion`
-- State: Zustand persisted to `sessionStorage` with a `hasHydrated` route gate
-- Validation: Zod
-- Persistence: Neon PostgreSQL through the storage abstraction in `src/lib/storage`
-- Admin auth: NextAuth/Auth.js with Google sign-in and server-side workspace access checks
-- Integrations: Google Sheets and Sender.net from server-side code only
+- `docs/HANDOVER.md`
+- `docs/AD_INTEGRATIONS_SETUP.md`
+- `docs/REPORT_KNOWLEDGE_MAP.md`
 
-Main commands:
+Those legacy docs are reference material only. They are not the product source of truth for Leads Desk.
 
-- `npm run lint`
-- `npm run build`
-- `npm run test`
-- `npm run db:generate`
-- `npm run db:push`
+## Core Working Rules
 
-## Product intent
+- Quality and system stability matter more than speed.
+- Do not proceed to Phase 1 implementation until the documentation foundation is reviewed.
+- Do not break the current build while laying the new foundation.
+- Do not do a greenfield rewrite unless the user explicitly asks for one.
+- Do not ship partial migrations that leave the repo half-old-product and half-new-product without clear boundaries.
+- Preserve existing behavior unless the task explicitly changes it.
+- Prefer small, well-scoped, system-aware changes over broad speculative rewrites.
+- Reuse good infrastructure, utilities, and patterns where they fit the new product.
+- Replace old product assumptions deliberately, not cosmetically.
 
-Pathway Finder should feel like:
+## Naming And Copy Rules
 
-- a premium rule-based diagnosis tool
-- a guided pathway assessment
-- a personality-test-like onboarding for travel direction
-- a calm, serious, warm, professional decision guide
+For new commercial docs, UI copy, architecture, and code comments:
 
-It should not feel like:
+- Use `Leads Desk`.
+- Use `lead`, `owner`, `follow-up`, `team`, `branch`, `department`, `report`, and `settings`.
+- Keep language plain, short, and business-facing.
 
-- a generic travel agency site
-- a visa eligibility checker
-- an AI chatbot
-- a dashboard template outside `/admin`
+Do not introduce or preserve in new customer-facing work:
 
-## Current route boundaries
+- travel/study/visa/relocation terminology
+- assessment/pathway/advisor wording
+- FlyConnect-specific branding
+- old support emails or domain references
+- internal implementation jargon on product pages
 
-Public routes:
+Legacy files may still contain old names until they are deliberately migrated. Document them when found. Do not normalize them away silently.
 
-- `/` landing page
-- `/start` Stitch-style intro flow
-- `/pathway-finder` continuation of the live assessment
-- `/results/[token]` report page
-- `/consultation/pathway-review`
-- `/privacy`
-- `/delete-my-data`
+## Architecture Guardrails
 
-Admin route:
+Leads Desk is:
 
-- `/admin`
+- a private lead operations system
+- single-tenant per client deployment
+- one client app instance per deployment
+- one client database per deployment
+- customizable without custom code forks for normal client variation
 
-Important route rules:
+Leads Desk is not, in the current phase:
 
-- `/start` owns trust, first-name, greeting, and primary-goal screens.
-- `/pathway-finder` must resume after `/start`; do not duplicate the intro flow there.
-- Only `study_abroad` is live in the public assessment.
-- Other primary goals stay coming-soon and route to Sender waitlist capture.
-- Final analysis/loading belongs at report generation, not near the beginning.
+- full SaaS multi-tenancy
+- a per-user subscription CRM clone
+- an integration-first product
+- an AI product
+- a travel assessment app
 
-## Current data flow
+## Deployment Guardrails
 
-Assessment:
+The app must remain:
 
-1. Draft checkpoints persist through `/api/assessment/draft`.
-2. Completed reports persist through `/api/assessment/submit`.
-3. Public report snapshots are loaded through `/api/assessment/report/[token]`.
-4. Live storage is Neon through `leadStore = new NeonLeadStore()`.
+- Docker-ready
+- Vercel-compatible
+- provider-neutral
+- Postgres-backed through `DATABASE_URL`
+- deployable on a VPS or managed cloud
 
-Waitlist:
+For new code:
 
-- Coming-soon goal waitlists go directly to Sender.net through `/api/waitlist/submit`.
-- Do not describe the waitlist as Neon-backed.
+- use `DATABASE_URL`
+- do not introduce new `NEON_*` or `PATHWAYFINDER_*` env names
+- do not hardcode Vercel, Neon, DigitalOcean, or any hosting provider
+- do not assume one deployment style for every client
 
-Google Sheets:
+Inherited compatibility fallbacks may remain temporarily during migration, but new platform work must target the neutral contract documented in `docs/INFRASTRUCTURE_STRATEGY.md`.
 
-- Treat as a sync/export target, not the source of truth.
-- App must not crash if Sheets is not configured.
+## Auth And Access Rules
 
-## Assessment and report rules
+Default auth direction:
 
-- Keep pathway definitions, scoring, copy, validation, and study knowledge modular under `src/lib/pathway-engine/`.
-- `src/lib/pathway-engine/study-knowledge.ts` is the launch-stage source of truth for study guidance.
-- Only `live` study cards may appear in public-facing results.
-- `ready_for_review` cards are advisor-facing, not public.
-- `draft` and `archived` cards must not be recommended publicly.
-- Advisor-only and internal-only study data must not leak to browser-facing payloads.
-- Missing fields must be tracked explicitly instead of guessed.
-- Passport readiness must stay first-step priority when the user has no passport.
-- Prior refusals must trigger caution before major spending.
+- Next.js App Router
+- Auth.js / NextAuth
+- Google OAuth first
+- verified email checks
+- optional allowed-domain restriction
+- Postgres-backed user record
+- server-enforced roles and scopes
 
-Public results may show:
+Do not:
 
-- one public study direction
-- fit summary
-- why-this-fits highlights
-- biggest blocker
-- first practical step
-- key requirements
-- questions to clarify
-- document readiness tracker
-- financial roadmap summary
-- milestone timeline
-- consultation agenda
+- rely on frontend-only permission hiding
+- hardcode personal admin emails as product behavior
+- weaken auth to bypass stale account/session problems
+- make password auth the default
 
-Internal/admin-only data may remain stored server-side:
+If password auth is added later, it must be optional and off by default.
 
-- matched product IDs
-- triggered rule IDs
-- advisor notes
-- disclosure warnings
-- missing fields
-- internal study guidance
+## Security Rules
 
-## Admin and auth rules
+- Google OAuth is the default authentication path.
+- Backend APIs must enforce permissions.
+- Do not rely on frontend hiding for security.
+- No hardcoded personal emails, company-specific backdoors, or silent bypass rules.
+- Keep secrets, API keys, allowlists, and database credentials out of client code.
+- Log important access, export, customization, and user-management events through audit logs.
+- Keep technical settings under an `Advanced` area when surfaced in product UI.
 
-- Keep server-side session checks on `/admin`.
-- Keep server-side session checks on `/api/admin/*`, `/api/google-sheets/*`, and `/api/sender/*` paths that require admin access.
-- Do not expose admin data to public routes.
-- Preserve the CRM-style workspace patterns already established in `src/components/admin/*`.
-- Keep CRM status separate from readiness/report status.
+## Data Model Direction
 
-Current auth model:
+Leads Desk must support:
 
-- Google sign-in uses NextAuth/Auth.js.
-- Sign-in and error pages point to `/admin/signin`.
-- Access depends on server-side workspace checks, not client-only state.
-- `MASTER_ADMIN_EMAILS` and allowlists are server-only concerns.
+- users
+- teams
+- branches
+- departments
+- leads
+- lead tasks
+- notes
+- lead events
+- audit logs
+- custom fields
+- theme settings
+- dashboard layouts and widgets
+- lead stages
+- lead sources
 
-## Constant account switching
+Rules:
 
-Assume the operator may switch Google accounts frequently to continue work on admin.
+- keep core lead fields as real database columns
+- use custom-field tables for client-specific extensions
+- archive instead of hard delete for customization entities
+- enforce scoped access on the backend
+- design for large lead volumes and filtered server-side access
 
-Because of that:
+Any change that adds or changes stored data must be checked across:
 
-- Treat `AccessDenied` on `/admin/signin` as a likely account/session mismatch first, not automatically a code bug.
-- Before changing auth logic, verify which Google account is currently active in the browser session.
-- Prefer signing out cleanly before switching to another admin account.
-- Do not weaken allowlist checks just to get past a stale session problem.
-- If local and live behave differently on admin, compare both the active signed-in account and the environment config before editing code.
-- Keep `AUTH_SECRET`, `AUTH_GOOGLE_ID`, `AUTH_GOOGLE_SECRET`, `ADMIN_ALLOWED_EMAILS`, `LEAD_EXPORT_ALLOWED_EMAILS`, `SENDER_*`, `GOOGLE_SHEETS_*`, and database URLs out of client code.
+`Input -> Storage -> Processing -> Display -> Summary -> Export`
 
-## Local/live parity protocol
+## Performance Rules
 
-Do not assume local and live are aligned just because the UI looks close.
+- Design for 1 to 1,000+ users and 1 to 1,000,000+ leads over time.
+- Use server-side filtering.
+- Prefer cursor pagination where practical.
+- Avoid offset-only patterns as the default for large operational lists.
+- Keep core lead fields as real columns.
+- Use custom-field tables for extensions, not one giant metadata blob.
+- Keep export and reporting flows background-job-friendly for future scale.
+- Add indexes deliberately for ownership, scope, status, timestamps, and task due dates.
 
-These instructions reduce drift only when they are followed. They do not automatically keep local and live in sync by themselves.
+## Customization Rules
 
-For any task that touches deployment-sensitive code, admin behavior, public report output, or shared data flow, parity checks are mandatory both before and after the work.
+Customization must be controlled, safe, and database-backed.
 
-Do not tell the user local and live are aligned unless those checks were actually run in the current task.
+Allowed customization directions:
 
-Before declaring parity, verify all of the following:
+- company branding
+- appearance tokens
+- dashboard widgets and layouts
+- lead stages
+- lead sources
+- role labels
+- entity labels
+- custom fields
+- preset-driven defaults
 
-1. The canonical root checkout is on the expected branch and SHA.
-2. `main` in the canonical root is aligned with `origin/main` if the goal is live parity.
-3. The dev server on `localhost:3000` is actually running from the canonical root, not a stale worktree.
-4. The relevant local route and live route are both inspected.
-5. Auth/account state is checked if the route is admin-protected.
+Do not:
 
-Recommended checks:
+- require code changes for normal client-level field or stage changes
+- hard delete fields, stages, or sources by default
+- let one client customization mutate the product architecture globally
+- turn customization into arbitrary code injection
 
-- `git status --short --branch`
-- `git rev-parse HEAD origin/main`
-- `git worktree list`
-- inspect the process serving port `3000`
-- confirm the visible browser tab is on the intended local route
+See `docs/CUSTOMIZATION_ARCHITECTURE.md` and `docs/VERTICAL_PRESETS.md`.
 
-If you intentionally use a side worktree:
+## UI Rules
 
-- say so explicitly
-- keep the canonical root clean unless the task requires changing it
-- do not let the side worktree silently become the user's mental model of `main`
+The current admin UI is a functional reference, not the final commercial design.
 
-Required preflight for parity-sensitive tasks:
+The target Leads Desk UI must be:
 
-1. confirm the canonical root path
-2. confirm the active branch and SHA
-3. confirm whether `origin/main` is the comparison target
-4. confirm which worktree is serving `localhost:3000`
-5. confirm the relevant account/session state when testing admin
+- modern
+- calm
+- premium
+- fast
+- action-oriented
+- easy to demo
+- easy for nontechnical users
 
-Required post-task parity check when local/live alignment matters:
+The UI must not depend on long explanations to make sense.
 
-1. reload the affected local route
-2. inspect the affected live route when accessible
-3. confirm local server root again
-4. confirm any admin account/session assumptions again if auth was involved
-5. report any remaining mismatch explicitly instead of implying parity
+Follow `docs/UI_CUSTOMIZATION_STANDARD.md` for:
 
-## UI and UX rules
+- copy limits
+- layout rules
+- dashboard rules
+- table rules
+- form rules
+- settings rules
+- liquid glass usage
+- responsive behavior
+- banned patterns
 
-Approved visual anchors:
+## MVP Scope Guardrails
 
-- first-name screen
-- greeting transition screen
-- primary-goal screen
+Build now or next:
 
-Preserve:
+- dashboard
+- leads list
+- lead detail
+- notes
+- tasks
+- reports
+- export data
+- settings
+- appearance customization foundation
+- dashboard customization foundation
+- lead fields customization foundation
+- lead stages customization foundation
+- lead sources customization foundation
+- audit logging foundation
 
-- dark navy full-screen compositions
-- premium centered layouts
-- strong Barlow Condensed display headlines
-- Manrope body copy
-- deliberate spacing and alignment
-- compact, mobile-first layouts that still feel polished on desktop
-- interactive option states
-- local-market-aware greetings and language
-- minimal clutter
+Do not build yet unless explicitly requested:
 
-Avoid:
+- full SaaS multi-tenancy
+- billing
+- native Meta/TikTok/LinkedIn core integrations
+- WhatsApp automation core dependency
+- Telegram core dependency
+- AI features
+- mobile app
+- full workflow builder
+- full drag-and-drop builder
 
-- split-screen wizard templates
-- explanatory side panels
-- generic SaaS cards
-- generic `Hello` background treatments where local greetings are expected
-- uneven option-card typography
-- admin-dashboard styling outside `/admin`
+## Migration Rules
 
-## Non-negotiables
+When migrating legacy code:
 
-- Do not expose secrets, API keys, Google private keys, Sender keys, Neon URLs, or allowlists in client code.
-- Do not make visa, scholarship, loan, admission, employment, PR, funding, or relocation guarantees.
-- Do not invent eligibility results, provider names, school names, or financial guidance outside the typed knowledge layer.
-- Do not reintroduce the removed split-panel questionnaire layout.
-- Do not re-add the intro/trust/name/greeting/primary-goal screens inside `/pathway-finder`.
-- Do not reset the intro flow automatically on every `/start` mount.
-- Do not replace the approved Stitch-inspired flow with generic dashboard or agency-template styling.
-- Do not use recreated logo drawings; use the provided Pathway Finder logo assets.
-- Do not call UI work complete without checking mobile, tablet, and desktop.
+- identify whether the file is reusable, transitional, or destined for removal
+- document risky inherited assumptions before editing
+- separate brand rename work from domain-logic replacement when possible
+- avoid mixing new product architecture with old assessment behavior in the same change unless required
+- keep legacy public flows working until replacements exist or the user approves removal
 
-## Verification requirements
+## Verification Requirements
 
 For non-trivial changes, run:
 
 - `npm run lint`
 - `npm run build`
-- `npm run test` when pathway-engine, validation, storage, admin auth, or report logic changes
+- `npm run test` when auth, storage, schema, calculation, or report logic changes
 
-Also verify affected routes manually, including responsive behavior where UI changed.
+When UI changes:
 
-For admin/auth changes, verify:
+- verify desktop behavior
+- verify tablet behavior
+- verify mobile behavior
+- check loading, empty, and error states
+- check for console/runtime issues when practical
 
-- signed-out state
-- signed-in state
-- wrong-account or not-allowlisted behavior
-- local and live parity where relevant
+When data flow changes:
 
-For local/live-sensitive changes, also verify:
+- confirm where data is stored
+- confirm how it is retrieved
+- confirm where it is displayed
+- confirm where it is calculated
+- confirm where it is exported
 
-- the canonical root checkout is still the one serving local
-- the tested local SHA matches the intended branch target
-- the route comparison used the same account assumptions on both local and live
+If any of those are missing, the change is incomplete.
 
-## Reporting after each task
+## Reporting Requirements
 
-Always report:
+After each task, report:
 
 - what changed
 - files changed
-- routes reviewed
+- what was audited
 - tests/checks run
 - responsive checks performed
-- data/privacy risks considered
-- what remains below standard
-- next recommended fix
+- whether frontend and backend stayed aligned
+- whether schema or persistence changed
+- whether calculations changed
+- whether exports or reports were updated
+- risks and edge cases
+- what remains unverified
+- next recommended step
 
-If local/live parity was part of the task, also report:
+## Immediate Priorities
 
-- which SHA local used
-- which SHA `origin/main` used
-- which worktree served `localhost:3000`
-- which account/session assumptions were verified for admin
+The current phase is foundation, not a risky rewrite.
 
-## Current reality notes
+Prioritize:
 
-- The live study flow is Neon-backed through the storage abstraction.
-- The waitlist flow is Sender-backed.
-- `/results/[token]` currently renders through `ResultsClient`.
-- `/delete-my-data` exists as a route, but the current implementation redirects to `/`. Do not describe it as a fully implemented deletion workflow unless you build that workflow.
-- `main` should remain the trustworthy local mirror of live unless the user explicitly asks to work from another branch or worktree.
+1. product rules and migration discipline
+2. provider-neutral infrastructure direction
+3. MVP scope clarity
+4. customization architecture
+5. UI standards
+6. safe phased replacement of legacy FlyConnect behavior
+
+If speed conflicts with quality, choose quality.
+If local cleanup conflicts with system stability, protect system stability.

@@ -4,22 +4,22 @@ export default function PrivacyPage() {
   return (
     <LegalPageLayout
       title="Privacy Policy"
-      description="This page explains how Fly Connect Global handles the information you share while using the Pathway Finder tool."
+      description="This page explains how Leads Desk handles information stored in a private lead management workspace."
       sections={[
         {
           heading: "What we collect",
           body:
-            "We collect the answers you provide in the assessment, along with the contact details you choose to share so we can prepare your pathway report and, if requested, follow up with support.",
+            "Leads Desk stores the business contact details, ownership updates, notes, tasks, and workflow settings needed to run daily lead operations.",
         },
         {
           heading: "How we use your information",
           body:
-            "Your information is used to generate guidance, improve your report accuracy, and help our team understand when additional advisor support may be useful. We do not ask for sensitive financial or identity documents during this early assessment flow.",
+            "Your information is used to capture leads, assign work, track follow-ups, power reports, and support exports inside the private workspace your organization controls.",
         },
         {
-          heading: "How long we keep it",
+          heading: "Access and retention",
           body:
-            "Assessment data is retained only as long as needed for service delivery, support, compliance, and legitimate operational review.",
+            "Access should be limited to authorized users. Retention, exports, and removal policies should follow your organization’s operational and compliance requirements.",
         },
       ]}
     />

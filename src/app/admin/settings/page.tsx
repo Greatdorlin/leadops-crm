@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { AdminShell } from "@/components/admin/AdminShell";
 import { AdminSignOutButton } from "@/components/admin/AdminSignOutButton";
@@ -17,7 +18,13 @@ import {
   resolveAdminAccessLevel,
 } from "@/lib/admin-permissions";
 import {
-  crmLabelize,
+  canManageCustomFields,
+  canManageFormSources,
+  canManageLeadSources,
+  canManageLeadStages,
+  canManageSalesTargets,
+} from "@/lib/crm/authz";
+import {
   formatAdminAccessLevelLabel,
   formatIntegrationProviderLabel,
   formatIntegrationStatusLabel,
@@ -53,6 +60,11 @@ export default async function AdminSettingsPage() {
   const canGrantAccess = grantableAccessLevels.length > 0;
   const showFullAdminSettings = canEditTeamAccess(accessLevel);
   const canEditRoster = canManageTeamRoster(accessLevel);
+  const canOpenCustomFields = canManageCustomFields({ accessLevel, role });
+  const canOpenFormSources = canManageFormSources({ accessLevel, role });
+  const canOpenLeadStages = canManageLeadStages({ accessLevel, role });
+  const canOpenLeadSources = canManageLeadSources({ accessLevel, role });
+  const canOpenSalesTargets = canManageSalesTargets({ accessLevel, role });
   let pageData:
     | {
         users: Awaited<ReturnType<typeof leadStore.listCrmUsers>>;
@@ -126,8 +138,8 @@ export default async function AdminSettingsPage() {
                   title="Add or update team members"
                   description={
                     accessLevel === "lead_sales_rep"
-                      ? "Sales managers can grant CRM access to sales reps."
-                      : "Manage who can sign in and which admin role they should receive."
+                      ? "Team leads can grant workspace access to sales reps."
+                      : "Manage who can sign in and which workspace role they should receive."
                   }
                 />
                 <div className="mt-4">
@@ -245,11 +257,11 @@ export default async function AdminSettingsPage() {
                       description="A quick reference for each admin role."
                     />
                     <div className="mt-4 grid gap-3 md:grid-cols-2">
-                      {[
-                        ["Master admin", "Full admin access, reporting, setup, and team management."],
-                        ["General admin", "Lead review, task management, sales oversight, reports, and everyday settings."],
-                        ["Sales manager", "Team sales view, task assignment, follow-up coverage, and team performance."],
-                        ["Sales rep", "Assigned leads, personal tasks, and individual performance."],
+                      {[ 
+                        ["Owner", "Full company access, exports, settings, and team management."],
+                        ["Admin", "Operational admin access, lead oversight, reports, and everyday settings."],
+                        ["Team Lead", "Team visibility, task assignment, follow-up coverage, and rep support."],
+                        ["Sales Rep", "Assigned leads, personal tasks, and individual performance."],
                       ].map(([title, copy]) => (
                         <div key={title} className="admin-surface-muted rounded-2xl p-4">
                           <p className="text-sm font-semibold text-slate-950">{title}</p>
@@ -262,18 +274,71 @@ export default async function AdminSettingsPage() {
 
                 <section className="admin-surface rounded-[24px] p-5">
                   <SectionHeader
-                    eyebrow="Lead statuses"
-                    title="Pipeline stages"
-                    description="Saved stages used across leads, dashboards, and reports."
+                    eyebrow="Workspace"
+                    title="Client-ready settings"
+                    description="Open the exact setup area you need without digging through technical screens."
                   />
-                  <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-                    {statusDefinitions.map((status) => (
-                      <div key={status} className="admin-surface-muted rounded-2xl px-4 py-3 text-sm text-slate-700">
-                        {crmLabelize(status)}
-                      </div>
-                    ))}
+                  <div className="mt-4 grid gap-3 md:grid-cols-2">
+                    {[
+                      { label: "Company Profile", href: "/admin/settings", enabled: true, copy: "Team access, company-level setup, and owner controls." },
+                      { label: "Lead Fields", href: "/admin/settings/fields", enabled: canOpenCustomFields, copy: "Define the extra lead details your business tracks." },
+                      { label: "Form Sources", href: "/admin/settings/form-sources", enabled: canOpenFormSources, copy: "Map website, webhook, CSV, and manual sources." },
+                      { label: "Lead Stages", href: "/admin/settings/stages", enabled: canOpenLeadStages, copy: "Control the stages used across pipeline reporting." },
+                      { label: "Lead Sources", href: "/admin/settings/sources", enabled: canOpenLeadSources, copy: "Keep source labels clean for reporting and exports." },
+                      { label: "Sales Targets", href: "/admin/settings/sales-targets", enabled: canOpenSalesTargets, copy: "Track monthly goals and progress on the dashboard." },
+                      { label: "Users / Team Access", href: "#team-access", enabled: canGrantAccess, copy: "Create users and control who can work inside the workspace." },
+                      { label: "Export Data", href: "/admin/reports", enabled: true, copy: "Review performance and export current lead data." },
+                      { label: "Advanced", href: "/admin/intake", enabled: canOpenFormSources, copy: "Review webhook intake logs and debug failed submissions." },
+                    ]
+                      .filter((item) => item.enabled)
+                      .map((item) => (
+                        <Link
+                          key={item.label}
+                          href={item.href}
+                          className="admin-surface-muted rounded-2xl p-4 transition hover:border-slate-300 hover:bg-white"
+                        >
+                          <p className="text-sm font-semibold text-slate-950">{item.label}</p>
+                          <p className="mt-2 text-sm leading-6 text-slate-600">{item.copy}</p>
+                        </Link>
+                      ))}
                   </div>
                 </section>
+
+                {canOpenCustomFields ? (
+                  <section className="admin-surface rounded-[24px] p-5">
+                    <SectionHeader
+                      eyebrow="Lead fields"
+                      title="Field definitions"
+                      description="Manage the extra lead details your business wants to capture."
+                    />
+                    <div className="mt-4">
+                      <Link
+                        href="/admin/settings/fields"
+                        className="admin-button-secondary inline-flex h-11 items-center justify-center rounded-2xl px-5 text-sm font-medium"
+                      >
+                        Open Lead Fields
+                      </Link>
+                    </div>
+                  </section>
+                ) : null}
+
+                {canOpenFormSources ? (
+                  <section className="admin-surface rounded-[24px] p-5">
+                    <SectionHeader
+                      eyebrow="Form sources"
+                      title="Source mappings"
+                      description="Define where leads come from and how each source maps into your lead records."
+                    />
+                    <div className="mt-4">
+                      <Link
+                        href="/admin/settings/form-sources"
+                        className="admin-button-secondary inline-flex h-11 items-center justify-center rounded-2xl px-5 text-sm font-medium"
+                      >
+                        Open Form Sources
+                      </Link>
+                    </div>
+                  </section>
+                ) : null}
               </div>
 
               <div className="space-y-6 xl:col-span-5">
@@ -304,14 +369,20 @@ export default async function AdminSettingsPage() {
                   />
                   <div className="mt-4 grid gap-3">
                     {[
-                      "Task reminders appear in the daily task view.",
-                      "Dashboards surface the most important queue first.",
-                      "Lead notes and activity history keep handoffs clean.",
+                      "Assigned lead alerts appear in the notification inbox.",
+                      "Webhook captures can create intake alerts and assignment notifications.",
+                      "Follow-up reminders depend on the saved next follow-up date and ownership.",
                     ].map((item) => (
                       <div key={item} className="admin-surface-muted rounded-2xl px-4 py-3 text-sm text-slate-700">
                         {item}
                       </div>
                     ))}
+                    <Link
+                      href="/admin/notifications"
+                      className="admin-button-secondary inline-flex h-11 items-center justify-center rounded-2xl px-5 text-sm font-medium"
+                    >
+                      Open Notifications
+                    </Link>
                   </div>
                 </section>
 

@@ -1,5 +1,5 @@
-import { StitchEntryFlow } from "@/components/assessment/StitchEntryFlow";
+import { redirect } from "next/navigation";
 
 export default function StartPage() {
-  return <StitchEntryFlow />;
+  redirect("/");
 }

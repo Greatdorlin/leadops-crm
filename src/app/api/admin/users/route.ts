@@ -4,10 +4,10 @@ import { isMasterAdminEmail, normalizeAdminEmail } from "@/lib/admin-access";
 import { getAdminRequestContext } from "@/lib/admin";
 import {
   ADMIN_ACCESS_LEVELS,
-  canManageSettings,
   getGrantableAccessLevels,
   getStoredRoleForAccessLevel,
 } from "@/lib/admin-permissions";
+import { canManageUsers } from "@/lib/crm/authz";
 import { leadStore } from "@/lib/storage";
 
 const crmUserSchema = z.object({
@@ -23,9 +23,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
   }
 
-  if (
-    !canManageSettings(context.accessLevel, context.role)
-  ) {
+  if (!canManageUsers({ accessLevel: context.accessLevel, role: context.role })) {
     return NextResponse.json({ error: "Forbidden." }, { status: 403 });
   }
 

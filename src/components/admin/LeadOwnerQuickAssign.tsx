@@ -2,7 +2,7 @@
 
 import { startTransition, useState } from "react";
 import { useRouter } from "next/navigation";
-import type { CrmStatus, LeadPriority } from "@/lib/pathway-engine/types";
+import type { CrmStatus, LeadPriority } from "@/lib/crm/types";
 import { AdminSelect } from "./AdminSelect";
 
 export function LeadOwnerQuickAssign({

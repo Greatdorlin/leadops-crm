@@ -1,5 +1,5 @@
 import { emptyAnswers } from "@/lib/assessment/defaults";
-import type { AssessmentAnswers } from "@/lib/pathway-engine/types";
+import type { AssessmentAnswers } from "@/lib/crm/types";
 
 export function normalizeEmail(value?: string | null) {
   return value?.trim().toLowerCase() ?? "";

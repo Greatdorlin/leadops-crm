@@ -1,5 +1,5 @@
 {
-  "name": "fly-connect-pathway-finder",
+  "name": "leads-desk",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -9,7 +9,10 @@
     "lint": "eslint",
     "test": "tsx --test \"src/**/*.test.ts\"",
     "db:generate": "drizzle-kit generate",
-    "db:push": "drizzle-kit push"
+    "db:push": "drizzle-kit push",
+    "db:seed:defaults": "tsx src/scripts/seed-defaults.ts",
+    "db:seed:defaults:full": "tsx src/scripts/seed-defaults.ts --with-custom-fields",
+    "db:seed:demo": "tsx src/scripts/seed-demo.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.4.0",

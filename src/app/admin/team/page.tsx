@@ -15,7 +15,9 @@ import {
 } from "@/lib/admin-insights";
 import { canViewSalesTeam } from "@/lib/admin-permissions";
 import { crmLabelize, formatCrmDateTime } from "@/lib/crm/formatters";
+import { loadAdminLeadReadContext } from "@/lib/crm/admin-read-context";
 import { getCrmPageErrorCopy, logCrmPageError } from "@/lib/crm/runtime";
+import { buildAdminLeadListItem } from "@/lib/crm/view-models";
 import { leadStore } from "@/lib/storage";
 
 export const dynamic = "force-dynamic";
@@ -86,6 +88,15 @@ export default async function AdminTeamPage() {
       label: user.fullName || user.email,
     }));
   const unassignedLeads = leads.filter((lead) => !lead.assignedTo).slice(0, 8);
+  const readContext = await loadAdminLeadReadContext(unassignedLeads);
+  const unassignedLeadRows = unassignedLeads.map((lead) =>
+    buildAdminLeadListItem(lead, {
+      nextFollowUpAt: nextFollowUpByLeadId[lead.id],
+      stage: lead.stageId ? readContext.stagesById.get(lead.stageId) ?? null : null,
+      source: lead.sourceId ? readContext.sourcesById.get(lead.sourceId) ?? null : null,
+      owner: lead.assignedUserId ? readContext.ownersById.get(lead.assignedUserId) ?? null : null,
+    }),
+  );
   const overdueTasks = tasks.filter((task) => isTaskOverdue(task));
   const teamQualifiedLeads = teamRows.reduce((total, row) => total + row.qualifiedLeads, 0);
   const teamConvertedLeads = teamRows.reduce((total, row) => total + row.convertedLeads, 0);
@@ -225,8 +236,7 @@ export default async function AdminTeamPage() {
             </section>
 
             <LeadTable
-              leads={unassignedLeads}
-              nextFollowUpByLeadId={nextFollowUpByLeadId}
+              leads={unassignedLeadRows}
               eyebrow="Needs assignment"
               title="Unassigned leads"
               description="Assign ownership before these leads lose momentum."

@@ -4,7 +4,7 @@ import type {
   CrmUserRole,
   LeadRecord,
   LeadTaskRecord,
-} from "@/lib/pathway-engine/types";
+} from "@/lib/crm/types";
 import type { LeadListFilters } from "@/lib/storage/types";
 
 export const ADMIN_ACCESS_LEVELS = [
@@ -22,6 +22,7 @@ type AdminNavKey =
   | "tasks"
   | "team"
   | "reports"
+  | "notifications"
   | "integrations"
   | "settings";
 
@@ -253,6 +254,8 @@ export function getVisibleAdminNavKeys(
   role?: CrmUserRole | null,
 ) {
   const keys: AdminNavKey[] = ["dashboard", "leads", "tasks"];
+
+  keys.push("notifications");
 
   if (canViewSalesTeam(accessLevel)) {
     keys.push("team");

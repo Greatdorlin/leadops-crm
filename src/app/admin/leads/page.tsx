@@ -11,6 +11,10 @@ import { QueueStatChip } from "@/components/admin/QueueStatChip";
 import { SearchInput } from "@/components/admin/SearchInput";
 import { getAdminAccessContext } from "@/lib/admin";
 import { parseLeadListFilters } from "@/lib/admin-leads";
+import { loadAdminLeadReadContext } from "@/lib/crm/admin-read-context";
+import { listCustomFields } from "@/lib/crm/custom-fields-admin";
+import { CRM_STATUSES, LEAD_PRIORITIES, LEAD_SOURCES } from "@/lib/crm/constants";
+import { getTableVisibleCustomFields } from "@/lib/crm/custom-field-values";
 import {
   canAccessLeadTrash,
   canSoftDeleteLead,
@@ -18,7 +22,7 @@ import {
 } from "@/lib/admin-permissions";
 import { crmLabelize } from "@/lib/crm/formatters";
 import { getCrmPageErrorCopy, logCrmPageError } from "@/lib/crm/runtime";
-import { CRM_STATUSES, LEAD_PRIORITIES, LEAD_SOURCES } from "@/lib/pathway-engine/types";
+import { buildAdminLeadListItem } from "@/lib/crm/view-models";
 import { leadStore } from "@/lib/storage";
 
 export const dynamic = "force-dynamic";
@@ -187,6 +191,17 @@ export default async function AdminLeadsPage({
           label: user.fullName || user.email,
           value: user.email,
         }));
+  const tableVisibleCustomFields = getTableVisibleCustomFields(await listCustomFields(), { limit: 4 });
+  const readContext = await loadAdminLeadReadContext(leads, { includeCustomFields: true });
+  const leadRows = leads.map((lead) =>
+    buildAdminLeadListItem(lead, {
+      stage: lead.stageId ? readContext.stagesById.get(lead.stageId) ?? null : null,
+      source: lead.sourceId ? readContext.sourcesById.get(lead.sourceId) ?? null : null,
+      owner: lead.assignedUserId ? readContext.ownersById.get(lead.assignedUserId) ?? null : null,
+      customFieldDefinitions: tableVisibleCustomFields,
+      customFieldValues: readContext.customFieldValuesByLeadId.get(lead.id) ?? [],
+    }),
+  );
 
   return (
     <AdminShell
@@ -333,7 +348,7 @@ export default async function AdminLeadsPage({
 
         <section className="space-y-4">
           <LeadDataTable
-            leads={leads}
+            leads={leadRows}
             emptyTitle="No leads match this view"
             emptyDescription="Try a broader filter or reset the queue."
             assigneeOptions={assigneeOptions}

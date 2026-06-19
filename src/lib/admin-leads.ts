@@ -1,16 +1,13 @@
 import {
-  COMPLETION_STATUSES,
-  CRM_STATUSES,
-  LEAD_PRIORITIES,
-  LEAD_SOURCES,
-  PRIMARY_GOALS,
-  type CompletionStatus,
-  type CrmStatus,
-  type LeadPriority,
-  type LeadRecord,
-  type LeadSource,
-  type PrimaryGoal,
-} from "@/lib/pathway-engine/types";
+  isCompletionStatus,
+  isCrmStatus,
+  isLeadPriority,
+  isLeadSource,
+  isPrimaryGoal,
+} from "@/lib/crm/status";
+import type {
+  LeadRecord,
+} from "@/lib/crm/types";
 import type { LeadListFilters } from "@/lib/storage/types";
 
 type QueryLike = URLSearchParams | Record<string, string | string[] | undefined>;
@@ -24,30 +21,10 @@ function readValue(input: QueryLike, key: string) {
   return Array.isArray(value) ? value[0] : value;
 }
 
-function isCompletionStatus(value?: string): value is CompletionStatus {
-  return Boolean(value) && COMPLETION_STATUSES.includes(value as CompletionStatus);
-}
-
-function isCrmStatus(value?: string): value is CrmStatus {
-  return Boolean(value) && CRM_STATUSES.includes(value as CrmStatus);
-}
-
-function isLeadSource(value?: string): value is LeadSource {
-  return Boolean(value) && LEAD_SOURCES.includes(value as LeadSource);
-}
-
-function isLeadPriority(value?: string): value is LeadPriority {
-  return Boolean(value) && LEAD_PRIORITIES.includes(value as LeadPriority);
-}
-
-function isPrimaryGoal(value?: string): value is PrimaryGoal {
-  return Boolean(value) && PRIMARY_GOALS.includes(value as PrimaryGoal);
-}
-
 export function parseLeadListFilters(input: QueryLike): LeadListFilters {
   const completionStatus = readValue(input, "completionStatus");
   const crmStatus = readValue(input, "crmStatus");
-  const primaryGoal = readValue(input, "primaryGoal");
+  const category = readValue(input, "category") ?? readValue(input, "primaryGoal");
   const source = readValue(input, "source");
   const priority = readValue(input, "priority");
   const assignedTo = readValue(input, "assignedTo");
@@ -62,7 +39,7 @@ export function parseLeadListFilters(input: QueryLike): LeadListFilters {
           : undefined,
     crmStatus: crmStatus === "all" ? "all" : isCrmStatus(crmStatus) ? crmStatus : undefined,
     primaryGoal:
-      primaryGoal === "all" ? "all" : isPrimaryGoal(primaryGoal) ? primaryGoal : undefined,
+      category === "all" ? "all" : isPrimaryGoal(category) ? category : undefined,
     source: source === "all" ? "all" : isLeadSource(source) ? source : undefined,
     priority: priority === "all" ? "all" : isLeadPriority(priority) ? priority : undefined,
     assignedTo: assignedTo?.trim() ? assignedTo.trim() : undefined,

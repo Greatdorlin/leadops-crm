@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { parseCsvText, parseLeadImportCsv } from "./csv";
+import { parseCsvText, parseLeadImportCsv, resolveCustomFieldHeaderMatch } from "./csv";
 
 test("parseCsvText keeps quoted commas and line breaks intact", () => {
   const rows = parseCsvText(
@@ -19,11 +19,11 @@ test("parseCsvText keeps quoted commas and line breaks intact", () => {
   ]);
 });
 
-test("parseLeadImportCsv maps common sales headers into CRM rows", () => {
+test("parseLeadImportCsv maps common lead headers into CRM rows", () => {
   const rows = parseLeadImportCsv(
     [
-      "Full Name,Email Address,Phone,Stage,Priority,Owner,Source,Notes",
-      "Ada Lovelace,ada@example.com,+2348012345678,consultation booked,high,rep@flyconnectglobal.com,website form,Requested fast callback",
+      "Full Name,Email Address,Phone,Stage,Priority,Owner,Source,Category,Notes",
+      "Ada Lovelace,ada@example.com,+2348012345678,consultation booked,high,rep@example.com,website form,study abroad,Requested fast callback",
     ].join("\n"),
   );
 
@@ -35,11 +35,94 @@ test("parseLeadImportCsv maps common sales headers into CRM rows", () => {
     email: "ada@example.com",
     whatsappNumber: "+2348012345678",
     state: null,
-    primaryGoal: null,
-    crmStatus: "consultation_booked",
+    category: "study_abroad",
+    stage: "consultation_booked",
     priority: "high",
-    assignedTo: "rep@flyconnectglobal.com",
+    assignedTo: "rep@example.com",
     source: "website_form",
     sourceDetail: "Requested fast callback",
   });
+});
+
+test("csv import maps matching custom field labels and keys", () => {
+  const rows = parseLeadImportCsv(
+    [
+      "Full Name,Email Address,Budget,interest_level",
+      "Ada Lovelace,ada@example.com,250000,urgent",
+    ].join("\n"),
+    {
+      customFieldDefinitions: [
+        {
+          id: "field-budget",
+          key: "budget",
+          label: "Budget",
+          type: "currency",
+          description: null,
+          placeholder: null,
+          required: false,
+          archived: false,
+          showInTable: true,
+          showInForm: true,
+          showInDetails: true,
+          searchable: true,
+          filterable: true,
+          sortOrder: 0,
+          createdAt: "2026-06-18T00:00:00.000Z",
+          updatedAt: "2026-06-18T00:00:00.000Z",
+          options: [],
+        },
+        {
+          id: "field-interest",
+          key: "interest_level",
+          label: "Interest Level",
+          type: "select",
+          description: null,
+          placeholder: null,
+          required: false,
+          archived: false,
+          showInTable: false,
+          showInForm: true,
+          showInDetails: true,
+          searchable: false,
+          filterable: true,
+          sortOrder: 1,
+          createdAt: "2026-06-18T00:00:00.000Z",
+          updatedAt: "2026-06-18T00:00:00.000Z",
+          options: [],
+        },
+      ],
+    },
+  );
+
+  assert.deepEqual(rows[0].customFieldValues, {
+    "field-budget": "250000",
+    "field-interest": "urgent",
+  });
+});
+
+test("custom field header matching prefers label or key aliases", () => {
+  const definitions = [
+    {
+      id: "field-1",
+      key: "property_type",
+      label: "Property Type",
+      type: "text",
+      description: null,
+      placeholder: null,
+      required: false,
+      archived: false,
+      showInTable: false,
+      showInForm: true,
+      showInDetails: true,
+      searchable: false,
+      filterable: false,
+      sortOrder: 0,
+      createdAt: "2026-06-18T00:00:00.000Z",
+      updatedAt: "2026-06-18T00:00:00.000Z",
+      options: [],
+    },
+  ] as const;
+
+  assert.equal(resolveCustomFieldHeaderMatch("Property Type", definitions)?.id, "field-1");
+  assert.equal(resolveCustomFieldHeaderMatch("property_type", definitions)?.id, "field-1");
 });

@@ -1,6 +1,6 @@
 import { cn } from "@/lib/cn";
 import { crmLabelize } from "@/lib/crm/formatters";
-import type { CrmStatus } from "@/lib/pathway-engine/types";
+import type { CrmStatus } from "@/lib/crm/types";
 
 const statusClassMap: Record<CrmStatus, string> = {
   new: "border-sky-200 bg-sky-50 text-sky-700",
@@ -17,7 +17,15 @@ const statusClassMap: Record<CrmStatus, string> = {
   closed: "border-slate-200 bg-white text-slate-600",
 };
 
-export function StatusBadge({ status, className }: { status: CrmStatus; className?: string }) {
+export function StatusBadge({
+  status,
+  label,
+  className,
+}: {
+  status: CrmStatus;
+  label?: string;
+  className?: string;
+}) {
   return (
     <span
       className={cn(
@@ -26,7 +34,7 @@ export function StatusBadge({ status, className }: { status: CrmStatus; classNam
         className,
       )}
     >
-      {crmLabelize(status)}
+      {label || crmLabelize(status)}
     </span>
   );
 }

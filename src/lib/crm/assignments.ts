@@ -1,11 +1,5 @@
-import type { LeadPriority } from "@/lib/pathway-engine/types";
-
-const priorityRank: Record<LeadPriority, number> = {
-  low: 0,
-  medium: 1,
-  high: 2,
-  urgent: 3,
-};
+import { leadPriorityRank } from "@/lib/crm/status";
+import type { LeadPriority } from "@/lib/crm/types";
 
 export function elevatePriority(
   existing: LeadPriority,
@@ -15,7 +9,7 @@ export function elevatePriority(
     return existing;
   }
 
-  return priorityRank[incoming] > priorityRank[existing] ? incoming : existing;
+  return leadPriorityRank[incoming] > leadPriorityRank[existing] ? incoming : existing;
 }
 
 export function isUnassigned(assignedTo?: string | null) {

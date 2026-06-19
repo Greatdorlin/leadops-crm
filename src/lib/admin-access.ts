@@ -1,29 +1,68 @@
 import { hasConfiguredEnvValue, normalizeEnvValue } from "@/lib/env-utils";
 
-export const MASTER_ADMIN_EMAILS = ["greatdorlinwisdom@gmail.com"] as const;
+export const LOCAL_ADMIN_PREVIEW_EMAIL = "preview@local.leadsdesk.test";
+export const LOCAL_ADMIN_PREVIEW_NAME = "Local Preview";
 
 export function normalizeAdminEmail(value: string) {
   return value.trim().toLowerCase();
 }
 
-export function getAdminAllowedEmails() {
-  const envEmails = normalizeEnvValue(process.env.ADMIN_ALLOWED_EMAILS)
+function parseEmailList(value?: string | null) {
+  return normalizeEnvValue(value)
     .split(",")
-    .map((value) => value.trim())
+    .map((entry) => entry.trim())
     .filter(Boolean)
     .map(normalizeAdminEmail);
+}
 
-  return [...new Set([...MASTER_ADMIN_EMAILS, ...envEmails])];
+function parseDomainList(value?: string | null) {
+  return normalizeEnvValue(value)
+    .split(",")
+    .map((entry) => entry.trim().toLowerCase())
+    .filter(Boolean);
+}
+
+export function getInitialAdminEmail() {
+  const [email] = parseEmailList(process.env.INITIAL_ADMIN_EMAIL);
+  return email ?? null;
+}
+
+export function getInitialAdminName() {
+  const value = normalizeEnvValue(process.env.INITIAL_ADMIN_NAME);
+  return value || null;
+}
+
+export function getAllowedEmailDomains(value = process.env.ALLOWED_EMAIL_DOMAINS) {
+  return [...new Set(parseDomainList(value))];
+}
+
+export function isEmailDomainAllowed(
+  email?: string | null,
+  allowedDomainsEnv = process.env.ALLOWED_EMAIL_DOMAINS,
+) {
+  if (!email) {
+    return false;
+  }
+
+  const allowedDomains = getAllowedEmailDomains(allowedDomainsEnv);
+  if (allowedDomains.length === 0) {
+    return true;
+  }
+
+  const normalizedEmail = normalizeAdminEmail(email);
+  const [, domain = ""] = normalizedEmail.split("@");
+  return allowedDomains.includes(domain);
+}
+
+export function getAdminAllowedEmails() {
+  const initialAdminEmail = getInitialAdminEmail();
+  const envEmails = parseEmailList(process.env.ADMIN_ALLOWED_EMAILS);
+
+  return [...new Set([initialAdminEmail, ...envEmails].filter(Boolean) as string[])];
 }
 
 export function getLeadExportAllowedEmails() {
-  const envEmails = normalizeEnvValue(process.env.LEAD_EXPORT_ALLOWED_EMAILS)
-    .split(",")
-    .map((value) => value.trim())
-    .filter(Boolean)
-    .map(normalizeAdminEmail);
-
-  return envEmails.length > 0 ? envEmails : ["flyconnect102@gmail.com"];
+  return [...new Set(parseEmailList(process.env.LEAD_EXPORT_ALLOWED_EMAILS))];
 }
 
 export function canExportLeadData(email?: string | null) {
@@ -38,16 +77,25 @@ export function canExportLeadData(email?: string | null) {
   return getLeadExportAllowedEmails().includes(normalizeAdminEmail(email));
 }
 
-export function isMasterAdminEmail(email?: string | null) {
+export function isInitialAdminEmail(email?: string | null) {
   if (!email) {
     return false;
   }
 
-  return MASTER_ADMIN_EMAILS.some((candidate) => candidate === normalizeAdminEmail(email));
+  const initialAdminEmail = getInitialAdminEmail();
+  return Boolean(initialAdminEmail && initialAdminEmail === normalizeAdminEmail(email));
+}
+
+export function isMasterAdminEmail(email?: string | null) {
+  return isInitialAdminEmail(email);
 }
 
 export function isAllowedAdminEmail(email?: string | null) {
   if (!email) {
+    return false;
+  }
+
+  if (!isEmailDomainAllowed(email)) {
     return false;
   }
 
@@ -58,6 +106,12 @@ export function isAdminAuthConfigured() {
   return Boolean(
     hasConfiguredEnvValue(process.env.AUTH_GOOGLE_ID) &&
       hasConfiguredEnvValue(process.env.AUTH_GOOGLE_SECRET) &&
-      hasConfiguredEnvValue(process.env.AUTH_SECRET ?? process.env.NEXTAUTH_SECRET),
+      hasConfiguredEnvValue(process.env.AUTH_SECRET ?? process.env.NEXTAUTH_SECRET) &&
+      hasConfiguredEnvValue(process.env.INITIAL_ADMIN_EMAIL) &&
+      hasConfiguredEnvValue(process.env.INITIAL_ADMIN_NAME),
   );
+}
+
+export function isLocalAdminPreviewEnabled() {
+  return process.env.NODE_ENV !== "production";
 }

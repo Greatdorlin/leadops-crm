@@ -1,0 +1,97 @@
+import Link from "next/link";
+import { redirect } from "next/navigation";
+import { AdminShell } from "@/components/admin/AdminShell";
+import { AdminSignOutButton } from "@/components/admin/AdminSignOutButton";
+import { ErrorState } from "@/components/admin/ErrorState";
+import { LeadStageManager } from "@/components/admin/LeadStageManager";
+import { MetricCard } from "@/components/admin/MetricCard";
+import { SectionHeader } from "@/components/admin/SectionHeader";
+import { getAdminAccessContext } from "@/lib/admin";
+import { canManageLeadStages } from "@/lib/crm/authz";
+import { listLeadStages } from "@/lib/crm/lead-stages-admin";
+import { getCrmPageErrorCopy, logCrmPageError } from "@/lib/crm/runtime";
+
+export const dynamic = "force-dynamic";
+
+export default async function AdminLeadStagesPage() {
+  const { role, accessLevel, actualAccessLevel, canSwitchAccessViews } =
+    await getAdminAccessContext("/admin/settings/stages");
+
+  if (!canManageLeadStages({ accessLevel, role })) {
+    redirect("/admin/settings");
+  }
+
+  let stages = null;
+  let pageError: unknown = null;
+
+  try {
+    stages = await listLeadStages({ includeArchived: true });
+  } catch (error) {
+    pageError = error;
+    logCrmPageError("settings-stages", error);
+  }
+
+  return (
+    <AdminShell
+      activeNav="settings"
+      accessLevel={accessLevel}
+      role={role}
+      actualAccessLevel={actualAccessLevel}
+      canSwitchAccessViews={canSwitchAccessViews}
+      title="Lead Stages"
+      description="Keep pipeline stages clean, ordered, and ready for reporting."
+      actions={
+        <>
+          <Link
+            href="/admin/settings"
+            className="admin-button-secondary inline-flex h-10 items-center justify-center rounded-full px-4 text-sm font-medium"
+          >
+            Back to settings
+          </Link>
+          <AdminSignOutButton />
+        </>
+      }
+    >
+      {stages ? (
+        <div className="space-y-6">
+          <section className="grid gap-3 md:grid-cols-3">
+            <MetricCard
+              label="Active stages"
+              value={stages.filter((stage) => !stage.archived).length}
+              supporting="Stages currently available to the sales team."
+              tone="accent"
+            />
+            <MetricCard
+              label="Won stages"
+              value={stages.filter((stage) => stage.isWon && !stage.archived).length}
+              supporting="Stages that count as closed-won."
+              tone="positive"
+            />
+            <MetricCard
+              label="Lost stages"
+              value={stages.filter((stage) => stage.isLost && !stage.archived).length}
+              supporting="Stages that count as closed-lost."
+            />
+          </section>
+
+          <section className="admin-surface rounded-[24px] p-5">
+            <SectionHeader
+              eyebrow="Pipeline setup"
+              title="Manage lead stages"
+              description="Add, rename, order, archive, and restore stages without breaking lead history."
+            />
+            <div className="mt-5">
+              <LeadStageManager initialStages={stages} />
+            </div>
+          </section>
+        </div>
+      ) : (
+        <ErrorState
+          title={getCrmPageErrorCopy(pageError).title}
+          description={getCrmPageErrorCopy(pageError).description}
+          details={getCrmPageErrorCopy(pageError).details}
+        />
+      )}
+    </AdminShell>
+  );
+}

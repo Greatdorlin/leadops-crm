@@ -11,24 +11,24 @@ export const CRM_GOOGLE_SHEETS_EXPORT_HEADERS = [
   "Created At",
   "Completed At",
   "Lead ID",
-  "Report Token",
+  "Lead Reference",
   "Source",
-  "CRM Status",
-  "Assigned To",
+  "Stage",
+  "Owner",
   "First Name",
   "Last Name",
   "Email",
-  "WhatsApp Number",
+  "Phone",
   "State",
-  "Primary Goal",
-  "Top Pathway",
-  "Readiness",
-  "Campaign",
-  "UTM Source",
-  "UTM Medium",
-  "UTM Campaign",
-  "Notes Count",
-  "Next Follow Up",
+  "Lead Category",
+  "Interest",
+  "Fit Signal",
+  "Segment",
+  "Key Blockers",
+  "Progress",
+  "Needs Follow-up",
+  "Marketing Consent",
+  "Report Consent",
 ] as const;
 
 export function mapLeadToGoogleSheets(record: LeadRecord): GoogleSheetsPayload {
@@ -41,17 +41,17 @@ export function mapLeadToGoogleSheets(record: LeadRecord): GoogleSheetsPayload {
         })
       : null;
   const metadata = publicReport ? getPublicReportMetadata(publicReport) : null;
-  const primaryPathway = publicReport ? getPublicReportPrimaryPathway(publicReport) : "No ranked pathway";
+  const primaryPathway = publicReport ? getPublicReportPrimaryPathway(publicReport) : "No saved interest";
 
   return {
     values: [
       record.createdAt,
       record.completedAt ?? "",
-      metadata?.reportId ?? "",
       record.id,
       record.reportToken ?? "",
-      record.completionStatus,
+      record.source ?? "",
       record.crmStatus,
+      record.assignedTo ?? "",
       record.answers.firstName,
       record.answers.lastName,
       record.answers.email,
@@ -75,32 +75,10 @@ export function mapLeadToGoogleSheetsExportRow(input: {
   notesCount: number;
   nextFollowUp: string | null;
 }): GoogleSheetsExportRow {
-  const { lead, notesCount, nextFollowUp } = input;
+  const { lead } = input;
 
   return {
-    values: [
-      lead.createdAt,
-      lead.completedAt ?? "",
-      lead.id,
-      lead.reportToken ?? "",
-      lead.source ?? "",
-      lead.crmStatus,
-      lead.assignedTo ?? "",
-      lead.firstName,
-      lead.lastName,
-      lead.email,
-      lead.whatsappNumber,
-      lead.state ?? lead.answers.stateOfResidence ?? "",
-      lead.primaryGoal ?? "",
-      lead.topPathwayTitle ?? "",
-      lead.readinessLevel ?? "",
-      lead.facebookCampaignId ?? lead.googleCampaignId ?? lead.utmCampaign ?? "",
-      lead.utmSource ?? "",
-      lead.utmMedium ?? "",
-      lead.utmCampaign ?? "",
-      String(notesCount),
-      nextFollowUp ?? "",
-    ],
+    values: mapLeadToGoogleSheets(lead).values,
   };
 }
 
@@ -130,9 +108,9 @@ export function mapGoogleSheetsRowToLeadImport(
   const email = readMappedValue(headerMap, row, ["Email"]);
   const whatsappNumber = readMappedValue(headerMap, row, ["WhatsApp Number", "Phone", "Whatsapp"]);
   const state = readMappedValue(headerMap, row, ["State", "Lead State", "Location State"]);
-  const primaryGoal = readMappedValue(headerMap, row, ["Primary Goal"]);
-  const crmStatus = readMappedValue(headerMap, row, ["CRM Status"]);
-  const campaign = readMappedValue(headerMap, row, ["Campaign", "UTM Campaign"]);
+  const primaryGoal = readMappedValue(headerMap, row, ["Lead Category", "Primary Goal"]);
+  const crmStatus = readMappedValue(headerMap, row, ["Stage", "CRM Status"]);
+  const campaign = readMappedValue(headerMap, row, ["Segment", "Campaign", "UTM Campaign"]);
   const utmSource = readMappedValue(headerMap, row, ["UTM Source"]);
   const utmMedium = readMappedValue(headerMap, row, ["UTM Medium"]);
   const utmCampaign = readMappedValue(headerMap, row, ["UTM Campaign", "Campaign"]);
@@ -147,8 +125,8 @@ export function mapGoogleSheetsRowToLeadImport(
     state,
     primaryGoal: primaryGoal ? (primaryGoal as LeadRecord["primaryGoal"]) : null,
     crmStatus: crmStatus ? (crmStatus as LeadRecord["crmStatus"]) : "new",
-    topPathwayTitle: readMappedValue(headerMap, row, ["Top Pathway"]),
-    readinessLevel: readMappedValue(headerMap, row, ["Readiness"]) as LeadRecord["readinessLevel"],
+    topPathwayTitle: readMappedValue(headerMap, row, ["Interest", "Top Pathway"]),
+    readinessLevel: readMappedValue(headerMap, row, ["Fit Signal", "Readiness"]) as LeadRecord["readinessLevel"],
     googleCampaignId: campaign,
     utmSource,
     utmMedium,

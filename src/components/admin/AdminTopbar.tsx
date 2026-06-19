@@ -6,7 +6,7 @@ import type { ReactNode } from "react";
 import { useSyncExternalStore } from "react";
 import type { AdminAccessLevel } from "@/lib/admin-permissions";
 import { cn } from "@/lib/cn";
-import type { CrmUserRole } from "@/lib/pathway-engine/types";
+import type { CrmUserRole } from "@/lib/crm/types";
 import { AdminAccessViewSwitcher } from "./AdminAccessViewSwitcher";
 import { getAdminNavigation } from "./navigation";
 

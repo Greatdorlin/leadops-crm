@@ -3,28 +3,23 @@ import { AdminSignOutButton } from "@/components/admin/AdminSignOutButton";
 import { EmptyState } from "@/components/admin/EmptyState";
 import { ErrorState } from "@/components/admin/ErrorState";
 import { MetricCard } from "@/components/admin/MetricCard";
+import { SalesCommandReports } from "@/components/admin/SalesCommandReports";
 import { SectionHeader } from "@/components/admin/SectionHeader";
 import { getAdminAccessContext } from "@/lib/admin";
 import { buildTeamPerformance } from "@/lib/admin-insights";
 import { canManageIntegrationsAccess } from "@/lib/admin-permissions";
-import { crmLabelize, formatLeadSourceLabel } from "@/lib/crm/formatters";
+import {
+  crmLabelize,
+  formatLeadSourceLabel,
+} from "@/lib/crm/formatters";
+import { listLeadIntakeEvents } from "@/lib/crm/intake-runtime";
 import { getCrmPageErrorCopy, logCrmPageError } from "@/lib/crm/runtime";
+import { buildSalesDashboardSummary } from "@/lib/crm/sales-metrics";
+import { getActiveGlobalSalesTarget } from "@/lib/crm/sales-targets-admin";
+import { buildAdminReportSummary } from "@/lib/crm/view-models";
 import { leadStore } from "@/lib/storage";
 
 export const dynamic = "force-dynamic";
-
-function groupCount(values: Array<string | null | undefined>) {
-  const grouped = new Map<string, number>();
-
-  for (const value of values) {
-    const key = value?.trim() || "Not yet set";
-    grouped.set(key, (grouped.get(key) ?? 0) + 1);
-  }
-
-  return [...grouped.entries()]
-    .sort((left, right) => right[1] - left[1])
-    .map(([label, value]) => ({ label, value }));
-}
 
 export default async function AdminReportsPage() {
   const { session, role, accessLevel, actualAccessLevel, canSwitchAccessViews } =
@@ -40,20 +35,24 @@ export default async function AdminReportsPage() {
         users: Awaited<ReturnType<typeof leadStore.listCrmUsers>>;
         sourceReport: Awaited<ReturnType<typeof leadStore.getSourceReport>>;
         campaignReport: Awaited<ReturnType<typeof leadStore.getCampaignReport>>;
+        intakeEvents: Awaited<ReturnType<typeof listLeadIntakeEvents>>;
+        activeTarget: Awaited<ReturnType<typeof getActiveGlobalSalesTarget>>;
       }
     | null = null;
   let pageError: unknown = null;
 
   try {
-    const [leads, tasks, users, sourceReport, campaignReport] = await Promise.all([
+    const [leads, tasks, users, sourceReport, campaignReport, intakeEvents, activeTarget] = await Promise.all([
       leadStore.list(showPersonalOnly ? { assignedTo: session.user?.email ?? undefined } : undefined),
       leadStore.listLeadTasks(showPersonalOnly ? { assignedTo: session.user?.email ?? undefined } : undefined),
       leadStore.listCrmUsers(),
       showSourceAndCampaignReports ? leadStore.getSourceReport() : Promise.resolve([]),
       showSourceAndCampaignReports ? leadStore.getCampaignReport() : Promise.resolve([]),
+      showPersonalOnly ? Promise.resolve([]) : listLeadIntakeEvents({ limit: 8 }),
+      getActiveGlobalSalesTarget(),
     ]);
 
-    pageData = { leads, tasks, users, sourceReport, campaignReport };
+    pageData = { leads, tasks, users, sourceReport, campaignReport, intakeEvents, activeTarget };
   } catch (error) {
     pageError = error;
     logCrmPageError("reports", error);
@@ -86,20 +85,23 @@ export default async function AdminReportsPage() {
     );
   }
 
-  const { leads, tasks, users, sourceReport, campaignReport } = pageData;
+  const { leads, tasks, users, sourceReport, campaignReport, intakeEvents, activeTarget } = pageData;
   const teamRows = buildTeamPerformance(users, leads, tasks);
   const personalRow =
     teamRows.find((row) => row.email.toLowerCase() === session.user?.email?.toLowerCase()) ?? null;
-  const pathwayReport = groupCount(leads.map((lead) => lead.topPathwayTitle));
-  const destinationReport = groupCount(leads.map((lead) => lead.answers.destinationInterest));
-  const statusReport = groupCount(leads.map((lead) => lead.crmStatus));
+  const reportSummary = buildAdminReportSummary(leads);
   const converted = leads.filter((lead) => lead.crmStatus === "converted").length;
   const progressing = leads.filter((lead) =>
     ["qualified", "consultation_booked", "application_started", "documents_pending", "payment_pending", "converted"].includes(lead.crmStatus),
   ).length;
-  const highIntentLeads = leads.filter(
-    (lead) => lead.answers.wantsHumanSupport || lead.priority === "high" || lead.priority === "urgent",
-  ).length;
+  const highIntentLeads = reportSummary.highIntentLeads;
+  const salesReportSummary = buildSalesDashboardSummary({
+    leads,
+    tasks,
+    users,
+    intakeEvents,
+    activeTarget,
+  });
 
   return (
     <AdminShell
@@ -119,6 +121,7 @@ export default async function AdminReportsPage() {
       actions={<AdminSignOutButton />}
     >
       <div className="space-y-6">
+        {showPersonalOnly ? null : <SalesCommandReports summary={salesReportSummary} />}
         {showPersonalOnly ? (
           <>
             <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
@@ -138,10 +141,10 @@ export default async function AdminReportsPage() {
                     description="Where your current leads sit in the follow-up journey."
                   />
                   <div className="mt-4 space-y-3">
-                    {statusReport.length > 0 ? (
-                      statusReport.map((item) => (
+                    {reportSummary.statusReport.length > 0 ? (
+                      reportSummary.statusReport.map((item) => (
                         <div key={item.label} className="admin-surface-muted flex items-center justify-between rounded-2xl px-4 py-3">
-                          <span className="text-slate-700">{crmLabelize(item.label)}</span>
+                          <span className="text-slate-700">{item.label}</span>
                           <span className="font-semibold text-slate-950">{item.value}</span>
                         </div>
                       ))
@@ -265,10 +268,10 @@ export default async function AdminReportsPage() {
                     description="Where current lead volume sits in the journey."
                   />
                   <div className="mt-4 space-y-3">
-                    {statusReport.length > 0 ? (
-                      statusReport.map((item) => (
+                    {reportSummary.statusReport.length > 0 ? (
+                      reportSummary.statusReport.map((item) => (
                         <div key={item.label} className="admin-surface-muted flex items-center justify-between rounded-2xl px-4 py-3">
-                          <span className="text-slate-700">{crmLabelize(item.label)}</span>
+                          <span className="text-slate-700">{item.label}</span>
                           <span className="font-semibold text-slate-950">{item.value}</span>
                         </div>
                       ))
@@ -284,14 +287,14 @@ export default async function AdminReportsPage() {
                 <section className="admin-surface rounded-[24px] p-5">
                   <SectionHeader
                     eyebrow="Demand"
-                    title="Top pathways and destinations"
+                    title="Top interests and locations"
                     description="What current leads are asking for most often."
                   />
                   <div className="mt-4 grid gap-4 md:grid-cols-2">
                     <div className="space-y-3">
-                      <p className="text-sm font-semibold text-slate-900">Top pathways</p>
-                      {pathwayReport.length > 0 ? (
-                        pathwayReport.slice(0, 5).map((item) => (
+                      <p className="text-sm font-semibold text-slate-900">Top interests</p>
+                      {reportSummary.interestReport.length > 0 ? (
+                        reportSummary.interestReport.slice(0, 5).map((item) => (
                           <div key={item.label} className="admin-surface-muted flex items-center justify-between rounded-2xl px-4 py-3">
                             <span className="text-sm text-slate-700">{item.label}</span>
                             <span className="font-semibold text-slate-950">{item.value}</span>
@@ -299,24 +302,24 @@ export default async function AdminReportsPage() {
                         ))
                       ) : (
                         <EmptyState
-                          title="No pathway demand yet"
-                          description="Pathway demand appears here once completed assessments generate lead data."
+                          title="No demand signals yet"
+                          description="Interest trends appear here once more lead details are captured."
                         />
                       )}
                     </div>
                     <div className="space-y-3">
-                      <p className="text-sm font-semibold text-slate-900">Destination interest</p>
-                      {destinationReport.length > 0 ? (
-                        destinationReport.slice(0, 5).map((item) => (
+                      <p className="text-sm font-semibold text-slate-900">Location interest</p>
+                      {reportSummary.destinationReport.length > 0 ? (
+                        reportSummary.destinationReport.slice(0, 5).map((item) => (
                           <div key={item.label} className="admin-surface-muted flex items-center justify-between rounded-2xl px-4 py-3">
-                            <span className="text-sm text-slate-700">{crmLabelize(item.label)}</span>
+                            <span className="text-sm text-slate-700">{item.label}</span>
                             <span className="font-semibold text-slate-950">{item.value}</span>
                           </div>
                         ))
                       ) : (
                         <EmptyState
-                          title="No destination interest yet"
-                          description="Destination interest will appear here once leads submit their preferences."
+                          title="No location interest yet"
+                          description="Location trends will appear here once leads share their preferences."
                         />
                       )}
                     </div>

@@ -18,12 +18,12 @@ export async function POST(request: Request) {
     }
 
     if (!parsed.success) {
-      return NextResponse.json({ error: "Invalid assessment payload." }, { status: 400 });
+      return NextResponse.json({ error: "Invalid legacy intake payload." }, { status: 400 });
     }
 
     if (parsed.data.primaryGoal !== "study_abroad") {
       return NextResponse.json(
-        { error: "Only the study abroad pathway is live right now." },
+        { error: "This legacy compatibility route is not available for new Leads Desk submissions." },
         { status: 400 },
       );
     }
@@ -78,7 +78,7 @@ export async function POST(request: Request) {
         error:
           error instanceof Error
             ? error.message
-            : "We couldn't create your report right now.",
+            : "We couldn't process this legacy submission right now.",
       },
       { status: 500 },
     );

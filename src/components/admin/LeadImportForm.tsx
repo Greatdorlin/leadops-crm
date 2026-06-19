@@ -146,7 +146,7 @@ export function LeadImportForm({
           value={csvText}
           onChange={(event) => setCsvText(event.target.value)}
           rows={9}
-          placeholder={`Full Name,Email Address,Phone,Stage,Priority,Owner,Source\nAda Lovelace,ada@example.com,+2348012345678,consultation booked,high,rep@flyconnectglobal.com,website form`}
+          placeholder={`Full Name,Email Address,Phone,Stage,Priority,Owner,Source\nAda Lovelace,ada@example.com,+2348012345678,qualified,high,rep@example.com,website form`}
           className="admin-textarea min-h-[220px] w-full rounded-2xl px-4 py-3 font-mono text-sm outline-none"
         />
       </label>

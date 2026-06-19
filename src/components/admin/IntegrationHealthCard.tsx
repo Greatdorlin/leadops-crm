@@ -6,7 +6,7 @@ import {
   formatIntegrationProviderLabel,
   formatIntegrationStatusLabel,
 } from "@/lib/crm/formatters";
-import type { IntegrationRecord } from "@/lib/pathway-engine/types";
+import type { IntegrationRecord } from "@/lib/crm/types";
 
 const statusMeta = {
   healthy: {

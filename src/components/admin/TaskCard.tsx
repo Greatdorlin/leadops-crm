@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
 import { formatCrmDateTime } from "@/lib/crm/formatters";
-import type { LeadTaskRecord } from "@/lib/pathway-engine/types";
+import type { LeadTaskRecord } from "@/lib/crm/types";
 import { PriorityBadge } from "./PriorityBadge";
 
 function getTaskStatus(task: LeadTaskRecord) {

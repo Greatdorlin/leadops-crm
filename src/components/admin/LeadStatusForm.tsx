@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { crmLabelize } from "@/lib/crm/formatters";
-import type { CrmStatus, LeadPriority } from "@/lib/pathway-engine/types";
+import type { CrmStatus, LeadPriority } from "@/lib/crm/types";
 import { AdminSelect } from "./AdminSelect";
 
 const crmStatuses: CrmStatus[] = [
@@ -23,12 +23,21 @@ const crmStatuses: CrmStatus[] = [
 
 const priorityOptions: LeadPriority[] = ["low", "medium", "high", "urgent"];
 
+function formatDateTimeLocalValue(value?: string | null) {
+  if (!value) {
+    return "";
+  }
+
+  return value.slice(0, 16);
+}
+
 export function LeadStatusForm({
   leadId,
   initialStatus,
   initialPriority,
   initialAssignedTo,
   initialAssignedToList,
+  initialNextFollowUpAt,
   assigneeOptions,
 }: {
   leadId: string;
@@ -36,6 +45,7 @@ export function LeadStatusForm({
   initialPriority: LeadPriority;
   initialAssignedTo: string | null;
   initialAssignedToList: string[];
+  initialNextFollowUpAt?: string | null;
   assigneeOptions: Array<{ label: string; value: string }>;
 }) {
   const router = useRouter();
@@ -43,6 +53,7 @@ export function LeadStatusForm({
   const [priority, setPriority] = useState<LeadPriority>(initialPriority);
   const [assignedTo, setAssignedTo] = useState(initialAssignedTo ?? "");
   const [assignedToList, setAssignedToList] = useState<string[]>(initialAssignedToList);
+  const [nextFollowUpAt, setNextFollowUpAt] = useState(formatDateTimeLocalValue(initialNextFollowUpAt));
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState("");
 
@@ -78,6 +89,7 @@ export function LeadStatusForm({
           priority,
           assignedTo: assignedTo || null,
           assignedToList: assignedToList.filter(Boolean),
+          nextFollowUpAt: nextFollowUpAt || null,
         }),
       });
 
@@ -159,6 +171,16 @@ export function LeadStatusForm({
               </option>
             ))}
           </AdminSelect>
+        </label>
+
+        <label className="space-y-2">
+          <span className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Next follow-up</span>
+          <input
+            type="datetime-local"
+            value={nextFollowUpAt}
+            onChange={(event) => setNextFollowUpAt(event.target.value)}
+            className="admin-input h-12 w-full rounded-2xl px-4 text-sm outline-none"
+          />
         </label>
 
         {assigneeOptions.length > 1 ? (

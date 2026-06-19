@@ -2,7 +2,7 @@ import Link from "next/link";
 import { CheckCircle2, Clock3 } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { formatCrmDateTime, formatLeadStateLabel } from "@/lib/crm/formatters";
-import type { LeadTaskRecord } from "@/lib/pathway-engine/types";
+import type { LeadTaskRecord } from "@/lib/crm/types";
 import { EmptyState } from "./EmptyState";
 import { LeadTaskCompleteButton } from "./LeadTaskCompleteButton";
 

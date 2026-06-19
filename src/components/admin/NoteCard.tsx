@@ -1,5 +1,5 @@
 import { formatCrmDateTime } from "@/lib/crm/formatters";
-import type { LeadNoteRecord } from "@/lib/pathway-engine/types";
+import type { LeadNoteRecord } from "@/lib/crm/types";
 
 export function NoteCard({ note }: { note: LeadNoteRecord }) {
   return (

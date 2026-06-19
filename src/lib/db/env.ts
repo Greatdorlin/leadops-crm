@@ -1,18 +1,22 @@
 import { normalizeEnvValue } from "@/lib/env-utils";
 
+const databaseEnvLookupOrder = [
+  "DATABASE_URL",
+  "POSTGRES_URL",
+  "POSTGRES_PRISMA_URL",
+  "POSTGRES_URL_NON_POOLING",
+  "PATHWAYFINDER_DATABASE_URL",
+  "PATHWAYFINDER_POSTGRES_URL",
+  "PATHWAYFINDER_POSTGRES_PRISMA_URL",
+  "PATHWAYFINDER_POSTGRES_URL_NON_POOLING",
+] as const;
+
 export function getDatabaseUrl() {
-  return [
-    process.env.DATABASE_URL,
-    process.env.POSTGRES_URL,
-    process.env.POSTGRES_PRISMA_URL,
-    process.env.POSTGRES_URL_NON_POOLING,
-    process.env.PATHWAYFINDER_DATABASE_URL,
-    process.env.PATHWAYFINDER_POSTGRES_URL,
-    process.env.PATHWAYFINDER_POSTGRES_PRISMA_URL,
-    process.env.PATHWAYFINDER_POSTGRES_URL_NON_POOLING,
-  ]
-    .map(normalizeEnvValue)
-    .find(Boolean) ?? "";
+  return (
+    databaseEnvLookupOrder
+      .map((envName) => normalizeEnvValue(process.env[envName]))
+      .find(Boolean) ?? ""
+  );
 }
 
 export function hasDatabaseUrl() {

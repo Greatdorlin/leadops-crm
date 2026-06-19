@@ -4,9 +4,9 @@ import type { ReactNode } from "react";
 import Link from "next/link";
 import { PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import type { AdminAccessLevel } from "@/lib/admin-permissions";
-import { FlyConnectLogo } from "@/components/brand/FlyConnectLogo";
+import { LeadsDeskWordmark } from "@/components/brand/LeadsDeskWordmark";
 import { cn } from "@/lib/cn";
-import type { CrmUserRole } from "@/lib/pathway-engine/types";
+import type { CrmUserRole } from "@/lib/crm/types";
 import { getAdminNavigation } from "./navigation";
 
 export function AdminSidebar({
@@ -39,7 +39,7 @@ export function AdminSidebar({
         <div className="relative space-y-4">
           <div className={cn("rounded-[22px] border border-white/10 bg-white/[0.04] p-4", collapsed && "w-full px-2 py-3")}>
             <div className={cn("flex items-center", collapsed ? "justify-center" : "justify-between gap-3")}>
-              <FlyConnectLogo className={cn("w-auto", collapsed ? "h-7" : "h-8")} priority variant="nav" />
+              <LeadsDeskWordmark tone="light" variant={collapsed ? "mark" : "full"} />
               {onToggleCollapse ? (
                 <button
                   type="button"
@@ -55,7 +55,7 @@ export function AdminSidebar({
             {!collapsed ? (
               <>
                 <p className="mt-4 text-xs font-semibold uppercase tracking-[0.16em] text-white/50">
-                  {accessLevel === "sales_rep" ? "My CRM" : "Fly Connect CRM"}
+                  {accessLevel === "sales_rep" ? "My workspace" : "Leads Desk"}
                 </p>
                 <p className="mt-2 text-sm leading-6 text-white/66">
                   {accessLevel === "sales_rep"

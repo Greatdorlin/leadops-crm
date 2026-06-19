@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/cn";
 import type { AdminAccessLevel } from "@/lib/admin-permissions";
+import type { CustomFieldDefinitionWithOptions } from "@/lib/crm/custom-field-values";
 import { LeadAssignmentForm } from "./LeadAssignmentForm";
 import { LeadCaptureForm } from "./LeadCaptureForm";
 import { LeadImportForm } from "./LeadImportForm";
@@ -27,6 +28,7 @@ export function AdminWorkspaceComposer({
   defaultAssignedTo = "",
   defaultLeadId,
   variant = "hero",
+  leadCaptureCustomFields = [],
 }: {
   accessLevel: AdminAccessLevel;
   leadOptions: Array<{ value: string; label: string }>;
@@ -41,6 +43,7 @@ export function AdminWorkspaceComposer({
   defaultAssignedTo?: string;
   defaultLeadId?: string;
   variant?: "hero" | "compact";
+  leadCaptureCustomFields?: CustomFieldDefinitionWithOptions[];
 }) {
   const availableModes: ComposerMode[] =
     accessLevel === "sales_rep" ? ["task", "lead"] : ["lead", "task", "assignment", "import"];
@@ -104,6 +107,7 @@ export function AdminWorkspaceComposer({
           accessLevel={accessLevel}
           assigneeOptions={assigneeOptions}
           defaultAssignedTo={defaultAssignedTo}
+          customFieldDefinitions={leadCaptureCustomFields}
         />
       ),
     },

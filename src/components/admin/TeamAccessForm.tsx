@@ -80,7 +80,7 @@ export function TeamAccessForm({
           type="email"
           value={email}
           onChange={(event) => setEmail(event.target.value)}
-          placeholder="person@flyconnectglobal.com"
+          placeholder="person@example.com"
           className="admin-input h-11 rounded-2xl px-4 text-sm outline-none"
         />
         <AdminSelect

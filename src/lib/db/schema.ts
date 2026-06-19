@@ -35,6 +35,18 @@ import {
   type SourcePayloadProcessingStatus,
   type SyncJobStatus,
 } from "@/lib/pathway-engine/types";
+import {
+  CUSTOM_FIELD_TYPES,
+  FORM_FIELD_CORE_TARGETS,
+  FORM_FIELD_TARGET_TYPES,
+  FORM_SOURCE_TYPES,
+  LEAD_INTAKE_EVENT_STATUSES,
+  NOTIFICATION_CHANNELS,
+  NOTIFICATION_STATUSES,
+  NOTIFICATION_TYPES,
+  SALES_TARGET_PERIODS,
+  SALES_TARGET_SCOPES,
+} from "@/lib/crm/domain";
 
 export const completionStatusEnum = pgEnum("completion_status", COMPLETION_STATUSES);
 export const crmStatusEnum = pgEnum("crm_status", CRM_STATUSES);
@@ -49,6 +61,294 @@ export const sourcePayloadProcessingStatusEnum = pgEnum(
 export const integrationProviderEnum = pgEnum("integration_provider", INTEGRATION_PROVIDERS);
 export const integrationStatusEnum = pgEnum("integration_status", INTEGRATION_STATUSES);
 export const syncJobStatusEnum = pgEnum("sync_job_status", SYNC_JOB_STATUSES);
+export const customFieldTypeEnum = pgEnum("custom_field_type", CUSTOM_FIELD_TYPES);
+export const formSourceTypeEnum = pgEnum("form_source_type", FORM_SOURCE_TYPES);
+export const formFieldTargetTypeEnum = pgEnum("form_field_target_type", FORM_FIELD_TARGET_TYPES);
+export const formFieldCoreTargetEnum = pgEnum("form_field_core_target", FORM_FIELD_CORE_TARGETS);
+export const leadIntakeEventStatusEnum = pgEnum("lead_intake_event_status", LEAD_INTAKE_EVENT_STATUSES);
+export const notificationTypeEnum = pgEnum("notification_type", NOTIFICATION_TYPES);
+export const notificationChannelEnum = pgEnum("notification_channel", NOTIFICATION_CHANNELS);
+export const notificationStatusEnum = pgEnum("notification_status", NOTIFICATION_STATUSES);
+export const salesTargetScopeEnum = pgEnum("sales_target_scope", SALES_TARGET_SCOPES);
+export const salesTargetPeriodEnum = pgEnum("sales_target_period", SALES_TARGET_PERIODS);
+
+export const branches = pgTable(
+  "branches",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    name: text("name").notNull(),
+    location: text("location"),
+    managerUserId: uuid("manager_user_id"),
+    archived: boolean("archived").notNull().default(false),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => ({
+    nameIdx: index("branches_name_idx").on(table.name),
+    archivedIdx: index("branches_archived_idx").on(table.archived),
+  }),
+);
+
+export const departments = pgTable(
+  "departments",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    name: text("name").notNull(),
+    managerUserId: uuid("manager_user_id"),
+    archived: boolean("archived").notNull().default(false),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => ({
+    nameIdx: index("departments_name_idx").on(table.name),
+    archivedIdx: index("departments_archived_idx").on(table.archived),
+  }),
+);
+
+export const teams = pgTable(
+  "teams",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    name: text("name").notNull(),
+    managerUserId: uuid("manager_user_id"),
+    branchId: uuid("branch_id"),
+    departmentId: uuid("department_id"),
+    archived: boolean("archived").notNull().default(false),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => ({
+    nameIdx: index("teams_name_idx").on(table.name),
+    branchIdx: index("teams_branch_id_idx").on(table.branchId),
+    departmentIdx: index("teams_department_id_idx").on(table.departmentId),
+    archivedIdx: index("teams_archived_idx").on(table.archived),
+  }),
+);
+
+export const leadStages = pgTable(
+  "lead_stages",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    name: text("name").notNull(),
+    key: text("key").notNull(),
+    color: text("color"),
+    sortOrder: integer("sort_order").notNull().default(0),
+    isWon: boolean("is_won").notNull().default(false),
+    isLost: boolean("is_lost").notNull().default(false),
+    archived: boolean("archived").notNull().default(false),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => ({
+    keyUnique: uniqueIndex("lead_stages_key_unique").on(table.key),
+    sortOrderIdx: index("lead_stages_sort_order_idx").on(table.sortOrder),
+    archivedIdx: index("lead_stages_archived_idx").on(table.archived),
+  }),
+);
+
+export const leadSources = pgTable(
+  "lead_sources",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    name: text("name").notNull(),
+    key: text("key").notNull(),
+    type: text("type"),
+    color: text("color"),
+    archived: boolean("archived").notNull().default(false),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => ({
+    keyUnique: uniqueIndex("lead_sources_key_unique").on(table.key),
+    typeIdx: index("lead_sources_type_idx").on(table.type),
+    archivedIdx: index("lead_sources_archived_idx").on(table.archived),
+  }),
+);
+
+export const customFields = pgTable(
+  "custom_fields",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    key: text("key").notNull(),
+    label: text("label").notNull(),
+    type: customFieldTypeEnum("type").notNull(),
+    description: text("description"),
+    placeholder: text("placeholder"),
+    required: boolean("required").notNull().default(false),
+    archived: boolean("archived").notNull().default(false),
+    showInTable: boolean("show_in_table").notNull().default(false),
+    showInForm: boolean("show_in_form").notNull().default(true),
+    showInDetails: boolean("show_in_details").notNull().default(true),
+    searchable: boolean("searchable").notNull().default(false),
+    filterable: boolean("filterable").notNull().default(false),
+    sortOrder: integer("sort_order").notNull().default(0),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => ({
+    keyUnique: uniqueIndex("custom_fields_key_unique").on(table.key),
+    archivedIdx: index("custom_fields_archived_idx").on(table.archived),
+    sortOrderIdx: index("custom_fields_sort_order_idx").on(table.sortOrder),
+  }),
+);
+
+export const customFieldOptions = pgTable(
+  "custom_field_options",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    customFieldId: uuid("custom_field_id")
+      .notNull()
+      .references(() => customFields.id, { onDelete: "cascade" }),
+    label: text("label").notNull(),
+    value: text("value").notNull(),
+    color: text("color"),
+    sortOrder: integer("sort_order").notNull().default(0),
+    archived: boolean("archived").notNull().default(false),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => ({
+    customFieldIdIdx: index("custom_field_options_custom_field_id_idx").on(table.customFieldId),
+    archivedIdx: index("custom_field_options_archived_idx").on(table.archived),
+  }),
+);
+
+export const leadCustomFieldValues = pgTable(
+  "lead_custom_field_values",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    leadId: uuid("lead_id")
+      .notNull()
+      .references(() => leads.id, { onDelete: "cascade" }),
+    customFieldId: uuid("custom_field_id")
+      .notNull()
+      .references(() => customFields.id, { onDelete: "cascade" }),
+    value: jsonb("value").$type<unknown>().notNull(),
+    displayValue: text("display_value"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => ({
+    leadIdIdx: index("lead_custom_field_values_lead_id_idx").on(table.leadId),
+    customFieldIdIdx: index("lead_custom_field_values_custom_field_id_idx").on(table.customFieldId),
+  }),
+);
+
+export const formSources = pgTable(
+  "form_sources",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    name: text("name").notNull(),
+    type: formSourceTypeEnum("type").notNull(),
+    sourceId: text("source_id"),
+    webhookKey: text("webhook_key"),
+    isActive: boolean("is_active").notNull().default(true),
+    defaultStageId: uuid("default_stage_id"),
+    defaultAssignedUserId: uuid("default_assigned_user_id"),
+    defaultTeamId: uuid("default_team_id"),
+    defaultBranchId: uuid("default_branch_id"),
+    defaultDepartmentId: uuid("default_department_id"),
+    defaultPriority: leadPriorityEnum("default_priority").$type<LeadPriority>(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => ({
+    typeIdx: index("form_sources_type_idx").on(table.type),
+    webhookKeyUnique: uniqueIndex("form_sources_webhook_key_unique").on(table.webhookKey),
+    isActiveIdx: index("form_sources_is_active_idx").on(table.isActive),
+  }),
+);
+
+export const formFieldMappings = pgTable(
+  "form_field_mappings",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    formSourceId: uuid("form_source_id")
+      .notNull()
+      .references(() => formSources.id, { onDelete: "cascade" }),
+    externalFieldName: text("external_field_name").notNull(),
+    externalFieldLabel: text("external_field_label"),
+    targetType: formFieldTargetTypeEnum("target_type").notNull(),
+    targetField: formFieldCoreTargetEnum("target_field"),
+    customFieldId: uuid("custom_field_id").references(() => customFields.id, { onDelete: "set null" }),
+    required: boolean("required").notNull().default(false),
+    transformRule: text("transform_rule"),
+    fallbackValue: text("fallback_value"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => ({
+    formSourceIdIdx: index("form_field_mappings_form_source_id_idx").on(table.formSourceId),
+    customFieldIdIdx: index("form_field_mappings_custom_field_id_idx").on(table.customFieldId),
+  }),
+);
+
+export const leadIntakeEvents = pgTable(
+  "lead_intake_events",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    formSourceId: uuid("form_source_id").references(() => formSources.id, { onDelete: "set null" }),
+    leadId: uuid("lead_id").references(() => leads.id, { onDelete: "set null" }),
+    rawPayload: jsonb("raw_payload").$type<Record<string, unknown> | null>().notNull(),
+    normalizedPayload: jsonb("normalized_payload").$type<Record<string, unknown> | null>(),
+    status: leadIntakeEventStatusEnum("status").notNull(),
+    errorMessage: text("error_message"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => ({
+    formSourceIdIdx: index("lead_intake_events_form_source_id_idx").on(table.formSourceId),
+    leadIdIdx: index("lead_intake_events_lead_id_idx").on(table.leadId),
+    statusIdx: index("lead_intake_events_status_idx").on(table.status),
+    createdAtIdx: index("lead_intake_events_created_at_idx").on(table.createdAt),
+  }),
+);
+
+export const notificationEvents = pgTable(
+  "notification_events",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    type: notificationTypeEnum("type").notNull(),
+    channel: notificationChannelEnum("channel").notNull(),
+    recipientUserId: uuid("recipient_user_id"),
+    leadId: uuid("lead_id").references(() => leads.id, { onDelete: "set null" }),
+    title: text("title").notNull(),
+    message: text("message").notNull(),
+    status: notificationStatusEnum("status").notNull().default("pending"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    readAt: timestamp("read_at", { withTimezone: true }),
+  },
+  (table) => ({
+    recipientUserIdIdx: index("notification_events_recipient_user_id_idx").on(table.recipientUserId),
+    leadIdIdx: index("notification_events_lead_id_idx").on(table.leadId),
+    statusIdx: index("notification_events_status_idx").on(table.status),
+    createdAtIdx: index("notification_events_created_at_idx").on(table.createdAt),
+  }),
+);
+
+export const salesTargets = pgTable(
+  "sales_targets",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    name: text("name").notNull(),
+    scope: salesTargetScopeEnum("scope").notNull(),
+    scopeId: uuid("scope_id"),
+    period: salesTargetPeriodEnum("period").notNull(),
+    targetValue: numeric("target_value", { precision: 12, scale: 2 }).notNull(),
+    currency: text("currency").notNull().default("NGN"),
+    startDate: date("start_date").notNull(),
+    endDate: date("end_date").notNull(),
+    isActive: boolean("is_active").notNull().default(true),
+    archived: boolean("archived").notNull().default(false),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => ({
+    scopeIdx: index("sales_targets_scope_idx").on(table.scope, table.scopeId),
+    periodIdx: index("sales_targets_period_idx").on(table.period),
+    archivedIdx: index("sales_targets_archived_idx").on(table.archived),
+    activeIdx: index("sales_targets_is_active_idx").on(table.isActive),
+  }),
+);
 
 export const leads = pgTable(
   "leads",
@@ -61,6 +361,25 @@ export const leads = pgTable(
     sourceDetail: text("source_detail"),
     priority: leadPriorityEnum("priority").$type<LeadPriority>().notNull().default("medium"),
     assignedTo: text("assigned_to"),
+    companyName: text("company_name"),
+    sourceId: uuid("source_id"),
+    stageId: uuid("stage_id"),
+    campaignId: text("campaign_id"),
+    campaignLabel: text("campaign_label"),
+    assignedUserId: uuid("assigned_user_id"),
+    teamId: uuid("team_id"),
+    branchId: uuid("branch_id"),
+    departmentId: uuid("department_id"),
+    estimatedValue: numeric("estimated_value", { precision: 12, scale: 2 }),
+    expectedValue: numeric("expected_value", { precision: 12, scale: 2 }),
+    wonValue: numeric("won_value", { precision: 12, scale: 2 }),
+    closeProbability: integer("close_probability"),
+    expectedCloseDate: timestamp("expected_close_date", { withTimezone: true }),
+    wonAt: timestamp("won_at", { withTimezone: true }),
+    lostAt: timestamp("lost_at", { withTimezone: true }),
+    lostReason: text("lost_reason"),
+    nextFollowUpAt: timestamp("next_follow_up_at", { withTimezone: true }),
+    archivedAt: timestamp("archived_at", { withTimezone: true }),
     firstName: text("first_name").notNull().default(""),
     lastName: text("last_name").notNull().default(""),
     email: text("email").notNull().default(""),
@@ -133,8 +452,16 @@ export const leads = pgTable(
     crmStatusIdx: index("leads_crm_status_idx").on(table.crmStatus),
     primaryGoalIdx: index("leads_primary_goal_idx").on(table.primaryGoal),
     sourceIdx: index("leads_source_idx").on(table.source),
+    sourceIdIdx: index("leads_source_id_idx").on(table.sourceId),
     priorityIdx: index("leads_priority_idx").on(table.priority),
     assignedToIdx: index("leads_assigned_to_idx").on(table.assignedTo),
+    assignedUserIdIdx: index("leads_assigned_user_id_idx").on(table.assignedUserId),
+    stageIdIdx: index("leads_stage_id_idx").on(table.stageId),
+    teamIdIdx: index("leads_team_id_idx").on(table.teamId),
+    branchIdIdx: index("leads_branch_id_idx").on(table.branchId),
+    departmentIdIdx: index("leads_department_id_idx").on(table.departmentId),
+    nextFollowUpAtIdx: index("leads_next_follow_up_at_idx").on(table.nextFollowUpAt),
+    archivedAtIdx: index("leads_archived_at_idx").on(table.archivedAt),
     deletedAtIdx: index("leads_deleted_at_idx").on(table.deletedAt),
     createdAtIdx: index("leads_created_at_idx").on(table.createdAt),
     updatedAtIdx: index("leads_updated_at_idx").on(table.updatedAt),
@@ -347,6 +674,19 @@ export const adCampaignMetrics = pgTable(
 
 export type LeadRow = typeof leads.$inferSelect;
 export type NewLeadRow = typeof leads.$inferInsert;
+export type BranchRow = typeof branches.$inferSelect;
+export type DepartmentRow = typeof departments.$inferSelect;
+export type TeamRow = typeof teams.$inferSelect;
+export type LeadStageRow = typeof leadStages.$inferSelect;
+export type LeadSourceRow = typeof leadSources.$inferSelect;
+export type CustomFieldRow = typeof customFields.$inferSelect;
+export type CustomFieldOptionRow = typeof customFieldOptions.$inferSelect;
+export type LeadCustomFieldValueRow = typeof leadCustomFieldValues.$inferSelect;
+export type FormSourceRow = typeof formSources.$inferSelect;
+export type FormFieldMappingRow = typeof formFieldMappings.$inferSelect;
+export type LeadIntakeEventRow = typeof leadIntakeEvents.$inferSelect;
+export type NotificationEventRow = typeof notificationEvents.$inferSelect;
+export type SalesTargetRow = typeof salesTargets.$inferSelect;
 export type CrmUserRow = typeof crmUsers.$inferSelect;
 export type LeadEventRow = typeof leadEvents.$inferSelect;
 export type LeadNoteRow = typeof leadNotes.$inferSelect;

@@ -2,10 +2,10 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getAdminRequestContext } from "@/lib/admin";
 import {
-  canManageSettings,
   canManageTeamMember,
   resolveAdminAccessLevel,
 } from "@/lib/admin-permissions";
+import { canManageUsers } from "@/lib/crm/authz";
 import { leadStore } from "@/lib/storage";
 
 const crmUserActiveSchema = z.object({
@@ -21,7 +21,7 @@ export async function PATCH(
     return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
   }
 
-  if (!canManageSettings(context.accessLevel, context.role)) {
+  if (!canManageUsers({ accessLevel: context.accessLevel, role: context.role })) {
     return NextResponse.json({ error: "Forbidden." }, { status: 403 });
   }
 

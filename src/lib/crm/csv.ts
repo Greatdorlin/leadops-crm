@@ -1,13 +1,16 @@
+import type { CustomFieldDefinitionWithOptions } from "@/lib/crm/custom-field-values";
 import {
   CRM_STATUSES,
   LEAD_PRIORITIES,
   LEAD_SOURCES,
   PRIMARY_GOALS,
-  type CrmStatus,
-  type LeadPriority,
-  type LeadSource,
-  type PrimaryGoal,
-} from "@/lib/pathway-engine/types";
+} from "@/lib/crm/constants";
+import type {
+  CrmStatus,
+  LeadPriority,
+  LeadSource,
+  PrimaryGoal,
+} from "@/lib/crm/types";
 
 const headerAliases = {
   firstName: ["firstname", "first", "first_name", "first name", "name"],
@@ -16,7 +19,7 @@ const headerAliases = {
   email: ["email", "emailaddress", "email address", "mail"],
   whatsappNumber: ["whatsapp", "whatsappnumber", "whatsapp number", "phone", "mobile", "telephone"],
   state: ["state", "leadstate", "lead state", "locationstate", "location state"],
-  primaryGoal: ["primarygoal", "primary goal", "goal"],
+  category: ["category", "lead category", "primarygoal", "primary goal", "goal"],
   crmStatus: ["crmstatus", "crm status", "status", "stage", "leadstage", "lead stage"],
   priority: ["priority", "leadpriority", "lead priority"],
   assignedTo: ["assignedto", "assigned to", "owner", "leadowner", "lead owner", "assignee"],
@@ -31,12 +34,13 @@ export interface ParsedLeadImportRow {
   email: string | null;
   whatsappNumber: string | null;
   state: string | null;
-  primaryGoal: PrimaryGoal | null;
-  crmStatus: CrmStatus;
+  category: PrimaryGoal | null;
+  stage: CrmStatus;
   priority: LeadPriority;
   assignedTo: string | null;
   source: LeadSource;
   sourceDetail: string | null;
+  customFieldValues?: Record<string, unknown>;
 }
 
 function normalizeHeader(value: string) {
@@ -102,6 +106,43 @@ function inferFirstName(input: { firstName: string; email: string | null; whatsa
   return "";
 }
 
+export function resolveCustomFieldHeaderMatch(
+  header: string,
+  customFieldDefinitions: CustomFieldDefinitionWithOptions[],
+) {
+  const normalizedHeader = normalizeHeader(header);
+
+  return (
+    customFieldDefinitions.find((field) => normalizeHeader(field.label) === normalizedHeader) ??
+    customFieldDefinitions.find((field) => normalizeHeader(field.key) === normalizedHeader) ??
+    null
+  );
+}
+
+export function mapCsvRowToCustomFieldValues(
+  headers: string[],
+  row: string[],
+  customFieldDefinitions: CustomFieldDefinitionWithOptions[],
+) {
+  const values: Record<string, unknown> = {};
+
+  headers.forEach((header, index) => {
+    const matchedField = resolveCustomFieldHeaderMatch(header, customFieldDefinitions);
+    if (!matchedField) {
+      return;
+    }
+
+    const value = normalizeValue(row[index] ?? "");
+    if (!value) {
+      return;
+    }
+
+    values[matchedField.id] = value;
+  });
+
+  return values;
+}
+
 export function parseCsvText(csvText: string) {
   const rows: string[][] = [];
   let currentCell = "";
@@ -156,7 +197,12 @@ export function parseCsvText(csvText: string) {
   return rows;
 }
 
-export function parseLeadImportCsv(csvText: string) {
+export function parseLeadImportCsv(
+  csvText: string,
+  options: {
+    customFieldDefinitions?: CustomFieldDefinitionWithOptions[];
+  } = {},
+) {
   const rows = parseCsvText(csvText);
   if (rows.length < 2) {
     throw new Error("Add a header row and at least one lead row before importing.");
@@ -186,9 +232,13 @@ export function parseLeadImportCsv(csvText: string) {
 
     const crmStatus = parseEnumValue(readColumn(headers, row, headerAliases.crmStatus), CRM_STATUSES) ?? "new";
     const priority = parseEnumValue(readColumn(headers, row, headerAliases.priority), LEAD_PRIORITIES) ?? "medium";
-    const primaryGoal =
-      parseEnumValue(readColumn(headers, row, headerAliases.primaryGoal), PRIMARY_GOALS) ?? null;
+    const category =
+      parseEnumValue(readColumn(headers, row, headerAliases.category), PRIMARY_GOALS) ?? null;
     const source = parseEnumValue(readColumn(headers, row, headerAliases.source), LEAD_SOURCES) ?? "manual_entry";
+    const customFieldValues =
+      options.customFieldDefinitions && options.customFieldDefinitions.length > 0
+        ? mapCsvRowToCustomFieldValues(headers, row, options.customFieldDefinitions)
+        : undefined;
 
     parsedRows.push({
       rowNumber,
@@ -197,12 +247,15 @@ export function parseLeadImportCsv(csvText: string) {
       email,
       whatsappNumber,
       state: readColumn(headers, row, headerAliases.state) || null,
-      primaryGoal,
-      crmStatus,
+      category,
+      stage: crmStatus,
       priority,
       assignedTo: readColumn(headers, row, headerAliases.assignedTo) || null,
       source,
       sourceDetail: readColumn(headers, row, headerAliases.sourceDetail) || null,
+      ...(customFieldValues && Object.keys(customFieldValues).length > 0
+        ? { customFieldValues }
+        : {}),
     });
   }
 

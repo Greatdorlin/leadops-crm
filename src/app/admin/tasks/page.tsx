@@ -13,6 +13,7 @@ import { TaskQueueTable } from "@/components/admin/TaskQueueTable";
 import { getAdminAccessContext } from "@/lib/admin";
 import { isDateToday, isTaskOverdue } from "@/lib/admin-insights";
 import { canAssignTasksToOthers } from "@/lib/admin-permissions";
+import { listCustomFields } from "@/lib/crm/custom-fields-admin";
 import { buildLeadDisplayNameMap } from "@/lib/crm/lead-identity";
 import { formatLeadStateLabel } from "@/lib/crm/formatters";
 import { getCrmPageErrorCopy, logCrmPageError } from "@/lib/crm/runtime";
@@ -100,6 +101,15 @@ export default async function AdminTasksPage({
   }
 
   const errorCopy = pageError ? getCrmPageErrorCopy(pageError) : null;
+  let leadCaptureCustomFields = [] as Awaited<ReturnType<typeof listCustomFields>>;
+
+  try {
+    leadCaptureCustomFields = (await listCustomFields()).filter(
+      (field) => field.showInForm && !field.archived,
+    );
+  } catch (error) {
+    logCrmPageError("tasks-custom-fields", error);
+  }
 
   if (!pageData) {
     return (
@@ -287,6 +297,7 @@ export default async function AdminTasksPage({
               defaultAssignedTo={accessLevel === "sales_rep" ? session.user?.email ?? "" : ""}
               defaultLeadId={defaultLeadId}
               variant="compact"
+              leadCaptureCustomFields={leadCaptureCustomFields}
             />
           </div>
         </section>

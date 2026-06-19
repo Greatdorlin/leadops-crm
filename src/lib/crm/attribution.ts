@@ -1,4 +1,5 @@
-import type { LeadRecord } from "@/lib/pathway-engine/types";
+import { formatLeadInterestLabel } from "@/lib/crm/labels";
+import type { LeadRecord } from "@/lib/crm/types";
 
 function payloadString(payload: Record<string, unknown> | null, keys: string[]) {
   if (!payload) {
@@ -24,7 +25,7 @@ export function buildLeadAttributionSummary(lead: LeadRecord) {
     routeId: routeId ?? (lead.source === "website_form" ? lead.sourceDetail : null),
     routeLabel:
       payloadString(lead.sourcePayload, ["routeLabel", "route_label"]) ??
-      lead.topPathwayTitle ??
+      formatLeadInterestLabel(lead) ??
       null,
     formType: payloadString(lead.sourcePayload, ["formType", "form_type"]),
     nigeriaState: payloadString(lead.sourcePayload, ["nigeriaState", "nigeria_state"]),

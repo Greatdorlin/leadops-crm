@@ -1,0 +1,17 @@
+.git
+.next
+node_modules
+npm-debug.log
+coverage
+dist
+tmp
+*.local
+.env
+.env.*
+dev-server*.log
+next-start*.log
+home-current.png
+pathway-finder-current.png
+report-*.png
+start-*.png
+tsconfig.tsbuildinfo

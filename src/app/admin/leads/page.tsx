@@ -15,6 +15,7 @@ import { loadAdminLeadReadContext } from "@/lib/crm/admin-read-context";
 import { listCustomFields } from "@/lib/crm/custom-fields-admin";
 import { CRM_STATUSES, LEAD_PRIORITIES, LEAD_SOURCES } from "@/lib/crm/constants";
 import { getTableVisibleCustomFields } from "@/lib/crm/custom-field-values";
+import { getCompanySettings, resolveLeadPreviewConfig } from "@/lib/crm/workspace-settings";
 import {
   canAccessLeadTrash,
   canSoftDeleteLead,
@@ -191,7 +192,14 @@ export default async function AdminLeadsPage({
           label: user.fullName || user.email,
           value: user.email,
         }));
-  const tableVisibleCustomFields = getTableVisibleCustomFields(await listCustomFields(), { limit: 4 });
+  const [customFields, workspaceSettings] = await Promise.all([
+    listCustomFields(),
+    getCompanySettings(),
+  ]);
+  const previewConfig = resolveLeadPreviewConfig(workspaceSettings.leadPreview, customFields);
+  const tableVisibleCustomFields = getTableVisibleCustomFields(customFields, {
+    limit: previewConfig.maxCustomFieldColumns,
+  });
   const readContext = await loadAdminLeadReadContext(leads, { includeCustomFields: true });
   const leadRows = leads.map((lead) =>
     buildAdminLeadListItem(lead, {
@@ -352,6 +360,7 @@ export default async function AdminLeadsPage({
             emptyTitle="No leads match this view"
             emptyDescription="Try a broader filter or reset the queue."
             assigneeOptions={assigneeOptions}
+            previewConfig={previewConfig}
             renderActions={(lead) => (
               <>
                 <Link

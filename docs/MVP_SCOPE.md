@@ -13,6 +13,7 @@ Leads Desk v1.0 must be good enough to:
 - show overdue follow-up and sales visibility
 - export operational data
 - support a client handover with production setup, backup, and restore guidance
+- support premium runtime customization for brand, navigation, lead preview, dashboard, and industry presets
 
 ## Original MVP Objective
 

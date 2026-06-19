@@ -13,6 +13,7 @@ import {
 import { cn } from "@/lib/cn";
 import type { AdminAccessLevel } from "@/lib/admin-permissions";
 import type { CustomFieldDefinitionWithOptions } from "@/lib/crm/custom-field-values";
+import type { CrmStatus } from "@/lib/crm/types";
 import { LeadAssignmentForm } from "./LeadAssignmentForm";
 import { LeadCaptureForm } from "./LeadCaptureForm";
 import { LeadImportForm } from "./LeadImportForm";
@@ -29,6 +30,7 @@ export function AdminWorkspaceComposer({
   defaultLeadId,
   variant = "hero",
   leadCaptureCustomFields = [],
+  leadCaptureStageOptions,
 }: {
   accessLevel: AdminAccessLevel;
   leadOptions: Array<{ value: string; label: string }>;
@@ -44,6 +46,7 @@ export function AdminWorkspaceComposer({
   defaultLeadId?: string;
   variant?: "hero" | "compact";
   leadCaptureCustomFields?: CustomFieldDefinitionWithOptions[];
+  leadCaptureStageOptions?: Array<{ value: CrmStatus; label: string }>;
 }) {
   const availableModes: ComposerMode[] =
     accessLevel === "sales_rep" ? ["task", "lead"] : ["lead", "task", "assignment", "import"];
@@ -108,6 +111,7 @@ export function AdminWorkspaceComposer({
           assigneeOptions={assigneeOptions}
           defaultAssignedTo={defaultAssignedTo}
           customFieldDefinitions={leadCaptureCustomFields}
+          stageOptions={leadCaptureStageOptions}
         />
       ),
     },

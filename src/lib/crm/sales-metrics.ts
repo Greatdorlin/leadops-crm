@@ -63,6 +63,7 @@ export interface SalesDashboardSummary {
   recentIntake: IntakeEventAdminRow[];
   target:
     | {
+        id: string;
         name: string;
         targetValue: number;
         wonValue: number;
@@ -288,6 +289,7 @@ export function buildSalesDashboardSummary(input: {
     recentIntake: intakeEvents.slice(0, 8),
     target: activeTarget
       ? {
+          id: activeTarget.id,
           name: activeTarget.name,
           targetValue: activeTarget.targetValue,
           wonValue,

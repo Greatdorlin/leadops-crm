@@ -139,7 +139,31 @@ export function canManageSalesTargets(user: AdminAuthzSubject) {
   return role === "owner" || role === "admin";
 }
 
+export function canManageAppearanceSettings(user: AdminAuthzSubject) {
+  return canManageSalesTargets(user);
+}
+
+export function canManageNavigationSettings(user: AdminAuthzSubject) {
+  return canManageSalesTargets(user);
+}
+
+export function canManageLeadPreviewSettings(user: AdminAuthzSubject) {
+  return canManageSalesTargets(user);
+}
+
+export function canManageDashboardSettings(user: AdminAuthzSubject) {
+  return canManageSalesTargets(user);
+}
+
+export function canManageIndustryPresets(user: AdminAuthzSubject) {
+  return canManageSalesTargets(user);
+}
+
 export function canViewIntakeLogs(user: AdminAuthzSubject) {
+  return hasRoleAtLeast(user, "admin");
+}
+
+export function canViewSystemStatus(user: AdminAuthzSubject) {
   return hasRoleAtLeast(user, "admin");
 }
 

@@ -9,6 +9,8 @@ This client receives a private Leads Desk workspace for their business.
 - admin URL
 - login instructions
 - owner/admin contact account
+- branding settings summary
+- navigation and dashboard defaults summary
 - high-level feature summary
 - backup responsibility agreement
 - support contact and response expectations
@@ -23,6 +25,8 @@ This client receives a private Leads Desk workspace for their business.
 
 - their lead data
 - exported data files
+- brand and appearance settings
+- sidebar and dashboard preferences
 - stage/source/custom-field configuration
 - the business process they run inside the workspace
 

@@ -1,11 +1,17 @@
 "use client";
 
-import type { PropsWithChildren, ReactNode } from "react";
+import type { CSSProperties, PropsWithChildren, ReactNode } from "react";
 import { useState } from "react";
 import type { AdminAccessLevel } from "@/lib/admin-permissions";
 import type { CrmUserRole } from "@/lib/crm/types";
+import {
+  buildThemeCssVariables,
+  getDensityClass,
+  getDesignStyleClass,
+} from "@/lib/crm/workspace-settings";
 import { AdminSidebar } from "./AdminSidebar";
 import { AdminTopbar } from "./AdminTopbar";
+import { useAdminWorkspaceSettings } from "./AdminWorkspaceSettingsProvider";
 
 interface AdminShellProps extends PropsWithChildren {
   activeNav: string;
@@ -33,14 +39,28 @@ export function AdminShell({
   searchSlot,
   children,
 }: AdminShellProps) {
+  const workspaceSettings = useAdminWorkspaceSettings();
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const adminThemeStyle = buildThemeCssVariables(workspaceSettings) as CSSProperties;
+  const shellClasses = [
+    "admin-shell text-slate-950",
+    getDesignStyleClass(workspaceSettings.designStyle),
+    getDensityClass(workspaceSettings.density),
+  ].join(" ");
 
   function toggleSidebar() {
     setIsSidebarCollapsed((current) => !current);
   }
 
   return (
-    <div className="admin-shell text-slate-950">
+    <div
+      className={shellClasses}
+      style={adminThemeStyle}
+      data-design-style={workspaceSettings.designStyle}
+      data-density={workspaceSettings.density}
+      data-theme-mode={workspaceSettings.themeMode}
+      data-glass={workspaceSettings.glassEnabled ? "on" : "off"}
+    >
       <div className="relative z-10 min-h-screen p-3 sm:p-4">
         <div
           className={[
@@ -50,14 +70,16 @@ export function AdminShell({
               : "xl:grid-cols-[248px_minmax(0,1fr)] 2xl:grid-cols-[260px_minmax(0,1fr)]",
           ].join(" ")}
         >
-          <AdminSidebar
-            activeKey={activeNav}
-            accessLevel={accessLevel}
-            role={role}
-            footer={sidebarFooter}
-            collapsed={isSidebarCollapsed}
-            onToggleCollapse={toggleSidebar}
-          />
+            <AdminSidebar
+              activeKey={activeNav}
+              accessLevel={accessLevel}
+              role={role}
+              footer={sidebarFooter}
+              collapsed={isSidebarCollapsed}
+              onToggleCollapse={toggleSidebar}
+              companyName={workspaceSettings.companyName}
+              logoUrl={workspaceSettings.logoUrl}
+            />
           <div className="min-w-0">
             <AdminTopbar
               activeNav={activeNav}

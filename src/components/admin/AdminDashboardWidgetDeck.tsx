@@ -45,27 +45,39 @@ function reorderList(order: string[], movingId: string, targetId: string) {
 
 export function AdminDashboardWidgetDeck({
   widgets,
+  initialOrder,
+  persistKey = STORAGE_KEY,
 }: {
   widgets: DashboardWidget[];
+  initialOrder?: string[];
+  persistKey?: string | null;
 }) {
   const defaultOrder = useMemo(() => widgets.map((widget) => widget.id), [widgets]);
   const [order, setOrder] = useState(() => {
     if (typeof window === "undefined") {
-      return defaultOrder;
+      return initialOrder?.length ? initialOrder : defaultOrder;
     }
 
-    const saved = window.localStorage.getItem(STORAGE_KEY);
+    if (!persistKey) {
+      return initialOrder?.length ? initialOrder : defaultOrder;
+    }
+
+    const saved = window.localStorage.getItem(persistKey);
     if (!saved) {
-      return defaultOrder;
+      return initialOrder?.length ? initialOrder : defaultOrder;
     }
 
     try {
       const parsed = JSON.parse(saved) as string[];
       const normalized = parsed.filter((id) => defaultOrder.includes(id));
-      return normalized.length === defaultOrder.length ? normalized : defaultOrder;
+      return normalized.length === defaultOrder.length
+        ? normalized
+        : initialOrder?.length
+          ? initialOrder
+          : defaultOrder;
     } catch {
-      window.localStorage.removeItem(STORAGE_KEY);
-      return defaultOrder;
+      window.localStorage.removeItem(persistKey);
+      return initialOrder?.length ? initialOrder : defaultOrder;
     }
   });
   const [openState, setOpenState] = useState<Record<string, boolean>>(() =>
@@ -77,8 +89,12 @@ export function AdminDashboardWidgetDeck({
   const [draggingId, setDraggingId] = useState<string | null>(null);
 
   useEffect(() => {
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(order));
-  }, [order]);
+    if (!persistKey) {
+      return;
+    }
+
+    window.localStorage.setItem(persistKey, JSON.stringify(order));
+  }, [order, persistKey]);
 
   const orderedWidgets = order
     .map((id) => widgets.find((widget) => widget.id === id))
@@ -109,10 +125,12 @@ export function AdminDashboardWidgetDeck({
 
         <button
           type="button"
-          onClick={() => {
-            setOrder(defaultOrder);
-            window.localStorage.removeItem(STORAGE_KEY);
-          }}
+            onClick={() => {
+              setOrder(defaultOrder);
+              if (persistKey) {
+                window.localStorage.removeItem(persistKey);
+              }
+            }}
           className="admin-button-secondary inline-flex h-10 items-center justify-center rounded-full px-4 text-sm font-medium"
         >
           <RotateCcw className="h-4 w-4" />

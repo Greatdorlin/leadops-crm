@@ -350,6 +350,53 @@ export const salesTargets = pgTable(
   }),
 );
 
+export const companySettings = pgTable(
+  "company_settings",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    companyName: text("company_name").notNull().default("Leads Desk"),
+    logoUrl: text("logo_url"),
+    logoUrlLightMode: text("logo_url_light_mode"),
+    logoUrlDarkMode: text("logo_url_dark_mode"),
+    faviconUrl: text("favicon_url"),
+    loginLogoUrl: text("login_logo_url"),
+    loginLogoUrlLightMode: text("login_logo_url_light_mode"),
+    loginLogoUrlDarkMode: text("login_logo_url_dark_mode"),
+    primaryColor: text("primary_color").notNull().default("#1f4ed8"),
+    accentColor: text("accent_color").notNull().default("#f4b400"),
+    backgroundColor: text("background_color").notNull().default("#f6efe6"),
+    surfaceColor: text("surface_color").notNull().default("#fffaf5"),
+    cardColor: text("card_color").notNull().default("#ffffff"),
+    sidebarColor: text("sidebar_color").notNull().default("#0b1438"),
+    textColor: text("text_color").notNull().default("#0f172a"),
+    borderColor: text("border_color").notNull().default("#d8e2f0"),
+    borderRadius: integer("border_radius").notNull().default(24),
+    fontScale: numeric("font_scale", { precision: 4, scale: 2 }).notNull().default("1.00"),
+    fontPreset: text("font_preset").notNull().default("brand"),
+    density: text("density").notNull().default("comfortable"),
+    themeMode: text("theme_mode").notNull().default("light"),
+    designStyle: text("design_style").notNull().default("modern"),
+    glassEnabled: boolean("glass_enabled").notNull().default(false),
+    glassOpacity: integer("glass_opacity").notNull().default(72),
+    glassBlur: integer("glass_blur").notNull().default(18),
+    celebrationsEnabled: boolean("celebrations_enabled").notNull().default(true),
+    stageCelebrationsEnabled: boolean("stage_celebrations_enabled").notNull().default(true),
+    targetCelebrationsEnabled: boolean("target_celebrations_enabled").notNull().default(true),
+    loginBackgroundUrl: text("login_background_url"),
+    loginHeadline: text("login_headline"),
+    loginSubheadline: text("login_subheadline"),
+    navigationConfig: jsonb("navigation_config").$type<Record<string, unknown> | null>(),
+    dashboardConfig: jsonb("dashboard_config").$type<Record<string, unknown> | null>(),
+    leadPreviewConfig: jsonb("lead_preview_config").$type<Record<string, unknown> | null>(),
+    industryPreset: text("industry_preset").notNull().default("general_business"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => ({
+    updatedAtIdx: index("company_settings_updated_at_idx").on(table.updatedAt),
+  }),
+);
+
 export const leads = pgTable(
   "leads",
   {
@@ -687,6 +734,7 @@ export type FormFieldMappingRow = typeof formFieldMappings.$inferSelect;
 export type LeadIntakeEventRow = typeof leadIntakeEvents.$inferSelect;
 export type NotificationEventRow = typeof notificationEvents.$inferSelect;
 export type SalesTargetRow = typeof salesTargets.$inferSelect;
+export type CompanySettingsRow = typeof companySettings.$inferSelect;
 export type CrmUserRow = typeof crmUsers.$inferSelect;
 export type LeadEventRow = typeof leadEvents.$inferSelect;
 export type LeadNoteRow = typeof leadNotes.$inferSelect;

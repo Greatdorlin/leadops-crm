@@ -2,6 +2,9 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { CelebrationPanel } from "@/components/admin/CelebrationPanel";
+import { useAdminWorkspaceSettings } from "@/components/admin/AdminWorkspaceSettingsProvider";
+import { buildLeadStageCelebration, type CelebrationMoment } from "@/lib/crm/celebrations";
 import { crmLabelize } from "@/lib/crm/formatters";
 import type { CrmStatus, LeadPriority } from "@/lib/crm/types";
 import { AdminSelect } from "./AdminSelect";
@@ -39,6 +42,11 @@ export function LeadStatusForm({
   initialAssignedToList,
   initialNextFollowUpAt,
   assigneeOptions,
+  stageOptions = crmStatuses.map((status, index) => ({
+    value: status,
+    label: crmLabelize(status),
+    sortOrder: index,
+  })),
 }: {
   leadId: string;
   initialStatus: CrmStatus;
@@ -47,8 +55,16 @@ export function LeadStatusForm({
   initialAssignedToList: string[];
   initialNextFollowUpAt?: string | null;
   assigneeOptions: Array<{ label: string; value: string }>;
+  stageOptions?: Array<{
+    value: CrmStatus;
+    label: string;
+    sortOrder?: number;
+    isWon?: boolean;
+    isLost?: boolean;
+  }>;
 }) {
   const router = useRouter();
+  const workspaceSettings = useAdminWorkspaceSettings();
   const [crmStatus, setCrmStatus] = useState<CrmStatus>(initialStatus);
   const [priority, setPriority] = useState<LeadPriority>(initialPriority);
   const [assignedTo, setAssignedTo] = useState(initialAssignedTo ?? "");
@@ -56,6 +72,7 @@ export function LeadStatusForm({
   const [nextFollowUpAt, setNextFollowUpAt] = useState(formatDateTimeLocalValue(initialNextFollowUpAt));
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState("");
+  const [celebration, setCelebration] = useState<CelebrationMoment | null>(null);
 
   function toggleAdditionalOwner(email: string) {
     setAssignedToList((current) => {
@@ -101,6 +118,19 @@ export function LeadStatusForm({
         return;
       }
 
+      if (workspaceSettings.celebrationsEnabled && workspaceSettings.stageCelebrationsEnabled) {
+        const activeStageLabel =
+          stageOptions.find((option) => option.value === crmStatus)?.label ?? crmLabelize(crmStatus);
+        const nextCelebration = buildLeadStageCelebration({
+          previousStatus: initialStatus,
+          nextStatus: crmStatus,
+          stageLabel: activeStageLabel,
+        });
+        setCelebration(nextCelebration);
+      } else {
+        setCelebration(null);
+      }
+
       setMessage("Lead details updated.");
       setIsSaving(false);
       router.refresh();
@@ -112,6 +142,7 @@ export function LeadStatusForm({
 
   return (
     <div className="rounded-[24px] border border-slate-200/85 bg-[linear-gradient(180deg,rgba(250,251,255,0.98)_0%,rgba(255,252,247,0.95)_100%)] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.8)]">
+      <CelebrationPanel celebration={celebration} onClose={() => setCelebration(null)} className="mb-4" />
       <div className="mb-4 rounded-[18px] border border-slate-200/70 bg-white/72 px-4 py-3 text-sm leading-6 text-slate-500">
         Update routing before the next touch so ownership and status stay clean.
       </div>
@@ -123,9 +154,9 @@ export function LeadStatusForm({
             onChange={(event) => setCrmStatus(event.target.value as CrmStatus)}
             className="h-12"
           >
-            {crmStatuses.map((status) => (
-              <option key={status} value={status}>
-                {crmLabelize(status)}
+            {stageOptions.map((status) => (
+              <option key={status.value} value={status.value}>
+                {status.label}
               </option>
             ))}
           </AdminSelect>

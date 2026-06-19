@@ -52,10 +52,18 @@ import {
 import { canExportLeads } from "@/lib/crm/authz";
 import { listCustomFields } from "@/lib/crm/custom-fields-admin";
 import { listLeadIntakeEvents } from "@/lib/crm/intake-runtime";
+import { listLeadStages } from "@/lib/crm/lead-stages-admin";
 import { getCrmPageErrorCopy, logCrmPageError } from "@/lib/crm/runtime";
 import { buildSalesDashboardSummary } from "@/lib/crm/sales-metrics";
 import { getActiveGlobalSalesTarget } from "@/lib/crm/sales-targets-admin";
-import type { LeadRecord } from "@/lib/crm/types";
+import {
+  DASHBOARD_WIDGET_KEYS,
+  getCompanySettings,
+  resolveDashboardConfig,
+  resolveDashboardWidgetOrder,
+  type DashboardWidgetKey,
+} from "@/lib/crm/workspace-settings";
+import type { CrmStatus, LeadRecord } from "@/lib/crm/types";
 import { leadStore } from "@/lib/storage";
 
 export const dynamic = "force-dynamic";
@@ -340,10 +348,17 @@ export default async function AdminPage({
   }
 
   let leadCaptureCustomFields = [] as Awaited<ReturnType<typeof listCustomFields>>;
+  let leadCaptureStageOptions = [] as Array<{ value: CrmStatus; label: string }>;
   try {
     leadCaptureCustomFields = (await listCustomFields()).filter(
       (field) => field.showInForm && !field.archived,
     );
+    leadCaptureStageOptions = (await listLeadStages())
+      .filter((stage) => !stage.archived && crmOptions.includes(stage.key as (typeof crmOptions)[number]))
+      .map((stage) => ({
+        value: stage.key as CrmStatus,
+        label: stage.name,
+      }));
   } catch (error) {
     logCrmPageError("dashboard-custom-fields", error);
   }
@@ -449,8 +464,16 @@ export default async function AdminPage({
   const previewUnassignedLeads = unassignedLeads.slice(0, 5);
   const previewUnassignedLeadNameById = buildLeadDisplayNameMap(previewUnassignedLeads);
   const activityLeadNameById = buildLeadDisplayNameMap(activityFeed.map(({ lead }) => lead));
+  const workspaceSettings = await getCompanySettings();
+  const dashboardConfig = resolveDashboardConfig(workspaceSettings.dashboard);
+  const visibleDashboardWidgetKeys = resolveDashboardWidgetOrder(
+    DASHBOARD_WIDGET_KEYS.map((id) => ({ id })),
+    dashboardConfig,
+  ).map((item) => item.id);
+  const visibleDashboardWidgetSet = new Set<DashboardWidgetKey>(visibleDashboardWidgetKeys);
   const overviewCards = [
     {
+      key: "my_tasks" as const,
       label: accessLevel === "sales_rep" ? "Tasks today" : "Leads to review",
       value: safeNumber(accessLevel === "sales_rep" ? todayFollowUps.length : actionLeads.length),
       hint:
@@ -460,6 +483,7 @@ export default async function AdminPage({
       icon: AlarmClockCheck,
     },
     {
+      key: "overdue_follow_ups" as const,
       label: "Overdue tasks",
       value: safeNumber(overdueTasks.length),
       hint:
@@ -469,6 +493,7 @@ export default async function AdminPage({
       icon: CircleAlert,
     },
     {
+      key: "new_leads" as const,
       label: accessLevel === "sales_rep" ? "High priority" : "Needs owner",
       value: safeNumber(accessLevel === "sales_rep" ? stats.highPriorityLeads : stats.unassignedLeads),
       hint:
@@ -478,6 +503,7 @@ export default async function AdminPage({
       icon: accessLevel === "sales_rep" ? UserPlus : Inbox,
     },
     {
+      key: "team_performance" as const,
       label: accessLevel === "sales_rep" ? "Qualified leads" : "Active team",
       value: safeNumber(accessLevel === "sales_rep" ? personalRow?.qualifiedLeads ?? 0 : teamRows.length),
       hint:
@@ -486,7 +512,7 @@ export default async function AdminPage({
           : "People currently handling leads or tasks.",
       icon: Users2,
     },
-  ] as const;
+  ].filter((card) => visibleDashboardWidgetSet.has(card.key));
   const salesDashboardSummary = buildSalesDashboardSummary({
     leads,
     tasks,
@@ -649,10 +675,19 @@ export default async function AdminPage({
         </section>
 
         {accessLevel === "sales_rep" ? null : (
-          <SalesCommandOverview summary={salesDashboardSummary} />
+          <SalesCommandOverview
+            summary={salesDashboardSummary}
+            visibleWidgets={visibleDashboardWidgetKeys}
+          />
         )}
 
         <AdminDashboardWidgetDeck
+          initialOrder={
+            visibleDashboardWidgetSet.has("my_tasks")
+              ? ["tasks", "leads", "quick-actions"]
+              : ["leads", "quick-actions", "tasks"]
+          }
+          persistKey={null}
           widgets={[
             {
               id: "tasks",
@@ -661,7 +696,7 @@ export default async function AdminPage({
               eyebrow: "Tasks to handle",
               title: accessLevel === "sales_rep" ? "Start with these tasks" : "Tasks that need attention first",
               description: "Urgent items, due-today work, and overdue follow-ups surface first.",
-              accent: "warm",
+              accent: "warm" as const,
               ctaHref: "/admin/tasks",
               ctaLabel: "View all",
               children:
@@ -711,7 +746,7 @@ export default async function AdminPage({
               eyebrow: "Recent leads",
               title: "Newest leads",
               description: "Fresh arrivals, newest activity, and lead context in one quick scan.",
-              accent: "cool",
+              accent: "cool" as const,
               ctaHref: "/admin/leads",
               ctaLabel: "View all",
               children:
@@ -766,7 +801,7 @@ export default async function AdminPage({
               eyebrow: "Quick actions",
               title: "Capture, assign, and move the queue forward",
               description: "Use the action center to add leads, create follow-ups, assign owners, and import lists without leaving the dashboard.",
-              accent: "navy",
+              accent: "navy" as const,
               defaultOpen: true,
               children: (
                 <div id="action-center">
@@ -777,16 +812,24 @@ export default async function AdminPage({
                     assigneeOptions={assigneeOptions}
                     defaultAssignedTo={defaultAssignedTo}
                     leadCaptureCustomFields={leadCaptureCustomFields}
+                    leadCaptureStageOptions={leadCaptureStageOptions.length > 0 ? leadCaptureStageOptions : undefined}
                   />
                 </div>
               ),
             },
-          ]}
+          ].filter((widget) => {
+            if (widget.id === "tasks") {
+              return visibleDashboardWidgetSet.has("my_tasks");
+            }
+
+            return true;
+          })}
         />
 
         <section className="grid gap-6 xl:grid-cols-12">
           <div className="space-y-6 xl:col-span-8">
-            <AdminCollapsibleSection
+            {visibleDashboardWidgetSet.has("my_tasks") ? (
+              <AdminCollapsibleSection
               eyebrow="Task list"
               title={accessLevel === "sales_rep" ? "Your next tasks" : "Tasks due next"}
               description={
@@ -810,7 +853,8 @@ export default async function AdminPage({
                 emptyTitle="No open tasks right now"
                 emptyDescription="Create a task so the next step stays visible."
               />
-            </AdminCollapsibleSection>
+              </AdminCollapsibleSection>
+            ) : null}
 
             <AdminCollapsibleSection
               eyebrow={accessLevel === "sales_rep" ? "My leads" : "Lead queue"}
@@ -872,7 +916,8 @@ export default async function AdminPage({
           </div>
 
           <div className="space-y-6 xl:col-span-4">
-            <AdminCollapsibleSection
+            {visibleDashboardWidgetSet.has("team_performance") ? (
+              <AdminCollapsibleSection
               eyebrow={accessLevel === "sales_rep" ? "My numbers" : "Team snapshot"}
               title={accessLevel === "sales_rep" ? "Today at a glance" : "Team at a glance"}
               description={
@@ -924,7 +969,8 @@ export default async function AdminPage({
                   </>
                 )}
               </div>
-            </AdminCollapsibleSection>
+              </AdminCollapsibleSection>
+            ) : null}
 
             <AdminCollapsibleSection
               eyebrow="Recent activity"

@@ -1,6 +1,8 @@
 import Link from "next/link";
 import type { SalesDashboardSummary } from "@/lib/crm/sales-metrics";
 import { formatCrmDateTime } from "@/lib/crm/formatters";
+import type { DashboardWidgetKey } from "@/lib/crm/workspace-settings";
+import { DashboardTargetCelebration } from "./DashboardTargetCelebration";
 import { EmptyState } from "./EmptyState";
 import { MetricCard } from "./MetricCard";
 import { SectionHeader } from "./SectionHeader";
@@ -9,24 +11,131 @@ function formatMoney(value: number, currency = "NGN") {
   return `${currency} ${value.toLocaleString()}`;
 }
 
+type OverviewMetricCard = {
+  key: string;
+  label: string;
+  value: string | number;
+  supporting: string;
+  tone?: "accent" | "danger" | "positive" | "warning";
+};
+
 export function SalesCommandOverview({
   summary,
+  visibleWidgets,
 }: {
   summary: SalesDashboardSummary;
+  visibleWidgets?: DashboardWidgetKey[];
 }) {
+  const widgetSet = new Set(visibleWidgets ?? []);
+  const showAll = widgetSet.size === 0;
+  const showWidget = (key: DashboardWidgetKey) => showAll || widgetSet.has(key);
+  const topMetricCards: OverviewMetricCard[] = [];
+
+  if (showWidget("total_leads")) {
+    topMetricCards.push({
+      key: "total_leads",
+      label: "Total leads",
+      value: summary.totalLeads,
+      supporting: "All visible leads.",
+      tone: "accent",
+    });
+  }
+
+  if (showWidget("new_leads")) {
+    topMetricCards.push({
+      key: "new_leads",
+      label: "New leads",
+      value: summary.newLeads,
+      supporting: "Leads still at the first stage.",
+    });
+  }
+
+  if (showWidget("leads_this_month")) {
+    topMetricCards.push({
+      key: "leads_this_month",
+      label: "Leads this month",
+      value: summary.leadsThisMonth,
+      supporting: "Captured during the current month.",
+    });
+  }
+
+  if (showWidget("overdue_follow_ups")) {
+    topMetricCards.push({
+      key: "overdue_follow_ups",
+      label: "Overdue follow-ups",
+      value: summary.overdueFollowUps,
+      supporting: "Needs attention today.",
+      tone: summary.overdueFollowUps > 0 ? "danger" : "positive",
+    });
+  }
+
+  if (showWidget("pipeline_value")) {
+    topMetricCards.push({
+      key: "pipeline_value",
+      label: "Pipeline value",
+      value: formatMoney(summary.pipelineValue, summary.target?.currency ?? "NGN"),
+      supporting: "Open expected value.",
+    });
+  }
+
+  if (showWidget("won_value")) {
+    topMetricCards.push({
+      key: "won_value",
+      label: "Won value",
+      value: formatMoney(summary.wonValue, summary.target?.currency ?? "NGN"),
+      supporting: "Closed value so far.",
+      tone: "positive",
+    });
+  }
+
+  if (showWidget("conversion_rate")) {
+    topMetricCards.push({
+      key: "conversion_rate",
+      label: "Conversion rate",
+      value: `${summary.conversionRate}%`,
+      supporting: `${summary.wonLeads} won • ${summary.lostLeads} lost`,
+    });
+  }
+
+  const showSourcePerformance = showWidget("top_sources");
+  const showRecentIntake = showWidget("recent_intake");
+  const showTargetProgress = showWidget("target_progress");
+  const showTeamPerformance = showWidget("team_performance");
+  const showAttentionSummary = showWidget("overdue_follow_ups") || showWidget("conversion_rate");
+
   return (
     <div className="space-y-6">
-      <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
-        <MetricCard label="Total leads" value={summary.totalLeads} supporting="All visible leads." tone="accent" />
-        <MetricCard label="New leads" value={summary.newLeads} supporting="Leads still at the first stage." />
-        <MetricCard label="Overdue follow-ups" value={summary.overdueFollowUps} supporting="Needs attention today." tone={summary.overdueFollowUps > 0 ? "danger" : "positive"} />
-        <MetricCard label="Pipeline value" value={formatMoney(summary.pipelineValue, summary.target?.currency ?? "NGN")} supporting="Open expected value." />
-        <MetricCard label="Won value" value={formatMoney(summary.wonValue, summary.target?.currency ?? "NGN")} supporting="Closed value so far." tone="positive" />
-      </section>
+      <DashboardTargetCelebration
+        target={
+          summary.target
+            ? {
+                id: summary.target.id,
+                name: summary.target.name,
+                progressPercent: summary.target.progressPercent,
+                wonValueLabel: formatMoney(summary.target.wonValue, summary.target.currency),
+              }
+            : null
+        }
+      />
+
+      {topMetricCards.length > 0 ? (
+        <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
+          {topMetricCards.map((card) => (
+            <MetricCard
+              key={card.key}
+              label={card.label}
+              value={card.value}
+              supporting={card.supporting}
+              tone={card.tone}
+            />
+          ))}
+        </section>
+      ) : null}
 
       <section className="grid gap-6 xl:grid-cols-12">
         <div className="space-y-6 xl:col-span-7">
-          <section className="admin-surface rounded-[24px] p-5">
+          {showSourcePerformance ? (
+            <section className="admin-surface rounded-[24px] p-5">
             <SectionHeader
               eyebrow="Source performance"
               title="Top sources"
@@ -59,9 +168,11 @@ export function SalesCommandOverview({
                 />
               )}
             </div>
-          </section>
+            </section>
+          ) : null}
 
-          <section className="admin-surface rounded-[24px] p-5">
+          {showRecentIntake ? (
+            <section className="admin-surface rounded-[24px] p-5">
             <SectionHeader
               eyebrow="Recent intake"
               title="Latest form activity"
@@ -102,11 +213,13 @@ export function SalesCommandOverview({
                 Open intake log
               </Link>
             </div>
-          </section>
+            </section>
+          ) : null}
         </div>
 
         <div className="space-y-6 xl:col-span-5">
-          <section className="admin-surface rounded-[24px] p-5">
+          {showTargetProgress ? (
+            <section className="admin-surface rounded-[24px] p-5">
             <SectionHeader
               eyebrow="Target progress"
               title="Sales target"
@@ -133,9 +246,11 @@ export function SalesCommandOverview({
                 description="Set a monthly target in Settings to track progress on the dashboard."
               />
             )}
-          </section>
+            </section>
+          ) : null}
 
-          <section className="admin-surface rounded-[24px] p-5">
+          {showTeamPerformance ? (
+            <section className="admin-surface rounded-[24px] p-5">
             <SectionHeader
               eyebrow="Rep performance"
               title="Who needs attention"
@@ -168,9 +283,11 @@ export function SalesCommandOverview({
                 />
               )}
             </div>
-          </section>
+            </section>
+          ) : null}
 
-          <section className="admin-surface rounded-[24px] p-5">
+          {showAttentionSummary ? (
+            <section className="admin-surface rounded-[24px] p-5">
             <SectionHeader
               eyebrow="Attention"
               title="Quick status"
@@ -181,7 +298,8 @@ export function SalesCommandOverview({
               <MetricCard label="Stuck leads" value={summary.stuckLeads} supporting="No recent movement in the last 7 days." tone={summary.stuckLeads > 0 ? "warning" : "positive"} />
               <MetricCard label="Conversion rate" value={`${summary.conversionRate}%`} supporting={`${summary.wonLeads} won • ${summary.lostLeads} lost`} />
             </div>
-          </section>
+            </section>
+          ) : null}
         </div>
       </section>
     </div>

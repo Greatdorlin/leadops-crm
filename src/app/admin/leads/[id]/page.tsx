@@ -41,6 +41,7 @@ import {
   canViewTechnicalLeadContext,
 } from "@/lib/admin-permissions";
 import { normalizeEmail, normalizePhone } from "@/lib/crm/dedupe";
+import { CRM_STATUSES } from "@/lib/crm/constants";
 import {
   crmLabelize,
   formatCrmDateTime,
@@ -52,7 +53,9 @@ import {
 } from "@/lib/crm/formatters";
 import { loadAdminLeadReadContext } from "@/lib/crm/admin-read-context";
 import { listCustomFields } from "@/lib/crm/custom-fields-admin";
+import { listLeadStages } from "@/lib/crm/lead-stages-admin";
 import { getCrmPageErrorCopy, logCrmPageError } from "@/lib/crm/runtime";
+import type { CrmStatus } from "@/lib/crm/types";
 import { buildAdminLeadDetailView } from "@/lib/crm/view-models";
 import { leadStore } from "@/lib/storage";
 
@@ -218,6 +221,9 @@ export default async function AdminLeadDetailPage({
   const editableCustomFields = (await listCustomFields()).filter(
     (field) => field.showInForm && !field.archived,
   );
+  const configuredStageOptions = (await listLeadStages()).filter(
+    (stage) => !stage.archived && CRM_STATUSES.includes(stage.key as (typeof CRM_STATUSES)[number]),
+  );
   const leadView = buildAdminLeadDetailView(lead, {
     nextFollowUpAt: lead.nextFollowUpAt ?? nextTask?.dueAt ?? null,
     stage: lead.stageId ? readContext.stagesById.get(lead.stageId) ?? null : null,
@@ -226,6 +232,15 @@ export default async function AdminLeadDetailPage({
     customFieldDefinitions: readContext.customFieldDefinitionsByLeadId.get(lead.id) ?? [],
     customFieldValues: readContext.customFieldValuesByLeadId.get(lead.id) ?? [],
   });
+  const stageOptions = configuredStageOptions.length > 0
+    ? configuredStageOptions.map((stage) => ({
+        value: stage.key as CrmStatus,
+        label: stage.name,
+        sortOrder: stage.sortOrder,
+        isWon: stage.isWon,
+        isLost: stage.isLost,
+      }))
+    : undefined;
 
   return (
     <AdminShell
@@ -565,6 +580,7 @@ export default async function AdminLeadDetailPage({
                     initialAssignedToList={lead.assignedToList}
                     initialNextFollowUpAt={leadView.nextFollowUpAt}
                     assigneeOptions={assigneeOptions}
+                    stageOptions={stageOptions}
                   />
                 )}
               </div>

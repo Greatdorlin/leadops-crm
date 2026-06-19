@@ -27,8 +27,27 @@ Leads Desk should feel:
 - fast
 - operational
 - trustworthy
+- configurable without feeling technical
 
 The UI should answer key sales questions through layout and data visibility, not long explanation copy.
+
+## Runtime Customization Standard
+
+The shipped product now supports controlled runtime customization for:
+
+- appearance
+- login branding
+- navigation
+- lead preview
+- dashboard widgets
+- industry presets
+
+Customization must remain:
+
+- concise
+- reversible where practical
+- safe for nontechnical admins
+- guarded from secrets and deployment-only configuration
 
 ## Core Dashboard Questions
 

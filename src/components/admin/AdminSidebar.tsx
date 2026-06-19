@@ -6,6 +6,7 @@ import { PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import type { AdminAccessLevel } from "@/lib/admin-permissions";
 import { LeadsDeskWordmark } from "@/components/brand/LeadsDeskWordmark";
 import { cn } from "@/lib/cn";
+import { useAdminWorkspaceSettings } from "@/components/admin/AdminWorkspaceSettingsProvider";
 import type { CrmUserRole } from "@/lib/crm/types";
 import { getAdminNavigation } from "./navigation";
 
@@ -16,6 +17,8 @@ export function AdminSidebar({
   footer,
   collapsed = false,
   onToggleCollapse,
+  companyName,
+  logoUrl,
 }: {
   activeKey: string;
   accessLevel: AdminAccessLevel;
@@ -23,14 +26,18 @@ export function AdminSidebar({
   footer?: ReactNode;
   collapsed?: boolean;
   onToggleCollapse?: () => void;
+  companyName?: string;
+  logoUrl?: string | null;
 }) {
-  const navigation = getAdminNavigation(accessLevel, role);
+  const workspaceSettings = useAdminWorkspaceSettings();
+  const navigation = getAdminNavigation(accessLevel, role, workspaceSettings.navigation);
+  const resolvedCompanyName = companyName ?? workspaceSettings.companyName;
 
   return (
     <aside className="hidden xl:block">
       <div
         className={cn(
-          "sticky top-4 flex min-h-[calc(100vh-2rem)] flex-col overflow-hidden rounded-[32px] border border-white/6 bg-[linear-gradient(180deg,#0b1438_0%,#101a48_38%,#0a1234_100%)] p-4 text-white shadow-[0_24px_56px_rgba(2,6,23,0.24)] transition-[width,padding] duration-200",
+          "admin-sidebar-panel sticky top-4 flex min-h-[calc(100vh-2rem)] flex-col overflow-hidden rounded-[32px] border p-4 text-white shadow-[0_24px_56px_rgba(2,6,23,0.24)] transition-[width,padding] duration-200",
           collapsed && "items-center px-3",
         )}
       >
@@ -39,7 +46,15 @@ export function AdminSidebar({
         <div className="relative space-y-4">
           <div className={cn("rounded-[22px] border border-white/10 bg-white/[0.04] p-4", collapsed && "w-full px-2 py-3")}>
             <div className={cn("flex items-center", collapsed ? "justify-center" : "justify-between gap-3")}>
-              <LeadsDeskWordmark tone="light" variant={collapsed ? "mark" : "full"} />
+              <LeadsDeskWordmark
+                tone="light"
+                variant={collapsed ? "mark" : "full"}
+                companyName={resolvedCompanyName}
+                logoUrl={logoUrl ?? workspaceSettings.logoUrl}
+                logoUrlLightMode={workspaceSettings.logoUrlLightMode}
+                logoUrlDarkMode={workspaceSettings.logoUrlDarkMode}
+                surfaceMode="dark"
+              />
               {onToggleCollapse ? (
                 <button
                   type="button"

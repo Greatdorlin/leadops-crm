@@ -12,6 +12,7 @@ import { listCustomFields } from "@/lib/crm/custom-fields-admin";
 import { getTableVisibleCustomFields } from "@/lib/crm/custom-field-values";
 import { getCrmPageErrorCopy, logCrmPageError } from "@/lib/crm/runtime";
 import { buildAdminLeadListItem } from "@/lib/crm/view-models";
+import { getCompanySettings, resolveLeadPreviewConfig } from "@/lib/crm/workspace-settings";
 import { leadStore } from "@/lib/storage";
 
 export const dynamic = "force-dynamic";
@@ -112,7 +113,14 @@ export default async function AdminLeadTrashPage({
   const { leads, totalLeads } = pageData;
   const totalPages = Math.max(1, Math.ceil(totalLeads / PAGE_SIZE));
   const currentPage = Math.min(requestedPage, totalPages);
-  const tableVisibleCustomFields = getTableVisibleCustomFields(await listCustomFields(), { limit: 4 });
+  const [customFields, workspaceSettings] = await Promise.all([
+    listCustomFields(),
+    getCompanySettings(),
+  ]);
+  const previewConfig = resolveLeadPreviewConfig(workspaceSettings.leadPreview, customFields);
+  const tableVisibleCustomFields = getTableVisibleCustomFields(customFields, {
+    limit: previewConfig.maxCustomFieldColumns,
+  });
   const readContext = await loadAdminLeadReadContext(leads, { includeCustomFields: true });
   const leadRows = leads.map((lead) =>
     buildAdminLeadListItem(lead, {
@@ -150,6 +158,7 @@ export default async function AdminLeadTrashPage({
           leads={leadRows}
           emptyTitle="Trash is empty"
           emptyDescription="Deleted leads will appear here until they are restored or removed permanently."
+          previewConfig={previewConfig}
           renderActions={(lead) => (
             <>
               <Link

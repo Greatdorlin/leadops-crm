@@ -2,6 +2,11 @@ import Link from "next/link";
 import { AdminSignInButton } from "@/components/admin/AdminSignInButton";
 import { LeadsDeskWordmark } from "@/components/brand/LeadsDeskWordmark";
 import {
+  buildThemeCssVariables,
+  getCompanySettings,
+  resolveBrandLogo,
+} from "@/lib/crm/workspace-settings";
+import {
   isAdminAuthConfigured,
   isLocalAdminPreviewEnabled,
 } from "@/lib/admin-access";
@@ -35,14 +40,43 @@ export default async function AdminSignInPage({
   const authReady = isAdminAuthConfigured();
   const canShowSetupMessage = !authReady && process.env.NODE_ENV !== "production";
   const canUseLocalPreview = !authReady && isLocalAdminPreviewEnabled();
+  const settings = await getCompanySettings();
+  const themeVariables = buildThemeCssVariables(settings);
 
   return (
-    <main className="admin-shell flex min-h-screen items-center justify-center px-4 py-12 text-slate-950 sm:px-6">
+    <main
+      className="admin-shell flex min-h-screen items-center justify-center px-4 py-12 text-slate-950 sm:px-6"
+      style={{
+        ...themeVariables,
+        ...(settings.loginBackgroundUrl
+          ? {
+              backgroundImage: `linear-gradient(180deg, rgba(10, 18, 56, 0.18), rgba(255,255,255,0.72)), url(${settings.loginBackgroundUrl})`,
+              backgroundSize: "cover",
+              backgroundPosition: "center",
+            }
+          : {}),
+      }}
+      data-design-style={settings.designStyle}
+      data-density={settings.density}
+      data-theme-mode={settings.themeMode}
+      data-glass={settings.glassEnabled ? "on" : "off"}
+    >
       <div className="w-full max-w-[34rem]">
         <section className="admin-surface rounded-[30px] p-6 shadow-[0_24px_60px_rgba(15,23,42,0.08)] sm:p-8">
           <div className="flex justify-center">
             <div className="rounded-[20px] border border-slate-200 bg-white px-5 py-4 shadow-[0_10px_24px_rgba(15,23,42,0.04)]">
-              <LeadsDeskWordmark />
+              <LeadsDeskWordmark
+                companyName={settings.companyName}
+                logoUrl={resolveBrandLogo({
+                  logoUrl: settings.loginLogoUrl || settings.logoUrl,
+                  logoUrlLightMode: settings.loginLogoUrlLightMode || settings.logoUrlLightMode,
+                  logoUrlDarkMode: settings.loginLogoUrlDarkMode || settings.logoUrlDarkMode,
+                  surfaceMode: "light",
+                })}
+                logoUrlLightMode={settings.loginLogoUrlLightMode || settings.logoUrlLightMode}
+                logoUrlDarkMode={settings.loginLogoUrlDarkMode || settings.logoUrlDarkMode}
+                surfaceMode="light"
+              />
             </div>
           </div>
 
@@ -51,10 +85,10 @@ export default async function AdminSignInPage({
               Admin sign-in
             </p>
             <h1 className="mt-3 font-[family:var(--font-heading)] text-[2rem] leading-[1.02] tracking-[-0.05em] text-slate-950 sm:text-[2.35rem]">
-              Sign in to Leads Desk
+              {settings.loginHeadline}
             </h1>
             <p className="mt-3 text-sm leading-7 text-slate-600 sm:text-base">
-              Use your approved Google account to open the workspace.
+              {settings.loginSubheadline}
             </p>
           </div>
 

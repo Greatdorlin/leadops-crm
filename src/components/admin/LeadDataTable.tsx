@@ -4,6 +4,11 @@ import { ArrowUpRight, Mail, MapPin, PhoneCall } from "lucide-react";
 import { buildLeadTableCustomFieldColumns } from "@/lib/crm/custom-field-values";
 import { formatCrmDateTime } from "@/lib/crm/formatters";
 import type { AdminLeadListItem } from "@/lib/crm/view-models";
+import {
+  DEFAULT_LEAD_PREVIEW_CONFIG,
+  type LeadPreviewCustomizationConfig,
+  type LeadPreviewFieldKey,
+} from "@/lib/crm/workspace-settings";
 import { EmptyState } from "./EmptyState";
 import { LeadOwnerQuickAssign } from "./LeadOwnerQuickAssign";
 import { PriorityBadge } from "./PriorityBadge";
@@ -34,14 +39,87 @@ function followUpLabel(lead: AdminLeadListItem) {
   return `Upcoming • ${formatCrmDateTime(lead.nextFollowUpAt)}`;
 }
 
-function followUpTone(lead: AdminLeadListItem) {
-  switch (lead.nextFollowUpStatus) {
-    case "overdue":
-      return "text-rose-700";
-    case "due_today":
-      return "text-amber-700";
+const previewFieldLabels: Record<string, string> = {
+  name: "Lead",
+  phone: "Phone",
+  email: "Email",
+  company: "Company",
+  source: "Source",
+  stage: "Stage",
+  owner: "Owner",
+  priority: "Priority",
+  next_follow_up: "Next follow-up",
+  follow_up_status: "Follow-up status",
+  estimated_value: "Estimated value",
+  expected_close_date: "Expected close date",
+  created_date: "Created",
+  last_activity: "Last activity",
+  campaign: "Campaign",
+  team: "Team",
+  branch: "Branch",
+  department: "Department",
+};
+
+function resolvePreviewFieldValue(
+  lead: AdminLeadListItem,
+  key: LeadPreviewFieldKey,
+  assigneeOptions: Array<{ label: string; value: string }>,
+) {
+  if (key.startsWith("custom:")) {
+    const fieldId = key.slice("custom:".length);
+    return lead.customFieldDisplayValues.find((field) => field.fieldId === fieldId)?.displayValue ?? "—";
+  }
+
+  switch (key) {
+    case "name":
+      return lead.displayName;
+    case "phone":
+      return lead.phone || "No phone yet";
+    case "email":
+      return lead.email || "No email yet";
+    case "company":
+      return lead.companyName || "No company";
+    case "source":
+      return <SourceBadge source={lead.source} label={lead.sourceLabel} />;
+    case "stage":
+      return <StatusBadge status={lead.stage} label={lead.stageLabel} />;
+    case "owner":
+      return assigneeOptions.length > 0 ? (
+        <LeadOwnerQuickAssign
+          leadId={lead.id}
+          initialAssignedTo={lead.assignedTo}
+          crmStatus={lead.stage}
+          priority={lead.priority}
+          assigneeOptions={assigneeOptions}
+          variant="compact"
+        />
+      ) : (
+        lead.assignedUserName
+      );
+    case "priority":
+      return <PriorityBadge priority={lead.priority} />;
+    case "next_follow_up":
+      return followUpLabel(lead);
+    case "follow_up_status":
+      return lead.nextFollowUpStatus.replace(/_/g, " ");
+    case "estimated_value":
+      return formatMoney(lead.expectedValue ?? lead.estimatedValue);
+    case "expected_close_date":
+      return lead.expectedCloseDate ? formatCrmDateTime(lead.expectedCloseDate) : "Not set";
+    case "created_date":
+      return formatCrmDateTime(lead.createdAt);
+    case "last_activity":
+      return formatCrmDateTime(lead.lastActivityAt);
+    case "campaign":
+      return lead.routeLabel || lead.routeId || "Not set";
+    case "team":
+      return "Not set";
+    case "branch":
+      return "Not set";
+    case "department":
+      return "Not set";
     default:
-      return "text-slate-500";
+      return "—";
   }
 }
 
@@ -51,18 +129,35 @@ export function LeadDataTable({
   emptyDescription,
   assigneeOptions = [],
   renderActions,
+  previewConfig = DEFAULT_LEAD_PREVIEW_CONFIG,
 }: {
   leads: AdminLeadListItem[];
   emptyTitle: string;
   emptyDescription: string;
   assigneeOptions?: Array<{ label: string; value: string }>;
   renderActions?: (lead: AdminLeadListItem) => ReactNode;
+  previewConfig?: LeadPreviewCustomizationConfig;
 }) {
   if (leads.length === 0) {
     return <EmptyState title={emptyTitle} description={emptyDescription} />;
   }
 
-  const customFieldColumns = buildLeadTableCustomFieldColumns(leads, { limit: 4 });
+  const customFieldColumns = buildLeadTableCustomFieldColumns(leads, {
+    limit: previewConfig.maxCustomFieldColumns,
+  });
+  const desktopColumns = previewConfig.desktopColumns
+    .filter((column) => column !== "name")
+    .filter((column) =>
+      column.startsWith("custom:")
+        ? customFieldColumns.some((field) => `custom:${field.fieldId}` === column)
+        : true,
+    )
+    .slice(0, 8);
+  const mobileFields = previewConfig.mobileFields.filter((column) =>
+    column.startsWith("custom:")
+      ? customFieldColumns.some((field) => `custom:${field.fieldId}` === column)
+      : true,
+  );
 
   return (
     <>
@@ -165,26 +260,22 @@ export function LeadDataTable({
                   </p>
                 </div>
               </div>
-              {customFieldColumns.length > 0 ? (
+              {mobileFields.length > 0 ? (
                 <div className="grid gap-3 text-xs uppercase tracking-[0.14em] text-slate-400">
-                  <p>Extra details</p>
+                  <p>Preview fields</p>
                   <div className="grid gap-3 sm:grid-cols-2">
-                    {customFieldColumns
-                      .map((column) => ({
-                        column,
-                        value:
-                          lead.customFieldDisplayValues.find((field) => field.fieldId === column.fieldId)
-                            ?.displayValue ?? "",
-                      }))
-                      .filter(({ value }) => value)
-                      .map(({ column, value }) => (
-                        <div key={column.fieldId}>
-                          <p>{column.label}</p>
-                          <p className="mt-1 text-sm font-medium normal-case tracking-normal text-slate-700 [overflow-wrap:anywhere]">
-                            {value}
-                          </p>
+                    {mobileFields.map((fieldKey) => (
+                      <div key={fieldKey}>
+                        <p>
+                          {fieldKey.startsWith("custom:")
+                            ? customFieldColumns.find((field) => `custom:${field.fieldId}` === fieldKey)?.label ?? "Custom field"
+                            : previewFieldLabels[fieldKey]}
+                        </p>
+                        <div className="mt-1 text-sm font-medium normal-case tracking-normal text-slate-700 [overflow-wrap:anywhere]">
+                          {resolvePreviewFieldValue(lead, fieldKey, assigneeOptions)}
                         </div>
-                      ))}
+                      </div>
+                    ))}
                   </div>
                 </div>
               ) : null}
@@ -215,35 +306,16 @@ export function LeadDataTable({
                 <th className="px-5 py-4 text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">
                   Lead
                 </th>
-                <th className="px-4 py-4 text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">
-                  Source
-                </th>
-                <th className="px-4 py-4 text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">
-                  Stage
-                </th>
-                <th className="px-4 py-4 text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">
-                  Priority
-                </th>
-                <th className="px-4 py-4 text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">
-                  Category
-                </th>
-                <th className="px-4 py-4 text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">
-                  Owner
-                </th>
-                {customFieldColumns.map((column) => (
+                {desktopColumns.map((column) => (
                   <th
-                    key={column.fieldId}
+                    key={column}
                     className="px-4 py-4 text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500"
                   >
-                    {column.label}
+                    {column.startsWith("custom:")
+                      ? customFieldColumns.find((field) => `custom:${field.fieldId}` === column)?.label ?? "Custom field"
+                      : previewFieldLabels[column]}
                   </th>
                 ))}
-                <th className="px-4 py-4 text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">
-                  Follow-up
-                </th>
-                <th className="px-4 py-4 text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">
-                  Activity
-                </th>
                 <th className="px-5 py-4 text-right text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">
                   Action
                 </th>
@@ -281,69 +353,15 @@ export function LeadDataTable({
                       </p>
                     </div>
                   </td>
-                  <td className="px-4 py-4">
-                    <div className="min-w-[130px]">
-                      <SourceBadge source={lead.source} label={lead.sourceLabel} />
-                    </div>
-                  </td>
-                  <td className="px-4 py-4">
-                    <div className="min-w-[140px]">
-                      <StatusBadge status={lead.stage} label={lead.stageLabel} />
-                    </div>
-                  </td>
-                  <td className="px-4 py-4">
-                    <div className="min-w-[110px]">
-                      <PriorityBadge priority={lead.priority} />
-                    </div>
-                  </td>
-                  <td className="px-4 py-4 text-sm text-slate-700">
-                    <div className="min-w-[120px]">{lead.categoryLabel}</div>
-                  </td>
-                  <td className="px-4 py-4 text-sm text-slate-700">
-                    <div className="min-w-[210px]">
-                      {assigneeOptions.length > 0 ? (
-                        <LeadOwnerQuickAssign
-                          leadId={lead.id}
-                          initialAssignedTo={lead.assignedTo}
-                          crmStatus={lead.stage}
-                          priority={lead.priority}
-                          assigneeOptions={assigneeOptions}
-                          variant="compact"
-                        />
-                      ) : (
-                        <p className="[overflow-wrap:anywhere]">{lead.assignedUserName}</p>
-                      )}
-                    </div>
-                  </td>
-                  {customFieldColumns.map((column) => {
-                    const customFieldValue =
-                      lead.customFieldDisplayValues.find((field) => field.fieldId === column.fieldId)
-                        ?.displayValue ?? "";
-
+                  {desktopColumns.map((column) => {
                     return (
-                      <td key={column.fieldId} className="px-4 py-4 text-sm text-slate-700">
+                      <td key={column} className="px-4 py-4 text-sm text-slate-700">
                         <div className="min-w-[140px] [overflow-wrap:anywhere]">
-                          {customFieldValue || "—"}
+                          {resolvePreviewFieldValue(lead, column, assigneeOptions)}
                         </div>
                       </td>
                     );
                   })}
-                  <td className="px-4 py-4 text-sm text-slate-600">
-                    <div className="min-w-[190px]">
-                      <p className={followUpTone(lead)}>{followUpLabel(lead)}</p>
-                      <p className="mt-1 text-xs uppercase tracking-[0.14em] text-slate-400">
-                        {lead.nextFollowUpStatus.replace(/_/g, " ")}
-                      </p>
-                    </div>
-                  </td>
-                  <td className="px-4 py-4 text-sm text-slate-600">
-                    <div className="min-w-[170px]">
-                      <p>{formatCrmDateTime(lead.lastActivityAt)}</p>
-                      <p className="mt-1 text-xs uppercase tracking-[0.14em] text-slate-400">
-                        Created {formatCrmDateTime(lead.createdAt)}
-                      </p>
-                    </div>
-                  </td>
                   <td className="px-5 py-4 text-right">
                     {renderActions ? (
                       <div className="flex min-w-[210px] justify-end gap-2">{renderActions(lead)}</div>

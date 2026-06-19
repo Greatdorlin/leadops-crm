@@ -53,6 +53,8 @@ Scope overrides may apply to:
 - theme mode
 - design style
 - liquid glass settings
+- login branding
+- favicon and wordmark assets
 
 ### 2. Dashboard
 
@@ -62,6 +64,19 @@ Scope overrides may apply to:
 - widget style
 - default filters
 - role/team/branch/department dashboards
+
+### 2A. Navigation
+
+- sidebar labels
+- sidebar order
+- item visibility
+- required item guardrails
+
+### 2B. Lead Preview
+
+- desktop table columns
+- mobile lead preview fields
+- custom field preview visibility
 
 ### 3. Lead Fields
 

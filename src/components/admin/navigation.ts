@@ -13,10 +13,12 @@ import {
   getVisibleAdminNavKeys,
   type AdminAccessLevel,
 } from "@/lib/admin-permissions";
+import type { NavigationCustomizationConfig, NavigationItemKey } from "@/lib/crm/workspace-settings";
+import { resolveNavigationItems } from "@/lib/crm/workspace-settings";
 import type { CrmUserRole } from "@/lib/crm/types";
 
 export interface AdminNavigationItem {
-  key: string;
+  key: NavigationItemKey;
   label: string;
   href: string;
   icon: LucideIcon;
@@ -104,13 +106,16 @@ function getRoleAwareLabel(item: AdminNavigationItem, accessLevel: AdminAccessLe
 export function getAdminNavigation(
   accessLevel: AdminAccessLevel,
   role?: CrmUserRole | null,
+  config?: NavigationCustomizationConfig,
 ) {
   const visibleKeys = new Set<string>(getVisibleAdminNavKeys(accessLevel, role));
 
-  return adminNavigation
+  const visibleItems = adminNavigation
     .filter((item) => visibleKeys.has(item.key))
     .map((item) => ({
       ...item,
       label: getRoleAwareLabel(item, accessLevel),
-    }));
+    })) as AdminNavigationItem[];
+
+  return config ? resolveNavigationItems<AdminNavigationItem>(visibleItems, config) : visibleItems;
 }

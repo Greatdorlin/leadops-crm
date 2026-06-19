@@ -7,6 +7,7 @@ import { useSyncExternalStore } from "react";
 import type { AdminAccessLevel } from "@/lib/admin-permissions";
 import { cn } from "@/lib/cn";
 import type { CrmUserRole } from "@/lib/crm/types";
+import { useAdminWorkspaceSettings } from "./AdminWorkspaceSettingsProvider";
 import { AdminAccessViewSwitcher } from "./AdminAccessViewSwitcher";
 import { getAdminNavigation } from "./navigation";
 
@@ -68,7 +69,8 @@ export function AdminTopbar({
   actions?: ReactNode;
   searchSlot?: ReactNode;
 }) {
-  const navigation = getAdminNavigation(accessLevel, role);
+  const workspaceSettings = useAdminWorkspaceSettings();
+  const navigation = getAdminNavigation(accessLevel, role, workspaceSettings.navigation);
   const isCollapsed = useSyncExternalStore(
     subscribeTopbarCollapse,
     getTopbarCollapseSnapshot,
@@ -85,7 +87,7 @@ export function AdminTopbar({
     <header className="sticky top-0 z-20">
       <div
         className={cn(
-          "relative overflow-hidden rounded-[28px] border border-white/82 bg-[rgba(255,255,255,0.88)] shadow-[0_18px_40px_rgba(15,23,42,0.06)] backdrop-blur-xl transition-all duration-200",
+          "admin-topbar-panel relative overflow-hidden rounded-[28px] border shadow-[0_18px_40px_rgba(15,23,42,0.06)] backdrop-blur-xl transition-all duration-200",
           isCollapsed ? "px-4 py-3 sm:px-5 lg:px-6" : "px-4 py-4 sm:px-5 lg:px-6",
         )}
       >

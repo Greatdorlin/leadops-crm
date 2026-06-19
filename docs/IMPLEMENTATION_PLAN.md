@@ -16,8 +16,22 @@ Completed implementation layers now include:
 - in-app notification foundation
 - follow-up, overdue, and sales-value runtime fields
 - dashboard and report sales-command read models
+- runtime appearance, navigation, lead preview, dashboard, and industry preset customization
 
 The remaining release work focuses on production hardening, deployment assets, documentation, and go-live QA rather than a greenfield product rewrite.
+
+## Premium UI And Customization Status
+
+The current release candidate now includes a database-backed customization layer through `company_settings`.
+
+Owner and admin can now control:
+
+- appearance and login branding
+- sidebar structure
+- lead preview columns
+- dashboard widget visibility and order
+- industry presets
+- system status visibility for safe deployment checks
 
 ## Purpose
 

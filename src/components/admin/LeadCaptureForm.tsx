@@ -26,11 +26,13 @@ export function LeadCaptureForm({
   assigneeOptions,
   defaultAssignedTo = "",
   customFieldDefinitions = [],
+  stageOptions = CRM_STATUSES.map((status) => ({ value: status, label: crmLabelize(status) })),
 }: {
   accessLevel: AdminAccessLevel;
   assigneeOptions: Array<{ label: string; value: string }>;
   defaultAssignedTo?: string;
   customFieldDefinitions?: CustomFieldDefinitionWithOptions[];
+  stageOptions?: Array<{ value: CrmStatus; label: string }>;
 }) {
   const customFieldInputModel = buildCustomFieldInputModel(
     customFieldDefinitions.filter((field) => field.showInForm),
@@ -247,9 +249,9 @@ export function LeadCaptureForm({
             onChange={(event) => setStage(event.target.value as CrmStatus)}
             className="h-11"
           >
-            {CRM_STATUSES.map((option) => (
-              <option key={option} value={option}>
-                {crmLabelize(option)}
+            {stageOptions.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
               </option>
             ))}
           </AdminSelect>

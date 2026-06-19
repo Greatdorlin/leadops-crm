@@ -18,11 +18,17 @@ import {
   resolveAdminAccessLevel,
 } from "@/lib/admin-permissions";
 import {
+  canManageAppearanceSettings,
   canManageCustomFields,
+  canManageDashboardSettings,
   canManageFormSources,
+  canManageIndustryPresets,
   canManageLeadSources,
+  canManageLeadPreviewSettings,
   canManageLeadStages,
+  canManageNavigationSettings,
   canManageSalesTargets,
+  canViewSystemStatus,
 } from "@/lib/crm/authz";
 import {
   formatAdminAccessLevelLabel,
@@ -65,6 +71,12 @@ export default async function AdminSettingsPage() {
   const canOpenLeadStages = canManageLeadStages({ accessLevel, role });
   const canOpenLeadSources = canManageLeadSources({ accessLevel, role });
   const canOpenSalesTargets = canManageSalesTargets({ accessLevel, role });
+  const canOpenAppearance = canManageAppearanceSettings({ accessLevel, role });
+  const canOpenNavigation = canManageNavigationSettings({ accessLevel, role });
+  const canOpenLeadPreview = canManageLeadPreviewSettings({ accessLevel, role });
+  const canOpenDashboard = canManageDashboardSettings({ accessLevel, role });
+  const canOpenIndustry = canManageIndustryPresets({ accessLevel, role });
+  const canOpenSystemStatus = canViewSystemStatus({ accessLevel, role });
   let pageData:
     | {
         users: Awaited<ReturnType<typeof leadStore.listCrmUsers>>;
@@ -98,10 +110,10 @@ export default async function AdminSettingsPage() {
       title="Settings"
       description={
         showFullAdminSettings
-          ? "Team members, admin roles, assignment rules, and connected tools."
+          ? "Brand, sales setup, team access, and system controls."
           : canGrantAccess
-            ? "Team members, admin roles, and assignment rules."
-          : "Team roster, lead stages, and assignment rules."
+            ? "Team access and workspace setup."
+          : "Lead setup and assignment rules."
       }
       actions={<AdminSignOutButton />}
     >
@@ -276,19 +288,25 @@ export default async function AdminSettingsPage() {
                   <SectionHeader
                     eyebrow="Workspace"
                     title="Client-ready settings"
-                    description="Open the exact setup area you need without digging through technical screens."
+                    description="Open the right setup area without digging through technical screens."
                   />
                   <div className="mt-4 grid gap-3 md:grid-cols-2">
                     {[
                       { label: "Company Profile", href: "/admin/settings", enabled: true, copy: "Team access, company-level setup, and owner controls." },
+                      { label: "Appearance", href: "/admin/settings/appearance", enabled: canOpenAppearance, copy: "Brand the workspace, login page, and colors." },
+                      { label: "Industry", href: "/admin/settings/industry", enabled: canOpenIndustry, copy: "Apply safer defaults for your business type." },
                       { label: "Lead Fields", href: "/admin/settings/fields", enabled: canOpenCustomFields, copy: "Define the extra lead details your business tracks." },
+                      { label: "Lead Preview", href: "/admin/settings/lead-preview", enabled: canOpenLeadPreview, copy: "Choose the lead columns and mobile preview fields." },
                       { label: "Form Sources", href: "/admin/settings/form-sources", enabled: canOpenFormSources, copy: "Map website, webhook, CSV, and manual sources." },
                       { label: "Lead Stages", href: "/admin/settings/stages", enabled: canOpenLeadStages, copy: "Control the stages used across pipeline reporting." },
                       { label: "Lead Sources", href: "/admin/settings/sources", enabled: canOpenLeadSources, copy: "Keep source labels clean for reporting and exports." },
+                      { label: "Dashboard", href: "/admin/settings/dashboard", enabled: canOpenDashboard, copy: "Show, hide, and reorder the dashboard widgets." },
                       { label: "Sales Targets", href: "/admin/settings/sales-targets", enabled: canOpenSalesTargets, copy: "Track monthly goals and progress on the dashboard." },
                       { label: "Users / Team Access", href: "#team-access", enabled: canGrantAccess, copy: "Create users and control who can work inside the workspace." },
                       { label: "Export Data", href: "/admin/reports", enabled: true, copy: "Review performance and export current lead data." },
-                      { label: "Advanced", href: "/admin/intake", enabled: canOpenFormSources, copy: "Review webhook intake logs and debug failed submissions." },
+                      { label: "Navigation", href: "/admin/settings/navigation", enabled: canOpenNavigation, copy: "Show, hide, rename, and reorder sidebar items." },
+                      { label: "System Status", href: "/admin/settings/system-status", enabled: canOpenSystemStatus, copy: "Check deployment readiness without exposing secrets." },
+                      { label: "Intake Logs", href: "/admin/intake", enabled: canOpenFormSources, copy: "Review recent submissions and failed syncs." },
                     ]
                       .filter((item) => item.enabled)
                       .map((item) => (
@@ -304,20 +322,30 @@ export default async function AdminSettingsPage() {
                   </div>
                 </section>
 
-                {canOpenCustomFields ? (
+                {canOpenAppearance || canOpenNavigation || canOpenLeadPreview || canOpenDashboard ? (
                   <section className="admin-surface rounded-[24px] p-5">
                     <SectionHeader
-                      eyebrow="Lead fields"
-                      title="Field definitions"
-                      description="Manage the extra lead details your business wants to capture."
+                      eyebrow="Brand and workflow"
+                      title="Workspace customization"
+                      description="Shape the way Leads Desk looks and what your team sees first."
                     />
-                    <div className="mt-4">
-                      <Link
-                        href="/admin/settings/fields"
-                        className="admin-button-secondary inline-flex h-11 items-center justify-center rounded-2xl px-5 text-sm font-medium"
-                      >
-                        Open Lead Fields
-                      </Link>
+                    <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                      {[
+                        { label: "Appearance", href: "/admin/settings/appearance", enabled: canOpenAppearance },
+                        { label: "Navigation", href: "/admin/settings/navigation", enabled: canOpenNavigation },
+                        { label: "Lead Preview", href: "/admin/settings/lead-preview", enabled: canOpenLeadPreview },
+                        { label: "Dashboard", href: "/admin/settings/dashboard", enabled: canOpenDashboard },
+                      ]
+                        .filter((item) => item.enabled)
+                        .map((item) => (
+                          <Link
+                            key={item.label}
+                            href={item.href}
+                            className="admin-button-secondary inline-flex h-11 items-center justify-center rounded-2xl px-5 text-sm font-medium"
+                          >
+                            {item.label}
+                          </Link>
+                        ))}
                     </div>
                   </section>
                 ) : null}

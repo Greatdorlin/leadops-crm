@@ -27,6 +27,11 @@
 ## Product Setup
 
 - Owner/admin sign-in works.
+- Company branding is reviewed.
+- Appearance settings are reviewed.
+- Sidebar/navigation settings are reviewed.
+- Lead preview settings are reviewed.
+- Dashboard widget settings are reviewed.
 - Lead stages are reviewed.
 - Lead sources are reviewed.
 - Custom fields are reviewed.
@@ -51,3 +56,9 @@
 - `/api/health` returns `200`.
 - Docker image builds cleanly if using the VPS or Coolify path.
 - Restore test has been completed successfully.
+
+## Buyer Demo Readiness
+
+- Login page shows the intended client brand.
+- No old FlyConnect or pathway copy is visible.
+- Dashboard and lead list reflect the chosen customization settings.

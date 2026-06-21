@@ -13,6 +13,7 @@ export interface TeamPerformanceRow {
   id: string;
   email: string;
   fullName: string;
+  avatarUrl?: string | null;
   role: CrmUserRole;
   accessLevel: AdminAccessLevel;
   assignedLeads: number;
@@ -127,6 +128,7 @@ export function buildTeamPerformance(
         id: user.id,
         email: user.email,
         fullName: user.fullName,
+        avatarUrl: user.avatarUrl ?? null,
         role: user.role,
         accessLevel: resolveAdminAccessLevel({ email: user.email, role: user.role }),
         assignedLeads: assignedLeads.length,

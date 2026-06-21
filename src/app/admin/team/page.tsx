@@ -7,6 +7,7 @@ import { ErrorState } from "@/components/admin/ErrorState";
 import { LeadTable } from "@/components/admin/LeadTable";
 import { MetricCard } from "@/components/admin/MetricCard";
 import { SectionHeader } from "@/components/admin/SectionHeader";
+import { TeamAvatar } from "@/components/admin/TeamAvatar";
 import { getAdminAccessContext } from "@/lib/admin";
 import {
   buildNextFollowUpByLeadId,
@@ -14,7 +15,7 @@ import {
   isTaskOverdue,
 } from "@/lib/admin-insights";
 import { canViewSalesTeam } from "@/lib/admin-permissions";
-import { crmLabelize, formatCrmDateTime } from "@/lib/crm/formatters";
+import { crmLabelize } from "@/lib/crm/formatters";
 import { loadAdminLeadReadContext } from "@/lib/crm/admin-read-context";
 import { getCrmPageErrorCopy, logCrmPageError } from "@/lib/crm/runtime";
 import { buildAdminLeadListItem } from "@/lib/crm/view-models";
@@ -170,20 +171,16 @@ export default async function AdminTeamPage() {
               />
               <div className="mt-4 overflow-x-auto">
                 {teamRows.length > 0 ? (
-                  <table className="w-full min-w-[920px] text-left text-sm">
-                    <thead className="border-b border-slate-200 text-slate-500">
+                  <table className="w-full text-left text-sm">
+                    <thead className="border-b border-white/10 text-white/50">
                       <tr>
                         {[
                           "Rep",
                           "Role",
-                          "Assigned leads",
+                          "Assigned",
                           "Open tasks",
                           "Overdue",
-                          "Completed",
-                          "Contacted",
-                          "Qualified",
-                          "Converted",
-                          "Last activity",
+                          "Won",
                         ].map((heading) => (
                           <th key={heading} className="px-4 py-3 text-xs font-semibold uppercase tracking-[0.12em]">
                             {heading}
@@ -193,35 +190,36 @@ export default async function AdminTeamPage() {
                     </thead>
                     <tbody>
                       {teamRows.map((row) => (
-                        <tr
-                          key={row.id}
-                          className="border-b border-slate-100 align-top transition hover:bg-slate-50/60"
-                        >
+                        <tr key={row.id} className="border-b border-white/[0.055] align-top transition hover:bg-white/[0.045]">
                           <td className="px-4 py-4">
-                            <div>
-                              <p className="font-semibold text-slate-950">{row.fullName || row.email}</p>
-                              <p className="mt-1 text-xs text-slate-500">{row.email}</p>
+                            <div className="flex items-center gap-3">
+                              <TeamAvatar
+                                name={row.fullName}
+                                email={row.email}
+                                avatarUrl={row.avatarUrl}
+                                size="sm"
+                              />
+                              <div className="min-w-0">
+                                <p className="truncate font-semibold text-white">{row.fullName || row.email}</p>
+                                <p className="mt-1 truncate text-xs text-white/52">{row.email}</p>
+                              </div>
                             </div>
                           </td>
-                          <td className="px-4 py-4 text-slate-700">{crmLabelize(row.accessLevel)}</td>
-                          <td className="px-4 py-4 text-slate-700">{row.assignedLeads}</td>
-                          <td className="px-4 py-4 text-slate-700">{row.openTasks}</td>
+                          <td className="px-4 py-4 text-white/70">{crmLabelize(row.accessLevel)}</td>
+                          <td className="px-4 py-4 text-white/70">{row.assignedLeads}</td>
+                          <td className="px-4 py-4 text-white/70">{row.openTasks}</td>
                           <td className="px-4 py-4">
                             <span
                               className={
                                 row.overdueTasks > 0
-                                  ? "rounded-full border border-rose-200 bg-rose-50 px-3 py-1 text-xs font-semibold text-rose-700"
-                                  : "rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700"
+                                  ? "rounded-full border border-rose-300/24 bg-rose-400/12 px-3 py-1 text-xs font-semibold text-rose-100"
+                                  : "rounded-full border border-emerald-300/24 bg-emerald-400/12 px-3 py-1 text-xs font-semibold text-emerald-100"
                               }
                             >
                               {row.overdueTasks}
                             </span>
                           </td>
-                          <td className="px-4 py-4 text-slate-700">{row.completedTasks}</td>
-                          <td className="px-4 py-4 text-slate-700">{row.contactedLeads}</td>
-                          <td className="px-4 py-4 text-slate-700">{row.qualifiedLeads}</td>
-                          <td className="px-4 py-4 text-slate-700">{row.convertedLeads}</td>
-                          <td className="px-4 py-4 text-slate-700">{formatCrmDateTime(row.lastActivityAt)}</td>
+                          <td className="px-4 py-4 text-white/70">{row.convertedLeads}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -288,18 +286,18 @@ export default async function AdminTeamPage() {
                     .map((row) => (
                       <div
                         key={row.id}
-                        className="admin-surface-muted rounded-[24px] px-4 py-4 shadow-[0_14px_28px_rgba(15,23,42,0.04)]"
+                        className="admin-surface-soft rounded-[24px] px-4 py-4"
                       >
                         <div className="flex flex-wrap items-center justify-between gap-3">
                           <div>
-                            <p className="text-sm font-semibold text-slate-950">{row.fullName || row.email}</p>
-                            <p className="mt-1 text-sm text-slate-500">
+                            <p className="text-sm font-semibold text-white">{row.fullName || row.email}</p>
+                            <p className="mt-1 text-sm text-white/58">
                               {row.overdueTasks} overdue • {row.openTasks} open tasks
                             </p>
                           </div>
                           <Link
                             href={`/admin/tasks?assignedTo=${encodeURIComponent(row.email)}&view=all`}
-                            className="text-sm font-medium text-[#0b123f]"
+                            className="rounded-full border border-cyan-200/18 bg-cyan-300/10 px-3 py-1.5 text-sm font-semibold text-cyan-100 transition hover:bg-cyan-300/16"
                           >
                             Open tasks
                           </Link>

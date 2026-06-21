@@ -2,13 +2,14 @@
 
 import { startTransition, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { RotateCcw } from "lucide-react";
+import { Archive, Check, Plus, RotateCcw, Settings2 } from "lucide-react";
 import { AdminSelect } from "@/components/admin/AdminSelect";
 import {
   type AdminCustomFieldRecord,
 } from "@/lib/crm/custom-fields-admin";
 import { CUSTOM_FIELD_TYPES } from "@/lib/crm/domain";
 import { crmLabelize } from "@/lib/crm/formatters";
+import { cn } from "@/lib/cn";
 
 type OptionDraft = {
   id?: string;
@@ -130,15 +131,20 @@ function FieldFlags({
       {flags.map((flag) => (
         <label
           key={flag.key}
-          className="inline-flex items-center gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700"
+          className={cn(
+            "flex min-h-14 items-center justify-between gap-3 rounded-[20px] border px-4 py-3 text-sm transition",
+            Boolean(draft[flag.key])
+              ? "border-cyan-200/22 bg-cyan-300/10 text-white"
+              : "border-white/10 bg-white/[0.045] text-white/62",
+          )}
         >
+          <span>{flag.label}</span>
           <input
             type="checkbox"
             checked={Boolean(draft[flag.key])}
             onChange={(event) => onToggle(flag.key, event.target.checked)}
-            className="h-4 w-4 rounded border-slate-300"
+            className="admin-toggle shrink-0"
           />
-          {flag.label}
         </label>
       ))}
     </div>
@@ -155,14 +161,15 @@ function FieldOptionsEditor({
   const visibleOptions = options.filter((option) => !option.archived);
 
   return (
-    <div className="space-y-3 rounded-[20px] border border-slate-200/85 bg-slate-50/70 p-4">
+    <div className="space-y-3 rounded-[22px] border border-white/10 bg-white/[0.045] p-4">
       <div className="flex items-center justify-between gap-3">
-        <p className="text-sm font-semibold text-slate-900">Options</p>
+        <p className="text-sm font-semibold text-white">Options</p>
         <button
           type="button"
           onClick={() => onChange([...options, createEmptyOption(options.length)])}
           className="admin-button-secondary inline-flex h-10 items-center justify-center rounded-2xl px-4 text-sm font-medium"
         >
+          <Plus className="mr-2 h-4 w-4" />
           Add option
         </button>
       </div>
@@ -212,7 +219,7 @@ function FieldOptionsEditor({
                   next[optionIndex] = { ...option, archived: true };
                   onChange(next);
                 }}
-                className="inline-flex h-11 items-center justify-center rounded-2xl border border-rose-200 bg-rose-50 px-4 text-sm font-medium text-rose-700 transition hover:bg-rose-100"
+                className="inline-flex h-11 items-center justify-center rounded-2xl border border-rose-300/20 bg-rose-400/10 px-4 text-sm font-semibold text-rose-100 transition hover:bg-rose-400/16"
               >
                 Archive
               </button>
@@ -220,7 +227,9 @@ function FieldOptionsEditor({
           );
         })
       ) : (
-        <p className="text-sm text-slate-500">No options yet. Add at least one option for this field.</p>
+        <p className="rounded-2xl border border-dashed border-white/12 bg-white/[0.035] px-4 py-3 text-sm text-white/52">
+          No options yet. Add at least one option for this field.
+        </p>
       )}
     </div>
   );
@@ -246,15 +255,23 @@ function CustomFieldEditor({
   extraAction?: React.ReactNode;
 }) {
   return (
-    <div className="space-y-4 rounded-[24px] border border-slate-200 bg-[linear-gradient(180deg,rgba(255,255,255,0.98)_0%,rgba(248,250,255,0.94)_100%)] p-4">
+    <div className="admin-surface-soft space-y-4 rounded-[26px] p-4 md:p-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <p className="text-base font-semibold text-slate-950">{title}</p>
+        <div className="flex items-center gap-3">
+          <span className="grid h-10 w-10 place-items-center rounded-2xl border border-cyan-200/18 bg-cyan-300/10 text-cyan-100">
+            <Settings2 className="h-5 w-5" />
+          </span>
+          <div>
+            <p className="text-base font-semibold text-white">{title}</p>
+            <p className="mt-1 text-sm text-white/50">Choose where this field appears.</p>
+          </div>
+        </div>
         {extraAction}
       </div>
 
       <div className="grid gap-3 sm:grid-cols-2">
         <label className="space-y-2">
-          <span className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Field Name</span>
+          <span className="text-xs font-semibold uppercase tracking-[0.16em] text-white/52">Field Name</span>
           <input
             type="text"
             value={draft.label}
@@ -264,7 +281,7 @@ function CustomFieldEditor({
           />
         </label>
         <label className="space-y-2">
-          <span className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Field Key</span>
+          <span className="text-xs font-semibold uppercase tracking-[0.16em] text-white/52">Field Key</span>
           <input
             type="text"
             value={draft.key}
@@ -274,7 +291,7 @@ function CustomFieldEditor({
           />
         </label>
         <label className="space-y-2">
-          <span className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Field Type</span>
+          <span className="text-xs font-semibold uppercase tracking-[0.16em] text-white/52">Field Type</span>
           <AdminSelect
             value={draft.type}
             onChange={(event) =>
@@ -296,7 +313,7 @@ function CustomFieldEditor({
           </AdminSelect>
         </label>
         <label className="space-y-2">
-          <span className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Order</span>
+          <span className="text-xs font-semibold uppercase tracking-[0.16em] text-white/52">Order</span>
           <input
             type="number"
             value={draft.sortOrder}
@@ -305,7 +322,7 @@ function CustomFieldEditor({
           />
         </label>
         <label className="space-y-2 sm:col-span-2">
-          <span className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Placeholder</span>
+          <span className="text-xs font-semibold uppercase tracking-[0.16em] text-white/52">Placeholder</span>
           <input
             type="text"
             value={draft.placeholder}
@@ -315,7 +332,7 @@ function CustomFieldEditor({
           />
         </label>
         <label className="space-y-2 sm:col-span-2">
-          <span className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Help Text</span>
+          <span className="text-xs font-semibold uppercase tracking-[0.16em] text-white/52">Help Text</span>
           <textarea
             value={draft.description}
             onChange={(event) => onChange({ ...draft, description: event.target.value })}
@@ -338,7 +355,7 @@ function CustomFieldEditor({
         />
       ) : null}
 
-      <div className="flex flex-col gap-3 border-t border-slate-200/80 pt-4 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex flex-col gap-3 border-t border-white/10 pt-4 sm:flex-row sm:items-center sm:justify-between">
         <button
           type="button"
           disabled={isSaving}
@@ -347,7 +364,7 @@ function CustomFieldEditor({
         >
           {isSaving ? "Saving..." : saveLabel}
         </button>
-        {message ? <p className="text-sm text-slate-600">{message}</p> : null}
+        {message ? <p className="text-sm text-white/62">{message}</p> : null}
       </div>
     </div>
   );
@@ -486,11 +503,11 @@ export function CustomFieldManager({
           const isEditing = editingId === field.id;
           const draft = drafts[field.id] ?? buildFieldDraft(field);
           return (
-            <div key={field.id} className="rounded-[24px] border border-slate-200 bg-white p-4">
+            <div key={field.id} className="admin-surface-soft rounded-[26px] p-4">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
-                  <p className="text-base font-semibold text-slate-950">{field.label}</p>
-                  <p className="mt-1 text-sm text-slate-500">
+                  <p className="text-base font-semibold text-white">{field.label}</p>
+                  <p className="mt-1 text-sm text-white/54">
                     {crmLabelize(field.type)} • {field.key}
                   </p>
                 </div>
@@ -509,20 +526,21 @@ export function CustomFieldManager({
                     type="button"
                     disabled={savingById[field.id]}
                     onClick={() => void toggleArchive(field.id, "archive")}
-                    className="inline-flex h-10 items-center justify-center rounded-2xl border border-rose-200 bg-rose-50 px-4 text-sm font-medium text-rose-700 transition hover:bg-rose-100"
+                    className="inline-flex h-10 items-center justify-center rounded-2xl border border-rose-300/20 bg-rose-400/10 px-4 text-sm font-semibold text-rose-100 transition hover:bg-rose-400/16"
                   >
+                    <Archive className="mr-2 h-4 w-4" />
                     Archive Field
                   </button>
                 </div>
               </div>
 
-              <div className="mt-4 flex flex-wrap gap-2 text-xs text-slate-500">
-                {field.required ? <span className="rounded-full border border-slate-200 px-3 py-1">Required</span> : null}
-                {field.showInForm ? <span className="rounded-full border border-slate-200 px-3 py-1">Form</span> : null}
-                {field.showInTable ? <span className="rounded-full border border-slate-200 px-3 py-1">Table</span> : null}
-                {field.showInDetails ? <span className="rounded-full border border-slate-200 px-3 py-1">Lead Details</span> : null}
-                {field.searchable ? <span className="rounded-full border border-slate-200 px-3 py-1">Searchable</span> : null}
-                {field.filterable ? <span className="rounded-full border border-slate-200 px-3 py-1">Filterable</span> : null}
+              <div className="mt-4 flex flex-wrap gap-2 text-xs text-white/58">
+                {field.required ? <span className="rounded-full border border-white/10 bg-white/[0.045] px-3 py-1">Required</span> : null}
+                {field.showInForm ? <span className="rounded-full border border-white/10 bg-white/[0.045] px-3 py-1">Form</span> : null}
+                {field.showInTable ? <span className="rounded-full border border-white/10 bg-white/[0.045] px-3 py-1">Table</span> : null}
+                {field.showInDetails ? <span className="rounded-full border border-white/10 bg-white/[0.045] px-3 py-1">Lead Details</span> : null}
+                {field.searchable ? <span className="rounded-full border border-white/10 bg-white/[0.045] px-3 py-1">Searchable</span> : null}
+                {field.filterable ? <span className="rounded-full border border-white/10 bg-white/[0.045] px-3 py-1">Filterable</span> : null}
               </div>
 
               {isEditing ? (
@@ -546,17 +564,17 @@ export function CustomFieldManager({
       <div className="space-y-4">
         <div className="flex items-center justify-between gap-3">
           <div>
-            <p className="text-base font-semibold text-slate-950">Archived Fields</p>
-            <p className="mt-1 text-sm text-slate-500">Restore archived fields when the team needs them again.</p>
+            <p className="text-base font-semibold text-white">Archived Fields</p>
+            <p className="mt-1 text-sm text-white/54">Restore archived fields when the team needs them again.</p>
           </div>
         </div>
         {archivedFields.length > 0 ? (
           archivedFields.map((field) => (
-            <div key={field.id} className="rounded-[24px] border border-slate-200 bg-slate-50/80 p-4">
+            <div key={field.id} className="admin-surface-soft rounded-[24px] p-4 opacity-90">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
-                  <p className="text-base font-semibold text-slate-950">{field.label}</p>
-                  <p className="mt-1 text-sm text-slate-500">
+                  <p className="text-base font-semibold text-white">{field.label}</p>
+                  <p className="mt-1 text-sm text-white/54">
                     {crmLabelize(field.type)} • {field.key}
                   </p>
                 </div>
@@ -564,7 +582,7 @@ export function CustomFieldManager({
                   type="button"
                   disabled={savingById[field.id]}
                   onClick={() => void toggleArchive(field.id, "restore")}
-                  className="inline-flex h-10 items-center justify-center rounded-2xl border border-emerald-200 bg-emerald-50 px-4 text-sm font-medium text-emerald-700 transition hover:bg-emerald-100"
+                  className="inline-flex h-10 items-center justify-center rounded-2xl border border-emerald-300/20 bg-emerald-400/10 px-4 text-sm font-semibold text-emerald-100 transition hover:bg-emerald-400/16"
                 >
                   <RotateCcw className="mr-2 h-4 w-4" />
                   Restore Field
@@ -573,7 +591,8 @@ export function CustomFieldManager({
             </div>
           ))
         ) : (
-          <div className="rounded-[24px] border border-slate-200 bg-slate-50/80 px-4 py-4 text-sm text-slate-500">
+          <div className="rounded-[24px] border border-dashed border-white/12 bg-white/[0.04] px-4 py-4 text-sm text-white/54">
+            <Check className="mr-2 inline h-4 w-4 text-emerald-200" />
             No archived fields yet.
           </div>
         )}

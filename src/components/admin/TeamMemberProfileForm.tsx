@@ -184,14 +184,14 @@ export function TeamMemberProfileForm({
         ) : null}
 
         {canEditActive ? (
-          <label className="flex min-h-11 items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.04] px-4 text-sm text-white/72">
+          <label className="flex min-h-11 items-center justify-between gap-3 rounded-2xl border border-white/10 bg-white/[0.04] px-4 text-sm text-white/72">
+            <span>Active workspace access</span>
             <input
               type="checkbox"
               checked={isActive}
               onChange={(event) => setIsActive(event.target.checked)}
-              className="h-4 w-4 rounded border-white/20 bg-transparent"
+              className="admin-toggle shrink-0"
             />
-            Active workspace access
           </label>
         ) : null}
       </div>

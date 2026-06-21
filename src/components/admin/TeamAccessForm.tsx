@@ -166,14 +166,14 @@ export function TeamAccessForm({
           {isSaving ? "Saving..." : "Save access"}
         </button>
       </div>
-      <label className="mt-3 inline-flex items-center gap-3 text-sm text-white/64">
+      <label className="mt-3 flex max-w-md items-center justify-between gap-3 rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-white/70">
+        <span>Allow this person to sign in to admin</span>
         <input
           type="checkbox"
           checked={isActive}
           onChange={(event) => setIsActive(event.target.checked)}
-          className="h-4 w-4 rounded border-white/20 bg-transparent accent-[var(--ld-color-accent)]"
+          className="admin-toggle shrink-0"
         />
-        Allow this person to sign in to admin
       </label>
       {message ? <p className="mt-3 text-sm text-white/62">{message}</p> : null}
     </div>

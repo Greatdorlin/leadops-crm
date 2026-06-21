@@ -67,15 +67,15 @@ function StageEditor({
   extraAction?: React.ReactNode;
 }) {
   return (
-    <div className="space-y-4 rounded-[24px] border border-slate-200 bg-[linear-gradient(180deg,rgba(255,255,255,0.98)_0%,rgba(248,250,255,0.94)_100%)] p-4">
+    <div className="admin-surface-soft space-y-4 rounded-[28px] p-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <p className="text-base font-semibold text-slate-950">{title}</p>
+        <p className="text-base font-semibold text-white">{title}</p>
         {extraAction}
       </div>
 
       <div className="grid gap-3 sm:grid-cols-2">
         <label className="space-y-2">
-          <span className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Stage Name</span>
+          <span className="text-xs font-semibold uppercase tracking-[0.16em] text-white/50">Stage Name</span>
           <input
             type="text"
             value={draft.name}
@@ -85,7 +85,7 @@ function StageEditor({
           />
         </label>
         <label className="space-y-2">
-          <span className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Stage Key</span>
+          <span className="text-xs font-semibold uppercase tracking-[0.16em] text-white/50">Stage Key</span>
           <input
             type="text"
             value={draft.key}
@@ -95,7 +95,7 @@ function StageEditor({
           />
         </label>
         <label className="space-y-2">
-          <span className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Color</span>
+          <span className="text-xs font-semibold uppercase tracking-[0.16em] text-white/50">Color</span>
           <input
             type="text"
             value={draft.color}
@@ -105,7 +105,7 @@ function StageEditor({
           />
         </label>
         <label className="space-y-2">
-          <span className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Order</span>
+          <span className="text-xs font-semibold uppercase tracking-[0.16em] text-white/50">Order</span>
           <input
             type="number"
             value={draft.sortOrder}
@@ -116,7 +116,8 @@ function StageEditor({
       </div>
 
       <div className="grid gap-3 sm:grid-cols-2">
-        <label className="inline-flex items-center gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700">
+        <label className="inline-flex items-center justify-between gap-3 rounded-2xl border border-white/10 bg-white/[0.045] px-4 py-3 text-sm font-semibold text-white/70">
+          <span>Mark as won</span>
           <input
             type="checkbox"
             checked={draft.isWon}
@@ -127,11 +128,11 @@ function StageEditor({
                 isLost: event.target.checked ? false : draft.isLost,
               })
             }
-            className="h-4 w-4 rounded border-slate-300"
+            className="admin-toggle"
           />
-          Mark as won
         </label>
-        <label className="inline-flex items-center gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700">
+        <label className="inline-flex items-center justify-between gap-3 rounded-2xl border border-white/10 bg-white/[0.045] px-4 py-3 text-sm font-semibold text-white/70">
+          <span>Mark as lost</span>
           <input
             type="checkbox"
             checked={draft.isLost}
@@ -142,13 +143,12 @@ function StageEditor({
                 isWon: event.target.checked ? false : draft.isWon,
               })
             }
-            className="h-4 w-4 rounded border-slate-300"
+            className="admin-toggle"
           />
-          Mark as lost
         </label>
       </div>
 
-      <div className="flex flex-col gap-3 border-t border-slate-200/80 pt-4 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex flex-col gap-3 border-t border-white/10 pt-4 sm:flex-row sm:items-center sm:justify-between">
         <button
           type="button"
           disabled={isSaving}
@@ -157,7 +157,7 @@ function StageEditor({
         >
           {isSaving ? "Saving..." : saveLabel}
         </button>
-        {message ? <p className="text-sm text-slate-600">{message}</p> : null}
+        {message ? <p className="text-sm text-white/62">{message}</p> : null}
       </div>
     </div>
   );
@@ -297,23 +297,23 @@ export function LeadStageManager({
           const isEditing = editingId === stage.id;
           const draft = drafts[stage.id] ?? buildStageDraft(stage);
           return (
-            <div key={stage.id} className="rounded-[24px] border border-slate-200 bg-white p-4">
+            <div key={stage.id} className="admin-surface-soft rounded-[24px] p-4">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
-                  <p className="text-base font-semibold text-slate-950">{stage.name}</p>
-                  <p className="mt-1 text-sm text-slate-500">
+                  <p className="text-base font-semibold text-white">{stage.name}</p>
+                  <p className="mt-1 text-sm text-white/54">
                     {stage.key}
                     {stage.color ? ` • ${stage.color}` : ""}
                   </p>
                 </div>
                 <div className="flex flex-wrap gap-2">
                   {stage.isWon ? (
-                    <span className="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">
+                    <span className="rounded-full border border-emerald-300/24 bg-emerald-400/10 px-3 py-1 text-xs font-semibold text-emerald-100">
                       Won
                     </span>
                   ) : null}
                   {stage.isLost ? (
-                    <span className="rounded-full border border-rose-200 bg-rose-50 px-3 py-1 text-xs font-semibold text-rose-700">
+                    <span className="rounded-full border border-rose-300/24 bg-rose-400/10 px-3 py-1 text-xs font-semibold text-rose-100">
                       Lost
                     </span>
                   ) : null}
@@ -331,18 +331,18 @@ export function LeadStageManager({
                     type="button"
                     disabled={savingById[stage.id]}
                     onClick={() => void toggleArchive(stage.id, "archive")}
-                    className="inline-flex h-10 items-center justify-center rounded-2xl border border-rose-200 bg-rose-50 px-4 text-sm font-medium text-rose-700 transition hover:bg-rose-100"
+                    className="inline-flex h-10 items-center justify-center rounded-2xl border border-rose-300/24 bg-rose-400/10 px-4 text-sm font-medium text-rose-100 transition hover:bg-rose-400/16"
                   >
                     Archive Stage
                   </button>
                 </div>
               </div>
 
-              <div className="mt-4 flex flex-wrap gap-2 text-xs text-slate-500">
-                <span className="rounded-full border border-slate-200 px-3 py-1">
+              <div className="mt-4 flex flex-wrap gap-2 text-xs text-white/56">
+                <span className="rounded-full border border-white/10 bg-white/[0.035] px-3 py-1">
                   Order {stage.sortOrder}
                 </span>
-                <span className="rounded-full border border-slate-200 px-3 py-1">
+                <span className="rounded-full border border-white/10 bg-white/[0.035] px-3 py-1">
                   {stage.updatedAt ? "Active" : "Saved"}
                 </span>
               </div>
@@ -367,24 +367,24 @@ export function LeadStageManager({
 
       <div className="space-y-4">
         <div>
-          <p className="text-base font-semibold text-slate-950">Archived stages</p>
-          <p className="mt-1 text-sm text-slate-500">
+          <p className="text-base font-semibold text-white">Archived stages</p>
+          <p className="mt-1 text-sm text-white/54">
             Restore archived stages when you want them available again.
           </p>
         </div>
         {archivedStages.length > 0 ? (
           archivedStages.map((stage) => (
-            <div key={stage.id} className="rounded-[24px] border border-slate-200 bg-slate-50/80 p-4">
+            <div key={stage.id} className="admin-surface-soft rounded-[24px] p-4 opacity-90">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
-                  <p className="text-base font-semibold text-slate-950">{stage.name}</p>
-                  <p className="mt-1 text-sm text-slate-500">{stage.key}</p>
+                  <p className="text-base font-semibold text-white">{stage.name}</p>
+                  <p className="mt-1 text-sm text-white/54">{stage.key}</p>
                 </div>
                 <button
                   type="button"
                   disabled={savingById[stage.id]}
                   onClick={() => void toggleArchive(stage.id, "restore")}
-                  className="inline-flex h-10 items-center justify-center rounded-2xl border border-emerald-200 bg-emerald-50 px-4 text-sm font-medium text-emerald-700 transition hover:bg-emerald-100"
+                  className="inline-flex h-10 items-center justify-center rounded-2xl border border-emerald-300/24 bg-emerald-400/10 px-4 text-sm font-medium text-emerald-100 transition hover:bg-emerald-400/16"
                 >
                   <RotateCcw className="mr-2 h-4 w-4" />
                   Restore Stage
@@ -393,7 +393,7 @@ export function LeadStageManager({
             </div>
           ))
         ) : (
-          <div className="rounded-[24px] border border-slate-200 bg-slate-50/80 px-4 py-4 text-sm text-slate-500">
+          <div className="rounded-[24px] border border-dashed border-white/12 bg-white/[0.035] px-4 py-4 text-sm text-white/52">
             No archived stages yet.
           </div>
         )}

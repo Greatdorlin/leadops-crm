@@ -93,7 +93,7 @@ export function LeadImportForm({
     <div className="space-y-5">
       <div className="grid gap-3">
         <label className="space-y-2">
-          <span className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Default owner</span>
+          <span className="text-xs font-semibold uppercase tracking-[0.16em] text-white/50">Default owner</span>
           <AdminSelect
             value={assignedTo}
             onChange={(event) => setAssignedTo(event.target.value)}
@@ -108,7 +108,7 @@ export function LeadImportForm({
           </AdminSelect>
         </label>
         <label className="space-y-2">
-          <span className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Import label</span>
+          <span className="text-xs font-semibold uppercase tracking-[0.16em] text-white/50">Import label</span>
           <input
             type="text"
             value={sourceDetail}
@@ -141,7 +141,7 @@ export function LeadImportForm({
       </div>
 
       <label className="space-y-2">
-        <span className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">CSV rows</span>
+        <span className="text-xs font-semibold uppercase tracking-[0.16em] text-white/50">CSV rows</span>
         <textarea
           value={csvText}
           onChange={(event) => setCsvText(event.target.value)}
@@ -151,12 +151,12 @@ export function LeadImportForm({
         />
       </label>
 
-      <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-4 py-3 text-sm leading-6 text-slate-500">
-        Supported headers: <span className="font-medium text-slate-700">Full Name, First Name, Last Name, Email Address, Phone, Stage, Priority, Owner, Source, Notes</span>.
+      <div className="rounded-2xl border border-dashed border-white/12 bg-white/[0.035] px-4 py-3 text-sm leading-6 text-white/54">
+        Supported headers: <span className="font-medium text-white/78">Full Name, First Name, Last Name, Email Address, Phone, Stage, Priority, Owner, Source, Notes</span>.
       </div>
 
-      <div className="flex flex-col gap-3 border-t border-slate-200 pt-4 sm:flex-row sm:items-end sm:justify-between">
-        <p className="max-w-[18rem] text-sm leading-6 text-slate-500">
+      <div className="flex flex-col gap-3 border-t border-white/10 pt-4 sm:flex-row sm:items-end sm:justify-between">
+        <p className="max-w-[18rem] text-sm leading-6 text-white/54">
           Imports use the same dedupe flow.
         </p>
         <button
@@ -169,14 +169,14 @@ export function LeadImportForm({
         </button>
       </div>
 
-      {message ? <p className="text-sm text-slate-600">{message}</p> : null}
+      {message ? <p className="text-sm text-white/62">{message}</p> : null}
       {result ? (
-        <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3">
-          <p className="text-sm font-semibold text-slate-950">
+        <div className="rounded-2xl border border-white/10 bg-white/[0.045] px-4 py-3">
+          <p className="text-sm font-semibold text-white">
             {result.created} created • {result.updated} updated
           </p>
           {result.failedRows.length > 0 ? (
-            <div className="mt-3 space-y-2 text-sm text-rose-700">
+            <div className="mt-3 space-y-2 text-sm text-rose-100">
               {result.failedRows.slice(0, 5).map((row) => (
                 <p key={`${row.rowNumber}-${row.error}`}>Row {row.rowNumber}: {row.error}</p>
               ))}

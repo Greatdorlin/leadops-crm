@@ -203,7 +203,7 @@ function SourceDefaultsEditor({
   return (
     <div className="grid gap-3 sm:grid-cols-2">
       <label className="space-y-2">
-        <span className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Source Name</span>
+        <span className="text-xs font-semibold uppercase tracking-[0.16em] text-white/50">Source Name</span>
         <input
           type="text"
           value={draft.name}
@@ -213,7 +213,7 @@ function SourceDefaultsEditor({
         />
       </label>
       <label className="space-y-2">
-        <span className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Source Type</span>
+        <span className="text-xs font-semibold uppercase tracking-[0.16em] text-white/50">Source Type</span>
         <AdminSelect
           value={draft.type}
           onChange={(event) => onChange({ ...draft, type: event.target.value as SourceDraft["type"] })}
@@ -227,7 +227,7 @@ function SourceDefaultsEditor({
         </AdminSelect>
       </label>
       <label className="space-y-2">
-        <span className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Source ID</span>
+        <span className="text-xs font-semibold uppercase tracking-[0.16em] text-white/50">Source ID</span>
         <input
           type="text"
           value={draft.sourceId}
@@ -237,7 +237,7 @@ function SourceDefaultsEditor({
         />
       </label>
       <label className="space-y-2">
-        <span className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Webhook Key</span>
+        <span className="text-xs font-semibold uppercase tracking-[0.16em] text-white/50">Webhook Key</span>
         <input
           type="text"
           value={draft.webhookKey}
@@ -247,7 +247,7 @@ function SourceDefaultsEditor({
         />
       </label>
       <label className="space-y-2">
-        <span className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Default Stage</span>
+        <span className="text-xs font-semibold uppercase tracking-[0.16em] text-white/50">Default Stage</span>
         <AdminSelect
           value={draft.defaultStageId}
           onChange={(event) => onChange({ ...draft, defaultStageId: event.target.value })}
@@ -262,7 +262,7 @@ function SourceDefaultsEditor({
         </AdminSelect>
       </label>
       <label className="space-y-2">
-        <span className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Default Owner</span>
+        <span className="text-xs font-semibold uppercase tracking-[0.16em] text-white/50">Default Owner</span>
         <AdminSelect
           value={draft.defaultAssignedUserId}
           onChange={(event) => onChange({ ...draft, defaultAssignedUserId: event.target.value })}
@@ -277,7 +277,7 @@ function SourceDefaultsEditor({
         </AdminSelect>
       </label>
       <label className="space-y-2">
-        <span className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Default Team</span>
+        <span className="text-xs font-semibold uppercase tracking-[0.16em] text-white/50">Default Team</span>
         <AdminSelect
           value={draft.defaultTeamId}
           onChange={(event) => onChange({ ...draft, defaultTeamId: event.target.value })}
@@ -292,7 +292,7 @@ function SourceDefaultsEditor({
         </AdminSelect>
       </label>
       <label className="space-y-2">
-        <span className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Default Branch</span>
+        <span className="text-xs font-semibold uppercase tracking-[0.16em] text-white/50">Default Branch</span>
         <AdminSelect
           value={draft.defaultBranchId}
           onChange={(event) => onChange({ ...draft, defaultBranchId: event.target.value })}
@@ -307,7 +307,7 @@ function SourceDefaultsEditor({
         </AdminSelect>
       </label>
       <label className="space-y-2">
-        <span className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Default Department</span>
+        <span className="text-xs font-semibold uppercase tracking-[0.16em] text-white/50">Default Department</span>
         <AdminSelect
           value={draft.defaultDepartmentId}
           onChange={(event) => onChange({ ...draft, defaultDepartmentId: event.target.value })}
@@ -322,7 +322,7 @@ function SourceDefaultsEditor({
         </AdminSelect>
       </label>
       <label className="space-y-2">
-        <span className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Default Priority</span>
+        <span className="text-xs font-semibold uppercase tracking-[0.16em] text-white/50">Default Priority</span>
         <AdminSelect
           value={draft.defaultPriority}
           onChange={(event) => onChange({ ...draft, defaultPriority: event.target.value })}
@@ -336,14 +336,14 @@ function SourceDefaultsEditor({
           ))}
         </AdminSelect>
       </label>
-      <label className="inline-flex items-center gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 sm:col-span-2">
+      <label className="inline-flex items-center justify-between gap-3 rounded-2xl border border-white/10 bg-white/[0.045] px-4 py-3 text-sm font-semibold text-white/70 sm:col-span-2">
+        <span>Active</span>
         <input
           type="checkbox"
           checked={draft.isActive}
           onChange={(event) => onChange({ ...draft, isActive: event.target.checked })}
-          className="h-4 w-4 rounded border-slate-300"
+          className="admin-toggle"
         />
-        Active
       </label>
     </div>
   );
@@ -359,11 +359,11 @@ function FieldMappingsEditor({
   referenceData: FormSourceAdminReferenceData;
 }) {
   return (
-    <div className="space-y-3 rounded-[20px] border border-slate-200/85 bg-slate-50/70 p-4">
+    <div className="space-y-3 rounded-[24px] border border-white/10 bg-white/[0.045] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
       <div className="flex items-center justify-between gap-3">
         <div>
-          <p className="text-sm font-semibold text-slate-900">Field Mappings</p>
-          <p className="mt-1 text-sm text-slate-500">Map each incoming field to a core lead field or custom field.</p>
+          <p className="text-sm font-semibold text-white">Field Mappings</p>
+          <p className="mt-1 text-sm text-white/54">Map incoming fields to core lead data or custom fields.</p>
         </div>
         <button
           type="button"
@@ -378,7 +378,7 @@ function FieldMappingsEditor({
         draft.mappings.map((mapping, index) => (
           <div
             key={mapping.id ?? `mapping-${index}`}
-            className="grid gap-3 rounded-[20px] border border-slate-200 bg-white p-4 xl:grid-cols-[1.2fr_1.2fr_160px_1fr_1fr_160px_auto]"
+            className="grid gap-3 rounded-[22px] border border-white/10 bg-white/[0.045] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] xl:grid-cols-[1.2fr_1.2fr_160px_1fr_1fr_160px_auto]"
           >
             <input
               type="text"
@@ -465,7 +465,8 @@ function FieldMappingsEditor({
               placeholder="Fallback value"
               className="admin-input h-11 rounded-2xl px-4 text-sm outline-none"
             />
-            <label className="inline-flex items-center gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700">
+            <label className="inline-flex items-center justify-between gap-3 rounded-2xl border border-white/10 bg-white/[0.045] px-4 py-3 text-sm font-semibold text-white/70">
+              <span>Required</span>
               <input
                 type="checkbox"
                 checked={mapping.required}
@@ -474,9 +475,8 @@ function FieldMappingsEditor({
                   nextMappings[index] = { ...mapping, required: event.target.checked };
                   onChange({ ...draft, mappings: nextMappings });
                 }}
-                className="h-4 w-4 rounded border-slate-300"
+                className="admin-toggle"
               />
-              Required
             </label>
             <button
               type="button"
@@ -484,14 +484,14 @@ function FieldMappingsEditor({
                 const nextMappings = draft.mappings.filter((_, rowIndex) => rowIndex !== index);
                 onChange({ ...draft, mappings: nextMappings });
               }}
-              className="inline-flex h-11 items-center justify-center rounded-2xl border border-rose-200 bg-rose-50 px-4 text-sm font-medium text-rose-700 transition hover:bg-rose-100"
+              className="inline-flex h-11 items-center justify-center rounded-2xl border border-rose-300/24 bg-rose-400/10 px-4 text-sm font-medium text-rose-100 transition hover:bg-rose-400/16"
             >
               Remove
             </button>
           </div>
         ))
       ) : (
-        <div className="rounded-[20px] border border-dashed border-slate-200 bg-white px-4 py-4 text-sm text-slate-500">
+        <div className="rounded-[20px] border border-dashed border-white/12 bg-white/[0.035] px-4 py-4 text-sm text-white/52">
           No field mappings yet.
         </div>
       )}
@@ -544,20 +544,20 @@ function FormSourceEditor({
   }
 
   return (
-    <div className="space-y-4 rounded-[24px] border border-slate-200 bg-[linear-gradient(180deg,rgba(255,255,255,0.98)_0%,rgba(248,250,255,0.94)_100%)] p-4">
+    <div className="admin-surface-soft space-y-4 rounded-[28px] p-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <p className="text-base font-semibold text-slate-950">{title}</p>
+        <p className="text-base font-semibold text-white">{title}</p>
         {extraAction}
       </div>
 
       <SourceDefaultsEditor draft={draft} onChange={onChange} referenceData={referenceData} />
 
       <div className="grid gap-4 xl:grid-cols-2">
-        <div className="rounded-[20px] border border-slate-200 bg-white p-4">
+        <div className="rounded-[22px] border border-white/10 bg-white/[0.045] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
-              <p className="text-sm font-semibold text-slate-900">Webhook URL</p>
-              <p className="mt-1 text-sm text-slate-500">
+              <p className="text-sm font-semibold text-white">Webhook URL</p>
+              <p className="mt-1 text-sm text-white/54">
                 Use this endpoint when your website or form tool sends leads into Leads Desk.
               </p>
             </div>
@@ -581,29 +581,29 @@ function FormSourceEditor({
               </button>
             </div>
           </div>
-          <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700 [overflow-wrap:anywhere]">
+          <div className="mt-4 rounded-2xl border border-white/10 bg-black/20 px-4 py-3 text-sm text-white/70 [overflow-wrap:anywhere]">
             {webhookUrl || "Save or enter a webhook key to generate the webhook URL preview."}
           </div>
           <div className="mt-3 grid gap-3 md:grid-cols-2">
-            <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
-              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">Webhook key</p>
-              <p className="mt-1.5 text-sm text-slate-800 [overflow-wrap:anywhere]">
+            <div className="rounded-2xl border border-white/10 bg-white/[0.035] px-4 py-3">
+              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-white/46">Webhook key</p>
+              <p className="mt-1.5 text-sm text-white/72 [overflow-wrap:anywhere]">
                 {draft.webhookKey || "Not set yet"}
               </p>
             </div>
-            <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
-              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">Setup notes</p>
-              <p className="mt-1.5 text-sm text-slate-800">
+            <div className="rounded-2xl border border-white/10 bg-white/[0.035] px-4 py-3">
+              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-white/46">Setup notes</p>
+              <p className="mt-1.5 text-sm text-white/72">
                 Map the form fields first, then send a JSON POST request to this URL.
               </p>
             </div>
           </div>
         </div>
 
-        <div className="rounded-[20px] border border-slate-200 bg-white p-4">
+        <div className="rounded-[22px] border border-white/10 bg-white/[0.045] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
           <div>
-            <p className="text-sm font-semibold text-slate-900">Sample Payload</p>
-            <p className="mt-1 text-sm text-slate-500">
+            <p className="text-sm font-semibold text-white">Sample Payload</p>
+            <p className="mt-1 text-sm text-white/54">
               This example reflects the current field mappings for this source.
             </p>
           </div>
@@ -617,7 +617,7 @@ function FormSourceEditor({
         <FieldMappingsEditor draft={draft} onChange={onChange} referenceData={referenceData} />
       ) : null}
 
-      <div className="flex flex-col gap-3 border-t border-slate-200/80 pt-4 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex flex-col gap-3 border-t border-white/10 pt-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex flex-wrap gap-3">
           <button
             type="button"
@@ -638,7 +638,7 @@ function FormSourceEditor({
             </button>
           ) : null}
         </div>
-        {message ? <p className="text-sm text-slate-600">{message}</p> : null}
+        {message ? <p className="text-sm text-white/62">{message}</p> : null}
       </div>
     </div>
   );
@@ -820,11 +820,11 @@ export function FormSourceManager({
           const isEditing = editingId === source.id;
           const draft = drafts[source.id] ?? buildSourceDraft(source);
           return (
-            <div key={source.id} className="rounded-[24px] border border-slate-200 bg-white p-4">
+            <div key={source.id} className="admin-surface-soft rounded-[24px] p-4">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
-                  <p className="text-base font-semibold text-slate-950">{source.name}</p>
-                  <p className="mt-1 text-sm text-slate-500">
+                  <p className="text-base font-semibold text-white">{source.name}</p>
+                  <p className="mt-1 text-sm text-white/54">
                     {sourceTypeLabels[source.type]}{source.webhookKey ? ` • ${source.webhookKey}` : ""}
                   </p>
                 </div>
@@ -843,27 +843,27 @@ export function FormSourceManager({
                     type="button"
                     disabled={savingById[source.id]}
                     onClick={() => void toggleArchive(source.id, "archive")}
-                    className="inline-flex h-10 items-center justify-center rounded-2xl border border-rose-200 bg-rose-50 px-4 text-sm font-medium text-rose-700 transition hover:bg-rose-100"
+                    className="inline-flex h-10 items-center justify-center rounded-2xl border border-rose-300/24 bg-rose-400/10 px-4 text-sm font-medium text-rose-100 transition hover:bg-rose-400/16"
                   >
                     Archive Source
                   </button>
                 </div>
               </div>
 
-              <div className="mt-4 flex flex-wrap gap-2 text-xs text-slate-500">
-                <span className="rounded-full border border-slate-200 px-3 py-1">
+              <div className="mt-4 flex flex-wrap gap-2 text-xs text-white/56">
+                <span className="rounded-full border border-white/10 bg-white/[0.035] px-3 py-1">
                   {source.mappings.length} mapping{source.mappings.length === 1 ? "" : "s"}
                 </span>
                 {source.defaultPriority ? (
-                  <span className="rounded-full border border-slate-200 px-3 py-1">
+                  <span className="rounded-full border border-white/10 bg-white/[0.035] px-3 py-1">
                     {priorityLabels[source.defaultPriority]}
                   </span>
                 ) : null}
                 {source.defaultStageId ? (
-                  <span className="rounded-full border border-slate-200 px-3 py-1">Default stage</span>
+                  <span className="rounded-full border border-white/10 bg-white/[0.035] px-3 py-1">Default stage</span>
                 ) : null}
                 {source.defaultAssignedUserId ? (
-                  <span className="rounded-full border border-slate-200 px-3 py-1">Default owner</span>
+                  <span className="rounded-full border border-white/10 bg-white/[0.035] px-3 py-1">Default owner</span>
                 ) : null}
               </div>
 
@@ -891,16 +891,16 @@ export function FormSourceManager({
 
       <div className="space-y-4">
         <div>
-          <p className="text-base font-semibold text-slate-950">Archived Sources</p>
-          <p className="mt-1 text-sm text-slate-500">Restore inactive sources when you want to reuse their mapping setup.</p>
+          <p className="text-base font-semibold text-white">Archived Sources</p>
+          <p className="mt-1 text-sm text-white/54">Restore inactive sources when you want to reuse their mapping setup.</p>
         </div>
         {inactiveSources.length > 0 ? (
           inactiveSources.map((source) => (
-            <div key={source.id} className="rounded-[24px] border border-slate-200 bg-slate-50/80 p-4">
+            <div key={source.id} className="admin-surface-soft rounded-[24px] p-4 opacity-90">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
-                  <p className="text-base font-semibold text-slate-950">{source.name}</p>
-                  <p className="mt-1 text-sm text-slate-500">
+                  <p className="text-base font-semibold text-white">{source.name}</p>
+                  <p className="mt-1 text-sm text-white/54">
                     {sourceTypeLabels[source.type]}{source.webhookKey ? ` • ${source.webhookKey}` : ""}
                   </p>
                 </div>
@@ -908,7 +908,7 @@ export function FormSourceManager({
                   type="button"
                   disabled={savingById[source.id]}
                   onClick={() => void toggleArchive(source.id, "restore")}
-                  className="inline-flex h-10 items-center justify-center rounded-2xl border border-emerald-200 bg-emerald-50 px-4 text-sm font-medium text-emerald-700 transition hover:bg-emerald-100"
+                  className="inline-flex h-10 items-center justify-center rounded-2xl border border-emerald-300/24 bg-emerald-400/10 px-4 text-sm font-medium text-emerald-100 transition hover:bg-emerald-400/16"
                 >
                   <RotateCcw className="mr-2 h-4 w-4" />
                   Restore Source
@@ -917,7 +917,7 @@ export function FormSourceManager({
             </div>
           ))
         ) : (
-          <div className="rounded-[24px] border border-slate-200 bg-slate-50/80 px-4 py-4 text-sm text-slate-500">
+          <div className="rounded-[24px] border border-dashed border-white/12 bg-white/[0.035] px-4 py-4 text-sm text-white/52">
             No archived sources yet.
           </div>
         )}

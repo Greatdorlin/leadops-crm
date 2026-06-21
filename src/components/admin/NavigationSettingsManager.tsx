@@ -2,7 +2,7 @@
 
 import { startTransition, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { MoveDown, MoveUp, RotateCcw } from "lucide-react";
+import { Eye, Lock, MoveDown, MoveUp, RotateCcw } from "lucide-react";
 import type { NavigationItemKey, ResolvedWorkspaceSettings } from "@/lib/crm/workspace-settings";
 import { NAVIGATION_ITEM_KEYS } from "@/lib/crm/workspace-settings";
 
@@ -89,13 +89,24 @@ export function NavigationSettingsManager({
   }
 
   return (
-    <section className="space-y-5 rounded-[28px] border border-slate-200 bg-white p-5">
+    <section className="admin-surface space-y-5 rounded-[32px] p-5">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[color:var(--ld-color-accent)]">
+            Workspace menu
+          </p>
+          <h2 className="mt-2 text-2xl font-semibold tracking-[-0.04em] text-white">Shape the sidebar without breaking access</h2>
+        </div>
+        <span className="rounded-full border border-white/10 bg-white/[0.055] px-3 py-1.5 text-xs font-semibold text-white/58">
+          Core items locked
+        </span>
+      </div>
       <div className="grid gap-3">
         {orderedItems.map((item, index) => (
-          <div key={item.key} className="admin-surface-muted rounded-[24px] p-4">
+          <div key={item.key} className="admin-surface-soft rounded-[24px] p-4">
             <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_200px_auto] lg:items-center">
               <div className="space-y-2">
-                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">{item.key.replace(/_/g, " ")}</p>
+                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-white/48">{item.key.replace(/_/g, " ")}</p>
                 <input
                   type="text"
                   value={item.label}
@@ -109,7 +120,11 @@ export function NavigationSettingsManager({
                   className="admin-input h-11 w-full rounded-2xl px-4 text-sm outline-none"
                 />
               </div>
-              <label className="inline-flex items-center gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700">
+              <label className="inline-flex items-center justify-between gap-3 rounded-2xl border border-white/10 bg-white/[0.045] px-4 py-3 text-sm font-semibold text-white/70">
+                <span className="inline-flex items-center gap-2">
+                  {lockedKeys.has(item.key) ? <Lock className="h-4 w-4 text-amber-200" /> : <Eye className="h-4 w-4 text-cyan-100" />}
+                  {lockedKeys.has(item.key) ? "Always visible" : "Visible"}
+                </span>
                 <input
                   type="checkbox"
                   checked={lockedKeys.has(item.key) ? true : item.visible}
@@ -121,9 +136,8 @@ export function NavigationSettingsManager({
                       ),
                     )
                   }
-                  className="h-4 w-4 rounded border-slate-300"
+                  className="admin-toggle"
                 />
-                {lockedKeys.has(item.key) ? "Always visible" : "Visible"}
               </label>
               <div className="flex items-center justify-end gap-2">
                 <button
@@ -150,7 +164,7 @@ export function NavigationSettingsManager({
         ))}
       </div>
 
-      <div className="flex flex-col gap-3 border-t border-slate-200 pt-4 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex flex-col gap-3 border-t border-white/10 pt-4 sm:flex-row sm:items-center sm:justify-between">
         <button
           type="button"
           onClick={() => setItems(normalizeItems(initialSettings))}
@@ -168,7 +182,7 @@ export function NavigationSettingsManager({
           {isSaving ? "Saving..." : "Save navigation"}
         </button>
       </div>
-      {message ? <p className="text-sm text-slate-600">{message}</p> : null}
+      {message ? <p className="text-sm text-white/62">{message}</p> : null}
     </section>
   );
 }

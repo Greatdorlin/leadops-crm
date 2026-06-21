@@ -74,15 +74,15 @@ function SourceEditor({
   extraAction?: React.ReactNode;
 }) {
   return (
-    <div className="space-y-4 rounded-[24px] border border-slate-200 bg-[linear-gradient(180deg,rgba(255,255,255,0.98)_0%,rgba(248,250,255,0.94)_100%)] p-4">
+    <div className="admin-surface-soft space-y-4 rounded-[28px] p-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <p className="text-base font-semibold text-slate-950">{title}</p>
+        <p className="text-base font-semibold text-white">{title}</p>
         {extraAction}
       </div>
 
       <div className="grid gap-3 sm:grid-cols-2">
         <label className="space-y-2">
-          <span className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Source Name</span>
+          <span className="text-xs font-semibold uppercase tracking-[0.16em] text-white/50">Source Name</span>
           <input
             type="text"
             value={draft.name}
@@ -92,7 +92,7 @@ function SourceEditor({
           />
         </label>
         <label className="space-y-2">
-          <span className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Source Key</span>
+          <span className="text-xs font-semibold uppercase tracking-[0.16em] text-white/50">Source Key</span>
           <input
             type="text"
             value={draft.key}
@@ -102,7 +102,7 @@ function SourceEditor({
           />
         </label>
         <label className="space-y-2">
-          <span className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Source Type</span>
+          <span className="text-xs font-semibold uppercase tracking-[0.16em] text-white/50">Source Type</span>
           <AdminSelect
             value={draft.type}
             onChange={(event) => onChange({ ...draft, type: event.target.value })}
@@ -116,7 +116,7 @@ function SourceEditor({
           </AdminSelect>
         </label>
         <label className="space-y-2">
-          <span className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Color</span>
+          <span className="text-xs font-semibold uppercase tracking-[0.16em] text-white/50">Color</span>
           <input
             type="text"
             value={draft.color}
@@ -127,7 +127,7 @@ function SourceEditor({
         </label>
       </div>
 
-      <div className="flex flex-col gap-3 border-t border-slate-200/80 pt-4 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex flex-col gap-3 border-t border-white/10 pt-4 sm:flex-row sm:items-center sm:justify-between">
         <button
           type="button"
           disabled={isSaving}
@@ -136,7 +136,7 @@ function SourceEditor({
         >
           {isSaving ? "Saving..." : saveLabel}
         </button>
-        {message ? <p className="text-sm text-slate-600">{message}</p> : null}
+        {message ? <p className="text-sm text-white/62">{message}</p> : null}
       </div>
     </div>
   );
@@ -276,11 +276,11 @@ export function LeadSourceManager({
           const isEditing = editingId === source.id;
           const draft = drafts[source.id] ?? buildSourceDraft(source);
           return (
-            <div key={source.id} className="rounded-[24px] border border-slate-200 bg-white p-4">
+            <div key={source.id} className="admin-surface-soft rounded-[24px] p-4">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
-                  <p className="text-base font-semibold text-slate-950">{source.name}</p>
-                  <p className="mt-1 text-sm text-slate-500">
+                  <p className="text-base font-semibold text-white">{source.name}</p>
+                  <p className="mt-1 text-sm text-white/54">
                     {crmLabelize(source.type || "other")}
                     {source.color ? ` • ${source.color}` : ""}
                   </p>
@@ -300,15 +300,15 @@ export function LeadSourceManager({
                     type="button"
                     disabled={savingById[source.id]}
                     onClick={() => void toggleArchive(source.id, "archive")}
-                    className="inline-flex h-10 items-center justify-center rounded-2xl border border-rose-200 bg-rose-50 px-4 text-sm font-medium text-rose-700 transition hover:bg-rose-100"
+                    className="inline-flex h-10 items-center justify-center rounded-2xl border border-rose-300/24 bg-rose-400/10 px-4 text-sm font-medium text-rose-100 transition hover:bg-rose-400/16"
                   >
                     Archive Source
                   </button>
                 </div>
               </div>
 
-              <div className="mt-4 flex flex-wrap gap-2 text-xs text-slate-500">
-                <span className="rounded-full border border-slate-200 px-3 py-1">{source.key}</span>
+              <div className="mt-4 flex flex-wrap gap-2 text-xs text-white/56">
+                <span className="rounded-full border border-white/10 bg-white/[0.035] px-3 py-1">{source.key}</span>
               </div>
 
               {isEditing ? (
@@ -331,22 +331,22 @@ export function LeadSourceManager({
 
       <div className="space-y-4">
         <div>
-          <p className="text-base font-semibold text-slate-950">Archived sources</p>
-          <p className="mt-1 text-sm text-slate-500">Restore archived sources when you want them back in active use.</p>
+          <p className="text-base font-semibold text-white">Archived sources</p>
+          <p className="mt-1 text-sm text-white/54">Restore archived sources when you want them back in active use.</p>
         </div>
         {archivedSources.length > 0 ? (
           archivedSources.map((source) => (
-            <div key={source.id} className="rounded-[24px] border border-slate-200 bg-slate-50/80 p-4">
+            <div key={source.id} className="admin-surface-soft rounded-[24px] p-4 opacity-90">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
-                  <p className="text-base font-semibold text-slate-950">{source.name}</p>
-                  <p className="mt-1 text-sm text-slate-500">{source.key}</p>
+                  <p className="text-base font-semibold text-white">{source.name}</p>
+                  <p className="mt-1 text-sm text-white/54">{source.key}</p>
                 </div>
                 <button
                   type="button"
                   disabled={savingById[source.id]}
                   onClick={() => void toggleArchive(source.id, "restore")}
-                  className="inline-flex h-10 items-center justify-center rounded-2xl border border-emerald-200 bg-emerald-50 px-4 text-sm font-medium text-emerald-700 transition hover:bg-emerald-100"
+                  className="inline-flex h-10 items-center justify-center rounded-2xl border border-emerald-300/24 bg-emerald-400/10 px-4 text-sm font-medium text-emerald-100 transition hover:bg-emerald-400/16"
                 >
                   <RotateCcw className="mr-2 h-4 w-4" />
                   Restore Source
@@ -355,7 +355,7 @@ export function LeadSourceManager({
             </div>
           ))
         ) : (
-          <div className="rounded-[24px] border border-slate-200 bg-slate-50/80 px-4 py-4 text-sm text-slate-500">
+          <div className="rounded-[24px] border border-dashed border-white/12 bg-white/[0.035] px-4 py-4 text-sm text-white/52">
             No archived sources yet.
           </div>
         )}

@@ -2,6 +2,7 @@
 
 import { startTransition, useState } from "react";
 import { useRouter } from "next/navigation";
+import { CheckCircle2, Sparkles } from "lucide-react";
 import type { ResolvedWorkspaceSettings } from "@/lib/crm/workspace-settings";
 import {
   getVerticalPreset,
@@ -48,9 +49,21 @@ export function IndustryPresetManager({
   }
 
   return (
-    <section className="space-y-5 rounded-[28px] border border-slate-200 bg-white p-5">
+    <section className="admin-surface space-y-5 rounded-[32px] p-5">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[color:var(--ld-color-accent)]">
+            Industry preset
+          </p>
+          <h2 className="mt-2 text-2xl font-semibold tracking-[-0.04em] text-white">Start with the right sales language</h2>
+        </div>
+        <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.055] px-3 py-1.5 text-xs font-semibold text-white/58">
+          <Sparkles className="h-3.5 w-3.5 text-cyan-100" />
+          Safe defaults
+        </span>
+      </div>
       <label className="space-y-2">
-        <span className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Industry preset</span>
+        <span className="text-xs font-semibold uppercase tracking-[0.16em] text-white/50">Choose preset</span>
         <select
           value={presetKey}
           onChange={(event) => setPresetKey(event.target.value as IndustryPresetKey)}
@@ -64,35 +77,35 @@ export function IndustryPresetManager({
         </select>
       </label>
 
-      <div className="admin-surface-muted rounded-[24px] p-4">
-        <p className="text-sm font-semibold text-slate-950">{preset.label}</p>
-        <p className="mt-2 text-sm text-slate-600">{preset.description}</p>
+      <div className="admin-surface-soft rounded-[24px] p-4">
+        <p className="text-sm font-semibold text-white">{preset.label}</p>
+        <p className="mt-2 text-sm leading-6 text-white/60">{preset.description}</p>
         <div className="mt-4 grid gap-4 lg:grid-cols-3">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">Stages</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-white/48">Stages</p>
             <div className="mt-2 flex flex-wrap gap-2">
               {preset.stageNames.map((item) => (
-                <span key={item} className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-medium text-slate-700">
+                <span key={item} className="rounded-full border border-white/10 bg-white/[0.045] px-3 py-1 text-xs font-medium text-white/70">
                   {item}
                 </span>
               ))}
             </div>
           </div>
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">Sources</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-white/48">Sources</p>
             <div className="mt-2 flex flex-wrap gap-2">
               {preset.sourceNames.map((item) => (
-                <span key={item} className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-medium text-slate-700">
+                <span key={item} className="rounded-full border border-white/10 bg-white/[0.045] px-3 py-1 text-xs font-medium text-white/70">
                   {item}
                 </span>
               ))}
             </div>
           </div>
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">Recommended fields</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-white/48">Recommended fields</p>
             <div className="mt-2 flex flex-wrap gap-2">
               {preset.recommendedCustomFields.map((field) => (
-                <span key={field.key} className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-medium text-slate-700">
+                <span key={field.key} className="rounded-full border border-white/10 bg-white/[0.045] px-3 py-1 text-xs font-medium text-white/70">
                   {field.label}
                 </span>
               ))}
@@ -101,18 +114,21 @@ export function IndustryPresetManager({
         </div>
       </div>
 
-      <label className="inline-flex items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50/70 px-4 py-3 text-sm text-slate-700">
+      <label className="inline-flex items-center justify-between gap-3 rounded-2xl border border-white/10 bg-white/[0.045] px-4 py-3 text-sm font-semibold text-white/70">
+        <span className="inline-flex items-center gap-2">
+          <CheckCircle2 className="h-4 w-4 text-emerald-200" />
+          Apply missing stages, sources, and recommended fields
+        </span>
         <input
           type="checkbox"
           checked={applyMissingDefaults}
           onChange={(event) => setApplyMissingDefaults(event.target.checked)}
-          className="h-4 w-4 rounded border-slate-300"
+          className="admin-toggle"
         />
-        Apply missing stages, sources, and recommended fields
       </label>
 
-      <div className="flex flex-col gap-3 border-t border-slate-200 pt-4 sm:flex-row sm:items-center sm:justify-between">
-        <p className="text-sm text-slate-500">Existing settings stay in place unless you choose to apply missing defaults.</p>
+      <div className="flex flex-col gap-3 border-t border-white/10 pt-4 sm:flex-row sm:items-center sm:justify-between">
+        <p className="text-sm text-white/54">Existing settings stay in place unless you choose to apply missing defaults.</p>
         <button
           type="button"
           onClick={() => void saveSettings()}
@@ -122,7 +138,7 @@ export function IndustryPresetManager({
           {isSaving ? "Applying..." : "Apply preset"}
         </button>
       </div>
-      {message ? <p className="text-sm text-slate-600">{message}</p> : null}
+      {message ? <p className="text-sm text-white/62">{message}</p> : null}
     </section>
   );
 }

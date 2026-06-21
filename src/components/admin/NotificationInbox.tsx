@@ -66,15 +66,15 @@ export function NotificationInbox({
   return (
     <div className="space-y-4">
       <div className="grid gap-3 md:grid-cols-2">
-        <div className="rounded-[22px] border border-slate-200 bg-white px-4 py-4">
-          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Unread</p>
-          <p className="mt-2 text-2xl font-semibold tracking-[-0.04em] text-slate-950">
+        <div className="admin-surface-soft rounded-[22px] px-4 py-4">
+          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-white/46">Unread</p>
+          <p className="mt-2 text-2xl font-semibold tracking-[-0.04em] text-white">
             {activeUnreadCount}
           </p>
         </div>
-        <div className="rounded-[22px] border border-slate-200 bg-white px-4 py-4">
-          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Loaded</p>
-          <p className="mt-2 text-2xl font-semibold tracking-[-0.04em] text-slate-950">
+        <div className="admin-surface-soft rounded-[22px] px-4 py-4">
+          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-white/46">Loaded</p>
+          <p className="mt-2 text-2xl font-semibold tracking-[-0.04em] text-white">
             {Math.max(unreadCount, notifications.length)}
           </p>
         </div>
@@ -84,24 +84,24 @@ export function NotificationInbox({
         {notifications.map((notification) => (
           <article
             key={notification.id}
-            className="rounded-[24px] border border-slate-200 bg-[linear-gradient(180deg,rgba(255,255,255,0.98)_0%,rgba(248,250,255,0.94)_100%)] p-4"
+            className="admin-surface-soft rounded-[24px] p-4"
           >
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div className="space-y-1">
                 <div className="flex flex-wrap items-center gap-2">
-                  <p className="text-base font-semibold text-slate-950">{notification.title}</p>
+                  <p className="text-base font-semibold text-white">{notification.title}</p>
                   {notification.readAt ? (
-                    <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-semibold text-slate-600">
+                    <span className="rounded-full border border-white/10 bg-white/[0.045] px-3 py-1 text-xs font-semibold text-white/58">
                       Read
                     </span>
                   ) : (
-                    <span className="rounded-full border border-sky-200 bg-sky-50 px-3 py-1 text-xs font-semibold text-sky-700">
+                    <span className="rounded-full border border-cyan-300/24 bg-cyan-400/10 px-3 py-1 text-xs font-semibold text-cyan-100">
                       Unread
                     </span>
                   )}
                 </div>
-                <p className="text-sm leading-6 text-slate-600">{notification.message}</p>
-                <p className="text-xs uppercase tracking-[0.14em] text-slate-400">
+                <p className="text-sm leading-6 text-white/62">{notification.message}</p>
+                <p className="text-xs uppercase tracking-[0.14em] text-white/38">
                   {formatCrmDateTime(notification.createdAt)}
                 </p>
               </div>

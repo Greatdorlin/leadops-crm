@@ -2,7 +2,7 @@
 
 import { startTransition, useState } from "react";
 import { useRouter } from "next/navigation";
-import { MoveDown, MoveUp, RotateCcw } from "lucide-react";
+import { Eye, EyeOff, MoveDown, MoveUp, RotateCcw } from "lucide-react";
 import type { ResolvedWorkspaceSettings } from "@/lib/crm/workspace-settings";
 import {
   DEFAULT_DASHBOARD_CONFIG,
@@ -82,23 +82,37 @@ export function DashboardSettingsManager({
   }
 
   return (
-    <section className="space-y-5 rounded-[28px] border border-slate-200 bg-white p-5">
+    <section className="admin-surface space-y-5 rounded-[32px] p-5">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[color:var(--ld-color-accent)]">
+            Dashboard layout
+          </p>
+          <h2 className="mt-2 text-2xl font-semibold tracking-[-0.04em] text-white">Choose what leaders see first</h2>
+        </div>
+        <span className="rounded-full border border-white/10 bg-white/[0.055] px-3 py-1.5 text-xs font-semibold text-white/58">
+          {widgetOrder.length - hiddenWidgets.length} visible
+        </span>
+      </div>
       <div className="space-y-3">
         {widgetOrder.map((key, index) => (
-          <div key={key} className="admin-surface-muted rounded-[24px] p-4">
+          <div key={key} className="admin-surface-soft rounded-[24px] p-4">
             <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_220px_auto] lg:items-center">
               <div>
-                <p className="text-base font-semibold text-slate-950">{widgetLabels[key]}</p>
-                <p className="mt-1 text-sm text-slate-500">Widget order #{index + 1}</p>
+                <p className="text-base font-semibold text-white">{widgetLabels[key]}</p>
+                <p className="mt-1 text-sm text-white/50">Widget order #{index + 1}</p>
               </div>
-              <label className="inline-flex items-center gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700">
+              <label className="inline-flex items-center justify-between gap-3 rounded-2xl border border-white/10 bg-white/[0.045] px-4 py-3 text-sm font-semibold text-white/70">
+                <span className="inline-flex items-center gap-2">
+                  {hiddenWidgets.includes(key) ? <EyeOff className="h-4 w-4 text-white/42" /> : <Eye className="h-4 w-4 text-cyan-100" />}
+                  Show widget
+                </span>
                 <input
                   type="checkbox"
                   checked={!hiddenWidgets.includes(key)}
                   onChange={() => toggleHidden(key)}
-                  className="h-4 w-4 rounded border-slate-300"
+                  className="admin-toggle"
                 />
-                Show widget
               </label>
               <div className="flex items-center justify-end gap-2">
                 <button
@@ -124,7 +138,7 @@ export function DashboardSettingsManager({
       </div>
 
       <label className="space-y-2">
-        <span className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Default period</span>
+        <span className="text-xs font-semibold uppercase tracking-[0.16em] text-white/50">Default period</span>
         <select
           value={defaultPeriod}
           onChange={(event) => setDefaultPeriod(event.target.value as typeof defaultPeriod)}
@@ -136,7 +150,7 @@ export function DashboardSettingsManager({
         </select>
       </label>
 
-      <div className="flex flex-col gap-3 border-t border-slate-200 pt-4 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex flex-col gap-3 border-t border-white/10 pt-4 sm:flex-row sm:items-center sm:justify-between">
         <button
           type="button"
           onClick={() => {
@@ -158,7 +172,7 @@ export function DashboardSettingsManager({
           {isSaving ? "Saving..." : "Save dashboard"}
         </button>
       </div>
-      {message ? <p className="text-sm text-slate-600">{message}</p> : null}
+      {message ? <p className="text-sm text-white/62">{message}</p> : null}
     </section>
   );
 }

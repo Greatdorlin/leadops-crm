@@ -6,16 +6,16 @@ import { EmptyState } from "./EmptyState";
 function statusTone(status: IntakeEventAdminRow["status"]) {
   switch (status) {
     case "lead_created":
-      return "border-emerald-200 bg-emerald-50 text-emerald-700";
+      return "border-emerald-300/24 bg-emerald-400/10 text-emerald-100";
     case "failed":
-      return "border-rose-200 bg-rose-50 text-rose-700";
+      return "border-rose-300/24 bg-rose-400/10 text-rose-100";
     case "mapped":
-      return "border-amber-200 bg-amber-50 text-amber-700";
+      return "border-amber-300/24 bg-amber-400/10 text-amber-100";
     case "ignored":
-      return "border-slate-200 bg-slate-50 text-slate-600";
+      return "border-white/10 bg-white/[0.045] text-white/60";
     case "received":
     default:
-      return "border-sky-200 bg-sky-50 text-sky-700";
+      return "border-cyan-300/24 bg-cyan-400/10 text-cyan-100";
   }
 }
 
@@ -40,7 +40,7 @@ export function IntakeEventTable({
       {events.map((event) => (
         <article
           key={event.id}
-          className="rounded-[24px] border border-slate-200 bg-[linear-gradient(180deg,rgba(255,255,255,0.98)_0%,rgba(248,250,255,0.94)_100%)] p-4"
+          className="admin-surface-soft rounded-[24px] p-4"
         >
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div className="space-y-2">
@@ -50,11 +50,11 @@ export function IntakeEventTable({
                 >
                   {event.status.replace(/_/g, " ")}
                 </span>
-                <p className="text-sm text-slate-500">{event.sourceName || "Unknown source"}</p>
+                <p className="text-sm text-white/54">{event.sourceName || "Unknown source"}</p>
               </div>
-              <p className="text-sm text-slate-600">{formatCrmDateTime(event.createdAt)}</p>
+              <p className="text-sm text-white/58">{formatCrmDateTime(event.createdAt)}</p>
               {event.errorMessage ? (
-                <p className="text-sm text-rose-700">{event.errorMessage}</p>
+                <p className="text-sm text-rose-100">{event.errorMessage}</p>
               ) : null}
             </div>
             <div className="flex flex-wrap gap-2">
@@ -74,12 +74,12 @@ export function IntakeEventTable({
               {event.normalizedSummary.map((item) => (
                 <div
                   key={`${event.id}-${item.label}`}
-                  className="rounded-2xl border border-slate-200 bg-white px-4 py-3"
+                  className="rounded-2xl border border-white/10 bg-white/[0.045] px-4 py-3"
                 >
-                  <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">
+                  <p className="text-xs font-semibold uppercase tracking-[0.14em] text-white/46">
                     {item.label}
                   </p>
-                  <p className="mt-1.5 text-sm text-slate-800 [overflow-wrap:anywhere]">
+                  <p className="mt-1.5 text-sm text-white/72 [overflow-wrap:anywhere]">
                     {item.value}
                   </p>
                 </div>
@@ -88,8 +88,8 @@ export function IntakeEventTable({
           ) : null}
 
           {showRawPayload && event.rawPayload ? (
-            <details className="mt-4 rounded-2xl border border-slate-200 bg-white px-4 py-3">
-              <summary className="cursor-pointer text-sm font-medium text-slate-700">
+            <details className="mt-4 rounded-2xl border border-white/10 bg-white/[0.045] px-4 py-3">
+              <summary className="cursor-pointer text-sm font-medium text-white/70">
                 Advanced payload
               </summary>
               <pre className="mt-3 overflow-x-auto rounded-2xl bg-slate-950 p-4 text-xs leading-6 text-slate-100">

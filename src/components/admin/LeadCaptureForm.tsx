@@ -11,6 +11,7 @@ import { crmLabelize } from "@/lib/crm/formatters";
 import type { AdminAccessLevel } from "@/lib/admin-permissions";
 import {
   type CrmStatus,
+  type LeadCustomerType,
   type LeadPriority,
   type LeadSource,
 } from "@/lib/crm/types";
@@ -49,6 +50,7 @@ export function LeadCaptureForm({
   const [address, setAddress] = useState("");
   const [postalCode, setPostalCode] = useState("");
   const [companyName, setCompanyName] = useState("");
+  const [leadCustomerType, setLeadCustomerType] = useState<LeadCustomerType>("direct");
   const [source, setSource] = useState<LeadSource>("manual_entry");
   const [stage, setStage] = useState<CrmStatus>("new");
   const [priority, setPriority] = useState<LeadPriority>("medium");
@@ -95,6 +97,7 @@ export function LeadCaptureForm({
           address: address.trim() || null,
           postalCode: postalCode.trim() || null,
           companyName: companyName.trim() || null,
+          leadCustomerType,
           stage,
           priority,
           assignedTo: accessLevel === "sales_rep" ? defaultAssignedTo || null : assignedTo || null,
@@ -128,6 +131,7 @@ export function LeadCaptureForm({
       setAddress("");
       setPostalCode("");
       setCompanyName("");
+      setLeadCustomerType("direct");
       setSource("manual_entry");
       setStage("new");
       setPriority("medium");
@@ -175,6 +179,34 @@ export function LeadCaptureForm({
       </div>
 
       <div className="grid gap-3 sm:grid-cols-2">
+        <section className="space-y-3 sm:col-span-2">
+          <p className={labelClass}>Lead type</p>
+          <div className="grid gap-2 sm:grid-cols-2">
+            {[
+              { value: "direct", label: "Direct customer", hint: "Individual buyer or household." },
+              { value: "business", label: "Business lead", hint: "Company, partner, or B2B account." },
+            ].map((option) => {
+              const selected = leadCustomerType === option.value;
+              return (
+                <button
+                  key={option.value}
+                  type="button"
+                  onClick={() => setLeadCustomerType(option.value as LeadCustomerType)}
+                  className={[
+                    "rounded-[22px] border px-4 py-3 text-left transition",
+                    selected
+                      ? "border-cyan-200/50 bg-[linear-gradient(135deg,rgba(59,130,246,0.34),rgba(139,92,246,0.28))] text-white shadow-[0_18px_34px_rgba(59,130,246,0.18)]"
+                      : "border-white/10 bg-white/[0.045] text-white/72 hover:border-white/20 hover:bg-white/[0.07]",
+                  ].join(" ")}
+                  aria-pressed={selected}
+                >
+                  <span className="block text-sm font-semibold">{option.label}</span>
+                  <span className="mt-1 block text-xs leading-5 text-white/54">{option.hint}</span>
+                </button>
+              );
+            })}
+          </div>
+        </section>
         <label className="space-y-2">
           <span className={labelClass}>Email</span>
           <input

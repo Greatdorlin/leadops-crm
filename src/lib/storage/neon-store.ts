@@ -205,6 +205,7 @@ function mapLeadRecord(row: typeof leads.$inferSelect): LeadRecord {
     sourceDetail: row.sourceDetail,
     stageId: row.stageId,
     priority: row.priority,
+    leadCustomerType: row.leadCustomerType,
     assignedTo: getPrimaryLeadAssignee(row.assignedTo),
     assignedToList,
     assignedUserId: row.assignedUserId,
@@ -456,6 +457,25 @@ function buildLeadListConditions(filters: LeadListFilters) {
     conditions.push(eq(leads.priority, filters.priority));
   }
 
+  if (filters.leadCustomerType && filters.leadCustomerType !== "all") {
+    conditions.push(eq(leads.leadCustomerType, filters.leadCustomerType));
+  }
+
+  if (filters.createdFrom) {
+    conditions.push(gte(leads.createdAt, new Date(filters.createdFrom)));
+  }
+
+  if (filters.createdTo) {
+    const end = new Date(filters.createdTo);
+    if (
+      typeof filters.createdTo === "string" &&
+      /^\d{4}-\d{2}-\d{2}$/.test(filters.createdTo)
+    ) {
+      end.setHours(23, 59, 59, 999);
+    }
+    conditions.push(lte(leads.createdAt, end));
+  }
+
   if (filters.assignedTo?.trim()) {
     const condition = buildLeadAssigneeFilterCondition(filters.assignedTo.trim());
     if (condition) {
@@ -548,6 +568,7 @@ export class NeonLeadStore implements LeadStorage {
         lastName: duplicate.lastName || normalizeText(input.lastName) || "",
         email: duplicate.email || normalizeText(input.email) || "",
         whatsappNumber: duplicate.whatsappNumber || normalizeText(input.whatsappNumber) || "",
+        leadCustomerType: input.leadCustomerType ?? duplicate.leadCustomerType ?? "direct",
         state: pickPreferredValue(duplicate.state, nextRegion),
         country: pickPreferredValue(duplicate.country ?? null, normalizeText(input.country)),
         region: pickPreferredValue(duplicate.region ?? null, nextRegion),
@@ -681,6 +702,7 @@ export class NeonLeadStore implements LeadStorage {
         stageId: input.stageId ?? null,
         sourceDetail: normalizeText(input.sourceDetail),
         priority: input.priority ?? "medium",
+        leadCustomerType: input.leadCustomerType ?? "direct",
         assignedTo: serializedLeadAssigneeValue({
           primary: input.assignedTo,
           assignees: input.assignedToList ?? null,
@@ -1106,6 +1128,10 @@ export class NeonLeadStore implements LeadStorage {
       input.postalCode === undefined ? existing.postalCode : normalizeText(input.postalCode) ?? null;
     const nextCompanyName =
       input.companyName === undefined ? existing.companyName : normalizeText(input.companyName) ?? null;
+    const nextLeadCustomerType =
+      input.leadCustomerType === undefined
+        ? existing.leadCustomerType
+        : input.leadCustomerType ?? "direct";
     const nextCampaignId =
       input.campaignId === undefined ? existing.campaignId : normalizeText(input.campaignId) ?? null;
     const nextCampaignLabel =
@@ -1163,6 +1189,7 @@ export class NeonLeadStore implements LeadStorage {
       existing.address !== nextAddress ? "address" : null,
       existing.postalCode !== nextPostalCode ? "postalCode" : null,
       existing.companyName !== nextCompanyName ? "companyName" : null,
+      existing.leadCustomerType !== nextLeadCustomerType ? "leadCustomerType" : null,
       existing.campaignId !== nextCampaignId ? "campaignId" : null,
       existing.campaignLabel !== nextCampaignLabel ? "campaignLabel" : null,
       existing.assignedUserId !== nextAssignedUserId ? "assignedUserId" : null,
@@ -1198,6 +1225,7 @@ export class NeonLeadStore implements LeadStorage {
         address: nextAddress,
         postalCode: nextPostalCode,
         companyName: nextCompanyName,
+        leadCustomerType: nextLeadCustomerType,
         campaignId: nextCampaignId,
         campaignLabel: nextCampaignLabel,
         assignedUserId: nextAssignedUserId,

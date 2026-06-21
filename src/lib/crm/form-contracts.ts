@@ -1,6 +1,6 @@
 import { z } from "zod";
-import { CRM_STATUSES, LEAD_PRIORITIES, LEAD_SOURCES } from "@/lib/crm/constants";
-import type { CrmStatus, LeadPriority, LeadSource } from "@/lib/crm/types";
+import { CRM_STATUSES, LEAD_CUSTOMER_TYPES, LEAD_PRIORITIES, LEAD_SOURCES } from "@/lib/crm/constants";
+import type { CrmStatus, LeadCustomerType, LeadPriority, LeadSource } from "@/lib/crm/types";
 
 function normalizeOptionalString(value: unknown) {
   if (typeof value !== "string") {
@@ -43,7 +43,7 @@ function pickAliasEnum<T extends readonly string[]>(
 }
 
 const baseLeadAdminInputShape = {
-  firstName: z.string().trim().min(1, "First name is required."),
+  firstName: z.string().trim().min(1, "First name is required.").optional(),
   lastName: z.string().trim().nullable().optional(),
   email: z.string().trim().email().nullable().optional().or(z.literal("").transform(() => null)),
   whatsappNumber: z.string().trim().nullable().optional(),
@@ -54,6 +54,7 @@ const baseLeadAdminInputShape = {
   address: z.string().trim().nullable().optional(),
   postalCode: z.string().trim().nullable().optional(),
   companyName: z.string().trim().nullable().optional(),
+  leadCustomerType: z.enum(LEAD_CUSTOMER_TYPES).nullable().optional(),
   estimatedValue: z.coerce.number().nonnegative().nullable().optional(),
   closeProbability: z.coerce.number().min(0).max(100).nullable().optional(),
   expectedCloseDate: z.string().trim().nullable().optional(),
@@ -66,6 +67,8 @@ const baseLeadAdminInputShape = {
 export const adminLeadCaptureInputSchema = z
   .object({
     ...baseLeadAdminInputShape,
+    firstName: z.string().trim().min(1, "First name is required."),
+    leadCustomerType: z.enum(LEAD_CUSTOMER_TYPES).default("direct"),
     stage: z.enum(CRM_STATUSES).default("new"),
     priority: z.enum(LEAD_PRIORITIES).default("medium"),
     assignedTo: z.string().trim().email().nullable().optional().or(z.literal("").transform(() => null)),
@@ -123,6 +126,7 @@ export interface AdminLeadExportOptions {
   stage?: CrmStatus | "all";
   priority?: LeadPriority | "all";
   source?: LeadSource | "all";
+  leadCustomerType?: LeadCustomerType | "all";
   assignedTo?: string;
   search?: string;
 }
@@ -140,6 +144,9 @@ export function normalizeAdminLeadCapturePayload(payload: Record<string, unknown
     address: pickAliasString(payload, ["address"]),
     postalCode: pickAliasString(payload, ["postalCode", "postal_code"]),
     companyName: pickAliasString(payload, ["companyName", "company"]),
+    leadCustomerType:
+      pickAliasEnum(payload, ["leadCustomerType", "customerType", "leadType"], LEAD_CUSTOMER_TYPES) ??
+      "direct",
     estimatedValue:
       payload.estimatedValue === undefined || payload.estimatedValue === null || payload.estimatedValue === ""
         ? null
@@ -168,8 +175,14 @@ export function normalizeAdminLeadCapturePayload(payload: Record<string, unknown
 }
 
 export function normalizeAdminLeadProfilePayload(payload: Record<string, unknown>) {
+  const includesFirstName = Object.prototype.hasOwnProperty.call(payload, "firstName");
+  const includesLeadCustomerType =
+    Object.prototype.hasOwnProperty.call(payload, "leadCustomerType") ||
+    Object.prototype.hasOwnProperty.call(payload, "customerType") ||
+    Object.prototype.hasOwnProperty.call(payload, "leadType");
+
   return adminLeadProfileInputSchema.safeParse({
-    firstName: normalizeOptionalString(payload.firstName) ?? "",
+    firstName: includesFirstName ? normalizeOptionalString(payload.firstName) ?? "" : undefined,
     lastName: pickAliasString(payload, ["lastName"]),
     email: pickAliasString(payload, ["email"]),
     whatsappNumber: pickAliasString(payload, ["whatsappNumber"]),
@@ -180,6 +193,9 @@ export function normalizeAdminLeadProfilePayload(payload: Record<string, unknown
     address: pickAliasString(payload, ["address"]),
     postalCode: pickAliasString(payload, ["postalCode", "postal_code"]),
     companyName: pickAliasString(payload, ["companyName", "company"]),
+    leadCustomerType: includesLeadCustomerType
+      ? pickAliasEnum(payload, ["leadCustomerType", "customerType", "leadType"], LEAD_CUSTOMER_TYPES)
+      : undefined,
     estimatedValue:
       payload.estimatedValue === undefined || payload.estimatedValue === null || payload.estimatedValue === ""
         ? null

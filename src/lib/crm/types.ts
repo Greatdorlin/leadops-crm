@@ -68,6 +68,7 @@ export type CompletionStatus = (typeof COMPLETION_STATUSES)[number];
 export type CrmStatus = (typeof CRM_STATUSES)[number];
 export type LeadStatus = CrmStatus;
 export type LeadPriority = (typeof LEAD_PRIORITIES)[number];
+export type LeadCustomerType = "direct" | "business";
 export type LeadSource = (typeof LEAD_SOURCES)[number];
 export type CrmUserRole = (typeof CRM_USER_ROLES)[number];
 export type LeadCategory = (typeof PRIMARY_GOALS)[number];
@@ -315,6 +316,7 @@ export interface LeadRecord {
   priority: LeadPriority;
   assignedTo: string | null;
   assignedToList: string[];
+  leadCustomerType?: LeadCustomerType | null;
   firstName: string;
   lastName: string;
   email: string;

@@ -28,7 +28,7 @@ export function mapAdminCaptureInputToLegacyLeadPayload(input: AdminLeadCaptureI
 
 export function mapAdminProfileInputToLegacyLeadProfile(input: AdminLeadProfileInput): LeadProfileUpdateInput {
   return {
-    firstName: input.firstName.trim(),
+    firstName: input.firstName?.trim(),
     lastName: input.lastName ?? null,
     email: input.email ?? null,
     whatsappNumber: input.whatsappNumber ?? null,

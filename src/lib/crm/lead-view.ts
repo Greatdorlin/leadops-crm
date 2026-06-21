@@ -38,6 +38,8 @@ export interface AdminLeadListItem {
   assignedUserName: string;
   assignedTo: string | null;
   assignedToList: string[];
+  leadCustomerType: "direct" | "business";
+  leadCustomerTypeLabel: string;
   ownerDisplay: LeadOwnerDisplay;
   customFieldDisplayValues: LeadCustomFieldDisplayValue[];
   stateLabel: string;
@@ -105,6 +107,7 @@ export interface AdminLeadDetailView extends AdminLeadListItem {
     address: string | null;
     postalCode: string | null;
     companyName: string | null;
+    leadCustomerType: "direct" | "business";
   };
 }
 
@@ -305,6 +308,7 @@ function buildBudgetStatusLabel(customFields: LeadCustomFieldDisplayValue[]) {
 
 function buildKeyFacts(lead: LeadRecord, listItem: AdminLeadListItem) {
   const rows: Array<[string, unknown]> = [
+    ["Lead type", listItem.leadCustomerTypeLabel],
     ["Company", lead.companyName],
     ["Source", listItem.sourceLabel],
     ["Stage", listItem.stageLabel],
@@ -346,6 +350,7 @@ export function buildAdminLeadListItem(
   const assignedUserName = readModel.owner.isNormalized
     ? readModel.owner.label
     : buildAssignedUserName(lead);
+  const leadCustomerType = lead.leadCustomerType === "business" ? "business" : "direct";
 
   return {
     id: lead.id,
@@ -369,6 +374,8 @@ export function buildAdminLeadListItem(
     assignedUserName,
     assignedTo: lead.assignedTo,
     assignedToList: lead.assignedToList,
+    leadCustomerType,
+    leadCustomerTypeLabel: leadCustomerType === "business" ? "Business lead" : "Direct customer",
     ownerDisplay: {
       ...readModel.owner,
       label: assignedUserName,
@@ -465,6 +472,7 @@ export function buildAdminLeadDetailView(
       address: lead.address ?? null,
       postalCode: lead.postalCode ?? null,
       companyName: lead.companyName ?? null,
+      leadCustomerType: listItem.leadCustomerType,
     },
   };
 }

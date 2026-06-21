@@ -1,3 +1,4 @@
+import { LEAD_CUSTOMER_TYPES } from "@/lib/crm/constants";
 import {
   isCrmStatus,
   isLeadPriority,
@@ -21,15 +22,26 @@ export function parseLeadListFilters(input: QueryLike): LeadListFilters {
   const stage = readValue(input, "stage") ?? readValue(input, "crmStatus");
   const source = readValue(input, "source");
   const priority = readValue(input, "priority");
+  const leadCustomerType = readValue(input, "leadCustomerType");
   const assignedTo = readValue(input, "assignedTo");
   const search = readValue(input, "search")?.trim() ?? "";
+  const createdFrom = readValue(input, "createdFrom")?.trim();
+  const createdTo = readValue(input, "createdTo")?.trim();
 
   return {
     stageId: stage === "all" ? "all" : isCrmStatus(stage) ? stage : undefined,
     source: source === "all" ? "all" : isLeadSource(source) ? source : undefined,
     priority: priority === "all" ? "all" : isLeadPriority(priority) ? priority : undefined,
+    leadCustomerType:
+      leadCustomerType === "all"
+        ? "all"
+        : LEAD_CUSTOMER_TYPES.includes(leadCustomerType as (typeof LEAD_CUSTOMER_TYPES)[number])
+          ? (leadCustomerType as (typeof LEAD_CUSTOMER_TYPES)[number])
+          : undefined,
     assignedTo: assignedTo?.trim() ? assignedTo.trim() : undefined,
     search: search.length > 0 ? search : undefined,
+    createdFrom: createdFrom && !Number.isNaN(new Date(createdFrom).getTime()) ? createdFrom : undefined,
+    createdTo: createdTo && !Number.isNaN(new Date(createdTo).getTime()) ? createdTo : undefined,
   };
 }
 

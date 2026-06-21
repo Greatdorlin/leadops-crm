@@ -4,6 +4,7 @@ import type {
   IntegrationProvider,
   IntegrationRecord,
   LeadEventRecord,
+  LeadCustomerType,
   LeadNoteRecord,
   LeadPriority,
   LeadRecord,
@@ -20,9 +21,12 @@ export interface LeadListFilters {
   sourceId?: string | "all";
   source?: "all" | LeadSource;
   priority?: "all" | LeadPriority;
+  leadCustomerType?: "all" | LeadCustomerType;
   assignedTo?: string;
   assignedUserId?: string;
   search?: string;
+  createdFrom?: string | Date;
+  createdTo?: string | Date;
   recordState?: "active" | "trashed" | "all";
   limit?: number;
   offset?: number;
@@ -54,6 +58,7 @@ export interface ExternalLeadUpsertInput {
   address?: string | null;
   postalCode?: string | null;
   companyName?: string | null;
+  leadCustomerType?: LeadCustomerType | null;
   campaignId?: string | null;
   campaignLabel?: string | null;
   estimatedValue?: string | number | null;
@@ -144,6 +149,7 @@ export interface LeadProfileUpdateInput {
   address?: string | null;
   postalCode?: string | null;
   companyName?: string | null;
+  leadCustomerType?: LeadCustomerType | null;
   campaignId?: string | null;
   campaignLabel?: string | null;
   assignedUserId?: string | null;

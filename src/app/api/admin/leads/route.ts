@@ -129,6 +129,7 @@ export async function POST(request: Request) {
     address: parsed.data.address ?? null,
     postalCode: parsed.data.postalCode ?? null,
     companyName: parsed.data.companyName ?? null,
+    leadCustomerType: parsed.data.leadCustomerType,
     estimatedValue: parsed.data.estimatedValue ?? null,
     closeProbability: parsed.data.closeProbability ?? null,
     expectedCloseDate: parsed.data.expectedCloseDate ?? null,

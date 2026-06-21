@@ -2,7 +2,6 @@ import { PlugZap } from "lucide-react";
 import Link from "next/link";
 import { AdminCollapsibleSection } from "@/components/admin/AdminCollapsibleSection";
 import { AdminDashboardWidgetDeck } from "@/components/admin/AdminDashboardWidgetDeck";
-import { AdminLeadExportButton } from "@/components/admin/AdminLeadExportButton";
 import { SalesCommandOverview } from "@/components/admin/SalesCommandOverview";
 import { AdminWorkspaceComposer } from "@/components/admin/AdminWorkspaceComposer";
 import { AdminShell } from "@/components/admin/AdminShell";
@@ -41,7 +40,6 @@ import {
   formatLeadStateLabel,
   formatLeadSourceLabel,
 } from "@/lib/crm/formatters";
-import { canExportLeads } from "@/lib/crm/authz";
 import { listCustomFields } from "@/lib/crm/custom-fields-admin";
 import { listLeadIntakeEvents } from "@/lib/crm/intake-runtime";
 import { listLeadStages } from "@/lib/crm/lead-stages-admin";
@@ -614,9 +612,6 @@ export default async function AdminPage({
       <div className="ld-floating-control hidden h-10 items-center px-4 text-sm font-semibold text-white/72 md:inline-flex">
         {session.user?.email}
       </div>
-      {canExportLeads({ accessLevel, email: session.user?.email, role }) ? (
-        <AdminLeadExportButton />
-      ) : null}
       <AdminSignOutButton />
     </>
   );

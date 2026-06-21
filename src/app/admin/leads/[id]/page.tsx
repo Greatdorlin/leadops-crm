@@ -664,7 +664,8 @@ export default async function AdminLeadDetailPage({
                     initialCity={leadView.profile.city}
                     initialAddress={leadView.profile.address}
                     initialPostalCode={leadView.profile.postalCode}
-                    initialCompanyName={leadView.companyName}
+                    initialCompanyName={leadView.profile.companyName}
+                    initialLeadCustomerType={leadView.profile.leadCustomerType}
                     initialEstimatedValue={leadView.estimatedValue}
                     initialCloseProbability={leadView.closeProbability}
                     initialExpectedCloseDate={leadView.expectedCloseDate}

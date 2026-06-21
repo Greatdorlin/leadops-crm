@@ -170,20 +170,20 @@ export default async function AdminLeadTrashPage({
               <LeadLifecycleButton
                 leadId={lead.id}
                 action="restore"
-                className="inline-flex h-10 items-center justify-center rounded-full border border-emerald-200 bg-emerald-50 px-4 text-sm font-medium text-emerald-700 transition hover:bg-emerald-100"
+                className="inline-flex h-10 items-center justify-center rounded-full border border-emerald-200/24 bg-emerald-300/12 px-4 text-sm font-medium text-emerald-100 transition hover:border-emerald-100/40 hover:bg-emerald-300/18"
               />
               <LeadLifecycleButton
                 leadId={lead.id}
                 action="delete"
                 onSuccessHref="/admin/leads/trash"
-                className="inline-flex h-10 items-center justify-center rounded-full border border-rose-200 bg-rose-50 px-4 text-sm font-medium text-rose-700 transition hover:bg-rose-100"
+                className="inline-flex h-10 items-center justify-center rounded-full border border-rose-200/24 bg-rose-300/12 px-4 text-sm font-medium text-rose-100 transition hover:border-rose-100/40 hover:bg-rose-300/18"
               />
             </>
           )}
         />
 
-        <div className="flex flex-col gap-3 rounded-[26px] border border-slate-200 bg-[linear-gradient(180deg,rgba(255,255,255,0.96)_0%,rgba(248,250,255,0.92)_100%)] px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5">
-          <p className="text-sm leading-6 text-slate-500">
+        <div className="ld-glass-card ld-glass-soft flex flex-col gap-3 rounded-[26px] border border-white/10 bg-white/[0.045] px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5">
+          <p className="text-sm leading-6 text-white/60">
             Trash holds {safeNumber(totalLeads)} deleted {totalLeads === 1 ? "lead" : "leads"}.
           </p>
           <div className="flex flex-wrap gap-2">

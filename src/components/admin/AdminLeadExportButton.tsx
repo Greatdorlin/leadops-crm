@@ -79,7 +79,7 @@ export function AdminLeadExportButton() {
         aria-haspopup="menu"
       >
         <Download className="h-4 w-4" />
-        {activeFormat ? `Exporting ${activeFormat.toUpperCase()}...` : "Export sheets"}
+        {activeFormat ? `Exporting ${activeFormat.toUpperCase()}...` : "Export leads"}
         <ChevronDown className={cn("h-4 w-4 transition", isOpen && "rotate-180")} />
       </button>
 

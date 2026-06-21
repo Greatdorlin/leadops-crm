@@ -33,6 +33,7 @@ export const CORE_LEAD_PREVIEW_FIELDS = [
   "phone",
   "email",
   "company",
+  "customer_type",
   "source",
   "stage",
   "owner",

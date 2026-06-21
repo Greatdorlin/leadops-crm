@@ -17,6 +17,7 @@ const fieldLabels: Record<CoreLeadPreviewField, string> = {
   phone: "Phone",
   email: "Email",
   company: "Company",
+  customer_type: "Lead type",
   source: "Source",
   stage: "Stage",
   owner: "Owner",

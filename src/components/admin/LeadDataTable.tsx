@@ -48,6 +48,7 @@ const previewFieldLabels: Record<string, string> = {
   phone: "Phone",
   email: "Email",
   company: "Company",
+  customer_type: "Lead type",
   source: "Source",
   stage: "Stage",
   owner: "Owner",
@@ -83,6 +84,12 @@ function resolvePreviewFieldValue(
       return lead.email || "No email yet";
     case "company":
       return lead.companyName || "No company";
+    case "customer_type":
+      return (
+        <span className="inline-flex rounded-full border border-white/10 bg-white/[0.07] px-2.5 py-1 text-xs font-semibold text-white/78">
+          {lead.leadCustomerTypeLabel}
+        </span>
+      );
     case "source":
       return <SourceBadge source={lead.source} label={lead.sourceLabel} />;
     case "stage":

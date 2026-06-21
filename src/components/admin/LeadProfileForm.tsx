@@ -6,6 +6,7 @@ import {
   buildCustomFieldInputModel,
   type CustomFieldDefinitionWithOptions,
 } from "@/lib/crm/custom-field-values";
+import type { LeadCustomerType } from "@/lib/crm/types";
 import { CustomFieldValueInputs } from "./CustomFieldValueInputs";
 
 type ProfileInputProps = {
@@ -53,6 +54,7 @@ export function LeadProfileForm({
   initialAddress,
   initialPostalCode,
   initialCompanyName,
+  initialLeadCustomerType,
   initialEstimatedValue,
   initialCloseProbability,
   initialExpectedCloseDate,
@@ -74,6 +76,7 @@ export function LeadProfileForm({
   initialAddress?: string | null;
   initialPostalCode?: string | null;
   initialCompanyName?: string | null;
+  initialLeadCustomerType?: LeadCustomerType | null;
   initialEstimatedValue?: number | null;
   initialCloseProbability?: number | null;
   initialExpectedCloseDate?: string | null;
@@ -99,6 +102,9 @@ export function LeadProfileForm({
   const [address, setAddress] = useState(initialAddress ?? "");
   const [postalCode, setPostalCode] = useState(initialPostalCode ?? "");
   const [companyName, setCompanyName] = useState(initialCompanyName ?? "");
+  const [leadCustomerType, setLeadCustomerType] = useState<LeadCustomerType>(
+    initialLeadCustomerType ?? "direct",
+  );
   const [estimatedValue, setEstimatedValue] = useState(initialEstimatedValue == null ? "" : String(initialEstimatedValue));
   const [closeProbability, setCloseProbability] = useState(initialCloseProbability == null ? "" : String(initialCloseProbability));
   const [expectedCloseDate, setExpectedCloseDate] = useState(formatDateTimeLocalValue(initialExpectedCloseDate));
@@ -141,6 +147,7 @@ export function LeadProfileForm({
           address: address.trim() || null,
           postalCode: postalCode.trim() || null,
           companyName: companyName.trim() || null,
+          leadCustomerType,
           estimatedValue: estimatedValue ? Number(estimatedValue) : null,
           closeProbability: closeProbability ? Number(closeProbability) : null,
           expectedCloseDate: expectedCloseDate || null,
@@ -171,6 +178,34 @@ export function LeadProfileForm({
   return (
     <div className="ld-glass-card ld-glass-soft rounded-[24px] p-4">
       <div className="grid gap-3 sm:grid-cols-2">
+        <section className="space-y-3 sm:col-span-2">
+          <p className={labelClass}>Lead type</p>
+          <div className="grid gap-2 sm:grid-cols-2">
+            {[
+              { value: "direct", label: "Direct customer", hint: "Individual buyer or household." },
+              { value: "business", label: "Business lead", hint: "Company, partner, or B2B account." },
+            ].map((option) => {
+              const selected = leadCustomerType === option.value;
+              return (
+                <button
+                  key={option.value}
+                  type="button"
+                  onClick={() => setLeadCustomerType(option.value as LeadCustomerType)}
+                  className={[
+                    "rounded-[22px] border px-4 py-3 text-left transition",
+                    selected
+                      ? "border-cyan-200/50 bg-[linear-gradient(135deg,rgba(59,130,246,0.34),rgba(139,92,246,0.28))] text-white shadow-[0_18px_34px_rgba(59,130,246,0.18)]"
+                      : "border-white/10 bg-white/[0.045] text-white/72 hover:border-white/20 hover:bg-white/[0.07]",
+                  ].join(" ")}
+                  aria-pressed={selected}
+                >
+                  <span className="block text-sm font-semibold">{option.label}</span>
+                  <span className="mt-1 block text-xs leading-5 text-white/54">{option.hint}</span>
+                </button>
+              );
+            })}
+          </div>
+        </section>
         <ProfileInput label="First name" value={firstName} onChange={setFirstName} placeholder="Ada" />
         <ProfileInput label="Last name" value={lastName} onChange={setLastName} placeholder="Okafor" />
         <ProfileInput label="Email" type="email" value={email} onChange={setEmail} placeholder="lead@example.com" />

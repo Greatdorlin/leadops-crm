@@ -20,6 +20,8 @@ export const CRM_STATUSES = LEAD_STATUSES;
 export const LEAD_PRIORITIES = ["low", "medium", "high", "urgent"] as const;
 export const LEAD_PRIORITY_LEVELS = LEAD_PRIORITIES;
 
+export const LEAD_CUSTOMER_TYPES = ["direct", "business"] as const;
+
 export const LEAD_SOURCES = [
   "pathway_finder",
   "website_form",

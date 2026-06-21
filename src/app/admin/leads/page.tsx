@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ArrowLeft, ArrowRight, Rows3, Search, UserRoundPlus } from "lucide-react";
 import { AdminShell } from "@/components/admin/AdminShell";
+import { AdminLeadExportButton } from "@/components/admin/AdminLeadExportButton";
 import { AdminSignOutButton } from "@/components/admin/AdminSignOutButton";
 import { AdminSelect } from "@/components/admin/AdminSelect";
 import { ErrorState } from "@/components/admin/ErrorState";
@@ -14,6 +15,7 @@ import { parseLeadListFilters } from "@/lib/admin-leads";
 import { loadAdminLeadReadContext } from "@/lib/crm/admin-read-context";
 import { listCustomFields } from "@/lib/crm/custom-fields-admin";
 import { CRM_STATUSES, LEAD_PRIORITIES, LEAD_SOURCES } from "@/lib/crm/constants";
+import { canExportLeads } from "@/lib/crm/authz";
 import { getTableVisibleCustomFields } from "@/lib/crm/custom-field-values";
 import {
   DEFAULT_LEAD_PREVIEW_CONFIG,
@@ -44,6 +46,7 @@ function buildDevelopmentLeadRows() {
       email: "hello@aurelia.example",
       phone: "+1 (555) 014-2201",
       source: "website_form" as const,
+      leadCustomerType: "business" as const,
       sourceLabel: "Website",
       stage: "qualified",
       stageLabel: "Qualified",
@@ -61,6 +64,7 @@ function buildDevelopmentLeadRows() {
       email: "michael@vertexlabs.example",
       phone: "+1 (415) 555-0198",
       source: "referral" as const,
+      leadCustomerType: "business" as const,
       sourceLabel: "Referral",
       stage: "contacted",
       stageLabel: "Contacted",
@@ -78,6 +82,7 @@ function buildDevelopmentLeadRows() {
       email: "ops@northwind.example",
       phone: "+44 20 7946 0100",
       source: "google_ads" as const,
+      leadCustomerType: "direct" as const,
       sourceLabel: "Google Ads",
       stage: "consultation_booked",
       stageLabel: "Consultation booked",
@@ -130,6 +135,8 @@ function buildDevelopmentLeadRows() {
       assignedUserName: row.owner,
       assignedTo: row.owner.toLowerCase().replace(/\s+/g, ".") + "@local.leadsdesk.test",
       assignedToList: [],
+      leadCustomerType: row.leadCustomerType,
+      leadCustomerTypeLabel: row.leadCustomerType === "business" ? "Business lead" : "Direct customer",
       ownerDisplay: {
         id: `demo-owner-${row.owner.toLowerCase().replace(/\s+/g, "-")}`,
         label: row.owner,
@@ -180,7 +187,10 @@ function buildLeadsHref(
     stage?: string;
     source?: string;
     priority?: string;
+    leadCustomerType?: string;
     assignedTo?: string;
+    createdFrom?: string;
+    createdTo?: string;
   },
 ) {
   const query = new URLSearchParams();
@@ -205,8 +215,20 @@ function buildLeadsHref(
     query.set("priority", params.priority);
   }
 
+  if (params.leadCustomerType && params.leadCustomerType !== "all") {
+    query.set("leadCustomerType", params.leadCustomerType);
+  }
+
   if (params.assignedTo?.trim()) {
     query.set("assignedTo", params.assignedTo.trim());
+  }
+
+  if (params.createdFrom?.trim()) {
+    query.set("createdFrom", params.createdFrom.trim());
+  }
+
+  if (params.createdTo?.trim()) {
+    query.set("createdTo", params.createdTo.trim());
   }
 
   const serialized = query.toString();
@@ -312,15 +334,22 @@ export default async function AdminLeadsPage({
     stage: selectedStage,
     source: filters.source,
     priority: filters.priority,
+    leadCustomerType: filters.leadCustomerType,
     assignedTo: scopedFilters.assignedTo,
+    createdFrom: typeof filters.createdFrom === "string" ? filters.createdFrom : undefined,
+    createdTo: typeof filters.createdTo === "string" ? filters.createdTo : undefined,
   };
   const hasFilters = Boolean(
     filters.search ||
       (selectedStage && selectedStage !== "all") ||
       (filters.source && filters.source !== "all") ||
       (filters.priority && filters.priority !== "all") ||
+      (filters.leadCustomerType && filters.leadCustomerType !== "all") ||
+      filters.createdFrom ||
+      filters.createdTo ||
       scopedFilters.assignedTo,
   );
+  const canExportCurrentView = canExportLeads({ accessLevel, email: session.user?.email, role });
   const assigneeOptions =
     accessLevel === "sales_rep"
       ? session.user?.email
@@ -390,7 +419,7 @@ export default async function AdminLeadsPage({
       actualAccessLevel={actualAccessLevel}
       canSwitchAccessViews={canSwitchAccessViews}
       title={accessLevel === "sales_rep" ? "My Leads" : "Leads"}
-      description="A dedicated queue for large-volume lead review."
+      description="Search, segment, assign, import, and export leads."
       actions={
         <>
           <Link
@@ -399,6 +428,13 @@ export default async function AdminLeadsPage({
           >
             Add lead
           </Link>
+          <Link
+            href="/admin#action-center"
+            className="admin-button-secondary inline-flex h-10 items-center justify-center rounded-full px-4 text-sm font-medium"
+          >
+            Import leads
+          </Link>
+          {canExportCurrentView ? <AdminLeadExportButton /> : null}
           <AdminSignOutButton />
         </>
       }
@@ -411,11 +447,9 @@ export default async function AdminLeadsPage({
                 Lead queue
               </p>
               <h2 className="mt-2 font-[family:var(--font-heading)] text-[2.4rem] leading-none tracking-[-0.05em] text-white sm:text-[2.9rem]">
-                Review every lead in one dedicated queue.
+                Leads dashboard
               </h2>
-              <p className="mt-2 text-sm leading-6 text-white/66">
-                Search, filter, assign, and move through the queue in pages.
-              </p>
+              <p className="mt-2 text-sm leading-6 text-white/66">Filter, assign, import, and export the current segment.</p>
             </div>
             <div className="flex flex-wrap gap-3">
               {showTrashFolder ? (
@@ -465,7 +499,7 @@ export default async function AdminLeadsPage({
 
         <FilterBar>
           <form action="/admin/leads" className="grid gap-3">
-            <div className="grid gap-3 xl:grid-cols-[minmax(0,1.35fr)_minmax(180px,0.65fr)_minmax(180px,0.65fr)_minmax(180px,0.65fr)_minmax(220px,0.75fr)]">
+            <div className="grid gap-3 xl:grid-cols-[minmax(0,1.35fr)_minmax(170px,0.55fr)_minmax(170px,0.55fr)_minmax(170px,0.55fr)_minmax(180px,0.6fr)_minmax(210px,0.75fr)]">
               <SearchInput
                 defaultValue={filters.search}
                 placeholder="Search name, region, email, phone, source, or owner"
@@ -494,6 +528,11 @@ export default async function AdminLeadsPage({
                   </option>
                 ))}
               </AdminSelect>
+              <AdminSelect name="leadCustomerType" defaultValue={filters.leadCustomerType ?? "all"} className="h-12">
+                <option value="all">All lead types</option>
+                <option value="direct">Direct customers</option>
+                <option value="business">Business leads</option>
+              </AdminSelect>
               {accessLevel === "sales_rep" ? (
                 <input type="hidden" name="assignedTo" value={scopedFilters.assignedTo ?? ""} />
               ) : (
@@ -506,6 +545,27 @@ export default async function AdminLeadsPage({
                   ))}
                 </AdminSelect>
               )}
+            </div>
+
+            <div className="grid gap-3 sm:grid-cols-2 lg:max-w-xl">
+              <label className="space-y-2">
+                <span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/50">Created from</span>
+                <input
+                  type="date"
+                  name="createdFrom"
+                  defaultValue={typeof filters.createdFrom === "string" ? filters.createdFrom : ""}
+                  className="admin-input h-12 w-full rounded-[20px] px-4 text-sm outline-none"
+                />
+              </label>
+              <label className="space-y-2">
+                <span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/50">Created to</span>
+                <input
+                  type="date"
+                  name="createdTo"
+                  defaultValue={typeof filters.createdTo === "string" ? filters.createdTo : ""}
+                  className="admin-input h-12 w-full rounded-[20px] px-4 text-sm outline-none"
+                />
+              </label>
             </div>
 
             <div className="flex flex-wrap items-center gap-3">

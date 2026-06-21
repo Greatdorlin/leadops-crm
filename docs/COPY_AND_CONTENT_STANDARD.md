@@ -8,7 +8,7 @@ The product should feel clear, calm, direct, and business-ready.
 
 The product should not sound like:
 
-- inherited FlyConnect copy
+- inherited legacy product copy
 - an internal engineering tool
 - a travel or study product
 - a technical admin console
@@ -42,9 +42,9 @@ Prefer labels like:
 Avoid labels like:
 
 - Technical summary
-- Pathway summary
-- Assessment details
-- Advisor review
+- Legacy journey summary
+- Intake diagnostic details
+- Specialist review
 - Fast path
 - Best for
 
@@ -61,19 +61,17 @@ Do not expose these words to normal users unless they are inside a technical adm
 - schema
 - environment variable
 - adapter
-- report token
-- assessment
-- pathway-engine
+- legacy lead reference
+- intake diagnostic
+- legacy engine
 
 Do not use these inherited product words in commercial Leads Desk UI:
 
-- FlyConnect
-- Fly Connect
-- Pathway Finder
-- pathway
-- advisor
-- study guidance
-- internal study guidance
+- old product names
+- old route names
+- old diagnostic labels
+- inherited specialist labels
+- travel or education-specific guidance unless a client deliberately configures it
 
 ## Helper Text Limits
 
@@ -162,6 +160,6 @@ Before approving UI copy, verify:
 
 - labels are short
 - the next action is obvious
-- no inherited FlyConnect wording leaked in
+- no inherited legacy wording leaked in
 - no technical implementation wording leaked in
 - no long instructional paragraphs remain

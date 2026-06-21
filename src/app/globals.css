@@ -538,13 +538,25 @@ body {
 .admin-input[type="datetime-local"],
 .admin-input[type="time"] {
   color-scheme: dark;
+  background-image:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='0 0 24 24' fill='none' stroke='%23dbeafe' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M8 2v4'/%3E%3Cpath d='M16 2v4'/%3E%3Crect width='18' height='18' x='3' y='4' rx='2'/%3E%3Cpath d='M3 10h18'/%3E%3C/svg%3E"),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.078) 0%, rgba(255, 255, 255, 0.034) 100%);
+  background-position:
+    calc(100% - 16px) 50%,
+    0 0;
+  background-repeat: no-repeat;
+  background-size:
+    18px 18px,
+    100% 100%;
+  padding-right: 3rem;
 }
 
 .admin-input[type="date"]::-webkit-calendar-picker-indicator,
 .admin-input[type="datetime-local"]::-webkit-calendar-picker-indicator,
 .admin-input[type="time"]::-webkit-calendar-picker-indicator {
   cursor: pointer;
-  filter: invert(1) opacity(0.78);
+  width: 2rem;
+  opacity: 0;
 }
 
 .admin-input[type="file"]::file-selector-button {
@@ -555,6 +567,97 @@ body {
   color: white;
   padding: 0.55rem 0.9rem;
   font-weight: 700;
+}
+
+.admin-range {
+  height: 28px;
+  cursor: pointer;
+  appearance: none;
+  background: transparent;
+}
+
+.admin-range::-webkit-slider-runnable-track {
+  height: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 999px;
+  background:
+    linear-gradient(90deg, var(--ld-color-primary), var(--ld-color-accent)),
+    rgba(255, 255, 255, 0.1);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.14),
+    0 10px 22px rgba(5, 10, 25, 0.2);
+}
+
+.admin-range::-webkit-slider-thumb {
+  width: 22px;
+  height: 22px;
+  margin-top: -7px;
+  appearance: none;
+  border: 2px solid rgba(255, 255, 255, 0.9);
+  border-radius: 999px;
+  background:
+    radial-gradient(circle at 35% 30%, rgba(255, 255, 255, 0.95), transparent 28%),
+    linear-gradient(135deg, var(--ld-color-primary), var(--ld-color-accent));
+  box-shadow:
+    0 0 0 6px color-mix(in srgb, var(--ld-color-accent) 18%, transparent),
+    0 12px 26px rgba(0, 0, 0, 0.32);
+}
+
+.admin-range::-moz-range-track {
+  height: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 999px;
+  background:
+    linear-gradient(90deg, var(--ld-color-primary), var(--ld-color-accent)),
+    rgba(255, 255, 255, 0.1);
+}
+
+.admin-range::-moz-range-thumb {
+  width: 22px;
+  height: 22px;
+  border: 2px solid rgba(255, 255, 255, 0.9);
+  border-radius: 999px;
+  background: linear-gradient(135deg, var(--ld-color-primary), var(--ld-color-accent));
+  box-shadow: 0 0 0 6px color-mix(in srgb, var(--ld-color-accent) 18%, transparent);
+}
+
+.admin-toggle {
+  position: relative;
+  width: 44px;
+  height: 24px;
+  appearance: none;
+  cursor: pointer;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.12),
+    0 10px 20px rgba(0, 0, 0, 0.16);
+  transition:
+    background 160ms ease,
+    border-color 160ms ease;
+}
+
+.admin-toggle::before {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 16px;
+  height: 16px;
+  content: "";
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.86);
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.28);
+  transition: transform 180ms ease;
+}
+
+.admin-toggle:checked {
+  border-color: color-mix(in srgb, var(--ld-color-accent) 54%, white);
+  background: linear-gradient(135deg, var(--ld-color-primary), var(--ld-color-accent));
+}
+
+.admin-toggle:checked::before {
+  transform: translateX(20px);
 }
 
 .admin-select::-ms-expand {

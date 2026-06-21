@@ -194,8 +194,12 @@ const urlOrRootPathSchema = (label: string) =>
         return !value.startsWith("//");
       }
 
+      if (/^data:image\/(png|jpe?g|webp|gif|svg\+xml);base64,[a-z0-9+/=]+$/i.test(value)) {
+        return true;
+      }
+
       return z.string().url().safeParse(value).success;
-    }, `${label} must be a valid URL or root-relative path.`);
+    }, `${label} must be a valid image upload, URL, or root-relative path.`);
 
 function normalizeDisplayString(value: unknown, fallback: string) {
   return normalizeOptionalString(value) ?? fallback;

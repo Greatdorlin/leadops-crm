@@ -123,15 +123,15 @@ function TargetEditor({
   const scopeOptions = getScopeOptions(draft.scope, referenceData);
 
   return (
-    <div className="space-y-4 rounded-[24px] border border-slate-200 bg-[linear-gradient(180deg,rgba(255,255,255,0.98)_0%,rgba(248,250,255,0.94)_100%)] p-4">
+    <div className="admin-surface space-y-4 rounded-[24px] p-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <p className="text-base font-semibold text-slate-950">{title}</p>
+        <p className="text-base font-semibold text-white">{title}</p>
         {extraAction}
       </div>
 
       <div className="grid gap-3 sm:grid-cols-2">
         <label className="space-y-2 sm:col-span-2">
-          <span className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Target Name</span>
+          <span className="text-xs font-semibold uppercase tracking-[0.16em] text-white/52">Target name</span>
           <input
             type="text"
             value={draft.name}
@@ -141,7 +141,7 @@ function TargetEditor({
           />
         </label>
         <label className="space-y-2">
-          <span className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Scope</span>
+          <span className="text-xs font-semibold uppercase tracking-[0.16em] text-white/52">Scope</span>
           <AdminSelect
             value={draft.scope}
             onChange={(event) =>
@@ -161,7 +161,7 @@ function TargetEditor({
           </AdminSelect>
         </label>
         <label className="space-y-2">
-          <span className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Period</span>
+          <span className="text-xs font-semibold uppercase tracking-[0.16em] text-white/52">Period</span>
           <AdminSelect
             value={draft.period}
             onChange={(event) => onChange({ ...draft, period: event.target.value as TargetDraft["period"] })}
@@ -176,7 +176,7 @@ function TargetEditor({
         </label>
         {draft.scope !== "global" ? (
           <label className="space-y-2 sm:col-span-2">
-            <span className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Scope Target</span>
+            <span className="text-xs font-semibold uppercase tracking-[0.16em] text-white/52">Scope target</span>
             <AdminSelect
               value={draft.scopeId}
               onChange={(event) => onChange({ ...draft, scopeId: event.target.value })}
@@ -192,7 +192,7 @@ function TargetEditor({
           </label>
         ) : null}
         <label className="space-y-2">
-          <span className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Target Value</span>
+          <span className="text-xs font-semibold uppercase tracking-[0.16em] text-white/52">Target value</span>
           <input
             type="number"
             min="0"
@@ -204,7 +204,7 @@ function TargetEditor({
           />
         </label>
         <label className="space-y-2">
-          <span className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Currency</span>
+          <span className="text-xs font-semibold uppercase tracking-[0.16em] text-white/52">Currency</span>
           <input
             type="text"
             value={draft.currency}
@@ -214,7 +214,7 @@ function TargetEditor({
           />
         </label>
         <label className="space-y-2">
-          <span className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Start Date</span>
+          <span className="text-xs font-semibold uppercase tracking-[0.16em] text-white/52">Start date</span>
           <input
             type="date"
             value={draft.startDate}
@@ -223,7 +223,7 @@ function TargetEditor({
           />
         </label>
         <label className="space-y-2">
-          <span className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">End Date</span>
+          <span className="text-xs font-semibold uppercase tracking-[0.16em] text-white/52">End date</span>
           <input
             type="date"
             value={draft.endDate}
@@ -231,18 +231,18 @@ function TargetEditor({
             className="admin-input h-11 w-full rounded-2xl px-4 text-sm outline-none"
           />
         </label>
-        <label className="inline-flex items-center gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 sm:col-span-2">
+        <label className="inline-flex items-center justify-between gap-3 rounded-2xl border border-white/10 bg-white/[0.045] px-4 py-3 text-sm font-semibold text-white/72 sm:col-span-2">
+          <span>Active target</span>
           <input
             type="checkbox"
             checked={draft.isActive}
             onChange={(event) => onChange({ ...draft, isActive: event.target.checked })}
-            className="h-4 w-4 rounded border-slate-300"
+            className="admin-toggle"
           />
-          Active
         </label>
       </div>
 
-      <div className="flex flex-col gap-3 border-t border-slate-200/80 pt-4 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex flex-col gap-3 border-t border-white/10 pt-4 sm:flex-row sm:items-center sm:justify-between">
         <button
           type="button"
           disabled={isSaving}
@@ -251,7 +251,7 @@ function TargetEditor({
         >
           {isSaving ? "Saving..." : saveLabel}
         </button>
-        {message ? <p className="text-sm text-slate-600">{message}</p> : null}
+        {message ? <p className="text-sm font-medium text-white/64">{message}</p> : null}
       </div>
     </div>
   );
@@ -394,21 +394,21 @@ export function SalesTargetManager({
           const isEditing = editingId === target.id;
           const draft = drafts[target.id] ?? buildTargetDraft(target);
           return (
-            <div key={target.id} className="rounded-[24px] border border-slate-200 bg-white p-4">
+            <div key={target.id} className="admin-surface-soft rounded-[24px] p-5">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
-                  <p className="text-base font-semibold text-slate-950">{target.name}</p>
-                  <p className="mt-1 text-sm text-slate-500">
+                  <p className="text-base font-semibold text-white">{target.name}</p>
+                  <p className="mt-1 text-sm text-white/54">
                     {crmLabelize(target.scope)} • {crmLabelize(target.period)} • {target.currency} {target.targetValue.toLocaleString()}
                   </p>
                 </div>
                 <div className="flex flex-wrap gap-2">
                   {target.isActive ? (
-                    <span className="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">
+                    <span className="rounded-full border border-emerald-300/24 bg-emerald-300/12 px-3 py-1 text-xs font-semibold text-emerald-100">
                       Active
                     </span>
                   ) : (
-                    <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-semibold text-slate-600">
+                    <span className="rounded-full border border-white/12 bg-white/[0.06] px-3 py-1 text-xs font-semibold text-white/60">
                       Paused
                     </span>
                   )}
@@ -426,15 +426,15 @@ export function SalesTargetManager({
                     type="button"
                     disabled={savingById[target.id]}
                     onClick={() => void toggleArchive(target.id, "archive")}
-                    className="inline-flex h-10 items-center justify-center rounded-2xl border border-rose-200 bg-rose-50 px-4 text-sm font-medium text-rose-700 transition hover:bg-rose-100"
+                    className="inline-flex h-10 items-center justify-center rounded-2xl border border-rose-300/20 bg-rose-400/10 px-4 text-sm font-semibold text-rose-100 transition hover:bg-rose-400/16 disabled:opacity-60"
                   >
-                    Archive Target
+                    Archive
                   </button>
                 </div>
               </div>
 
-              <div className="mt-4 flex flex-wrap gap-2 text-xs text-slate-500">
-                <span className="rounded-full border border-slate-200 px-3 py-1">
+              <div className="mt-4 flex flex-wrap gap-2 text-xs text-white/54">
+                <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1">
                   {target.startDate.slice(0, 10)} to {target.endDate.slice(0, 10)}
                 </span>
               </div>
@@ -460,16 +460,16 @@ export function SalesTargetManager({
 
       <div className="space-y-4">
         <div>
-          <p className="text-base font-semibold text-slate-950">Archived targets</p>
-          <p className="mt-1 text-sm text-slate-500">Restore archived targets when you want them tracking again.</p>
+          <p className="text-base font-semibold text-white">Archived targets</p>
+          <p className="mt-1 text-sm text-white/52">Restore archived targets when you want them tracking again.</p>
         </div>
         {archivedTargets.length > 0 ? (
           archivedTargets.map((target) => (
-            <div key={target.id} className="rounded-[24px] border border-slate-200 bg-slate-50/80 p-4">
+            <div key={target.id} className="admin-surface-soft rounded-[24px] p-5 opacity-85">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
-                  <p className="text-base font-semibold text-slate-950">{target.name}</p>
-                  <p className="mt-1 text-sm text-slate-500">
+                  <p className="text-base font-semibold text-white">{target.name}</p>
+                  <p className="mt-1 text-sm text-white/52">
                     {crmLabelize(target.scope)} • {target.currency} {target.targetValue.toLocaleString()}
                   </p>
                 </div>
@@ -477,16 +477,16 @@ export function SalesTargetManager({
                   type="button"
                   disabled={savingById[target.id]}
                   onClick={() => void toggleArchive(target.id, "restore")}
-                  className="inline-flex h-10 items-center justify-center rounded-2xl border border-emerald-200 bg-emerald-50 px-4 text-sm font-medium text-emerald-700 transition hover:bg-emerald-100"
+                  className="inline-flex h-10 items-center justify-center rounded-2xl border border-emerald-300/24 bg-emerald-300/12 px-4 text-sm font-semibold text-emerald-100 transition hover:bg-emerald-300/18 disabled:opacity-60"
                 >
                   <RotateCcw className="mr-2 h-4 w-4" />
-                  Restore Target
+                  Restore
                 </button>
               </div>
             </div>
           ))
         ) : (
-          <div className="rounded-[24px] border border-slate-200 bg-slate-50/80 px-4 py-4 text-sm text-slate-500">
+          <div className="rounded-[24px] border border-white/10 bg-white/[0.045] px-4 py-4 text-sm text-white/52">
             No archived targets yet.
           </div>
         )}

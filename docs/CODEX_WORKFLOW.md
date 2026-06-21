@@ -2,7 +2,7 @@
 
 ## Goal
 
-This workflow exists to keep Codex work disciplined while the repo is being migrated from inherited FlyConnect code to Leads Desk.
+This workflow exists to keep Codex work disciplined while the repo finishes migrating from inherited legacy product code to Leads Desk.
 
 ## Branch Strategy
 
@@ -37,8 +37,8 @@ Before editing:
 
 When touching product-facing work, search for:
 
-- `Fly Connect`
-- `Pathway Finder`
+- inherited old product names
+- inherited old route names
 - `LeadOps`
 - `FunnelDesk`
 - `pathway`

@@ -16,8 +16,8 @@ export async function POST(request: Request) {
   const expectedSecret = getTikTokWebhookSecret();
   const requestUrl = new URL(request.url);
   const providedSecret =
+    request.headers.get("x-leads-desk-webhook-secret") ||
     request.headers.get("x-tiktok-webhook-secret") ||
-    request.headers.get("x-flyconnect-webhook-secret") ||
     requestUrl.searchParams.get("secret") ||
     "";
 

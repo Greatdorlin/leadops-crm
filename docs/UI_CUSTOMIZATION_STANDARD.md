@@ -91,7 +91,7 @@ Avoid:
 - pathway
 - assessment
 - public report
-- advisor guidance
+- inherited specialist guidance
 - long helper paragraphs
 
 ## Dashboard Rules

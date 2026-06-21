@@ -110,6 +110,14 @@ test("appearance settings validation rejects malformed colors and keeps concise 
 test("logo resolution and font presets stay runtime safe", () => {
   assert.deepEqual(FONT_PRESETS.includes("brand"), true);
   assert.equal(
+    appearanceSettingsSchema.safeParse({
+      ...DEFAULT_WORKSPACE_APPEARANCE,
+      logoUrl: "data:image/png;base64,aGVsbG8=",
+      loginBackgroundUrl: "data:image/webp;base64,aGVsbG8=",
+    }).success,
+    true,
+  );
+  assert.equal(
     resolveBrandLogo({
       logoUrl: "https://example.com/default.png",
       logoUrlLightMode: "https://example.com/light.png",

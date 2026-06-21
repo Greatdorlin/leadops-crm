@@ -3,7 +3,7 @@
 import type { CSSProperties } from "react";
 import { startTransition, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Check, Monitor, Sparkles } from "lucide-react";
+import { Check, ImagePlus, Monitor, Sparkles, X } from "lucide-react";
 import { LeadsDeskWordmark } from "@/components/brand/LeadsDeskWordmark";
 import { cn } from "@/lib/cn";
 import {
@@ -58,6 +58,7 @@ const BACKGROUND_PRESETS = [
 ] as const;
 
 const DEFAULT_BACKGROUND = BACKGROUND_PRESETS[0].value;
+const MAX_THEME_IMAGE_BYTES = 2 * 1024 * 1024;
 
 function toOptionalString(value: string | null | undefined) {
   const normalized = (value ?? "").trim();
@@ -129,6 +130,98 @@ function TextControl({
   );
 }
 
+function ImageUploadControl({
+  label,
+  value,
+  onChange,
+  description,
+  compact = false,
+}: {
+  label: string;
+  value: string | null | undefined;
+  onChange: (value: string | null) => void;
+  description?: string;
+  compact?: boolean;
+}) {
+  const [error, setError] = useState("");
+
+  function handleFile(file?: File | null) {
+    setError("");
+    if (!file) {
+      return;
+    }
+
+    if (!file.type.startsWith("image/")) {
+      setError("Choose a PNG, JPG, WebP, SVG, or GIF image.");
+      return;
+    }
+
+    if (file.size > MAX_THEME_IMAGE_BYTES) {
+      setError("Keep images under 2MB for a fast workspace.");
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result === "string") {
+        onChange(reader.result);
+      }
+    };
+    reader.readAsDataURL(file);
+  }
+
+  return (
+    <div className="space-y-2">
+      <FieldLabel>{label}</FieldLabel>
+      <div className="rounded-[24px] border border-white/10 bg-white/[0.045] p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
+        <div className={cn("flex gap-3", compact ? "items-center" : "items-stretch")}>
+          <div
+            className={cn(
+              "grid shrink-0 place-items-center overflow-hidden rounded-2xl border border-white/12 bg-white/[0.06]",
+              compact ? "h-14 w-14" : "h-20 w-28",
+            )}
+          >
+            {value ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={value} alt="" className="h-full w-full object-cover" />
+            ) : (
+              <ImagePlus className="h-5 w-5 text-white/46" />
+            )}
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-semibold text-white">{value ? "Image selected" : "Upload image"}</p>
+            <p className="mt-1 text-xs leading-5 text-white/52">
+              {description ?? "PNG, JPG, WebP, SVG, or GIF. Max 2MB."}
+            </p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              <label className="admin-button-secondary inline-flex h-9 cursor-pointer items-center justify-center rounded-full px-3 text-xs font-semibold">
+                Choose file
+                <input
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp,image/gif,image/svg+xml"
+                  onChange={(event) => handleFile(event.target.files?.[0])}
+                  className="sr-only"
+                />
+              </label>
+              {value ? (
+                <button
+                  type="button"
+                  onClick={() => onChange(null)}
+                  className="inline-flex h-9 items-center justify-center gap-1.5 rounded-full border border-white/10 bg-white/[0.045] px-3 text-xs font-semibold text-white/64 transition hover:border-rose-300/35 hover:bg-rose-400/12 hover:text-rose-100"
+                >
+                  <X className="h-3.5 w-3.5" />
+                  Remove
+                </button>
+              ) : null}
+            </div>
+          </div>
+        </div>
+        {error ? <p className="mt-2 text-xs font-semibold text-rose-200">{error}</p> : null}
+      </div>
+    </div>
+  );
+}
+
 function ColorControl({
   label,
   value,
@@ -141,12 +234,12 @@ function ColorControl({
   return (
     <label className="space-y-2">
       <FieldLabel>{label}</FieldLabel>
-      <div className="flex items-center gap-2 rounded-[var(--ld-control-radius)] border border-white/10 bg-white/[0.045] p-2">
+      <div className="group flex items-center gap-2 rounded-[20px] border border-white/10 bg-white/[0.045] p-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] transition focus-within:border-[color:var(--ld-color-accent)]/55 focus-within:bg-white/[0.07]">
         <input
           type="color"
           value={value}
           onChange={(event) => onChange(event.target.value)}
-          className="h-9 w-12 cursor-pointer rounded-xl border border-white/12 bg-transparent"
+          className="h-10 w-12 cursor-pointer overflow-hidden rounded-2xl border border-white/12 bg-transparent p-0"
           aria-label={label}
         />
         <input
@@ -191,7 +284,7 @@ function RangeControl({
         step={step}
         value={value}
         onChange={(event) => onChange(Number(event.target.value))}
-        className="w-full accent-[color:var(--ld-color-accent)]"
+        className="admin-range w-full"
       />
     </label>
   );
@@ -394,7 +487,6 @@ export function AppearanceSettingsManager({
     loginHeadline: initialSettings.loginHeadline,
     loginSubheadline: initialSettings.loginSubheadline,
   });
-  const [customBackgroundUrl, setCustomBackgroundUrl] = useState(draft.loginBackgroundUrl ?? "");
   const [message, setMessage] = useState("");
   const [isSaving, setIsSaving] = useState(false);
 
@@ -503,24 +595,29 @@ export function AppearanceSettingsManager({
         <ThemeSection title="Brand" description="Set the names and logos clients see.">
           <TextControl label="Company name" value={draft.companyName} onChange={(value) => update("companyName", value)} />
           <div className="grid gap-4 sm:grid-cols-2">
-            <TextControl label="Logo URL" value={draft.logoUrl ?? ""} onChange={(value) => update("logoUrl", value)} type="url" />
-            <TextControl
-              label="Favicon URL"
+            <ImageUploadControl
+              label="Default logo"
+              value={draft.logoUrl}
+              onChange={(value) => update("logoUrl", value)}
+              description="Used when no light or dark logo is set."
+            />
+            <ImageUploadControl
+              label="Favicon"
               value={draft.faviconUrl ?? ""}
               onChange={(value) => update("faviconUrl", value)}
-              type="url"
+              compact
             />
-            <TextControl
-              label="Logo for light mode"
+            <ImageUploadControl
+              label="Light mode logo"
               value={draft.logoUrlLightMode ?? ""}
               onChange={(value) => update("logoUrlLightMode", value)}
-              type="url"
+              description="Optimized for bright surfaces."
             />
-            <TextControl
-              label="Logo for dark mode"
+            <ImageUploadControl
+              label="Dark mode logo"
               value={draft.logoUrlDarkMode ?? ""}
               onChange={(value) => update("logoUrlDarkMode", value)}
-              type="url"
+              description="Optimized for dark glass."
             />
           </div>
         </ThemeSection>
@@ -546,7 +643,6 @@ export function AppearanceSettingsManager({
                   type="button"
                   onClick={() => {
                     update("loginBackgroundUrl", preset.value);
-                    setCustomBackgroundUrl(preset.value);
                   }}
                   className={cn(
                     "group relative h-24 overflow-hidden rounded-2xl border text-left shadow-[0_14px_30px_rgba(0,0,0,0.22)] transition hover:-translate-y-0.5",
@@ -570,23 +666,15 @@ export function AppearanceSettingsManager({
               );
             })}
           </div>
-          <TextControl
-            label="Custom background URL"
-            value={customBackgroundUrl}
-            onChange={(value) => {
-              setCustomBackgroundUrl(value);
-              update("loginBackgroundUrl", value);
-            }}
-            type="url"
-            placeholder="/backgrounds/bg-dark-luxury.png"
-          />
-          <RangeControl
-            label="Overlay opacity"
-            value={62}
-            min={0}
-            max={100}
-            display="62%"
-            onChange={() => undefined}
+          <ImageUploadControl
+            label="Upload background"
+            value={
+              draft.loginBackgroundUrl && !BACKGROUND_PRESETS.some((preset) => preset.value === draft.loginBackgroundUrl)
+                ? draft.loginBackgroundUrl
+                : null
+            }
+            onChange={(value) => update("loginBackgroundUrl", value || DEFAULT_BACKGROUND)}
+            description="Optional client-owned background. Presets stay faster for most teams."
           />
         </ThemeSection>
 
@@ -608,7 +696,7 @@ export function AppearanceSettingsManager({
               </button>
             ))}
           </div>
-          <div className="grid gap-4 sm:grid-cols-3">
+          <div className="grid gap-4 sm:grid-cols-2">
             <RangeControl
               label="Opacity"
               value={draft.glassOpacity}
@@ -624,14 +712,6 @@ export function AppearanceSettingsManager({
               max={40}
               display={`${draft.glassBlur}px`}
               onChange={(value) => update("glassBlur", value)}
-            />
-            <RangeControl
-              label="Saturation"
-              value={draft.designStyle === "liquid_glass" ? 150 : 112}
-              min={0}
-              max={300}
-              display={draft.designStyle === "liquid_glass" ? "1.5" : "1.12"}
-              onChange={() => update("designStyle", "liquid_glass")}
             />
           </div>
         </ThemeSection>
@@ -691,20 +771,10 @@ export function AppearanceSettingsManager({
 
         <ThemeSection title="Login page" description="Make the first screen feel owned.">
           <div className="grid gap-4 sm:grid-cols-2">
-            <TextControl
-              label="Login logo URL"
+            <ImageUploadControl
+              label="Login logo"
               value={draft.loginLogoUrl ?? ""}
               onChange={(value) => update("loginLogoUrl", value)}
-              type="url"
-            />
-            <TextControl
-              label="Login background URL"
-              value={draft.loginBackgroundUrl ?? ""}
-              onChange={(value) => {
-                update("loginBackgroundUrl", value);
-                setCustomBackgroundUrl(value);
-              }}
-              type="url"
             />
             <TextControl
               label="Headline"
@@ -734,9 +804,9 @@ export function AppearanceSettingsManager({
                   type="checkbox"
                   checked={Boolean(draft[key as keyof AppearanceDraft])}
                   onChange={(event) => update(key as keyof AppearanceDraft, event.target.checked as never)}
-                  className="h-4 w-4 accent-[color:var(--ld-color-accent)]"
+                  className="admin-toggle"
                 />
-                {label}
+                <span>{label}</span>
               </label>
             ))}
           </div>

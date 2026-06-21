@@ -213,7 +213,7 @@ Optional baseline variables:
 Migration rule:
 
 - new work must target `DATABASE_URL`
-- do not add new `PATHWAYFINDER_*`, `NEON_*`, or FlyConnect-specific env names
+- do not add new legacy-product, provider-specific, or old-brand env names
 - old env names may remain temporarily only as inherited compatibility paths until they are removed deliberately
 
 ## Database Strategy

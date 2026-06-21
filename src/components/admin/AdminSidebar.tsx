@@ -154,7 +154,7 @@ export function AdminSidebar({
                 title={item.label}
                 aria-current={isActive ? "page" : undefined}
                 className={cn(
-                  "group relative flex min-h-[46px] items-center gap-3 overflow-hidden rounded-[17px] border px-2.5 py-2 transition duration-200",
+                  "group relative flex min-h-[44px] items-center gap-3 overflow-hidden rounded-[16px] border px-2.5 py-2 transition duration-200",
                   isActive
                     ? "border-cyan-200/22 bg-[linear-gradient(135deg,rgba(76,116,255,0.34),rgba(139,92,246,0.28),rgba(103,232,249,0.08))] text-white shadow-[0_16px_34px_rgba(59,130,246,0.22),inset_0_1px_0_rgba(255,255,255,0.16)]"
                     : "border-transparent text-white/66 hover:border-white/10 hover:bg-white/[0.055] hover:text-white",
@@ -173,10 +173,10 @@ export function AdminSidebar({
                     "relative inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-[12px] border transition duration-200",
                     isActive
                       ? "border-cyan-100/22 bg-white/[0.13] text-cyan-50 shadow-[inset_0_1px_0_rgba(255,255,255,0.18)]"
-                      : "border-white/[0.075] bg-white/[0.028] text-white/52 group-hover:bg-white/[0.065] group-hover:text-white/86",
+                      : "border-transparent bg-transparent text-white/58 group-hover:bg-white/[0.055] group-hover:text-white/88",
                   )}
                 >
-                  <Icon className="h-4 w-4" />
+                  <Icon className={cn("h-[18px] w-[18px]", isActive && "drop-shadow-[0_0_10px_rgba(103,232,249,0.45)]")} />
                 </span>
                 {collapsed ? null : (
                   <span className="relative min-w-0">

@@ -67,18 +67,5 @@ export function mapLinkedInLeadToExternalInput(
     ]),
     state: readIntegrationFieldValue(fields, ["state", "region", "state_of_residence"]),
     sourcePayload: response as Record<string, unknown>,
-    answers: {
-      stateOfResidence:
-        readIntegrationFieldValue(fields, ["state", "region", "state_of_residence"]) || null,
-      destinationInterest:
-        readIntegrationFieldValue(fields, [
-          "destination",
-          "destination_interest",
-          "country_interest",
-        ]) || null,
-      timeline:
-        readIntegrationFieldValue(fields, ["timeline", "travel_timeline", "move_timeline"]) ||
-        null,
-    },
   };
 }

@@ -45,12 +45,12 @@ export default async function AdminSignInPage({
 
   return (
     <main
-      className="admin-shell flex min-h-screen items-center justify-center px-4 py-12 text-slate-950 sm:px-6"
+      className="admin-shell relative flex min-h-screen items-center justify-center overflow-hidden px-4 py-12 text-white sm:px-6"
       style={{
         ...themeVariables,
         ...(settings.loginBackgroundUrl
           ? {
-              backgroundImage: `linear-gradient(180deg, rgba(10, 18, 56, 0.18), rgba(255,255,255,0.72)), url(${settings.loginBackgroundUrl})`,
+              backgroundImage: `linear-gradient(180deg, rgba(2,6,23,0.24), rgba(2,6,23,0.76)), url(${settings.loginBackgroundUrl})`,
               backgroundSize: "cover",
               backgroundPosition: "center",
             }
@@ -60,39 +60,42 @@ export default async function AdminSignInPage({
       data-density={settings.density}
       data-theme-mode={settings.themeMode}
       data-glass={settings.glassEnabled ? "on" : "off"}
+      data-glass-style={settings.glassEnabled ? "vibrant" : "off"}
     >
+      <div className="ld-bg-overlay" aria-hidden="true" />
       <div className="w-full max-w-[34rem]">
-        <section className="admin-surface rounded-[30px] p-6 shadow-[0_24px_60px_rgba(15,23,42,0.08)] sm:p-8">
+        <section className="ld-glass ld-glass-vibrant ld-glass-card ld-inner-highlight rounded-[34px] p-6 shadow-[0_28px_90px_rgba(0,0,0,0.42)] sm:p-8">
           <div className="flex justify-center">
-            <div className="rounded-[20px] border border-slate-200 bg-white px-5 py-4 shadow-[0_10px_24px_rgba(15,23,42,0.04)]">
+            <div className="rounded-[22px] border border-white/10 bg-white/[0.07] px-5 py-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.1)]">
               <LeadsDeskWordmark
+                tone="light"
                 companyName={settings.companyName}
                 logoUrl={resolveBrandLogo({
                   logoUrl: settings.loginLogoUrl || settings.logoUrl,
                   logoUrlLightMode: settings.loginLogoUrlLightMode || settings.logoUrlLightMode,
                   logoUrlDarkMode: settings.loginLogoUrlDarkMode || settings.logoUrlDarkMode,
-                  surfaceMode: "light",
+                  surfaceMode: "dark",
                 })}
                 logoUrlLightMode={settings.loginLogoUrlLightMode || settings.logoUrlLightMode}
                 logoUrlDarkMode={settings.loginLogoUrlDarkMode || settings.logoUrlDarkMode}
-                surfaceMode="light"
+                surfaceMode="dark"
               />
             </div>
           </div>
 
           <div className="mt-8 text-center">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#0b123f]/52">
-              Admin sign-in
+            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/48">
+              Private workspace
             </p>
-            <h1 className="mt-3 font-[family:var(--font-heading)] text-[2rem] leading-[1.02] tracking-[-0.05em] text-slate-950 sm:text-[2.35rem]">
+            <h1 className="mt-3 font-[family:var(--font-heading)] text-[2.25rem] leading-[1.02] tracking-[-0.06em] text-white sm:text-[2.7rem]">
               {settings.loginHeadline}
             </h1>
-            <p className="mt-3 text-sm leading-7 text-slate-600 sm:text-base">
+            <p className="mt-3 text-sm leading-7 text-white/66 sm:text-base">
               {settings.loginSubheadline}
             </p>
           </div>
 
-          <div className="mt-8 rounded-[24px] border border-slate-200 bg-white/84 p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.78)]">
+          <div className="mt-8 rounded-[24px] border border-white/10 bg-white/[0.055] p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.09)]">
             {errorMessage ? (
               <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm leading-6 text-rose-700">
                 {errorMessage}

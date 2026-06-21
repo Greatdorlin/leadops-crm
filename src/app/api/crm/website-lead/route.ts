@@ -120,7 +120,6 @@ export async function POST(request: Request) {
   const routeId = getTrimmedString(payloadRecord, ["routeId", "route_id"]);
   const routeLabel = getTrimmedString(payloadRecord, ["routeLabel", "route_label"]);
   const formType = getTrimmedString(payloadRecord, ["formType", "form_type"]);
-  const isUkStudySupportRoute = routeId === "uk-mres" || routeId === "uk-master";
   const landingPage = getTrimmedString(payloadRecord, [
     "landingPage",
     "landing_page",
@@ -173,40 +172,14 @@ export async function POST(request: Request) {
       email,
       whatsappNumber,
       state: nigeriaState ?? null,
-      primaryGoal: isUkStudySupportRoute ? "study_abroad" : null,
       utmSource: data.utmSource || data.utm_source || null,
       utmMedium: data.utmMedium || data.utm_medium || null,
       utmCampaign: data.utmCampaign || data.utm_campaign || null,
       utmContent: data.utmContent || data.utm_content || null,
       utmTerm: data.utmTerm || data.utm_term || null,
       landingPage: landingPage || null,
-      topPathwayTitle: routeSummary || null,
+      sourceId: null,
       sourcePayload: payloadRecord,
-      answers: {
-        firstName,
-        lastName,
-        email,
-        whatsappNumber: whatsappNumber ?? "",
-        primaryGoal: isUkStudySupportRoute ? "study_abroad" : null,
-        stateOfResidence: nigeriaState ?? null,
-        nigeriaState: nigeriaState ?? null,
-        destinationInterest: isUkStudySupportRoute ? "uk" : null,
-        timeline: targetIntake ?? null,
-        targetIntake: targetIntake ?? null,
-        passportStatus: passportStatus ?? null,
-        highestQualification: highestQualification ?? null,
-        highestEducation: highestQualification ?? null,
-        degreeClass: degreeClass ?? null,
-        graduationYear: graduationYear ?? null,
-        studiedCourse: studiedCourse ?? null,
-        desiredCourse: desiredCourse ?? null,
-        targetField: desiredCourse ?? null,
-        studyFundingReadiness: fundingReadiness ?? null,
-        fundingReadiness: fundingReadiness ?? null,
-        assessmentReadiness: fundingReadiness ?? null,
-        contactTimeline: contactTimeline ?? null,
-        consent: consent ?? null,
-      },
     });
 
     await leadStore.addLeadEvent({
@@ -216,6 +189,17 @@ export async function POST(request: Request) {
         routeId: routeId ?? null,
         routeLabel: routeLabel ?? null,
         formType: formType ?? null,
+        routeSummary: routeSummary ?? null,
+        targetIntake: targetIntake ?? null,
+        passportStatus: passportStatus ?? null,
+        highestQualification: highestQualification ?? null,
+        degreeClass: degreeClass ?? null,
+        graduationYear: graduationYear ?? null,
+        studiedCourse: studiedCourse ?? null,
+        desiredCourse: desiredCourse ?? null,
+        fundingReadiness: fundingReadiness ?? null,
+        contactTimeline: contactTimeline ?? null,
+        consent: consent ?? null,
       },
     });
     await leadStore.markPayloadProcessed(payloadCapture.id);

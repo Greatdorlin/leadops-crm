@@ -60,5 +60,5 @@
 ## Buyer Demo Readiness
 
 - Login page shows the intended client brand.
-- No old FlyConnect or pathway copy is visible.
+- No old inherited brand or legacy flow copy is visible.
 - Dashboard and lead list reflect the chosen customization settings.

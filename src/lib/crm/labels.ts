@@ -126,7 +126,6 @@ const labelMap: Record<string, string> = {
   passportStatus: "Document status",
   studyFundingReadiness: "Budget status",
   fundingReadiness: "Budget status",
-  primaryGoal: "Category",
   destinationInterest: "Location interest",
   whatsappNumber: "Phone",
 };
@@ -182,12 +181,12 @@ export function formatLeadQualificationLabel(value?: LeadQualificationLevel | st
 }
 
 export function formatLeadInterestLabel(
-  lead: Pick<LeadRecord, "primaryGoal" | "readinessLevel" | "topPathwayTitle">,
+  lead: Pick<LeadRecord, "sourceDetail" | "campaignLabel" | "companyName">,
 ) {
   return (
-    lead.topPathwayTitle?.trim() ||
-    (lead.primaryGoal ? formatLeadCategoryLabel(lead.primaryGoal) : null) ||
-    (lead.readinessLevel ? formatLeadQualificationLabel(lead.readinessLevel) : null) ||
+    lead.sourceDetail?.trim() ||
+    lead.campaignLabel?.trim() ||
+    lead.companyName?.trim() ||
     "Not set"
   );
 }

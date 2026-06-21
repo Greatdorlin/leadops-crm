@@ -8,6 +8,20 @@ import {
   isLocalAdminPreviewEnabled,
 } from "./admin-access";
 
+function setNodeEnvForTest(value: string | undefined) {
+  if (value === undefined) {
+    Reflect.deleteProperty(process.env, "NODE_ENV");
+    return;
+  }
+
+  Object.defineProperty(process.env, "NODE_ENV", {
+    configurable: true,
+    enumerable: true,
+    value,
+    writable: true,
+  });
+}
+
 test("lead export has no personal fallback when no allowlist is configured", () => {
   const previous = process.env.LEAD_EXPORT_ALLOWED_EMAILS;
   const previousInitialAdminEmail = process.env.INITIAL_ADMIN_EMAIL;
@@ -96,26 +110,18 @@ test("admin allowlist includes the initial admin email and respects domain restr
 
 test("local admin preview is disabled in production", () => {
   const previousNodeEnv = process.env.NODE_ENV;
-  process.env.NODE_ENV = "production";
+  setNodeEnvForTest("production");
 
   assert.equal(isLocalAdminPreviewEnabled(), false);
 
-  if (previousNodeEnv === undefined) {
-    delete process.env.NODE_ENV;
-  } else {
-    process.env.NODE_ENV = previousNodeEnv;
-  }
+  setNodeEnvForTest(previousNodeEnv);
 });
 
 test("local admin preview remains available outside production", () => {
   const previousNodeEnv = process.env.NODE_ENV;
-  process.env.NODE_ENV = "development";
+  setNodeEnvForTest("development");
 
   assert.equal(isLocalAdminPreviewEnabled(), true);
 
-  if (previousNodeEnv === undefined) {
-    delete process.env.NODE_ENV;
-  } else {
-    process.env.NODE_ENV = previousNodeEnv;
-  }
+  setNodeEnvForTest(previousNodeEnv);
 });

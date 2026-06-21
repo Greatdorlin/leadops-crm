@@ -3,6 +3,7 @@ import { createHmac } from "node:crypto";
 import test from "node:test";
 import { GET, POST } from "@/app/api/integrations/linkedin/webhook/route";
 import { leadStore } from "@/lib/storage";
+import type { LeadEventCreateInput } from "@/lib/storage/types";
 import { mapLinkedInLeadToExternalInput } from "./map-lead";
 import { processLinkedInPayload } from "./process-payload";
 import {
@@ -168,7 +169,7 @@ test("processLinkedInPayload fetches form responses and handles duplicate leads 
     created: false,
     duplicateOfId: "lead-linkedin-1",
   }) as Awaited<ReturnType<typeof leadStore.upsertExternalLead>>);
-  t.mock.method(leadStore, "addLeadEvent", async (input) => {
+  t.mock.method(leadStore, "addLeadEvent", async (input: LeadEventCreateInput) => {
     receivedEvent = input.eventData;
     return {
       id: "event-linkedin-1",

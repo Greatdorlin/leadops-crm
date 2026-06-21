@@ -11,8 +11,8 @@ import { useAdminWorkspaceSettings } from "./AdminWorkspaceSettingsProvider";
 import { AdminAccessViewSwitcher } from "./AdminAccessViewSwitcher";
 import { getAdminNavigation } from "./navigation";
 
-const TOPBAR_COLLAPSE_KEY = "fc_admin_topbar_collapsed";
-const TOPBAR_COLLAPSE_EVENT = "fc-admin-topbar-collapse";
+const TOPBAR_COLLAPSE_KEY = "ld_admin_topbar_collapsed";
+const TOPBAR_COLLAPSE_EVENT = "ld-admin-topbar-collapse";
 
 function subscribeTopbarCollapse(onStoreChange: () => void) {
   if (typeof window === "undefined") {
@@ -77,6 +77,8 @@ export function AdminTopbar({
     () => false,
   );
   const canCollapse = Boolean(searchSlot || canSwitchAccessViews);
+  const showPageHeading = activeNav !== "dashboard";
+  const isDashboard = activeNav === "dashboard";
 
   function updateCollapseState(nextValue: boolean) {
     window.localStorage.setItem(TOPBAR_COLLAPSE_KEY, nextValue ? "1" : "0");
@@ -84,30 +86,31 @@ export function AdminTopbar({
   }
 
   return (
-    <header className="sticky top-0 z-20">
+    <header className="relative z-20">
       <div
         className={cn(
-          "admin-topbar-panel relative overflow-hidden rounded-[28px] border shadow-[0_18px_40px_rgba(15,23,42,0.06)] backdrop-blur-xl transition-all duration-200",
-          isCollapsed ? "px-4 py-3 sm:px-5 lg:px-6" : "px-4 py-4 sm:px-5 lg:px-6",
+          "relative overflow-visible rounded-none border-0 bg-transparent px-1 py-2 shadow-none transition-all duration-200",
         )}
       >
-        <div className="pointer-events-none absolute inset-x-0 top-0 h-24 bg-[radial-gradient(circle_at_top_left,rgba(255,190,0,0.14),transparent_34%),radial-gradient(circle_at_top_right,rgba(111,140,255,0.1),transparent_30%)]" />
-
-        <div className="relative flex flex-col gap-4">
-          <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+        <div className={cn("relative flex flex-col gap-3", isDashboard && "gap-2")}>
+          <div className={cn("flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between", isDashboard && "xl:gap-5")}>
             <div className="min-w-0 max-w-3xl">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#0b123f]/44">
-                {activeNav.replaceAll("_", " ")}
-              </p>
-              <h1 className="font-[family:var(--font-heading)] text-[2rem] leading-[0.98] tracking-[-0.05em] text-slate-950 sm:text-[2.4rem]">
-                {title}
-              </h1>
-              {!isCollapsed && description ? (
-                <p className="mt-2 text-sm leading-7 text-slate-600 sm:text-base">{description}</p>
+              {showPageHeading ? (
+                <>
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/48">
+                    {activeNav.replaceAll("_", " ")}
+                  </p>
+                  <h1 className="font-[family:var(--font-heading)] text-[1.85rem] leading-[0.98] tracking-[-0.05em] text-white sm:text-[2.2rem]">
+                    {title}
+                  </h1>
+                  {!isCollapsed && description ? (
+                    <p className="mt-1.5 text-sm leading-6 text-white/64 sm:text-[15px]">{description}</p>
+                  ) : null}
+                </>
               ) : null}
             </div>
 
-            <div className="flex w-full flex-col gap-3 xl:w-auto xl:min-w-[420px]">
+            <div className={cn("flex w-full flex-col gap-3 xl:w-auto xl:min-w-[420px]", isDashboard && "xl:min-w-[720px] 2xl:min-w-[820px]")}>
               {actions || canCollapse ? (
                 <div className="flex flex-wrap items-center justify-start gap-3 xl:justify-end">
                   {actions}
@@ -139,8 +142,8 @@ export function AdminTopbar({
                     href={item.href}
                     className={
                       isActive
-                        ? "inline-flex shrink-0 items-center rounded-full border border-[#0b123f] bg-[#0b123f] px-4 py-2 text-sm font-medium text-white"
-                        : "inline-flex shrink-0 items-center rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-600"
+                        ? "inline-flex shrink-0 items-center rounded-full border border-white/12 bg-white/14 px-4 py-2 text-sm font-medium text-white"
+                        : "inline-flex shrink-0 items-center rounded-full border border-white/10 bg-white/[0.05] px-4 py-2 text-sm font-medium text-white/66"
                     }
                   >
                     {item.label}

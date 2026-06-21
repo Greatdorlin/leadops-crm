@@ -326,7 +326,6 @@ export async function listOverdueLeads(now = new Date()) {
   const rows = await db
     .select({
       id: leads.id,
-      crmStatus: leads.crmStatus,
       wonAt: leads.wonAt,
       lostAt: leads.lostAt,
       nextFollowUpAt: leads.nextFollowUpAt,
@@ -347,7 +346,7 @@ export async function listOverdueLeads(now = new Date()) {
   return rows
     .map((row) => ({
       id: row.id,
-      crmStatus: row.crmStatus,
+      crmStatus: (row.wonAt ? "converted" : row.lostAt ? "lost" : "new") as CrmStatus,
       wonAt: row.wonAt?.toISOString() ?? null,
       lostAt: row.lostAt?.toISOString() ?? null,
       nextFollowUpAt: row.nextFollowUpAt?.toISOString() ?? null,

@@ -1,6 +1,6 @@
 import { google } from "googleapis";
 import { mapLeadToGoogleSheets } from "./mapper";
-import type { LeadRecord, SyncStatus } from "../pathway-engine/types";
+import type { LeadRecord, SyncStatus } from "../crm/types";
 
 function getGoogleSheetsConfig() {
   return {
@@ -79,15 +79,6 @@ export async function syncLeadToGoogleSheets(record: LeadRecord): Promise<SyncSt
   const { spreadsheetId, worksheetName } = getGoogleSheetsConfig();
   const attemptedAt = new Date().toISOString();
 
-  if (record.completionStatus !== "complete" || !record.report) {
-    return {
-      status: "skipped",
-      message: "Only completed leads can be synced to Google Sheets.",
-      lastAttemptAt: attemptedAt,
-      syncedAt: null,
-    };
-  }
-
   if (!isGoogleSheetsConfigured()) {
     return {
       status: "not_configured",
@@ -111,7 +102,7 @@ export async function syncLeadToGoogleSheets(record: LeadRecord): Promise<SyncSt
 
     return {
       status: "success",
-      message: "Completed lead synced to Google Sheets.",
+      message: "Lead synced to Google Sheets.",
       lastAttemptAt: attemptedAt,
       syncedAt: attemptedAt,
     };

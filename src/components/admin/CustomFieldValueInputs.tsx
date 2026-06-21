@@ -29,6 +29,9 @@ function fieldInputType(type: CustomFieldInputModel["type"]) {
   }
 }
 
+const labelClass = "text-xs font-semibold uppercase tracking-[0.16em] text-white/54";
+const helpClass = "text-xs text-white/46";
+
 export function CustomFieldValueInputs({
   fields,
   values,
@@ -51,7 +54,7 @@ export function CustomFieldValueInputs({
         if (field.type === "textarea") {
           return (
             <label key={field.fieldId} className="space-y-2 sm:col-span-2">
-              <span className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
+              <span className={labelClass}>
                 {field.label}
               </span>
               <textarea
@@ -61,7 +64,7 @@ export function CustomFieldValueInputs({
                 placeholder={field.placeholder ?? ""}
                 className="admin-textarea min-h-[120px] w-full rounded-2xl px-4 py-3 text-sm outline-none"
               />
-              {helpText ? <p className="text-xs text-slate-500">{helpText}</p> : null}
+              {helpText ? <p className={helpClass}>{helpText}</p> : null}
             </label>
           );
         }
@@ -69,7 +72,7 @@ export function CustomFieldValueInputs({
         if (field.type === "select") {
           return (
             <label key={field.fieldId} className="space-y-2">
-              <span className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
+              <span className={labelClass}>
                 {field.label}
               </span>
               <AdminSelect
@@ -84,7 +87,7 @@ export function CustomFieldValueInputs({
                   </option>
                 ))}
               </AdminSelect>
-              {helpText ? <p className="text-xs text-slate-500">{helpText}</p> : null}
+              {helpText ? <p className={helpClass}>{helpText}</p> : null}
             </label>
           );
         }
@@ -92,7 +95,7 @@ export function CustomFieldValueInputs({
         if (field.type === "multi_select") {
           return (
             <label key={field.fieldId} className="space-y-2 sm:col-span-2">
-              <span className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
+              <span className={labelClass}>
                 {field.label}
               </span>
               <select
@@ -112,7 +115,7 @@ export function CustomFieldValueInputs({
                   </option>
                 ))}
               </select>
-              {helpText ? <p className="text-xs text-slate-500">{helpText}</p> : null}
+              {helpText ? <p className={helpClass}>{helpText}</p> : null}
             </label>
           );
         }
@@ -121,17 +124,17 @@ export function CustomFieldValueInputs({
           return (
             <label
               key={field.fieldId}
-              className="flex items-start gap-3 rounded-2xl border border-slate-200/85 bg-white/80 px-4 py-3"
+              className="flex items-start gap-3 rounded-2xl border border-white/10 bg-white/[0.045] px-4 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]"
             >
               <input
                 type="checkbox"
                 checked={Boolean(value)}
                 onChange={(event) => onChange(field.fieldId, event.target.checked)}
-                className="mt-1 h-4 w-4 rounded border-slate-300 text-[#1d347f]"
+                className="mt-1 h-4 w-4 rounded border-white/20 bg-white/10 accent-[var(--ld-color-accent)]"
               />
               <span className="space-y-1">
-                <span className="block text-sm font-medium text-slate-900">{field.label}</span>
-                {helpText ? <span className="block text-xs text-slate-500">{helpText}</span> : null}
+                <span className="block text-sm font-medium text-white">{field.label}</span>
+                {helpText ? <span className="block text-xs text-white/46">{helpText}</span> : null}
               </span>
             </label>
           );
@@ -142,7 +145,7 @@ export function CustomFieldValueInputs({
             key={field.fieldId}
             className={isWideField(field.type) ? "space-y-2 sm:col-span-2" : "space-y-2"}
           >
-            <span className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
+            <span className={labelClass}>
               {field.label}
             </span>
             <input
@@ -153,7 +156,7 @@ export function CustomFieldValueInputs({
               placeholder={field.placeholder ?? ""}
               className="admin-input h-11 w-full rounded-2xl px-4 text-sm outline-none"
             />
-            {helpText ? <p className="text-xs text-slate-500">{helpText}</p> : null}
+            {helpText ? <p className={helpClass}>{helpText}</p> : null}
           </label>
         );
       })}

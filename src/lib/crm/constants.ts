@@ -1,35 +1,99 @@
-import {
-  COMPLETION_STATUSES as LEGACY_COMPLETION_STATUSES,
-  CRM_STATUSES as LEGACY_CRM_STATUSES,
-  CRM_USER_ROLES as LEGACY_CRM_USER_ROLES,
-  INTEGRATION_PROVIDERS as LEGACY_INTEGRATION_PROVIDERS,
-  INTEGRATION_STATUSES as LEGACY_INTEGRATION_STATUSES,
-  LEAD_PRIORITIES as LEGACY_LEAD_PRIORITIES,
-  LEAD_SOURCES as LEGACY_LEAD_SOURCES,
-  PRIMARY_GOALS as LEGACY_PRIMARY_GOALS,
-  SOURCE_PAYLOAD_PROCESSING_STATUSES as LEGACY_SOURCE_PAYLOAD_PROCESSING_STATUSES,
-  SYNC_JOB_STATUSES as LEGACY_SYNC_JOB_STATUSES,
-  SYNC_STATES as LEGACY_SYNC_STATES,
-} from "@/lib/pathway-engine/types";
-
-export const LEAD_COMPLETION_STATES = LEGACY_COMPLETION_STATUSES;
+export const LEAD_COMPLETION_STATES = ["incomplete", "complete"] as const;
 export const COMPLETION_STATUSES = LEAD_COMPLETION_STATES;
 
-export const LEAD_STATUSES = LEGACY_CRM_STATUSES;
+export const LEAD_STATUSES = [
+  "new",
+  "contacted",
+  "qualified",
+  "consultation_booked",
+  "application_started",
+  "documents_pending",
+  "payment_pending",
+  "converted",
+  "lost",
+  "unresponsive",
+  "unqualified",
+  "closed",
+] as const;
 export const CRM_STATUSES = LEAD_STATUSES;
 
-export const LEAD_PRIORITIES = LEGACY_LEAD_PRIORITIES;
+export const LEAD_PRIORITIES = ["low", "medium", "high", "urgent"] as const;
 export const LEAD_PRIORITY_LEVELS = LEAD_PRIORITIES;
 
-export const LEAD_SOURCES = LEGACY_LEAD_SOURCES;
+export const LEAD_SOURCES = [
+  "pathway_finder",
+  "website_form",
+  "facebook_lead_ads",
+  "google_ads",
+  "tiktok_lead_ads",
+  "linkedin_lead_gen_forms",
+  "google_sheets",
+  "whatsapp_inquiry",
+  "manual_entry",
+  "agent",
+  "referral",
+] as const;
 export const LEAD_CHANNELS = LEAD_SOURCES;
 
-export const LEGACY_LEAD_CATEGORIES = LEGACY_PRIMARY_GOALS;
+export const LEGACY_LEAD_CATEGORIES = [
+  "study_abroad",
+  "work_and_relocate",
+  "business_abroad",
+  "visit_or_tour",
+  "event_travel",
+  "family_relocation",
+  "not_sure_yet",
+] as const;
 export const PRIMARY_GOALS = LEGACY_LEAD_CATEGORIES;
 
-export const CRM_USER_ROLES = LEGACY_CRM_USER_ROLES;
-export const INTEGRATION_PROVIDERS = LEGACY_INTEGRATION_PROVIDERS;
-export const INTEGRATION_STATUSES = LEGACY_INTEGRATION_STATUSES;
-export const SYNC_STATES = LEGACY_SYNC_STATES;
-export const SYNC_JOB_STATUSES = LEGACY_SYNC_JOB_STATUSES;
-export const SOURCE_PAYLOAD_PROCESSING_STATUSES = LEGACY_SOURCE_PAYLOAD_PROCESSING_STATUSES;
+export const CRM_USER_ROLES = [
+  "admin",
+  "manager",
+  "sales_agent",
+  "ad_manager",
+  "consultant",
+  "finance",
+] as const;
+
+export const INTEGRATION_PROVIDERS = [
+  "facebook",
+  "google_sheets",
+  "google_ads",
+  "tiktok",
+  "linkedin",
+  "sender",
+  "website",
+] as const;
+
+export const INTEGRATION_STATUSES = [
+  "healthy",
+  "pending_sync",
+  "failed",
+  "not_configured",
+  "disabled",
+] as const;
+
+export const SYNC_STATES = [
+  "pending",
+  "success",
+  "failed",
+  "not_configured",
+  "skipped",
+] as const;
+
+export const SYNC_JOB_STATUSES = [
+  "pending",
+  "running",
+  "success",
+  "failed",
+  "partial",
+] as const;
+
+export const SOURCE_PAYLOAD_PROCESSING_STATUSES = [
+  "pending",
+  "processing",
+  "processed",
+  "failed",
+  "duplicate",
+  "skipped",
+] as const;

@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { POST } from "@/app/api/integrations/tiktok/webhook/route";
 import { leadStore } from "@/lib/storage";
+import type { LeadEventCreateInput } from "@/lib/storage/types";
 import { getTikTokLeadAttribution, mapTikTokLeadToExternalInput } from "./map-lead";
 import { processTikTokPayload } from "./process-payload";
 
@@ -125,7 +126,7 @@ test("processTikTokPayload upserts leads and preserves attribution on duplicate 
     created: false,
     duplicateOfId: "lead-tt-1",
   }) as Awaited<ReturnType<typeof leadStore.upsertExternalLead>>);
-  t.mock.method(leadStore, "addLeadEvent", async (input) => {
+  t.mock.method(leadStore, "addLeadEvent", async (input: LeadEventCreateInput) => {
     createdFlag = input.eventData?.created as boolean | undefined;
     receivedEvent = input.eventData;
     return {

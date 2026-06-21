@@ -1,23 +1,134 @@
 import Link from "next/link";
+import {
+  AlertTriangle,
+  CircleDollarSign,
+  Inbox,
+  Target,
+  Trophy,
+  Users2,
+} from "lucide-react";
 import type { SalesDashboardSummary } from "@/lib/crm/sales-metrics";
 import { formatCrmDateTime } from "@/lib/crm/formatters";
 import type { DashboardWidgetKey } from "@/lib/crm/workspace-settings";
+import { AdminCollapsibleSection } from "./AdminCollapsibleSection";
 import { DashboardTargetCelebration } from "./DashboardTargetCelebration";
 import { EmptyState } from "./EmptyState";
-import { MetricCard } from "./MetricCard";
-import { SectionHeader } from "./SectionHeader";
+import { PremiumMetricCard } from "./PremiumMetricCard";
 
 function formatMoney(value: number, currency = "NGN") {
   return `${currency} ${value.toLocaleString()}`;
 }
 
-type OverviewMetricCard = {
-  key: string;
+function formatShortMoney(value: number, currency = "NGN") {
+  if (value >= 1_000_000) {
+    return `${currency} ${(value / 1_000_000).toFixed(value >= 10_000_000 ? 0 : 1)}M`;
+  }
+
+  if (value >= 1_000) {
+    return `${currency} ${(value / 1_000).toFixed(value >= 100_000 ? 0 : 1)}K`;
+  }
+
+  return formatMoney(value, currency);
+}
+
+function getPercent(value: number, max: number) {
+  if (max <= 0) {
+    return 0;
+  }
+
+  return Math.max(8, Math.min(100, Math.round((value / max) * 100)));
+}
+
+function Sparkline({ tone = "accent" }: { tone?: "accent" | "success" | "warning" | "danger" | "info" }) {
+  const stroke = {
+    accent: "url(#spark-accent)",
+    success: "url(#spark-success)",
+    warning: "url(#spark-warning)",
+    danger: "url(#spark-danger)",
+    info: "url(#spark-info)",
+  }[tone];
+
+  return (
+    <svg className="mt-3 h-8 w-full" viewBox="0 0 180 42" role="presentation" aria-hidden="true">
+      <defs>
+        <linearGradient id="spark-accent" x1="0" x2="1">
+          <stop stopColor="#67e8f9" />
+          <stop offset="1" stopColor="#c084fc" />
+        </linearGradient>
+        <linearGradient id="spark-success" x1="0" x2="1">
+          <stop stopColor="#6ee7b7" />
+          <stop offset="1" stopColor="#a7f3d0" />
+        </linearGradient>
+        <linearGradient id="spark-warning" x1="0" x2="1">
+          <stop stopColor="#fbbf24" />
+          <stop offset="1" stopColor="#fb7185" />
+        </linearGradient>
+        <linearGradient id="spark-danger" x1="0" x2="1">
+          <stop stopColor="#fb7185" />
+          <stop offset="1" stopColor="#c084fc" />
+        </linearGradient>
+        <linearGradient id="spark-info" x1="0" x2="1">
+          <stop stopColor="#60a5fa" />
+          <stop offset="1" stopColor="#67e8f9" />
+        </linearGradient>
+      </defs>
+      <path
+        d="M4 28 C 18 18, 28 31, 42 22 S 68 18, 82 25 S 108 35, 122 18 S 150 18, 176 10"
+        fill="none"
+        stroke="rgba(255,255,255,0.18)"
+        strokeLinecap="round"
+        strokeWidth="7"
+      />
+      <path
+        d="M4 28 C 18 18, 28 31, 42 22 S 68 18, 82 25 S 108 35, 122 18 S 150 18, 176 10"
+        fill="none"
+        stroke={stroke}
+        strokeLinecap="round"
+        strokeWidth="3"
+      />
+    </svg>
+  );
+}
+
+function CompactProgressRow({
+  label,
+  value,
+  meta,
+  percent,
+  tone = "accent",
+}: {
   label: string;
   value: string | number;
-  supporting: string;
-  tone?: "accent" | "danger" | "positive" | "warning";
-};
+  meta?: string;
+  percent: number;
+  tone?: "accent" | "success" | "warning" | "danger" | "info";
+}) {
+  const fill = {
+    accent: "from-violet-400 to-fuchsia-300",
+    success: "from-emerald-300 to-cyan-300",
+    warning: "from-amber-300 to-orange-300",
+    danger: "from-rose-300 to-fuchsia-300",
+    info: "from-sky-300 to-cyan-300",
+  }[tone];
+
+  return (
+    <div className="grid gap-3">
+      <div className="flex items-center justify-between gap-4">
+        <div className="min-w-0">
+          <p className="truncate text-sm font-semibold text-white">{label}</p>
+          {meta ? <p className="mt-1 truncate text-xs text-white/46">{meta}</p> : null}
+        </div>
+        <p className="shrink-0 text-sm font-semibold text-white">{value}</p>
+      </div>
+      <div className="h-2 overflow-hidden rounded-full bg-white/10">
+        <div
+          className={`h-full rounded-full bg-gradient-to-r ${fill}`}
+          style={{ width: `${percent}%` }}
+        />
+      </div>
+    </div>
+  );
+}
 
 export function SalesCommandOverview({
   summary,
@@ -29,74 +140,70 @@ export function SalesCommandOverview({
   const widgetSet = new Set(visibleWidgets ?? []);
   const showAll = widgetSet.size === 0;
   const showWidget = (key: DashboardWidgetKey) => showAll || widgetSet.has(key);
-  const topMetricCards: OverviewMetricCard[] = [];
-
-  if (showWidget("total_leads")) {
-    topMetricCards.push({
-      key: "total_leads",
-      label: "Total leads",
-      value: summary.totalLeads,
-      supporting: "All visible leads.",
-      tone: "accent",
-    });
-  }
-
-  if (showWidget("new_leads")) {
-    topMetricCards.push({
-      key: "new_leads",
-      label: "New leads",
-      value: summary.newLeads,
-      supporting: "Leads still at the first stage.",
-    });
-  }
-
-  if (showWidget("leads_this_month")) {
-    topMetricCards.push({
-      key: "leads_this_month",
-      label: "Leads this month",
-      value: summary.leadsThisMonth,
-      supporting: "Captured during the current month.",
-    });
-  }
-
-  if (showWidget("overdue_follow_ups")) {
-    topMetricCards.push({
-      key: "overdue_follow_ups",
-      label: "Overdue follow-ups",
-      value: summary.overdueFollowUps,
-      supporting: "Needs attention today.",
-      tone: summary.overdueFollowUps > 0 ? "danger" : "positive",
-    });
-  }
-
-  if (showWidget("pipeline_value")) {
-    topMetricCards.push({
-      key: "pipeline_value",
-      label: "Pipeline value",
-      value: formatMoney(summary.pipelineValue, summary.target?.currency ?? "NGN"),
-      supporting: "Open expected value.",
-    });
-  }
-
-  if (showWidget("won_value")) {
-    topMetricCards.push({
-      key: "won_value",
-      label: "Won value",
-      value: formatMoney(summary.wonValue, summary.target?.currency ?? "NGN"),
-      supporting: "Closed value so far.",
-      tone: "positive",
-    });
-  }
-
-  if (showWidget("conversion_rate")) {
-    topMetricCards.push({
-      key: "conversion_rate",
-      label: "Conversion rate",
-      value: `${summary.conversionRate}%`,
-      supporting: `${summary.wonLeads} won • ${summary.lostLeads} lost`,
-    });
-  }
-
+  const currency = summary.target?.currency ?? "NGN";
+  const stageMax = Math.max(...summary.stagePerformance.map((stage) => stage.totalLeads), 1);
+  const sourceMax = Math.max(...summary.topSources.map((source) => source.totalLeads), 1);
+  const targetProgress = summary.target?.progressPercent ?? 0;
+  const topMetricCards = [
+    showWidget("total_leads")
+      ? {
+          key: "total_leads",
+          label: "Total Leads",
+          value: summary.totalLeads,
+          trend: { direction: "up" as const, label: "All visible leads" },
+          icon: Users2,
+          tone: "accent" as const,
+          spark: "accent" as const,
+        }
+      : null,
+    showWidget("new_leads")
+      ? {
+          key: "new_leads",
+          label: "New Leads",
+          value: summary.newLeads,
+          trend: { direction: "up" as const, label: "Needs first touch" },
+          icon: Inbox,
+          tone: "default" as const,
+          spark: "info" as const,
+        }
+      : null,
+    showWidget("overdue_follow_ups")
+      ? {
+          key: "overdue_follow_ups",
+          label: "Overdue",
+          value: summary.overdueFollowUps,
+          trend: {
+            direction: summary.overdueFollowUps > 0 ? ("down" as const) : ("up" as const),
+            label: summary.overdueFollowUps > 0 ? "Needs action" : "Clear today",
+          },
+          icon: AlertTriangle,
+          tone: summary.overdueFollowUps > 0 ? ("danger" as const) : ("success" as const),
+          spark: summary.overdueFollowUps > 0 ? ("danger" as const) : ("success" as const),
+        }
+      : null,
+    showWidget("pipeline_value")
+      ? {
+          key: "pipeline_value",
+          label: "Pipeline Value",
+          value: formatShortMoney(summary.pipelineValue, currency),
+          trend: { direction: "up" as const, label: "Open expected value" },
+          icon: CircleDollarSign,
+          tone: "warning" as const,
+          spark: "warning" as const,
+        }
+      : null,
+    showWidget("won_value")
+      ? {
+          key: "won_value",
+          label: "Won Value",
+          value: formatShortMoney(summary.wonValue, currency),
+          trend: { direction: "up" as const, label: `${summary.wonLeads} won` },
+          icon: Trophy,
+          tone: "success" as const,
+          spark: "success" as const,
+        }
+      : null,
+  ].filter((card): card is NonNullable<typeof card> => Boolean(card));
   const showSourcePerformance = showWidget("top_sources");
   const showRecentIntake = showWidget("recent_intake");
   const showTargetProgress = showWidget("target_progress");
@@ -119,186 +226,324 @@ export function SalesCommandOverview({
       />
 
       {topMetricCards.length > 0 ? (
-        <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
+        <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
           {topMetricCards.map((card) => (
-            <MetricCard
+            <PremiumMetricCard
               key={card.key}
               label={card.label}
               value={card.value}
-              supporting={card.supporting}
+              trend={card.trend}
+              icon={card.icon}
               tone={card.tone}
-            />
+            >
+              <Sparkline tone={card.spark} />
+            </PremiumMetricCard>
           ))}
         </section>
       ) : null}
 
+      <AdminCollapsibleSection
+        eyebrow="Pipeline objective"
+        title="Pipeline health and target progress"
+        description="Track value, stage movement, and the gap to goal."
+        actions={
+          <Link
+            href="/admin/settings/sales-targets"
+            className="ld-floating-control inline-flex h-10 items-center justify-center px-4 text-sm font-semibold"
+          >
+            Set target
+          </Link>
+        }
+        className="p-0"
+        bodyClassName="mt-5"
+      >
+        <div className="grid gap-5 xl:grid-cols-[300px_minmax(0,1fr)] 2xl:grid-cols-[320px_minmax(0,1fr)]">
+          <div className="ld-solid-panel grid content-between rounded-[24px] p-5">
+            <div>
+              <div className="flex items-center justify-between gap-3">
+                <span className="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-cyan-100/14 bg-cyan-300/10 text-cyan-100 shadow-[0_12px_28px_rgba(34,211,238,0.12)]">
+                  <Target className="h-5 w-5" />
+                </span>
+                <span className="rounded-full border border-white/10 bg-white/[0.075] px-3 py-1 text-xs font-semibold text-white/64">
+                  {summary.target?.periodLabel ?? "No active target"}
+                </span>
+              </div>
+              <div className="mx-auto mt-6 grid h-40 w-40 place-items-center rounded-full border border-white/10 bg-white/[0.035] shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] 2xl:h-44 2xl:w-44">
+                <div
+                  className="grid h-32 w-32 place-items-center rounded-full 2xl:h-36 2xl:w-36"
+                  style={{
+                    background: `conic-gradient(var(--ld-color-success) ${Math.min(targetProgress, 100)}%, rgba(255,255,255,0.12) 0)`,
+                  }}
+                >
+                  <div className="grid h-24 w-24 place-items-center rounded-full bg-[#071226]/92 text-center shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] 2xl:h-28 2xl:w-28">
+                    <div>
+                      <p className="text-[2rem] font-semibold tracking-[-0.06em] text-white 2xl:text-4xl">
+                        {targetProgress}%
+                      </p>
+                      <p className="mt-1 text-xs text-white/48">of target</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div className="mt-5 grid gap-3 text-sm">
+              <div className="flex items-center justify-between gap-4">
+                <span className="text-white/54">Won value</span>
+                <span className="font-semibold text-white">{formatShortMoney(summary.wonValue, currency)}</span>
+              </div>
+              <div className="flex items-center justify-between gap-4">
+                <span className="text-white/54">Pipeline</span>
+                <span className="font-semibold text-white">{formatShortMoney(summary.pipelineValue, currency)}</span>
+              </div>
+              <div className="flex items-center justify-between gap-4">
+                <span className="text-white/54">Remaining</span>
+                <span className="font-semibold text-white">
+                  {summary.target ? formatShortMoney(summary.target.remainingValue, currency) : "Set a target"}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div className="ld-solid-panel rounded-[24px] p-5">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+              <div>
+                <h3 className="text-lg font-semibold tracking-[-0.04em] text-white">Stage movement</h3>
+                <p className="mt-1 text-sm text-white/54">Live stage volume and value at a glance.</p>
+              </div>
+              <span className="rounded-full border border-white/10 bg-white/[0.075] px-3 py-1 text-xs font-semibold text-white/60">
+                {summary.conversionRate}% conversion
+              </span>
+            </div>
+
+            <div className="mt-6 grid min-h-[230px] items-end gap-3 sm:grid-cols-3 lg:grid-cols-5">
+              {summary.stagePerformance.slice(0, 5).map((stage, index) => {
+                const percent = getPercent(stage.totalLeads, stageMax);
+                const barHeight = 42 + Math.round((percent / 100) * 118);
+                const gradients = [
+                  "from-blue-400 to-indigo-500",
+                  "from-violet-400 to-fuchsia-500",
+                  "from-pink-400 to-rose-500",
+                  "from-amber-300 to-orange-500",
+                  "from-emerald-300 to-teal-500",
+                ];
+
+                return (
+                  <div key={stage.label} className="grid h-full min-h-[204px] grid-rows-[1fr_auto] gap-3">
+                    <div className="flex items-end rounded-[18px] border border-white/[0.06] bg-white/[0.035] p-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
+                      <div
+                        className={`w-full min-h-12 rounded-[14px] bg-gradient-to-b ${gradients[index % gradients.length]} shadow-[0_18px_42px_rgba(0,0,0,0.25),inset_0_1px_0_rgba(255,255,255,0.2)]`}
+                        style={{ height: `${barHeight}px` }}
+                      />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-semibold text-white">{stage.label}</p>
+                      <p className="mt-1 text-[1.65rem] font-semibold leading-none tracking-[-0.05em] text-white">
+                        {stage.totalLeads}
+                      </p>
+                      <p className="mt-1 text-xs text-white/46">
+                        {formatShortMoney(stage.pipelineValue, currency)}
+                      </p>
+                    </div>
+                  </div>
+                );
+              })}
+              {summary.stagePerformance.length === 0 ? (
+                <div className="sm:col-span-3 lg:col-span-5">
+                  <EmptyState
+                    title="No stage data yet"
+                    description="Stage performance appears once leads move through your pipeline."
+                  />
+                </div>
+              ) : null}
+            </div>
+          </div>
+        </div>
+      </AdminCollapsibleSection>
+
       <section className="grid gap-6 xl:grid-cols-12">
         <div className="space-y-6 xl:col-span-7">
           {showSourcePerformance ? (
-            <section className="admin-surface rounded-[24px] p-5">
-            <SectionHeader
+            <AdminCollapsibleSection
               eyebrow="Source performance"
-              title="Top sources"
-              description="See which channels are bringing leads and turning into won business."
-            />
-            <div className="mt-4 space-y-3">
-              {summary.topSources.length > 0 ? (
-                summary.topSources.map((source) => (
-                  <div key={source.label} className="admin-surface-muted rounded-2xl p-4">
-                    <div className="flex flex-wrap items-start justify-between gap-3">
-                      <div>
-                        <p className="text-base font-semibold text-slate-950">{source.label}</p>
-                        <p className="mt-1.5 text-sm text-slate-500">
-                          {source.wonLeads} won • {source.conversionRate}% conversion
-                        </p>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-lg font-semibold text-slate-950">{source.totalLeads}</p>
-                        <p className="mt-1 text-sm text-slate-500">
-                          {formatMoney(source.pipelineValue, summary.target?.currency ?? "NGN")} pipeline
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                ))
-              ) : (
-                <EmptyState
-                  title="No source performance yet"
-                  description="Lead source performance will appear once leads start coming in."
-                />
-              )}
-            </div>
-            </section>
+              title="Which channels are working"
+              description="See where leads come from and which sources convert."
+              actions={
+                <Link
+                  href="/admin/reports"
+                  className="ld-floating-control inline-flex h-10 items-center justify-center px-4 text-sm font-semibold"
+                >
+                  Full report
+                </Link>
+              }
+            >
+              <div className="grid gap-4">
+                {summary.topSources.length > 0 ? (
+                  summary.topSources.slice(0, 6).map((source) => (
+                    <CompactProgressRow
+                      key={source.label}
+                      label={source.label}
+                      value={`${source.conversionRate}%`}
+                      meta={`${source.totalLeads} leads • ${source.wonLeads} won • ${formatShortMoney(source.pipelineValue, currency)} pipeline`}
+                      percent={getPercent(source.totalLeads, sourceMax)}
+                      tone="accent"
+                    />
+                  ))
+                ) : (
+                  <EmptyState
+                    title="No source performance yet"
+                    description="Source performance appears once leads start coming in."
+                  />
+                )}
+              </div>
+            </AdminCollapsibleSection>
           ) : null}
 
           {showRecentIntake ? (
-            <section className="admin-surface rounded-[24px] p-5">
-            <SectionHeader
+            <AdminCollapsibleSection
               eyebrow="Recent intake"
               title="Latest form activity"
-              description="Track recent webhook and intake activity without leaving the dashboard."
-            />
-            <div className="mt-4 space-y-3">
-              {summary.recentIntake.length > 0 ? (
-                summary.recentIntake.map((event) => (
-                  <div key={event.id} className="admin-surface-muted rounded-2xl p-4">
-                    <div className="flex flex-wrap items-start justify-between gap-3">
-                      <div>
-                        <p className="text-sm font-semibold uppercase tracking-[0.14em] text-slate-500">
+              description="Successful and failed submissions stay visible."
+              actions={
+                <Link
+                  href="/admin/intake"
+                  className="ld-floating-control inline-flex h-10 items-center justify-center px-4 text-sm font-semibold"
+                >
+                  Intake log
+                </Link>
+              }
+            >
+              <div className="grid gap-3">
+                {summary.recentIntake.length > 0 ? (
+                  summary.recentIntake.map((event) => (
+                    <div
+                      key={event.id}
+                      className="ld-solid-panel grid gap-3 rounded-[20px] p-4 sm:grid-cols-[minmax(0,1fr)_auto]"
+                    >
+                      <div className="min-w-0">
+                        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-white/42">
                           {event.status.replace(/_/g, " ")}
                         </p>
-                        <p className="mt-1 text-base font-semibold text-slate-950">
+                        <p className="mt-1 truncate text-sm font-semibold text-white">
                           {event.sourceName || "Unknown source"}
                         </p>
-                        <p className="mt-1 text-sm text-slate-500">
+                        <p className="mt-1 text-sm text-white/54">
                           {event.errorMessage || (event.leadName ? `Lead: ${event.leadName}` : "Processing update")}
                         </p>
                       </div>
-                      <p className="text-sm text-slate-500">{formatCrmDateTime(event.createdAt)}</p>
+                      <p className="text-sm text-white/48">{formatCrmDateTime(event.createdAt)}</p>
                     </div>
-                  </div>
-                ))
-              ) : (
-                <EmptyState
-                  title="No intake activity yet"
-                  description="Webhook deliveries and failed syncs will appear here once a source goes live."
-                />
-              )}
-            </div>
-            <div className="mt-4">
-              <Link
-                href="/admin/intake"
-                className="admin-button-secondary inline-flex h-11 items-center justify-center rounded-2xl px-5 text-sm font-medium"
-              >
-                Open intake log
-              </Link>
-            </div>
-            </section>
+                  ))
+                ) : (
+                  <EmptyState
+                    title="No intake activity yet"
+                    description="Webhook deliveries and failed syncs will appear here."
+                  />
+                )}
+              </div>
+            </AdminCollapsibleSection>
           ) : null}
         </div>
 
         <div className="space-y-6 xl:col-span-5">
           {showTargetProgress ? (
-            <section className="admin-surface rounded-[24px] p-5">
-            <SectionHeader
+            <AdminCollapsibleSection
               eyebrow="Target progress"
-              title="Sales target"
-              description="Keep the team focused on the remaining value needed this period."
-            />
-            {summary.target ? (
-              <div className="mt-4 space-y-3">
-                <MetricCard
-                  label={summary.target.name}
-                  value={formatMoney(summary.target.targetValue, summary.target.currency)}
-                  supporting={summary.target.periodLabel}
-                  tone="accent"
+              title="Sales objective"
+              description="Keep the team focused on the remaining value."
+            >
+              {summary.target ? (
+                <div className="grid gap-4">
+                  <CompactProgressRow
+                    label={summary.target.name}
+                    value={formatShortMoney(summary.target.targetValue, summary.target.currency)}
+                    meta={summary.target.periodLabel}
+                    percent={Math.min(summary.target.progressPercent, 100)}
+                    tone={summary.target.progressPercent >= 100 ? "success" : "warning"}
+                  />
+                  <CompactProgressRow
+                    label="Won so far"
+                    value={formatShortMoney(summary.target.wonValue, summary.target.currency)}
+                    meta={`${formatShortMoney(summary.target.remainingValue, summary.target.currency)} remaining`}
+                    percent={Math.min(summary.target.progressPercent, 100)}
+                    tone="success"
+                  />
+                </div>
+              ) : (
+                <EmptyState
+                  title="No active sales target"
+                  description="Set a monthly target in Settings."
                 />
-                <MetricCard
-                  label="Progress"
-                  value={`${summary.target.progressPercent}%`}
-                  supporting={`${formatMoney(summary.target.remainingValue, summary.target.currency)} remaining`}
-                  tone={summary.target.progressPercent >= 100 ? "positive" : "warning"}
-                />
-              </div>
-            ) : (
-              <EmptyState
-                title="No active sales target"
-                description="Set a monthly target in Settings to track progress on the dashboard."
-              />
-            )}
-            </section>
+              )}
+            </AdminCollapsibleSection>
           ) : null}
 
           {showTeamPerformance ? (
-            <section className="admin-surface rounded-[24px] p-5">
-            <SectionHeader
+            <AdminCollapsibleSection
               eyebrow="Rep performance"
-              title="Who needs attention"
-              description="Lead ownership, overdue follow-ups, and current results by rep."
-            />
-            <div className="mt-4 space-y-3">
-              {summary.repPerformance.length > 0 ? (
-                summary.repPerformance.map((row) => (
-                  <div key={row.id} className="admin-surface-muted rounded-2xl p-4">
-                    <div className="flex flex-wrap items-start justify-between gap-3">
-                      <div>
-                        <p className="text-base font-semibold text-slate-950">{row.label}</p>
-                        <p className="mt-1.5 text-sm text-slate-500">
+              title="Team scoreboard"
+              description="Ownership, overdue work, and closed value."
+            >
+              <div className="grid gap-3">
+                {summary.repPerformance.length > 0 ? (
+                  summary.repPerformance.slice(0, 5).map((row) => (
+                    <div
+                      key={row.id}
+                      className="ld-solid-panel grid gap-3 rounded-[20px] p-4 sm:grid-cols-[minmax(0,1fr)_auto]"
+                    >
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-semibold text-white">{row.label}</p>
+                        <p className="mt-1 text-sm text-white/52">
                           {row.assignedLeads} leads • {row.overdueFollowUps} overdue
                         </p>
                       </div>
-                      <div className="text-right">
-                        <p className="text-sm font-semibold text-slate-950">
-                          {formatMoney(row.wonValue, summary.target?.currency ?? "NGN")}
+                      <div className="text-left sm:text-right">
+                        <p className="text-sm font-semibold text-white">
+                          {formatShortMoney(row.wonValue, currency)}
                         </p>
-                        <p className="mt-1 text-sm text-slate-500">{row.conversionRate}% conversion</p>
+                        <p className="mt-1 text-xs text-white/48">{row.conversionRate}% conversion</p>
                       </div>
                     </div>
-                  </div>
-                ))
-              ) : (
-                <EmptyState
-                  title="No rep activity yet"
-                  description="Rep performance will appear once leads and owners are in place."
-                />
-              )}
-            </div>
-            </section>
+                  ))
+                ) : (
+                  <EmptyState
+                    title="No rep activity yet"
+                    description="Rep performance appears once owners are active."
+                  />
+                )}
+              </div>
+            </AdminCollapsibleSection>
           ) : null}
 
           {showAttentionSummary ? (
-            <section className="admin-surface rounded-[24px] p-5">
-            <SectionHeader
+            <AdminCollapsibleSection
               eyebrow="Attention"
-              title="Quick status"
-              description="A fast summary of what needs action right now."
-            />
-            <div className="mt-4 grid gap-3">
-              <MetricCard label="Due today" value={summary.dueTodayFollowUps} supporting="Follow-ups due before the day ends." />
-              <MetricCard label="Stuck leads" value={summary.stuckLeads} supporting="No recent movement in the last 7 days." tone={summary.stuckLeads > 0 ? "warning" : "positive"} />
-              <MetricCard label="Conversion rate" value={`${summary.conversionRate}%`} supporting={`${summary.wonLeads} won • ${summary.lostLeads} lost`} />
-            </div>
-            </section>
+              title="What needs action"
+              description="Follow-ups and stuck leads in one scan."
+            >
+              <div className="grid gap-3">
+                <CompactProgressRow
+                  label="Due today"
+                  value={summary.dueTodayFollowUps}
+                  meta="Follow-ups due before the day ends"
+                  percent={getPercent(summary.dueTodayFollowUps, Math.max(summary.dueTodayFollowUps + summary.overdueFollowUps, 1))}
+                  tone="info"
+                />
+                <CompactProgressRow
+                  label="Stuck leads"
+                  value={summary.stuckLeads}
+                  meta="No recent movement in 7 days"
+                  percent={getPercent(summary.stuckLeads, Math.max(summary.totalLeads, 1))}
+                  tone={summary.stuckLeads > 0 ? "warning" : "success"}
+                />
+                <CompactProgressRow
+                  label="Conversion rate"
+                  value={`${summary.conversionRate}%`}
+                  meta={`${summary.wonLeads} won • ${summary.lostLeads} lost`}
+                  percent={Math.min(summary.conversionRate, 100)}
+                  tone="success"
+                />
+              </div>
+            </AdminCollapsibleSection>
           ) : null}
         </div>
       </section>

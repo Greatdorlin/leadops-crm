@@ -4,6 +4,7 @@ import { getTableColumns } from "drizzle-orm";
 import {
   branches,
   companySettings,
+  crmUsers,
   customFieldOptions,
   customFields,
   departments,
@@ -105,8 +106,13 @@ test("phase 2C adds only additive nullable sales-command columns to leads", () =
   assert.equal(columns.includes("lostReason"), true);
   assert.equal(columns.includes("nextFollowUpAt"), true);
   assert.equal(columns.includes("archivedAt"), true);
-  assert.equal(columns.includes("primaryGoal"), true);
-  assert.equal(columns.includes("reportToken"), true);
+  assert.equal(columns.includes("country"), true);
+  assert.equal(columns.includes("region"), true);
+  assert.equal(columns.includes("city"), true);
+  assert.equal(columns.includes("address"), true);
+  assert.equal(columns.includes("postalCode"), true);
+  assert.equal(columns.includes("primaryGoal"), false);
+  assert.equal(columns.includes("reportToken"), false);
 });
 
 test("default stage and source rows match the phase 2C schema foundation", () => {
@@ -292,4 +298,8 @@ test("premium UI pass adds additive company settings storage for runtime customi
     "createdAt",
     "updatedAt",
   ]);
+});
+
+test("phase 1 schema slice adds crm user avatar support", () => {
+  assert.equal(Object.keys(getTableColumns(crmUsers)).includes("avatarUrl"), true);
 });

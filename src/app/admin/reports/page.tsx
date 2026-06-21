@@ -90,10 +90,8 @@ export default async function AdminReportsPage() {
   const personalRow =
     teamRows.find((row) => row.email.toLowerCase() === session.user?.email?.toLowerCase()) ?? null;
   const reportSummary = buildAdminReportSummary(leads);
-  const converted = leads.filter((lead) => lead.crmStatus === "converted").length;
-  const progressing = leads.filter((lead) =>
-    ["qualified", "consultation_booked", "application_started", "documents_pending", "payment_pending", "converted"].includes(lead.crmStatus),
-  ).length;
+  const converted = leads.filter((lead) => Boolean(lead.wonAt)).length;
+  const progressing = leads.filter((lead) => Boolean(lead.stageId) || Boolean(lead.wonAt)).length;
   const highIntentLeads = reportSummary.highIntentLeads;
   const salesReportSummary = buildSalesDashboardSummary({
     leads,

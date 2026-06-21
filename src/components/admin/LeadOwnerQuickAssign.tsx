@@ -2,20 +2,20 @@
 
 import { startTransition, useState } from "react";
 import { useRouter } from "next/navigation";
-import type { CrmStatus, LeadPriority } from "@/lib/crm/types";
+import type { LeadPriority } from "@/lib/crm/types";
 import { AdminSelect } from "./AdminSelect";
 
 export function LeadOwnerQuickAssign({
   leadId,
   initialAssignedTo,
-  crmStatus,
+  stage,
   priority,
   assigneeOptions,
   variant = "stacked",
 }: {
   leadId: string;
   initialAssignedTo: string | null;
-  crmStatus: CrmStatus;
+  stage: string;
   priority: LeadPriority;
   assigneeOptions: Array<{ label: string; value: string }>;
   variant?: "stacked" | "compact";
@@ -36,7 +36,7 @@ export function LeadOwnerQuickAssign({
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          crmStatus,
+          stage,
           priority,
           assignedTo: nextAssignedTo || null,
         }),

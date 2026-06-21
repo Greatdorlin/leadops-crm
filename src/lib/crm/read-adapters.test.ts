@@ -9,7 +9,15 @@ import {
 
 test("dual-read stage helper prefers normalized stage over legacy fallback", () => {
   const display = resolveLeadStageDisplay(
-    { crmStatus: "converted", source: "manual_entry", assignedTo: null, stageId: "stage-1" },
+    {
+      source: "manual_entry",
+      assignedTo: null,
+      wonAt: null,
+      lostAt: null,
+      nextFollowUpAt: null,
+      lastActivityAt: "2026-06-18T00:00:00.000Z",
+      stageId: "stage-1",
+    },
     { id: "stage-1", key: "qualified", name: "Qualified", color: "#7c3aed" },
   );
 
@@ -19,7 +27,15 @@ test("dual-read stage helper prefers normalized stage over legacy fallback", () 
 
 test("dual-read source helper prefers normalized source over legacy fallback", () => {
   const display = resolveLeadSourceDisplay(
-    { crmStatus: "new", source: "website_form", assignedTo: null, sourceId: "source-1" },
+    {
+      source: "website_form",
+      assignedTo: null,
+      wonAt: null,
+      lostAt: null,
+      nextFollowUpAt: null,
+      lastActivityAt: "2026-06-18T00:00:00.000Z",
+      sourceId: "source-1",
+    },
     { id: "source-1", key: "referral", name: "Referral", type: "referral", color: "#16a34a" },
   );
 

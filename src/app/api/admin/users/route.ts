@@ -10,11 +10,27 @@ import {
 import { canManageUsers } from "@/lib/crm/authz";
 import { leadStore } from "@/lib/storage";
 
+const avatarImageSchema = z
+  .string()
+  .trim()
+  .refine((value) => {
+    if (!value) {
+      return true;
+    }
+
+    if (/^https?:\/\//i.test(value)) {
+      return true;
+    }
+
+    return /^data:image\/(png|jpe?g|webp|gif);base64,/i.test(value) && value.length <= 2_900_000;
+  }, "Profile photo must be a valid image under 2MB.");
+
 const crmUserSchema = z.object({
   email: z.string().email(),
   fullName: z.string().trim().min(1, "Full name is required."),
   accessLevel: z.enum(ADMIN_ACCESS_LEVELS),
   isActive: z.boolean().optional(),
+  avatarUrl: avatarImageSchema.optional(),
 });
 
 export async function POST(request: Request) {
@@ -59,6 +75,7 @@ export async function POST(request: Request) {
       lockedAsMaster ? "master_admin" : parsed.data.accessLevel,
     ),
     isActive: lockedAsMaster ? true : parsed.data.isActive ?? true,
+    avatarUrl: parsed.data.avatarUrl?.trim() || null,
   });
 
   return NextResponse.json({ user });

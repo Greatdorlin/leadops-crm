@@ -111,15 +111,9 @@ The goal of this pass was:
 
 These still reference legacy field names or old category values because they validate compatibility mapping. They are not customer-facing.
 
-### Docs For Legacy Migration — allowed, now clearly marked
+### Docs For Legacy Migration — removed from normal docs
 
-- `docs/HANDOVER.md`
-- `docs/AD_INTEGRATIONS_SETUP.md`
-- `docs/REPORT_KNOWLEDGE_MAP.md`
-
-Each now starts with:
-
-`Internal legacy compatibility only. Not part of the Leads Desk customer-facing product.`
+The old FlyConnect handover, ad-integration, and report-knowledge documents were removed from the normal docs tree instead of being carried forward as client/operator documentation.
 
 ### Dead Or Neutralized
 
@@ -167,19 +161,26 @@ These routes are no longer product entry points.
 
 These files were safe to remove after the legacy public assessment/report component tree was proven orphaned behind redirects.
 
+## Current Release Pass Update
+
+- Removed old FlyConnect reference docs so they no longer appear as normal operator/client documentation.
+- Replaced old-brand production checklist wording with neutral inherited-brand wording.
+- Removed legacy category selection from the normal manual lead capture UI.
+- Replaced Nigeria-only region selection in normal lead capture with global location fields:
+  - country
+  - State/Province/Region
+  - city
+  - address
+  - postal code
+
 ## Remaining Blockers
 
-1. Legacy public assessment APIs still exist under `src/app/api/assessment/**`.
-   - They are no longer linked from public routes, but they still exist for compatibility.
-2. Legacy storage field names remain in persistence and mapping layers:
-   - `primaryGoal`
-   - `readinessLevel`
-   - `topPathwayTitle`
-   - `reportToken`
-   - `publicReport`
-3. A legacy TikTok webhook header alias still references FlyConnect internally:
-   - `x-flyconnect-webhook-secret`
-   - this is not surfaced in active customer UI, but it should be cleaned in a later compatibility pass
+1. Internal type aliases still use compatibility names such as `PrimaryGoal` while old data contracts are being retired.
+   - These are not shown as normal customer-facing labels.
+2. Some internal source constants still include `pathway_finder` for historic rows.
+   - Customer-facing labels resolve this as `Website intake`.
+3. Internal migration/planning docs still mention legacy names where they explain removal history or compatibility constraints.
+   - These are not client/operator setup docs.
 
 ## Why Remaining Legacy Items Are Safe For Release
 

@@ -18,8 +18,9 @@ type DuplicateLeadCandidateRow = {
   createdAt: string;
   updatedAt: string;
   lastActivityAt: string;
-  completionStatus: "incomplete" | "complete";
-  crmStatus: string;
+  stageId: string | null;
+  wonAt: string | null;
+  lostAt: string | null;
   priority: string;
   assignedTo: string | null;
   noteCount: number;
@@ -40,8 +41,9 @@ function normalizeDuplicateRow(row: Record<string, unknown>): DuplicateLeadCandi
     createdAt: String(row.createdAt),
     updatedAt: String(row.updatedAt),
     lastActivityAt: String(row.lastActivityAt),
-    completionStatus: row.completionStatus === "complete" ? "complete" : "incomplete",
-    crmStatus: String(row.crmStatus ?? "new"),
+    stageId: typeof row.stageId === "string" ? row.stageId : null,
+    wonAt: typeof row.wonAt === "string" ? row.wonAt : null,
+    lostAt: typeof row.lostAt === "string" ? row.lostAt : null,
     priority: String(row.priority ?? "medium"),
     assignedTo: typeof row.assignedTo === "string" ? row.assignedTo : null,
     noteCount: toNumber(row.noteCount),
@@ -57,8 +59,9 @@ function leadScore(row: DuplicateLeadCandidateRow) {
     row.taskCount * 120 +
     row.noteCount * 80 +
     row.eventCount * 10 +
-    (row.completionStatus === "complete" ? 150 : 0) +
-    (row.crmStatus !== "new" ? 40 : 0)
+    (row.stageId ? 80 : 0) +
+    (row.wonAt ? 120 : 0) +
+    (row.lostAt ? 20 : 0)
   );
 }
 
@@ -121,8 +124,9 @@ async function getExactDuplicateRows() {
         l.created_at as "createdAt",
         l.updated_at as "updatedAt",
         l.last_activity_at as "lastActivityAt",
-        l.completion_status as "completionStatus",
-        l.crm_status as "crmStatus",
+        l.stage_id as "stageId",
+        l.won_at as "wonAt",
+        l.lost_at as "lostAt",
         l.priority,
         l.assigned_to as "assignedTo",
         (select count(*)::int from lead_notes n where n.lead_id = l.id) as "noteCount",

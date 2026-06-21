@@ -50,45 +50,38 @@ export function LeadsDeskWordmark({
   });
 
   return (
-    <div className={cn("inline-flex items-center gap-3", toneClass.text, className)}>
+    <div className={cn("inline-flex min-w-0 items-center gap-3", toneClass.text, className)}>
       {resolvedLogoUrl ? (
-        <span className="inline-flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-[18px] border border-white/10 bg-white/90 shadow-[0_14px_30px_rgba(15,23,42,0.12)]">
+        <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-[16px] border border-white/10 bg-white/90 shadow-[0_14px_30px_rgba(15,23,42,0.12)]">
           <Image
             src={resolvedLogoUrl}
             alt={`${companyName} logo`}
-            width={44}
-            height={44}
+            width={40}
+            height={40}
             className="h-full w-full object-cover"
             unoptimized
           />
         </span>
       ) : (
-        <span
-          className={cn(
-            "inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-[18px] text-sm font-black tracking-[0.18em]",
-            toneClass.badge,
-          )}
-        >
-          {companyName
-            .split(/\s+/)
-            .map((part) => part.charAt(0).toUpperCase())
-            .join("")
-            .slice(0, 2) || "LD"}
+        <span className="ld-brand-mark" aria-hidden="true">
+          <span />
         </span>
       )}
       {variant === "mark" ? null : (
         <span className="min-w-0">
-          <span className="block font-[family:var(--font-heading)] text-[1.45rem] font-bold leading-none tracking-[-0.05em]">
+          <span className="block truncate whitespace-nowrap font-[family:var(--font-heading)] text-[1.18rem] font-bold leading-none tracking-[-0.04em]">
             {companyName}
           </span>
-          <span
-            className={cn(
-              "mt-1 block text-[10px] font-semibold uppercase tracking-[0.2em]",
-              toneClass.helper,
-            )}
-          >
-            {subtitle}
-          </span>
+          {subtitle ? (
+            <span
+              className={cn(
+                "mt-1 block truncate whitespace-nowrap text-[9px] font-semibold uppercase tracking-[0.16em]",
+                toneClass.helper,
+              )}
+            >
+              {subtitle}
+            </span>
+          ) : null}
         </span>
       )}
     </div>

@@ -2,11 +2,12 @@ import { NextResponse } from "next/server";
 import { normalizeAdminEmail } from "@/lib/admin-access";
 import { getAdminRequestContext } from "@/lib/admin";
 import { canCreateLeadRecords } from "@/lib/admin-permissions";
+import { CRM_STATUSES, LEAD_PRIORITIES } from "@/lib/crm/constants";
 import { listCustomFields } from "@/lib/crm/custom-fields-admin";
 import { upsertLeadCustomFieldValues } from "@/lib/crm/custom-field-values-store";
 import { validateCustomFieldValues } from "@/lib/crm/custom-field-values";
 import { normalizeAdminLeadCapturePayload } from "@/lib/crm/form-contracts";
-import { mapAdminCaptureInputToLegacyLeadPayload, mapAdminInputToSalesCommandUpdate } from "@/lib/crm/input-mapping";
+import { mapAdminInputToSalesCommandUpdate } from "@/lib/crm/input-mapping";
 import {
   notifyFollowUpDue,
   notifyFollowUpOverdue,
@@ -15,7 +16,6 @@ import {
   notifyNewLeadAssigned,
 } from "@/lib/crm/notification-events";
 import {
-  getLeadFollowUpStatus,
   resolveCrmUserIdByEmail,
   resolveLeadSourceIdByLegacySource,
   resolveLeadStageIdByLegacyStatus,
@@ -25,6 +25,33 @@ import { leadStore } from "@/lib/storage";
 
 function normalizeEmail(value?: string | null) {
   return value ? normalizeAdminEmail(value) : "";
+}
+
+function resolveFollowUpState(input: {
+  nextFollowUpAt?: string | null;
+  wonAt?: string | null;
+  lostAt?: string | null;
+}) {
+  if (input.wonAt || input.lostAt || !input.nextFollowUpAt) {
+    return "no_follow_up" as const;
+  }
+
+  const dueAt = new Date(input.nextFollowUpAt);
+  const now = new Date();
+  const startOfToday = new Date(now);
+  startOfToday.setHours(0, 0, 0, 0);
+  const endOfToday = new Date(now);
+  endOfToday.setHours(23, 59, 59, 999);
+
+  if (dueAt < startOfToday) {
+    return "overdue" as const;
+  }
+
+  if (dueAt <= endOfToday) {
+    return "due_today" as const;
+  }
+
+  return "upcoming" as const;
 }
 
 export async function POST(request: Request) {
@@ -63,25 +90,56 @@ export async function POST(request: Request) {
     );
   }
 
-  const legacyPayload = mapAdminCaptureInputToLegacyLeadPayload(parsed.data);
+  const stage =
+    typeof parsed.data.stage === "string" &&
+    CRM_STATUSES.includes(parsed.data.stage as (typeof CRM_STATUSES)[number])
+      ? (parsed.data.stage as (typeof CRM_STATUSES)[number])
+      : "new";
+  const priority =
+    typeof parsed.data.priority === "string" &&
+    LEAD_PRIORITIES.includes(parsed.data.priority as (typeof LEAD_PRIORITIES)[number])
+      ? (parsed.data.priority as (typeof LEAD_PRIORITIES)[number])
+      : "medium";
 
   const assignedTo =
     context.accessLevel === "sales_rep"
       ? context.session.user?.email ?? null
-      : legacyPayload.assignedTo ?? null;
+      : parsed.data.assignedTo ?? null;
+
+  const stageId = await resolveLeadStageIdByLegacyStatus(stage);
+  const sourceId = await resolveLeadSourceIdByLegacySource(parsed.data.source);
+  const assignedUserId = await resolveCrmUserIdByEmail(assignedTo);
+  const nowIso = new Date().toISOString();
+  const wonAt = stage === "converted" ? nowIso : null;
+  const lostAt = stage === "lost" ? nowIso : null;
 
   const result = await leadStore.upsertExternalLead({
-    source: legacyPayload.source,
-    sourceDetail: legacyPayload.sourceDetail ?? "manual_entry",
-    firstName: legacyPayload.firstName,
-    lastName: legacyPayload.lastName,
-    email: legacyPayload.email,
-    whatsappNumber: legacyPayload.whatsappNumber,
-    state: legacyPayload.state,
-    primaryGoal: legacyPayload.primaryGoal,
-    crmStatus: legacyPayload.crmStatus,
-    priority: legacyPayload.priority,
+    source: parsed.data.source,
+    sourceId,
+    stageId,
+    sourceDetail: parsed.data.sourceDetail ?? "manual_entry",
+    firstName: parsed.data.firstName,
+    lastName: parsed.data.lastName ?? null,
+    email: parsed.data.email ?? null,
+    whatsappNumber: parsed.data.whatsappNumber ?? null,
+    state: parsed.data.region ?? parsed.data.state ?? null,
+    country: parsed.data.country ?? null,
+    region: parsed.data.region ?? null,
+    city: parsed.data.city ?? null,
+    address: parsed.data.address ?? null,
+    postalCode: parsed.data.postalCode ?? null,
+    companyName: parsed.data.companyName ?? null,
+    estimatedValue: parsed.data.estimatedValue ?? null,
+    closeProbability: parsed.data.closeProbability ?? null,
+    expectedCloseDate: parsed.data.expectedCloseDate ?? null,
+    nextFollowUpAt: parsed.data.nextFollowUpAt ?? null,
+    wonValue: parsed.data.wonValue ?? null,
+    lostReason: parsed.data.lostReason ?? null,
+    assignedUserId,
     assignedTo,
+    priority,
+    wonAt,
+    lostAt,
   });
 
   let lead = result.lead;
@@ -100,21 +158,10 @@ export async function POST(request: Request) {
     }
   }
 
-  if (legacyPayload.crmStatus !== lead.crmStatus) {
-    const updated = await leadStore.updateCrmStatus(
-      lead.id,
-      legacyPayload.crmStatus,
-      context.session.user?.email ?? null,
-    );
-    if (updated) {
-      lead = updated;
-    }
-  }
-
-  if (legacyPayload.priority !== lead.priority) {
+  if (priority !== lead.priority) {
     const updated = await leadStore.updateLeadPriority(
       lead.id,
-      legacyPayload.priority,
+      priority,
       context.session.user?.email ?? null,
     );
     if (updated) {
@@ -122,10 +169,6 @@ export async function POST(request: Request) {
     }
   }
 
-  const assignedUserId = await resolveCrmUserIdByEmail(assignedTo);
-  const stageId = await resolveLeadStageIdByLegacyStatus(legacyPayload.crmStatus);
-  const sourceId = await resolveLeadSourceIdByLegacySource(legacyPayload.source);
-  const nowIso = new Date().toISOString();
   const leadName = `${lead.firstName || "Lead"} ${lead.lastName || ""}`.trim();
 
   await updateLeadSalesCommandFields(
@@ -134,8 +177,8 @@ export async function POST(request: Request) {
       ...mapAdminInputToSalesCommandUpdate(parsed.data, {
         assignedUserId,
         stageId,
-        wonAt: legacyPayload.crmStatus === "converted" ? nowIso : undefined,
-        lostAt: legacyPayload.crmStatus === "lost" ? nowIso : undefined,
+        wonAt: wonAt ?? undefined,
+        lostAt: lostAt ?? undefined,
       }),
       sourceId,
     },
@@ -147,11 +190,10 @@ export async function POST(request: Request) {
     leadName,
   });
 
-  const followUpStatus = getLeadFollowUpStatus({
-    crmStatus: legacyPayload.crmStatus,
+  const followUpStatus = resolveFollowUpState({
     nextFollowUpAt: parsed.data.nextFollowUpAt ?? null,
-    wonAt: legacyPayload.crmStatus === "converted" ? nowIso : null,
-    lostAt: legacyPayload.crmStatus === "lost" ? nowIso : null,
+    wonAt,
+    lostAt,
   });
   const dueLabel = parsed.data.nextFollowUpAt ? new Date(parsed.data.nextFollowUpAt).toLocaleString() : "";
   if (followUpStatus === "due_today") {
@@ -170,13 +212,13 @@ export async function POST(request: Request) {
     });
   }
 
-  if (legacyPayload.crmStatus === "converted") {
+  if (stage === "converted") {
     await notifyLeadMarkedWon({
       recipientUserId: assignedUserId,
       leadId: lead.id,
       leadName,
     });
-  } else if (legacyPayload.crmStatus === "lost") {
+  } else if (stage === "lost") {
     await notifyLeadMarkedLost({
       recipientUserId: assignedUserId,
       leadId: lead.id,

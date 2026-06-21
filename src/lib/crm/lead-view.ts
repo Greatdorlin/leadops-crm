@@ -1,4 +1,3 @@
-import { normalizeGeneratedReport } from "@/lib/pathway-engine/report-generator";
 import { formatLeadAssigneeSummary } from "@/lib/crm/lead-assignees";
 import { buildLeadAttributionSummary } from "@/lib/crm/attribution";
 import {
@@ -10,20 +9,12 @@ import {
 } from "@/lib/crm/read-adapters";
 import {
   crmLabelize,
-  formatLeadCategoryLabel,
   formatLeadInterestLabel,
-  formatLeadQualificationLabel,
   formatLeadSourceLabel,
   formatLeadStateLabel,
 } from "@/lib/crm/labels";
-import { getLeadFollowUpStatus, type LeadFollowUpState } from "@/lib/crm/sales-command";
-import type {
-  AssessmentAnswers,
-  CrmStatus,
-  LeadPriority,
-  LeadRecord,
-  LeadSource,
-} from "@/lib/crm/types";
+import type { LeadFollowUpState } from "@/lib/crm/sales-command";
+import type { LeadPriority, LeadRecord, LeadSource } from "@/lib/crm/types";
 
 export interface AdminLeadListItem {
   id: string;
@@ -34,12 +25,12 @@ export interface AdminLeadListItem {
   source: LeadSource | null;
   sourceLabel: string;
   sourceDisplay: LeadSourceDisplay;
-  stage: CrmStatus;
+  stage: string | null;
   stageLabel: string;
   stageDisplay: LeadStageDisplay;
   priority: LeadPriority;
   priorityLabel: string;
-  completionStatus: LeadRecord["completionStatus"];
+  completionStatus: "active";
   completionLabel: string;
   categoryLabel: string;
   fitSignalLabel: string;
@@ -108,7 +99,12 @@ export interface AdminLeadDetailView extends AdminLeadListItem {
     email: string;
     whatsappNumber: string;
     state: string | null;
-    primaryGoal: LeadRecord["primaryGoal"];
+    country: string | null;
+    region: string | null;
+    city: string | null;
+    address: string | null;
+    postalCode: string | null;
+    companyName: string | null;
   };
 }
 
@@ -172,34 +168,6 @@ function buildLeadInitials(lead: Pick<LeadRecord, "firstName" | "lastName">) {
   );
 }
 
-function formatAnswerValue(value: boolean | string | null, key?: string) {
-  if (typeof value === "boolean") {
-    return value ? "Yes" : "No";
-  }
-
-  if (!value) {
-    return "Not provided";
-  }
-
-  if (key === "stateOfResidence") {
-    return formatLeadStateLabel(value);
-  }
-
-  return crmLabelize(value);
-}
-
-function buildBudgetStatusLabel(answers: AssessmentAnswers) {
-  return formatAnswerValue(answers.fundingReadiness || answers.studyFundingReadiness || null);
-}
-
-function buildFitSignalLabel(lead: LeadRecord) {
-  if (lead.readinessLevel) {
-    return formatLeadQualificationLabel(lead.readinessLevel);
-  }
-
-  return formatAnswerValue(lead.answers.assessmentReadiness ?? null);
-}
-
 function buildAssignedUserName(lead: LeadRecord) {
   const summary = formatLeadAssigneeSummary(lead.assignedToList);
   if (!summary.primary) {
@@ -211,57 +179,155 @@ function buildAssignedUserName(lead: LeadRecord) {
     : summary.primary;
 }
 
-function buildKeyFacts(lead: LeadRecord) {
-  const rows: Array<[string, boolean | string | null]> = [
-    ["State", lead.state ? formatLeadStateLabel(lead.state) : null],
-    ["Destination", lead.answers.destinationInterest],
-    ["Category", lead.primaryGoal ? formatLeadCategoryLabel(lead.primaryGoal) : null],
-    [
-      "Highest qualification",
-      lead.answers.highestQualification || lead.answers.highestEducation || null,
-    ],
-    ["Grade", lead.answers.degreeClass ?? null],
-    ["Interest area", lead.answers.desiredCourse || lead.answers.targetField || null],
-    ["Budget status", lead.answers.fundingReadiness || lead.answers.studyFundingReadiness],
-    ["Preferred timeline", lead.answers.targetIntake || lead.answers.timeline || null],
-    ["Fit signal", lead.answers.assessmentReadiness ?? null],
-    ["Needs human support", lead.answers.wantsHumanSupport],
-    ["Document status", lead.answers.passportStatus],
+function formatDisplayValue(value: unknown, emptyLabel = "Not provided") {
+  if (typeof value === "boolean") {
+    return value ? "Yes" : "No";
+  }
+
+  if (typeof value === "number") {
+    return `${value}`;
+  }
+
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    return trimmed.length > 0 ? trimmed : emptyLabel;
+  }
+
+  if (value instanceof Date) {
+    return value.toISOString();
+  }
+
+  return emptyLabel;
+}
+
+function resolveFollowUpState(lead: Pick<LeadRecord, "wonAt" | "lostAt" | "nextFollowUpAt">): LeadFollowUpState {
+  if (lead.wonAt || lead.lostAt) {
+    return "no_follow_up";
+  }
+
+  if (!lead.nextFollowUpAt) {
+    return "no_follow_up";
+  }
+
+  const nextFollowUp = new Date(lead.nextFollowUpAt);
+  const now = new Date();
+  const startOfToday = new Date(now);
+  startOfToday.setHours(0, 0, 0, 0);
+  const endOfToday = new Date(now);
+  endOfToday.setHours(23, 59, 59, 999);
+
+  if (nextFollowUp < startOfToday) {
+    return "overdue";
+  }
+
+  if (nextFollowUp <= endOfToday) {
+    return "due_today";
+  }
+
+  return "upcoming";
+}
+
+function buildCategoryLabel(customFields: LeadCustomFieldDisplayValue[]) {
+  return (
+    customFields.find((field) => field.key === "category" || field.label.toLowerCase() === "category")
+      ?.displayValue ?? "Not set"
+  );
+}
+
+function buildInterestLabel(
+  lead: Pick<LeadRecord, "sourceDetail" | "campaignLabel" | "companyName">,
+  customFields: LeadCustomFieldDisplayValue[],
+) {
+  return (
+    customFields.find((field) =>
+      ["interest", "interest_label", "lead_interest"].includes(field.key.toLowerCase()) ||
+      field.label.toLowerCase() === "interest"
+    )?.displayValue ??
+    formatLeadInterestLabel(lead)
+  );
+}
+
+function mapStageKeyToBadgeStatus(stageKey?: string | null) {
+  switch (stageKey) {
+    case "won":
+      return "converted";
+    case "lost":
+      return "lost";
+    case "qualified":
+      return "qualified";
+    case "proposal":
+      return "qualified";
+    case "follow_up":
+      return "contacted";
+    case "contacted":
+      return "contacted";
+    case "archived":
+      return "closed";
+    case "new":
+    default:
+      return "new";
+  }
+}
+
+function buildFitSignalLabel(lead: LeadRecord, customFields: LeadCustomFieldDisplayValue[]) {
+  const customValue = customFields.find((field) =>
+    ["fit_signal", "fitsignal"].includes(field.key.toLowerCase()) ||
+    field.label.toLowerCase() === "fit signal"
+  )?.displayValue;
+
+  if (customValue) {
+    return customValue;
+  }
+
+  if (lead.closeProbability !== null && lead.closeProbability !== undefined) {
+    return `${lead.closeProbability}% likely`;
+  }
+
+  if (lead.wonAt) {
+    return "Won";
+  }
+
+  if (lead.lostAt) {
+    return "Lost";
+  }
+
+  return "Not scored";
+}
+
+function buildBudgetStatusLabel(customFields: LeadCustomFieldDisplayValue[]) {
+  return (
+    customFields.find((field) =>
+      ["budget_status", "budget"].includes(field.key.toLowerCase()) ||
+      field.label.toLowerCase() === "budget status"
+    )?.displayValue ?? "Not provided"
+  );
+}
+
+function buildKeyFacts(lead: LeadRecord, listItem: AdminLeadListItem) {
+  const rows: Array<[string, unknown]> = [
+    ["Company", lead.companyName],
+    ["Source", listItem.sourceLabel],
+    ["Stage", listItem.stageLabel],
+    ["State/Region", lead.region ?? lead.state],
+    ["Country", lead.country],
+    ["City", lead.city],
+    ["Pipeline value", lead.estimatedValue],
+    ["Expected close", lead.expectedCloseDate],
   ];
 
   return rows.map(([label, value]) => ({
     label,
-    value: formatAnswerValue(value ?? null),
+    value: formatDisplayValue(value),
   }));
 }
 
-function buildIntakeAnswers(answers: AssessmentAnswers) {
-  return Object.entries(answers)
-    .filter(([, value]) => {
-      return typeof value === "boolean" || (typeof value === "string" && value.length > 0) || value !== null;
-    })
-    .map(([key, value]) => ({
-      label: crmLabelize(key),
-      value: formatAnswerValue(value, key),
+function buildIntakeAnswers(customFields: LeadCustomFieldDisplayValue[]) {
+  return customFields
+    .filter((field) => field.showInDetails && field.displayValue)
+    .map((field) => ({
+      label: field.label,
+      value: field.displayValue || "Not provided",
     }));
-}
-
-function buildReportSummary(lead: LeadRecord): AdminLeadReportSummaryView | null {
-  if (!lead.report) {
-    return null;
-  }
-
-  const report = normalizeGeneratedReport(lead.report, lead.answers);
-
-  return {
-    summaryDiagnosis: report.summaryDiagnosis,
-    fitSignalLabel: formatLeadQualificationLabel(report.readinessLevel),
-    fitSignalSummary: report.readinessSummary,
-    firstAction: report.firstPracticalStep,
-    recommendedOfferTitle: report.recommendedOffer.title,
-    recommendedOfferDescription: report.recommendedOffer.description,
-    recommendedOfferReason: report.recommendedOfferReason,
-  };
 }
 
 export function buildAdminLeadListItem(
@@ -290,16 +356,16 @@ export function buildAdminLeadListItem(
     source: lead.source,
     sourceLabel: readModel.source.label || formatLeadSourceLabel(lead.source),
     sourceDisplay: readModel.source,
-    stage: lead.crmStatus,
-    stageLabel: readModel.stage.label || crmLabelize(lead.crmStatus),
+    stage: mapStageKeyToBadgeStatus(readModel.stage.key),
+    stageLabel: readModel.stage.label || "New",
     stageDisplay: readModel.stage,
     priority: lead.priority,
     priorityLabel: crmLabelize(lead.priority),
-    completionStatus: lead.completionStatus,
-    completionLabel: lead.completionStatus === "complete" ? "Profile complete" : "Profile in progress",
-    categoryLabel: lead.primaryGoal ? formatLeadCategoryLabel(lead.primaryGoal) : "Not set",
-    fitSignalLabel: buildFitSignalLabel(lead),
-    interestLabel: formatLeadInterestLabel(lead),
+    completionStatus: "active",
+    completionLabel: lead.archivedAt ? "Archived" : "Active lead",
+    categoryLabel: buildCategoryLabel(readModel.customFields),
+    fitSignalLabel: buildFitSignalLabel(lead, readModel.customFields),
+    interestLabel: buildInterestLabel(lead, readModel.customFields),
     assignedUserName,
     assignedTo: lead.assignedTo,
     assignedToList: lead.assignedToList,
@@ -308,13 +374,12 @@ export function buildAdminLeadListItem(
       label: assignedUserName,
     },
     customFieldDisplayValues: readModel.customFields,
-    stateLabel: lead.state ? formatLeadStateLabel(lead.state) : "State not captured yet",
-    stateRaw: lead.state,
+    stateLabel: lead.region || lead.state ? formatLeadStateLabel(lead.region ?? lead.state) : "Location not captured yet",
+    stateRaw: lead.region ?? lead.state,
     createdAt: lead.createdAt,
     lastActivityAt: lead.lastActivityAt,
     nextFollowUpAt: options?.nextFollowUpAt ?? lead.nextFollowUpAt ?? null,
-    nextFollowUpStatus: getLeadFollowUpStatus({
-      crmStatus: lead.crmStatus,
+    nextFollowUpStatus: resolveFollowUpState({
       wonAt: lead.wonAt ?? null,
       lostAt: lead.lostAt ?? null,
       nextFollowUpAt: options?.nextFollowUpAt ?? lead.nextFollowUpAt ?? null,
@@ -365,14 +430,17 @@ export function buildAdminLeadDetailView(
     leadName: buildLeadDisplayName(lead),
     routeLine,
     summaryLabel: listItem.interestLabel,
-    budgetStatusLabel: buildBudgetStatusLabel(lead.answers),
-    completedAtLabel: lead.completedAt ? lead.completedAt : "",
-    keyFacts: buildKeyFacts(lead),
-    intakeAnswers: buildIntakeAnswers(lead.answers),
-    reportSummary: buildReportSummary(lead),
+    budgetStatusLabel: buildBudgetStatusLabel(listItem.customFieldDisplayValues),
+    completedAtLabel: lead.updatedAt,
+    keyFacts: buildKeyFacts(lead, listItem),
+    intakeAnswers: buildIntakeAnswers(listItem.customFieldDisplayValues),
+    reportSummary: null,
     attributionDetails: ([
-      ["Route", attribution.routeLabel || attribution.routeId],
-      ["State", attribution.nigeriaState],
+      ["Source", listItem.sourceLabel],
+      ["Stage", listItem.stageLabel],
+      ["State/Region", lead.region ?? lead.state],
+      ["Country", lead.country],
+      ["City", lead.city],
       ["Form type", attribution.formType],
       ["Campaign", attribution.campaignId],
       ["Ad group", attribution.adGroupId],
@@ -380,18 +448,23 @@ export function buildAdminLeadDetailView(
       ["UTM source", attribution.utmSource],
       ["UTM campaign", attribution.utmCampaign],
       ["Landing page", attribution.landingPage],
-    ] as Array<[string, string | null]>).map(([label, value]) => ({
+    ] as Array<[string, string | null | number | undefined]>).map(([label, value]) => ({
       label,
-      value: value || "Not captured yet",
+      value: formatDisplayValue(value, "Not captured yet"),
     })),
-    marketingConsent: Boolean(lead.answers.marketingConsent),
+    marketingConsent: false,
     profile: {
       firstName: lead.firstName,
       lastName: lead.lastName,
       email: lead.email,
       whatsappNumber: lead.whatsappNumber,
       state: lead.state,
-      primaryGoal: lead.primaryGoal,
+      country: lead.country ?? null,
+      region: lead.region ?? null,
+      city: lead.city ?? null,
+      address: lead.address ?? null,
+      postalCode: lead.postalCode ?? null,
+      companyName: lead.companyName ?? null,
     },
   };
 }

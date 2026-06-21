@@ -36,6 +36,8 @@ const minuteOptions = Array.from({ length: 60 }, (_, index) => {
 });
 
 const periodOptions = ["AM", "PM"] as const;
+const labelClass = "text-xs font-semibold uppercase tracking-[0.16em] text-white/54";
+const subtleTextClass = "text-xs text-white/48";
 
 function getDayOptions(year: string, month: string) {
   const maxDays =
@@ -67,6 +69,21 @@ function buildDueAtValue(
     normalizedHour,
     Number(minute),
   ).toISOString();
+}
+
+function splitDateForControls(date: Date) {
+  const hour24 = date.getHours();
+  const period = hour24 >= 12 ? "PM" : "AM";
+  const hour12 = hour24 % 12 || 12;
+
+  return {
+    month: String(date.getMonth() + 1).padStart(2, "0"),
+    day: String(date.getDate()).padStart(2, "0"),
+    year: String(date.getFullYear()),
+    hour: String(hour12).padStart(2, "0"),
+    minute: String(date.getMinutes()).padStart(2, "0"),
+    period,
+  };
 }
 
 export function LeadTaskForm({
@@ -149,6 +166,21 @@ export function LeadTaskForm({
     setDueAt("");
   }
 
+  function applyQuickDueDate(offsetDays: number) {
+    const date = new Date();
+    date.setDate(date.getDate() + offsetDays);
+    date.setHours(offsetDays === 0 ? 16 : 10, 0, 0, 0);
+    const next = splitDateForControls(date);
+
+    setDueMonth(next.month);
+    setDueDay(next.day);
+    setDueYear(next.year);
+    setDueHour(next.hour);
+    setDueMinute(next.minute);
+    setDuePeriod(next.period);
+    setDueAt(buildDueAtValue(next.year, next.month, next.day, next.hour, next.minute, next.period));
+  }
+
   async function saveTask() {
     if (!selectedLeadId) {
       setMessage("Choose a lead before saving this task.");
@@ -202,7 +234,7 @@ export function LeadTaskForm({
       <div className="grid gap-3">
         {leadId ? null : (
           <label className="space-y-2">
-            <span className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Lead</span>
+            <span className={labelClass}>Lead</span>
             <AdminSelect
               value={selectedLeadId}
               onChange={(event) => setSelectedLeadId(event.target.value)}
@@ -218,7 +250,7 @@ export function LeadTaskForm({
           </label>
         )}
         <label className="space-y-2">
-          <span className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Task title</span>
+          <span className={labelClass}>Task title</span>
           <input
             type="text"
             value={title}
@@ -228,7 +260,7 @@ export function LeadTaskForm({
           />
         </label>
         <label className="space-y-2">
-          <span className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Task note</span>
+          <span className={labelClass}>Task note</span>
           <textarea
             value={description}
             onChange={(event) => setDescription(event.target.value)}
@@ -239,9 +271,33 @@ export function LeadTaskForm({
         </label>
         <div className="grid gap-3">
           <label className="space-y-2">
-            <span className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Due</span>
-            <div className="space-y-3 rounded-[24px] border border-slate-200/90 bg-[linear-gradient(180deg,rgba(248,251,255,0.96)_0%,rgba(255,252,247,0.92)_100%)] p-3">
-              <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-400">
+            <span className={labelClass}>Due</span>
+            <div className="space-y-3 rounded-[24px] border border-white/10 bg-white/[0.045] p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                {[
+                  { label: "Today", offset: 0 },
+                  { label: "Tomorrow", offset: 1 },
+                  { label: "Next week", offset: 7 },
+                ].map((option) => (
+                  <button
+                    key={option.label}
+                    type="button"
+                    onClick={() => applyQuickDueDate(option.offset)}
+                    className="ld-floating-control h-10 rounded-2xl px-3 text-xs font-semibold"
+                  >
+                    {option.label}
+                  </button>
+                ))}
+                <button
+                  type="button"
+                  onClick={clearDueDate}
+                  className="ld-floating-control h-10 rounded-2xl px-3 text-xs font-semibold"
+                >
+                  No follow-up
+                </button>
+              </div>
+
+              <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-white/50">
                 <CalendarDays className="h-3.5 w-3.5" />
                 Date
               </div>
@@ -281,7 +337,7 @@ export function LeadTaskForm({
                 </AdminSelect>
               </div>
 
-              <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-400">
+              <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-white/50">
                 <Clock3 className="h-3.5 w-3.5" />
                 Time
               </div>
@@ -321,15 +377,15 @@ export function LeadTaskForm({
                 </AdminSelect>
               </div>
 
-              <div className="flex items-center justify-between gap-3 border-t border-slate-200/80 pt-3">
-                <p className="text-xs text-slate-500">
-                  Optional. Leave blank if this task does not need a hard due time.
+              <div className="flex items-center justify-between gap-3 border-t border-white/10 pt-3">
+                <p className={subtleTextClass}>
+                  Optional. Use quick choices or set an exact due time.
                 </p>
                 {(dueMonth || dueDay || dueYear || dueHour || dueMinute || duePeriod) ? (
                   <button
                     type="button"
                     onClick={clearDueDate}
-                    className="text-xs font-semibold uppercase tracking-[0.14em] text-[#0b123f] transition hover:text-[#1f3486]"
+                    className="text-xs font-semibold uppercase tracking-[0.14em] text-cyan-100 transition hover:text-white"
                   >
                     Clear
                   </button>
@@ -338,7 +394,7 @@ export function LeadTaskForm({
             </div>
           </label>
           <label className="space-y-2">
-            <span className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Owner</span>
+            <span className={labelClass}>Owner</span>
             <AdminSelect
               value={assignedTo}
               onChange={(event) => setAssignedTo(event.target.value)}
@@ -354,8 +410,8 @@ export function LeadTaskForm({
           </label>
         </div>
       </div>
-      <div className="flex flex-col gap-3 border-t border-slate-200 pt-4 sm:flex-row sm:items-end sm:justify-between">
-        <p className="max-w-[18rem] text-sm leading-6 text-slate-500">
+      <div className="flex flex-col gap-3 border-t border-white/10 pt-4 sm:flex-row sm:items-end sm:justify-between">
+        <p className="max-w-[18rem] text-sm leading-6 text-white/54">
           Tasks stay linked to the lead record so handoffs and exports stay consistent.
         </p>
         <button
@@ -367,7 +423,7 @@ export function LeadTaskForm({
           {isSaving ? "Saving..." : "Create task"}
         </button>
       </div>
-      {message ? <p className="text-sm text-slate-600">{message}</p> : null}
+      {message ? <p className="text-sm text-white/68">{message}</p> : null}
     </div>
   );
 }

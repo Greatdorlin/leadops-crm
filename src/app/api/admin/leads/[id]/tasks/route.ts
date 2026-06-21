@@ -1,9 +1,16 @@
 import { NextResponse } from "next/server";
+import { z } from "zod";
 import { normalizeAdminEmail } from "@/lib/admin-access";
 import { getAdminRequestContext } from "@/lib/admin";
 import { canManageLeadRecord } from "@/lib/admin-permissions";
-import { leadTaskSchema } from "@/lib/pathway-engine/schemas";
 import { leadStore } from "@/lib/storage";
+
+const leadTaskSchema = z.object({
+  title: z.string().trim().min(2).max(160),
+  description: z.string().trim().max(2000).nullable().optional(),
+  dueAt: z.string().trim().nullable().optional(),
+  assignedTo: z.string().trim().email().nullable().optional(),
+});
 
 export async function POST(
   request: Request,

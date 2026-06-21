@@ -1,10 +1,11 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { formatAdminAccessLevelLabel } from "@/lib/crm/formatters";
 import type { AdminAccessLevel } from "@/lib/admin-permissions";
 import { AdminSelect } from "./AdminSelect";
+import { TeamAvatar } from "./TeamAvatar";
 
 export function TeamAccessForm({
   grantableAccessLevels,
@@ -16,12 +17,40 @@ export function TeamAccessForm({
     grantableAccessLevels[0] ??
     "sales_rep";
   const router = useRouter();
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
+  const [avatarUrl, setAvatarUrl] = useState("");
   const [accessLevel, setAccessLevel] = useState<AdminAccessLevel>(defaultAccessLevel);
   const [isActive, setIsActive] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState("");
+
+  function handleAvatarFile(file?: File | null) {
+    if (!file) {
+      return;
+    }
+
+    if (!file.type.startsWith("image/")) {
+      setMessage("Choose a PNG, JPG, WebP, or GIF image.");
+      return;
+    }
+
+    if (file.size > 2 * 1024 * 1024) {
+      setMessage("Profile photos must be 2MB or smaller.");
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result === "string") {
+        setAvatarUrl(reader.result);
+        setMessage("Photo ready. Save access to apply it.");
+      }
+    };
+    reader.onerror = () => setMessage("We couldn't read that image.");
+    reader.readAsDataURL(file);
+  }
 
   async function saveUserAccess() {
     if (!fullName.trim() || !email.trim()) {
@@ -41,6 +70,7 @@ export function TeamAccessForm({
         body: JSON.stringify({
           fullName,
           email,
+          avatarUrl,
           accessLevel,
           isActive,
         }),
@@ -55,6 +85,7 @@ export function TeamAccessForm({
 
       setFullName("");
       setEmail("");
+      setAvatarUrl("");
       setAccessLevel(defaultAccessLevel);
       setIsActive(true);
       setMessage("Team access saved.");
@@ -68,6 +99,38 @@ export function TeamAccessForm({
 
   return (
     <div className="admin-surface-soft rounded-[24px] p-4">
+      <div className="mb-4 flex flex-wrap items-center gap-3">
+        <TeamAvatar name={fullName} email={email} avatarUrl={avatarUrl} size="md" />
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/png,image/jpeg,image/webp,image/gif"
+          onChange={(event) => handleAvatarFile(event.target.files?.[0])}
+          className="sr-only"
+        />
+        <button
+          type="button"
+          onClick={() => fileInputRef.current?.click()}
+          className="admin-button-secondary inline-flex h-10 items-center justify-center rounded-2xl px-4 text-sm font-semibold"
+        >
+          Upload photo
+        </button>
+        {avatarUrl ? (
+          <button
+            type="button"
+            onClick={() => {
+              setAvatarUrl("");
+              if (fileInputRef.current) {
+                fileInputRef.current.value = "";
+              }
+            }}
+            className="inline-flex h-10 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.04] px-4 text-sm font-semibold text-white/70 transition hover:bg-white/[0.08] hover:text-white"
+          >
+            Remove
+          </button>
+        ) : null}
+        <p className="text-xs text-white/45">Max 2MB.</p>
+      </div>
       <div className="grid gap-3 lg:grid-cols-[1fr_1fr_0.8fr_auto]">
         <input
           type="text"
@@ -103,16 +166,16 @@ export function TeamAccessForm({
           {isSaving ? "Saving..." : "Save access"}
         </button>
       </div>
-      <label className="mt-3 inline-flex items-center gap-3 text-sm text-slate-600">
+      <label className="mt-3 inline-flex items-center gap-3 text-sm text-white/64">
         <input
           type="checkbox"
           checked={isActive}
           onChange={(event) => setIsActive(event.target.checked)}
-          className="h-4 w-4 rounded border-slate-300 bg-transparent"
+          className="h-4 w-4 rounded border-white/20 bg-transparent accent-[var(--ld-color-accent)]"
         />
         Allow this person to sign in to admin
       </label>
-      {message ? <p className="mt-3 text-sm text-slate-600">{message}</p> : null}
+      {message ? <p className="mt-3 text-sm text-white/62">{message}</p> : null}
     </div>
   );
 }

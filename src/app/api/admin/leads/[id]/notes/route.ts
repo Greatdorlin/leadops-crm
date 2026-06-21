@@ -1,8 +1,12 @@
 import { NextResponse } from "next/server";
+import { z } from "zod";
 import { getAdminRequestContext } from "@/lib/admin";
 import { canManageLeadRecord } from "@/lib/admin-permissions";
-import { leadNoteSchema } from "@/lib/pathway-engine/schemas";
 import { leadStore } from "@/lib/storage";
+
+const leadNoteSchema = z.object({
+  note: z.string().trim().min(2).max(2000),
+});
 
 export async function POST(
   request: Request,

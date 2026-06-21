@@ -7,7 +7,7 @@ import type {
   CrmUserRole,
   LeadRecord,
   LeadTaskRecord,
-} from "@/lib/pathway-engine/types";
+} from "@/lib/crm/types";
 
 export interface TeamPerformanceRow {
   id: string;

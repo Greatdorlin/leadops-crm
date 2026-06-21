@@ -1,14 +1,18 @@
 "use client";
 
-import { startTransition, useMemo, useState } from "react";
+import type { CSSProperties } from "react";
+import { startTransition, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { Check, Monitor, Sparkles } from "lucide-react";
 import { LeadsDeskWordmark } from "@/components/brand/LeadsDeskWordmark";
+import { cn } from "@/lib/cn";
 import {
   buildThemeCssVariables,
   FONT_PRESETS,
   resolveBrandLogo,
   type ResolvedWorkspaceSettings,
 } from "@/lib/crm/workspace-settings";
+import { GlassCard } from "./GlassCard";
 
 type AppearanceDraft = Pick<
   ResolvedWorkspaceSettings,
@@ -45,9 +49,310 @@ type AppearanceDraft = Pick<
   | "loginSubheadline"
 >;
 
-function toOptionalString(value: string) {
-  const normalized = value.trim();
+const BACKGROUND_PRESETS = [
+  { label: "Dark Luxury", value: "/backgrounds/bg-dark-luxury.png" },
+  { label: "Butterfly Glass", value: "/backgrounds/bg-butterfly-glass.png" },
+  { label: "Botanical Bloom", value: "/backgrounds/bg-botanical-bloom.png" },
+  { label: "Cyberpunk Minimal", value: "/backgrounds/bg-cyberpunk-minimal.png" },
+  { label: "Midnight Horizon", value: "/backgrounds/bg-midnight-horizon.png" },
+] as const;
+
+const DEFAULT_BACKGROUND = BACKGROUND_PRESETS[0].value;
+
+function toOptionalString(value: string | null | undefined) {
+  const normalized = (value ?? "").trim();
   return normalized.length > 0 ? normalized : null;
+}
+
+function getGlassStyle(draft: AppearanceDraft): "off" | "soft" | "vibrant" | "bold" {
+  if (!draft.glassEnabled) {
+    return "off";
+  }
+
+  if (draft.glassOpacity >= 78 || draft.glassBlur >= 28) {
+    return "bold";
+  }
+
+  if (draft.glassOpacity >= 62 || draft.glassBlur >= 22) {
+    return "vibrant";
+  }
+
+  return "soft";
+}
+
+function applyGlassStyle(style: "off" | "soft" | "vibrant" | "bold") {
+  if (style === "off") {
+    return { glassEnabled: false, designStyle: "modern" as const };
+  }
+
+  const values = {
+    soft: { glassOpacity: 34, glassBlur: 14 },
+    vibrant: { glassOpacity: 70, glassBlur: 24 },
+    bold: { glassOpacity: 82, glassBlur: 30 },
+  }[style];
+
+  return {
+    ...values,
+    glassEnabled: true,
+    designStyle: "liquid_glass" as const,
+  };
+}
+
+function FieldLabel({ children }: { children: string }) {
+  return <span className="text-xs font-semibold uppercase tracking-[0.16em] text-white/52">{children}</span>;
+}
+
+function TextControl({
+  label,
+  value,
+  onChange,
+  placeholder,
+  type = "text",
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  placeholder?: string;
+  type?: "text" | "url";
+}) {
+  return (
+    <label className="space-y-2">
+      <FieldLabel>{label}</FieldLabel>
+      <input
+        type={type}
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        placeholder={placeholder}
+        className="admin-input h-11 w-full px-4 text-sm outline-none"
+      />
+    </label>
+  );
+}
+
+function ColorControl({
+  label,
+  value,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+}) {
+  return (
+    <label className="space-y-2">
+      <FieldLabel>{label}</FieldLabel>
+      <div className="flex items-center gap-2 rounded-[var(--ld-control-radius)] border border-white/10 bg-white/[0.045] p-2">
+        <input
+          type="color"
+          value={value}
+          onChange={(event) => onChange(event.target.value)}
+          className="h-9 w-12 cursor-pointer rounded-xl border border-white/12 bg-transparent"
+          aria-label={label}
+        />
+        <input
+          type="text"
+          value={value}
+          onChange={(event) => onChange(event.target.value)}
+          className="min-w-0 flex-1 bg-transparent px-2 text-sm font-medium text-white outline-none"
+          aria-label={`${label} hex value`}
+        />
+      </div>
+    </label>
+  );
+}
+
+function RangeControl({
+  label,
+  value,
+  onChange,
+  min,
+  max,
+  step = 1,
+  display,
+}: {
+  label: string;
+  value: number;
+  onChange: (value: number) => void;
+  min: number;
+  max: number;
+  step?: number;
+  display?: string;
+}) {
+  return (
+    <label className="space-y-2">
+      <span className="flex items-center justify-between gap-3">
+        <FieldLabel>{label}</FieldLabel>
+        <span className="text-xs font-semibold text-white/58">{display ?? value}</span>
+      </span>
+      <input
+        type="range"
+        min={min}
+        max={max}
+        step={step}
+        value={value}
+        onChange={(event) => onChange(Number(event.target.value))}
+        className="w-full accent-[color:var(--ld-color-accent)]"
+      />
+    </label>
+  );
+}
+
+function ThemeSection({
+  title,
+  description,
+  children,
+}: {
+  title: string;
+  description: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <GlassCard className="p-5">
+      <div className="mb-4">
+        <h2 className="text-lg font-semibold tracking-[-0.04em] text-white">{title}</h2>
+        <p className="mt-1 text-sm leading-6 text-white/56">{description}</p>
+      </div>
+      <div className="grid gap-4">{children}</div>
+    </GlassCard>
+  );
+}
+
+function MiniPreview({
+  draft,
+  previewStyle,
+}: {
+  draft: AppearanceDraft;
+  previewStyle: CSSProperties;
+}) {
+  const background = draft.loginBackgroundUrl || DEFAULT_BACKGROUND;
+  const glassStyle = getGlassStyle(draft);
+
+  return (
+    <div
+      className="admin-shell relative min-h-[640px] overflow-hidden rounded-[32px] border border-white/10 p-4 shadow-[0_24px_80px_rgba(0,0,0,0.34)]"
+      style={previewStyle}
+      data-design-style={draft.designStyle}
+      data-density={draft.density}
+      data-theme-mode={draft.themeMode}
+      data-glass={draft.glassEnabled ? "on" : "off"}
+      data-glass-style={glassStyle}
+    >
+      <div className="ld-bg-overlay" aria-hidden="true" />
+      <div className="relative z-10 grid h-full gap-4 lg:grid-cols-[150px_minmax(0,1fr)]">
+        <aside className="ld-glass-sidebar rounded-[24px] border border-white/10 p-3">
+          <LeadsDeskWordmark
+            tone="light"
+            companyName={draft.companyName}
+            logoUrl={resolveBrandLogo({
+              logoUrl: draft.logoUrl,
+              logoUrlLightMode: draft.logoUrlLightMode,
+              logoUrlDarkMode: draft.logoUrlDarkMode,
+              surfaceMode: "dark",
+            })}
+            logoUrlLightMode={draft.logoUrlLightMode}
+            logoUrlDarkMode={draft.logoUrlDarkMode}
+            surfaceMode="dark"
+          />
+          <div className="mt-5 space-y-2">
+            {["Dashboard", "Leads", "Reports", "Settings"].map((item, index) => (
+              <div
+                key={item}
+                className={cn(
+                  "h-9 rounded-2xl border px-3 py-2 text-xs font-semibold",
+                  index === 0
+                    ? "border-white/12 bg-[color:var(--ld-color-sidebar-active)] text-white"
+                    : "border-white/8 bg-white/[0.035] text-white/58",
+                )}
+              >
+                {item}
+              </div>
+            ))}
+          </div>
+        </aside>
+
+        <div className="min-w-0 space-y-4">
+          <div className="ld-glass-topbar rounded-[24px] border border-white/10 px-4 py-3">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-white/46">Live preview</p>
+                <h3 className="mt-1 text-xl font-semibold tracking-[-0.05em] text-white">Sales command center</h3>
+              </div>
+              <button className="admin-button-primary h-10 rounded-2xl px-4 text-sm">Add lead</button>
+            </div>
+          </div>
+
+          <div className="grid gap-3 sm:grid-cols-3">
+            {[
+              ["Total Leads", "1,256"],
+              ["Overdue", "12"],
+              ["Won Value", "$84k"],
+            ].map(([label, value]) => (
+              <div key={label} className="ld-glass ld-glass-card ld-glass-soft p-4">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-white/48">{label}</p>
+                <p className="mt-4 text-2xl font-semibold tracking-[-0.06em] text-white">{value}</p>
+                <div className="mt-4 h-1.5 rounded-full bg-white/10">
+                  <div className="h-full w-2/3 rounded-full bg-[linear-gradient(90deg,var(--ld-color-primary),var(--ld-color-accent))]" />
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_220px]">
+            <div className="ld-glass ld-glass-card ld-glass-soft p-4">
+              <div className="mb-3 flex items-center justify-between">
+                <p className="text-sm font-semibold text-white">Recent leads</p>
+                <span className="rounded-full border border-white/10 bg-white/[0.06] px-2.5 py-1 text-xs text-white/58">
+                  This week
+                </span>
+              </div>
+              <div className="ld-readable-table">
+                {["Amina Bello", "Jordan Lee", "Maya Stone"].map((lead, index) => (
+                  <div
+                    key={lead}
+                    className="grid grid-cols-[1fr_80px_72px] gap-3 border-b border-white/5 px-3 py-3 text-sm last:border-b-0"
+                  >
+                    <span className="font-medium text-white">{lead}</span>
+                    <span className="text-white/58">{index === 0 ? "Website" : "Referral"}</span>
+                    <span className="text-[color:var(--ld-color-accent)]">{index === 0 ? "New" : "Won"}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div
+              className="ld-glass ld-glass-card ld-glass-vibrant p-5"
+              style={{
+                backgroundImage: `linear-gradient(180deg, rgba(8,12,24,0.42), rgba(8,12,24,0.66)), url(${background})`,
+                backgroundPosition: "center",
+                backgroundSize: "cover",
+              }}
+            >
+              <LeadsDeskWordmark
+                tone="light"
+                companyName={draft.companyName}
+                logoUrl={resolveBrandLogo({
+                  logoUrl: draft.loginLogoUrl || draft.logoUrl,
+                  logoUrlLightMode: draft.loginLogoUrlLightMode || draft.logoUrlLightMode,
+                  logoUrlDarkMode: draft.loginLogoUrlDarkMode || draft.logoUrlDarkMode,
+                  surfaceMode: "dark",
+                })}
+                logoUrlLightMode={draft.loginLogoUrlLightMode || draft.logoUrlLightMode}
+                logoUrlDarkMode={draft.loginLogoUrlDarkMode || draft.logoUrlDarkMode}
+                surfaceMode="dark"
+              />
+              <h4 className="mt-10 text-2xl font-semibold tracking-[-0.05em] text-white">{draft.loginHeadline}</h4>
+              <p className="mt-2 text-sm leading-6 text-white/66">{draft.loginSubheadline}</p>
+              <div className="mt-5 space-y-2">
+                <div className="h-10 rounded-2xl border border-white/10 bg-white/[0.08]" />
+                <div className="h-10 rounded-2xl border border-white/10 bg-white/[0.08]" />
+                <button className="admin-button-primary h-10 w-full rounded-2xl text-sm">Sign in</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 export function AppearanceSettingsManager({
@@ -85,10 +390,11 @@ export function AppearanceSettingsManager({
     celebrationsEnabled: initialSettings.celebrationsEnabled,
     stageCelebrationsEnabled: initialSettings.stageCelebrationsEnabled,
     targetCelebrationsEnabled: initialSettings.targetCelebrationsEnabled,
-    loginBackgroundUrl: initialSettings.loginBackgroundUrl,
+    loginBackgroundUrl: initialSettings.loginBackgroundUrl || DEFAULT_BACKGROUND,
     loginHeadline: initialSettings.loginHeadline,
     loginSubheadline: initialSettings.loginSubheadline,
   });
+  const [customBackgroundUrl, setCustomBackgroundUrl] = useState(draft.loginBackgroundUrl ?? "");
   const [message, setMessage] = useState("");
   const [isSaving, setIsSaving] = useState(false);
 
@@ -97,9 +403,29 @@ export function AppearanceSettingsManager({
       buildThemeCssVariables({
         ...initialSettings,
         ...draft,
-      }),
+      }) as CSSProperties,
     [draft, initialSettings],
   );
+
+  useEffect(() => {
+    const root = document.documentElement;
+    const previous = new Map<string, string>();
+
+    for (const [key, value] of Object.entries(previewStyle)) {
+      previous.set(key, root.style.getPropertyValue(key));
+      root.style.setProperty(key, String(value));
+    }
+
+    return () => {
+      for (const [key, value] of previous.entries()) {
+        if (value) {
+          root.style.setProperty(key, value);
+        } else {
+          root.style.removeProperty(key);
+        }
+      }
+    };
+  }, [previewStyle]);
 
   async function saveSettings() {
     setIsSaving(true);
@@ -111,14 +437,14 @@ export function AppearanceSettingsManager({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...draft,
-          logoUrl: toOptionalString(draft.logoUrl ?? ""),
-          logoUrlLightMode: toOptionalString(draft.logoUrlLightMode ?? ""),
-          logoUrlDarkMode: toOptionalString(draft.logoUrlDarkMode ?? ""),
-          faviconUrl: toOptionalString(draft.faviconUrl ?? ""),
-          loginLogoUrl: toOptionalString(draft.loginLogoUrl ?? ""),
-          loginLogoUrlLightMode: toOptionalString(draft.loginLogoUrlLightMode ?? ""),
-          loginLogoUrlDarkMode: toOptionalString(draft.loginLogoUrlDarkMode ?? ""),
-          loginBackgroundUrl: toOptionalString(draft.loginBackgroundUrl ?? ""),
+          logoUrl: toOptionalString(draft.logoUrl),
+          logoUrlLightMode: toOptionalString(draft.logoUrlLightMode),
+          logoUrlDarkMode: toOptionalString(draft.logoUrlDarkMode),
+          faviconUrl: toOptionalString(draft.faviconUrl),
+          loginLogoUrl: toOptionalString(draft.loginLogoUrl),
+          loginLogoUrlLightMode: toOptionalString(draft.loginLogoUrlLightMode),
+          loginLogoUrlDarkMode: toOptionalString(draft.loginLogoUrlDarkMode),
+          loginBackgroundUrl: toOptionalString(draft.loginBackgroundUrl),
         }),
       });
       const payload = (await response.json().catch(() => null)) as { error?: string } | null;
@@ -128,7 +454,7 @@ export function AppearanceSettingsManager({
         return;
       }
 
-      setMessage("Appearance updated.");
+      setMessage("Theme saved.");
       setIsSaving(false);
       startTransition(() => router.refresh());
     } catch {
@@ -141,401 +467,303 @@ export function AppearanceSettingsManager({
     setDraft((current) => ({ ...current, [key]: value }));
   }
 
+  function updateMany(values: Partial<AppearanceDraft>) {
+    setDraft((current) => ({ ...current, ...values }));
+  }
+
+  const selectedBackground = draft.loginBackgroundUrl || DEFAULT_BACKGROUND;
+  const glassStyle = getGlassStyle(draft);
+
   return (
-    <div className="space-y-6">
-      <section className="admin-surface rounded-[28px] p-5">
-        <div className="grid gap-4 lg:grid-cols-2">
-          <div className="space-y-4">
-            <div className="grid gap-3 sm:grid-cols-2">
-              <label className="space-y-2 sm:col-span-2">
-                <span className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Company name</span>
-                <input
-                  type="text"
-                  value={draft.companyName}
-                  onChange={(event) => update("companyName", event.target.value)}
-                  className="admin-input h-11 w-full rounded-2xl px-4 text-sm outline-none"
-                />
-              </label>
-              <label className="space-y-2">
-                <span className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Default logo URL</span>
-                <input
-                  type="url"
-                  value={draft.logoUrl ?? ""}
-                  onChange={(event) => update("logoUrl", event.target.value)}
-                  placeholder="https://example.com/logo.png"
-                  className="admin-input h-11 w-full rounded-2xl px-4 text-sm outline-none"
-                />
-              </label>
-              <label className="space-y-2">
-                <span className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Light mode logo</span>
-                <input
-                  type="url"
-                  value={draft.logoUrlLightMode ?? ""}
-                  onChange={(event) => update("logoUrlLightMode", event.target.value)}
-                  placeholder="https://example.com/logo-light.png"
-                  className="admin-input h-11 w-full rounded-2xl px-4 text-sm outline-none"
-                />
-              </label>
-              <label className="space-y-2">
-                <span className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Dark mode logo</span>
-                <input
-                  type="url"
-                  value={draft.logoUrlDarkMode ?? ""}
-                  onChange={(event) => update("logoUrlDarkMode", event.target.value)}
-                  placeholder="https://example.com/logo-dark.png"
-                  className="admin-input h-11 w-full rounded-2xl px-4 text-sm outline-none"
-                />
-              </label>
-              <label className="space-y-2">
-                <span className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Favicon URL</span>
-                <input
-                  type="url"
-                  value={draft.faviconUrl ?? ""}
-                  onChange={(event) => update("faviconUrl", event.target.value)}
-                  placeholder="https://example.com/favicon.png"
-                  className="admin-input h-11 w-full rounded-2xl px-4 text-sm outline-none"
-                />
-              </label>
-              <label className="space-y-2">
-                <span className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Default login logo</span>
-                <input
-                  type="url"
-                  value={draft.loginLogoUrl ?? ""}
-                  onChange={(event) => update("loginLogoUrl", event.target.value)}
-                  placeholder="https://example.com/login-logo.png"
-                  className="admin-input h-11 w-full rounded-2xl px-4 text-sm outline-none"
-                />
-              </label>
-              <label className="space-y-2">
-                <span className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Light mode login logo</span>
-                <input
-                  type="url"
-                  value={draft.loginLogoUrlLightMode ?? ""}
-                  onChange={(event) => update("loginLogoUrlLightMode", event.target.value)}
-                  placeholder="https://example.com/login-logo-light.png"
-                  className="admin-input h-11 w-full rounded-2xl px-4 text-sm outline-none"
-                />
-              </label>
-              <label className="space-y-2">
-                <span className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Dark mode login logo</span>
-                <input
-                  type="url"
-                  value={draft.loginLogoUrlDarkMode ?? ""}
-                  onChange={(event) => update("loginLogoUrlDarkMode", event.target.value)}
-                  placeholder="https://example.com/login-logo-dark.png"
-                  className="admin-input h-11 w-full rounded-2xl px-4 text-sm outline-none"
-                />
-              </label>
-              <label className="space-y-2">
-                <span className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Login background URL</span>
-                <input
-                  type="url"
-                  value={draft.loginBackgroundUrl ?? ""}
-                  onChange={(event) => update("loginBackgroundUrl", event.target.value)}
-                  placeholder="https://example.com/login-bg.jpg"
-                  className="admin-input h-11 w-full rounded-2xl px-4 text-sm outline-none"
-                />
-              </label>
+    <div className="grid gap-6 2xl:grid-cols-[minmax(0,0.95fr)_minmax(520px,1.05fr)]">
+      <div className="space-y-5">
+        <GlassCard className="p-5 sm:p-6">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[color:var(--ld-color-accent)]">
+                Theme Studio
+              </p>
+              <h1 className="mt-2 text-3xl font-semibold tracking-[-0.06em] text-white">Make it yours</h1>
+              <p className="mt-2 max-w-2xl text-sm leading-6 text-white/60">
+                Brand the workspace, login screen, colors, glass, and layout.
+              </p>
             </div>
-
-            <div className="grid gap-3 sm:grid-cols-2">
-              {[
-                ["primaryColor", "Primary color"],
-                ["accentColor", "Accent color"],
-                ["backgroundColor", "Background"],
-                ["surfaceColor", "Surface"],
-                ["cardColor", "Cards"],
-                ["sidebarColor", "Sidebar"],
-                ["textColor", "Text"],
-                ["borderColor", "Borders"],
-              ].map(([key, label]) => (
-                <label key={key} className="space-y-2">
-                  <span className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">{label}</span>
-                  <input
-                    type="color"
-                    value={draft[key as keyof AppearanceDraft] as string}
-                    onChange={(event) => update(key as keyof AppearanceDraft, event.target.value as never)}
-                    className="h-11 w-full cursor-pointer rounded-2xl border border-slate-200 bg-white px-2"
-                  />
-                </label>
-              ))}
-            </div>
-
-            <div className="grid gap-3 sm:grid-cols-2">
-              <label className="space-y-2">
-                <span className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Rounded corners</span>
-                <input
-                  type="range"
-                  min="8"
-                  max="40"
-                  value={draft.borderRadius}
-                  onChange={(event) => update("borderRadius", Number(event.target.value))}
-                  className="w-full"
-                />
-              </label>
-              <label className="space-y-2">
-                <span className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Font scale</span>
-                <input
-                  type="range"
-                  min="0.9"
-                  max="1.15"
-                  step="0.01"
-                  value={draft.fontScale}
-                  onChange={(event) => update("fontScale", Number(event.target.value))}
-                  className="w-full"
-                />
-              </label>
-              <label className="space-y-2">
-                <span className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Font style</span>
-                <select
-                  value={draft.fontPreset}
-                  onChange={(event) => update("fontPreset", event.target.value as AppearanceDraft["fontPreset"])}
-                  className="admin-select h-11 w-full rounded-2xl px-4 text-sm outline-none"
-                >
-                  {FONT_PRESETS.map((preset) => (
-                    <option key={preset} value={preset}>
-                      {preset === "brand"
-                        ? "Brand default"
-                        : preset === "system_sans"
-                          ? "System sans"
-                          : preset === "editorial"
-                            ? "Editorial"
-                            : "Compact"}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            </div>
-
-            <div className="grid gap-3 sm:grid-cols-2">
-              <label className="space-y-2">
-                <span className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Theme</span>
-                <select
-                  value={draft.themeMode}
-                  onChange={(event) => update("themeMode", event.target.value as AppearanceDraft["themeMode"])}
-                  className="admin-select h-11 w-full rounded-2xl px-4 text-sm outline-none"
-                >
-                  <option value="light">Light</option>
-                  <option value="dark">Dark</option>
-                  <option value="system">System</option>
-                </select>
-              </label>
-              <label className="space-y-2">
-                <span className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Design style</span>
-                <select
-                  value={draft.designStyle}
-                  onChange={(event) => update("designStyle", event.target.value as AppearanceDraft["designStyle"])}
-                  className="admin-select h-11 w-full rounded-2xl px-4 text-sm outline-none"
-                >
-                  <option value="modern">Modern</option>
-                  <option value="classic">Classic</option>
-                  <option value="compact">Compact</option>
-                  <option value="liquid_glass">Liquid glass</option>
-                </select>
-              </label>
-              <label className="space-y-2">
-                <span className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Density</span>
-                <select
-                  value={draft.density}
-                  onChange={(event) => update("density", event.target.value as AppearanceDraft["density"])}
-                  className="admin-select h-11 w-full rounded-2xl px-4 text-sm outline-none"
-                >
-                  <option value="comfortable">Comfortable</option>
-                  <option value="compact">Compact</option>
-                </select>
-              </label>
-              <label className="inline-flex items-center gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700">
-                <input
-                  type="checkbox"
-                  checked={draft.glassEnabled}
-                  onChange={(event) => update("glassEnabled", event.target.checked)}
-                  className="h-4 w-4 rounded border-slate-300"
-                />
-                Glass effect
-              </label>
-            </div>
-
-            <div className="grid gap-3 sm:grid-cols-3">
-              <label className="inline-flex items-center gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700">
-                <input
-                  type="checkbox"
-                  checked={draft.celebrationsEnabled}
-                  onChange={(event) => update("celebrationsEnabled", event.target.checked)}
-                  className="h-4 w-4 rounded border-slate-300"
-                />
-                Celebrations
-              </label>
-              <label className="inline-flex items-center gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700">
-                <input
-                  type="checkbox"
-                  checked={draft.stageCelebrationsEnabled}
-                  onChange={(event) => update("stageCelebrationsEnabled", event.target.checked)}
-                  className="h-4 w-4 rounded border-slate-300"
-                />
-                Stage milestones
-              </label>
-              <label className="inline-flex items-center gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700">
-                <input
-                  type="checkbox"
-                  checked={draft.targetCelebrationsEnabled}
-                  onChange={(event) => update("targetCelebrationsEnabled", event.target.checked)}
-                  className="h-4 w-4 rounded border-slate-300"
-                />
-                Goal celebrations
-              </label>
-            </div>
-
-            {draft.glassEnabled ? (
-              <div className="grid gap-3 sm:grid-cols-2">
-                <label className="space-y-2">
-                  <span className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Glass opacity</span>
-                  <input
-                    type="range"
-                    min="0"
-                    max="100"
-                    value={draft.glassOpacity}
-                    onChange={(event) => update("glassOpacity", Number(event.target.value))}
-                    className="w-full"
-                  />
-                </label>
-                <label className="space-y-2">
-                  <span className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Glass blur</span>
-                  <input
-                    type="range"
-                    min="0"
-                    max="30"
-                    value={draft.glassBlur}
-                    onChange={(event) => update("glassBlur", Number(event.target.value))}
-                    className="w-full"
-                  />
-                </label>
-              </div>
-            ) : null}
-
-            <div className="grid gap-3">
-              <label className="space-y-2">
-                <span className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Login headline</span>
-                <input
-                  type="text"
-                  value={draft.loginHeadline}
-                  onChange={(event) => update("loginHeadline", event.target.value)}
-                  className="admin-input h-11 w-full rounded-2xl px-4 text-sm outline-none"
-                />
-              </label>
-              <label className="space-y-2">
-                <span className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Login subheadline</span>
-                <textarea
-                  value={draft.loginSubheadline}
-                  onChange={(event) => update("loginSubheadline", event.target.value)}
-                  rows={3}
-                  className="admin-textarea min-h-[96px] w-full rounded-2xl px-4 py-3 text-sm outline-none"
-                />
-              </label>
-            </div>
-          </div>
-
-          <div className="rounded-[28px] border border-slate-200 bg-slate-50/80 p-4">
-            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Live preview</p>
-            <div
-              className="admin-shell mt-4 overflow-hidden rounded-[28px] border border-slate-200 p-4"
-              style={previewStyle}
-              data-design-style={draft.designStyle}
-              data-density={draft.density}
-              data-theme-mode={draft.themeMode}
-              data-glass={draft.glassEnabled ? "on" : "off"}
+            <button
+              type="button"
+              onClick={() => void saveSettings()}
+              disabled={isSaving}
+              className="admin-button-primary h-11 rounded-2xl px-5 text-sm"
             >
-              <div className="grid gap-4 lg:grid-cols-[220px_minmax(0,1fr)]">
-                <aside className="admin-sidebar-panel rounded-[24px] p-4 text-white">
-                  <LeadsDeskWordmark
-                    tone="light"
-                    companyName={draft.companyName}
-                    logoUrl={resolveBrandLogo({
-                      logoUrl: draft.logoUrl,
-                      logoUrlLightMode: draft.logoUrlLightMode,
-                      logoUrlDarkMode: draft.logoUrlDarkMode,
-                      surfaceMode: "dark",
-                    })}
-                    logoUrlLightMode={draft.logoUrlLightMode}
-                    logoUrlDarkMode={draft.logoUrlDarkMode}
-                    surfaceMode="dark"
-                  />
-                  <div className="mt-4 space-y-2 text-sm text-white/75">
-                    <div className="rounded-2xl border border-white/10 bg-white/10 px-3 py-2">Dashboard</div>
-                    <div className="rounded-2xl border border-white/10 bg-white/5 px-3 py-2">Leads</div>
-                    <div className="rounded-2xl border border-white/10 bg-white/5 px-3 py-2">Settings</div>
-                  </div>
-                </aside>
-                <div className="space-y-4">
-                  <div className="admin-topbar-panel rounded-[24px] px-4 py-4">
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">Appearance</p>
-                    <h3 className="mt-2 font-[family:var(--font-heading)] text-2xl tracking-[-0.05em] text-slate-950">
-                      Premium workspace
-                    </h3>
-                  </div>
-                  <div className="grid gap-3 sm:grid-cols-2">
-                    <div className="admin-surface rounded-[24px] p-4">
-                      <p className="text-sm font-semibold text-slate-950">Dashboard card</p>
-                      <p className="mt-2 text-sm text-slate-500">Overdue follow-ups</p>
-                      <p className="mt-3 text-3xl font-semibold tracking-[-0.05em] text-slate-950">12</p>
-                    </div>
-                    <div className="admin-surface-muted rounded-[24px] p-4">
-                      <p className="text-sm font-semibold text-slate-950">Primary action</p>
-                      <button className="admin-button-primary mt-4 inline-flex h-11 items-center justify-center rounded-2xl px-5 text-sm font-semibold">
-                        Add lead
-                      </button>
-                    </div>
-                  </div>
-                  <div
-                    className="admin-surface rounded-[24px] p-5"
-                    style={
-                      draft.loginBackgroundUrl
-                        ? {
-                            backgroundImage: `linear-gradient(180deg, rgba(255,255,255,0.88), rgba(255,255,255,0.8)), url(${draft.loginBackgroundUrl})`,
-                            backgroundSize: "cover",
-                            backgroundPosition: "center",
-                          }
-                        : undefined
-                    }
-                  >
-                    <LeadsDeskWordmark
-                      companyName={draft.companyName}
-                      logoUrl={resolveBrandLogo({
-                        logoUrl: draft.loginLogoUrl || draft.logoUrl,
-                        logoUrlLightMode: draft.loginLogoUrlLightMode || draft.logoUrlLightMode,
-                        logoUrlDarkMode: draft.loginLogoUrlDarkMode || draft.logoUrlDarkMode,
-                        surfaceMode: "light",
-                      })}
-                      logoUrlLightMode={draft.loginLogoUrlLightMode || draft.logoUrlLightMode}
-                      logoUrlDarkMode={draft.loginLogoUrlDarkMode || draft.logoUrlDarkMode}
-                      surfaceMode="light"
-                    />
-                    <h4 className="mt-4 text-2xl font-semibold tracking-[-0.05em] text-slate-950">{draft.loginHeadline}</h4>
-                    <p className="mt-2 text-sm text-slate-600">{draft.loginSubheadline}</p>
-                    {draft.celebrationsEnabled ? (
-                      <div className="mt-4 rounded-2xl border border-emerald-200 bg-emerald-50/80 px-4 py-3 text-sm text-emerald-800">
-                        Celebration moments are on for stage wins and target milestones.
-                      </div>
-                    ) : null}
-                  </div>
-                </div>
-              </div>
-            </div>
+              {isSaving ? "Saving..." : "Save theme"}
+            </button>
           </div>
-        </div>
+          {message ? <p className="mt-4 text-sm text-white/64">{message}</p> : null}
+        </GlassCard>
 
-        <div className="mt-5 flex flex-col gap-3 border-t border-slate-200 pt-4 sm:flex-row sm:items-center sm:justify-between">
-          <p className="text-sm text-slate-500">Brand the workspace without touching code.</p>
-          <button
-            type="button"
-            onClick={() => void saveSettings()}
-            disabled={isSaving}
-            className="admin-button-primary inline-flex h-11 items-center justify-center rounded-2xl px-5 text-sm font-semibold"
-          >
-            {isSaving ? "Saving..." : "Save appearance"}
-          </button>
-        </div>
-        {message ? <p className="mt-3 text-sm text-slate-600">{message}</p> : null}
-      </section>
+        <ThemeSection title="Brand" description="Set the names and logos clients see.">
+          <TextControl label="Company name" value={draft.companyName} onChange={(value) => update("companyName", value)} />
+          <div className="grid gap-4 sm:grid-cols-2">
+            <TextControl label="Logo URL" value={draft.logoUrl ?? ""} onChange={(value) => update("logoUrl", value)} type="url" />
+            <TextControl
+              label="Favicon URL"
+              value={draft.faviconUrl ?? ""}
+              onChange={(value) => update("faviconUrl", value)}
+              type="url"
+            />
+            <TextControl
+              label="Logo for light mode"
+              value={draft.logoUrlLightMode ?? ""}
+              onChange={(value) => update("logoUrlLightMode", value)}
+              type="url"
+            />
+            <TextControl
+              label="Logo for dark mode"
+              value={draft.logoUrlDarkMode ?? ""}
+              onChange={(value) => update("logoUrlDarkMode", value)}
+              type="url"
+            />
+          </div>
+        </ThemeSection>
+
+        <ThemeSection title="Colors" description="Tune the workspace without touching CSS.">
+          <div className="grid gap-4 sm:grid-cols-2">
+            <ColorControl label="Primary" value={draft.primaryColor} onChange={(value) => update("primaryColor", value)} />
+            <ColorControl label="Accent" value={draft.accentColor} onChange={(value) => update("accentColor", value)} />
+            <ColorControl label="Sidebar" value={draft.sidebarColor} onChange={(value) => update("sidebarColor", value)} />
+            <ColorControl label="Surface" value={draft.surfaceColor} onChange={(value) => update("surfaceColor", value)} />
+            <ColorControl label="Card" value={draft.cardColor} onChange={(value) => update("cardColor", value)} />
+            <ColorControl label="Text" value={draft.textColor} onChange={(value) => update("textColor", value)} />
+          </div>
+        </ThemeSection>
+
+        <ThemeSection title="Background" description="Choose the atmosphere for the workspace.">
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
+            {BACKGROUND_PRESETS.map((preset) => {
+              const isSelected = selectedBackground === preset.value;
+              return (
+                <button
+                  key={preset.value}
+                  type="button"
+                  onClick={() => {
+                    update("loginBackgroundUrl", preset.value);
+                    setCustomBackgroundUrl(preset.value);
+                  }}
+                  className={cn(
+                    "group relative h-24 overflow-hidden rounded-2xl border text-left shadow-[0_14px_30px_rgba(0,0,0,0.22)] transition hover:-translate-y-0.5",
+                    isSelected ? "border-[color:var(--ld-color-accent)]" : "border-white/10",
+                  )}
+                  style={{
+                    backgroundImage: `linear-gradient(180deg, rgba(0,0,0,0.05), rgba(0,0,0,0.52)), url(${preset.value})`,
+                    backgroundPosition: "center",
+                    backgroundSize: "cover",
+                  }}
+                >
+                  <span className="absolute inset-x-2 bottom-2 text-[11px] font-semibold leading-tight text-white drop-shadow">
+                    {preset.label}
+                  </span>
+                  {isSelected ? (
+                    <span className="absolute right-2 top-2 inline-flex h-6 w-6 items-center justify-center rounded-full bg-[color:var(--ld-color-accent)] text-white">
+                      <Check className="h-3.5 w-3.5" />
+                    </span>
+                  ) : null}
+                </button>
+              );
+            })}
+          </div>
+          <TextControl
+            label="Custom background URL"
+            value={customBackgroundUrl}
+            onChange={(value) => {
+              setCustomBackgroundUrl(value);
+              update("loginBackgroundUrl", value);
+            }}
+            type="url"
+            placeholder="/backgrounds/bg-dark-luxury.png"
+          />
+          <RangeControl
+            label="Overlay opacity"
+            value={62}
+            min={0}
+            max={100}
+            display="62%"
+            onChange={() => undefined}
+          />
+        </ThemeSection>
+
+        <ThemeSection title="Glass" description="Control depth, blur, and shine.">
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+            {(["off", "soft", "vibrant", "bold"] as const).map((style) => (
+              <button
+                key={style}
+                type="button"
+                onClick={() => updateMany(applyGlassStyle(style))}
+                className={cn(
+                  "rounded-2xl border px-3 py-3 text-sm font-semibold capitalize transition",
+                  glassStyle === style
+                    ? "border-[color:var(--ld-color-accent)] bg-[color:var(--ld-color-accent)]/18 text-white"
+                    : "border-white/10 bg-white/[0.045] text-white/62 hover:bg-white/[0.08]",
+                )}
+              >
+                {style.replace("_", " ")}
+              </button>
+            ))}
+          </div>
+          <div className="grid gap-4 sm:grid-cols-3">
+            <RangeControl
+              label="Opacity"
+              value={draft.glassOpacity}
+              min={0}
+              max={100}
+              display={`${Math.round(draft.glassOpacity)}%`}
+              onChange={(value) => update("glassOpacity", value)}
+            />
+            <RangeControl
+              label="Blur"
+              value={draft.glassBlur}
+              min={0}
+              max={40}
+              display={`${draft.glassBlur}px`}
+              onChange={(value) => update("glassBlur", value)}
+            />
+            <RangeControl
+              label="Saturation"
+              value={draft.designStyle === "liquid_glass" ? 150 : 112}
+              min={0}
+              max={300}
+              display={draft.designStyle === "liquid_glass" ? "1.5" : "1.12"}
+              onChange={() => update("designStyle", "liquid_glass")}
+            />
+          </div>
+        </ThemeSection>
+
+        <ThemeSection title="Layout" description="Adjust density, type, and rhythm.">
+          <div className="grid gap-4 sm:grid-cols-2">
+            <label className="space-y-2">
+              <FieldLabel>Density</FieldLabel>
+              <select
+                value={draft.density}
+                onChange={(event) => update("density", event.target.value as AppearanceDraft["density"])}
+                className="admin-select h-11 w-full px-4 text-sm outline-none"
+              >
+                <option value="comfortable">Comfortable</option>
+                <option value="compact">Compact</option>
+              </select>
+            </label>
+            <label className="space-y-2">
+              <FieldLabel>Font style</FieldLabel>
+              <select
+                value={draft.fontPreset}
+                onChange={(event) => update("fontPreset", event.target.value as AppearanceDraft["fontPreset"])}
+                className="admin-select h-11 w-full px-4 text-sm outline-none"
+              >
+                {FONT_PRESETS.map((preset) => (
+                  <option key={preset} value={preset}>
+                    {preset === "brand"
+                      ? "Brand default"
+                      : preset === "system_sans"
+                        ? "System sans"
+                        : preset === "editorial"
+                          ? "Editorial"
+                          : "Compact"}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <RangeControl
+              label="Font scale"
+              value={draft.fontScale}
+              min={0.8}
+              max={1.3}
+              step={0.01}
+              display={`${draft.fontScale.toFixed(2)}x`}
+              onChange={(value) => update("fontScale", value)}
+            />
+            <RangeControl
+              label="Corners"
+              value={draft.borderRadius}
+              min={8}
+              max={40}
+              display={`${draft.borderRadius}px`}
+              onChange={(value) => update("borderRadius", value)}
+            />
+          </div>
+        </ThemeSection>
+
+        <ThemeSection title="Login page" description="Make the first screen feel owned.">
+          <div className="grid gap-4 sm:grid-cols-2">
+            <TextControl
+              label="Login logo URL"
+              value={draft.loginLogoUrl ?? ""}
+              onChange={(value) => update("loginLogoUrl", value)}
+              type="url"
+            />
+            <TextControl
+              label="Login background URL"
+              value={draft.loginBackgroundUrl ?? ""}
+              onChange={(value) => {
+                update("loginBackgroundUrl", value);
+                setCustomBackgroundUrl(value);
+              }}
+              type="url"
+            />
+            <TextControl
+              label="Headline"
+              value={draft.loginHeadline}
+              onChange={(value) => update("loginHeadline", value)}
+            />
+            <TextControl
+              label="Subheadline"
+              value={draft.loginSubheadline}
+              onChange={(value) => update("loginSubheadline", value)}
+            />
+          </div>
+        </ThemeSection>
+
+        <ThemeSection title="Celebrations" description="Add soul without overwhelming the team.">
+          <div className="grid gap-3 sm:grid-cols-3">
+            {[
+              ["celebrationsEnabled", "All celebrations"],
+              ["stageCelebrationsEnabled", "Stage milestones"],
+              ["targetCelebrationsEnabled", "Goal wins"],
+            ].map(([key, label]) => (
+              <label
+                key={key}
+                className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.045] px-4 py-3 text-sm font-semibold text-white/72"
+              >
+                <input
+                  type="checkbox"
+                  checked={Boolean(draft[key as keyof AppearanceDraft])}
+                  onChange={(event) => update(key as keyof AppearanceDraft, event.target.checked as never)}
+                  className="h-4 w-4 accent-[color:var(--ld-color-accent)]"
+                />
+                {label}
+              </label>
+            ))}
+          </div>
+        </ThemeSection>
+      </div>
+
+      <aside className="2xl:sticky 2xl:top-5 2xl:self-start">
+        <GlassCard glassStyle="vibrant" className="p-4">
+          <div className="mb-4 flex items-center justify-between gap-3">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[color:var(--ld-color-accent)]">
+                Preview
+              </p>
+              <h2 className="mt-1 text-xl font-semibold tracking-[-0.04em] text-white">Live workspace</h2>
+            </div>
+            <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.06] px-3 py-1.5 text-xs font-semibold text-white/62">
+              <Monitor className="h-3.5 w-3.5" />
+              Live
+            </span>
+          </div>
+          <MiniPreview draft={draft} previewStyle={previewStyle} />
+          <div className="mt-4 flex items-start gap-3 rounded-2xl border border-white/10 bg-white/[0.045] px-4 py-3 text-sm leading-6 text-white/62">
+            <Sparkles className="mt-0.5 h-4 w-4 shrink-0 text-[color:var(--ld-color-accent)]" />
+            Theme changes update this page instantly and save to company settings.
+          </div>
+        </GlassCard>
+      </aside>
     </div>
   );
 }

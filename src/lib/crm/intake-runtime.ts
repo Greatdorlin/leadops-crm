@@ -503,6 +503,8 @@ export async function processWebhookIntake(input: {
 
     const upsertResult = await leadStore.upsertExternalLead({
       source: legacySource,
+      sourceId: sourceRelationId,
+      stageId: formSource.defaultStageId ?? null,
       sourceDetail:
         normalizeOptionalString(mappingResult.coreFields.notes) ?? `${formSource.name} webhook`,
       alwaysCreateNewRecord: false,
@@ -513,13 +515,11 @@ export async function processWebhookIntake(input: {
       priority: toLegacyPriority(normalizedPriority) ?? "medium",
       assignedTo: assignedToEmail,
       assignedToList: assignedToEmail ? [assignedToEmail] : null,
-      crmStatus: "new",
       sourcePayload: rawPayload,
     });
 
     await updateLeadSalesCommandFields(upsertResult.lead.id, {
       companyName: normalizeOptionalString(mappingResult.coreFields.companyName),
-      sourceId: sourceRelationId,
       stageId: formSource.defaultStageId ?? null,
       campaignLabel: normalizeOptionalString(mappingResult.coreFields.campaignLabel),
       assignedUserId: formSource.defaultAssignedUserId ?? null,

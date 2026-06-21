@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import type { CustomFieldDefinitionWithOptions } from "./custom-field-values";
 import { parseCsvText, parseLeadImportCsv, resolveCustomFieldHeaderMatch } from "./csv";
 
 test("parseCsvText keeps quoted commas and line breaks intact", () => {
@@ -101,7 +102,7 @@ test("csv import maps matching custom field labels and keys", () => {
 });
 
 test("custom field header matching prefers label or key aliases", () => {
-  const definitions = [
+  const definitions: CustomFieldDefinitionWithOptions[] = [
     {
       id: "field-1",
       key: "property_type",
@@ -121,7 +122,7 @@ test("custom field header matching prefers label or key aliases", () => {
       updatedAt: "2026-06-18T00:00:00.000Z",
       options: [],
     },
-  ] as const;
+  ];
 
   assert.equal(resolveCustomFieldHeaderMatch("Property Type", definitions)?.id, "field-1");
   assert.equal(resolveCustomFieldHeaderMatch("property_type", definitions)?.id, "field-1");

@@ -36,14 +36,6 @@ export function mapFacebookLeadToExternalInput(lead: FacebookLeadPayload): Exter
     readFieldValue(fieldMap, ["full_name", "fullname", "name"]) ||
     `${readFieldValue(fieldMap, ["first_name", "firstname"])} ${readFieldValue(fieldMap, ["last_name", "lastname"])}`.trim();
   const split = splitName(fullName);
-  const timeline = readFieldValue(fieldMap, ["timeline", "travel_timeline"]);
-  const destination = readFieldValue(fieldMap, ["destination", "destination_interest", "country_interest"]);
-  const routeInterest = readFieldValue(fieldMap, [
-    "route_interest",
-    "pathway_interest",
-    "study_work_travel_interest",
-  ]);
-
   return {
     source: "facebook_lead_ads",
     sourceDetail: lead.form_id ?? "facebook_lead_ads",
@@ -65,10 +57,5 @@ export function mapFacebookLeadToExternalInput(lead: FacebookLeadPayload): Exter
     facebookAdId: lead.ad_id ?? null,
     facebookAdsetId: lead.adgroup_id ?? null,
     sourcePayload: lead as unknown as Record<string, unknown>,
-    answers: {
-      destinationInterest: destination || null,
-      timeline: timeline || null,
-      unsurePriority: routeInterest || null,
-    },
   };
 }

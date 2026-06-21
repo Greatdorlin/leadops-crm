@@ -1,11 +1,4 @@
-import {
-  AlarmClockCheck,
-  CircleAlert,
-  Inbox,
-  PlugZap,
-  UserPlus,
-  Users2,
-} from "lucide-react";
+import { PlugZap } from "lucide-react";
 import Link from "next/link";
 import { AdminCollapsibleSection } from "@/components/admin/AdminCollapsibleSection";
 import { AdminDashboardWidgetDeck } from "@/components/admin/AdminDashboardWidgetDeck";
@@ -16,7 +9,6 @@ import { AdminShell } from "@/components/admin/AdminShell";
 import { ErrorState } from "@/components/admin/ErrorState";
 import { AdminSignOutButton } from "@/components/admin/AdminSignOutButton";
 import { EmptyState } from "@/components/admin/EmptyState";
-import { FilterBar } from "@/components/admin/FilterBar";
 import { IntegrationHealthCard } from "@/components/admin/IntegrationHealthCard";
 import { AdminSelect } from "@/components/admin/AdminSelect";
 import { MetricCard } from "@/components/admin/MetricCard";
@@ -86,7 +78,6 @@ const crmOptions = [
 
 const sourceOptions = [
   "all",
-  "pathway_finder",
   "website_form",
   "facebook_lead_ads",
   "google_ads",
@@ -100,6 +91,11 @@ const sourceOptions = [
 ] as const;
 
 const priorityOptions = ["all", "low", "medium", "high", "urgent"] as const;
+
+function readStageFilter(input: Record<string, string | string[] | undefined>) {
+  const raw = Array.isArray(input.stage) ? input.stage[0] : input.stage;
+  return raw?.trim() ? raw : undefined;
+}
 
 function eventTone(eventType: string) {
   if (eventType.includes("failed") || eventType.includes("lost")) {
@@ -121,12 +117,20 @@ function eventTone(eventType: string) {
   return "neutral" as const;
 }
 
-function safeNumber(value: number) {
-  return new Intl.NumberFormat().format(value);
+async function listDashboardLeadEvents(leadId: string) {
+  try {
+    return await leadStore.listLeadEvents(leadId);
+  } catch (error) {
+    console.warn("[crm:dashboard] Activity feed unavailable for lead.", {
+      leadId,
+      error,
+    });
+    return [];
+  }
 }
 
-function pluralize(count: number, singular: string, plural = `${singular}s`) {
-  return count === 1 ? singular : plural;
+function safeNumber(value: number) {
+  return new Intl.NumberFormat().format(value);
 }
 
 function needsLeadAttention(
@@ -135,7 +139,7 @@ function needsLeadAttention(
   includeAssignmentSignals: boolean,
 ) {
   return (
-    lead.crmStatus === "new" ||
+    !lead.stageId ||
     (includeAssignmentSignals && !lead.assignedTo) ||
     lead.priority === "high" ||
     lead.priority === "urgent" ||
@@ -151,7 +155,7 @@ function scoreLeadForAction(
 ) {
   let score = 0;
 
-  if (lead.crmStatus === "new") {
+  if (!lead.stageId) {
     score += 90;
   }
 
@@ -200,13 +204,13 @@ function scoreTaskForQueue(task: Awaited<ReturnType<typeof leadStore.listLeadTas
 }
 
 function buildDashboardHref(
-  overrides: Partial<Record<"crmStatus" | "priority" | "source" | "search", string>>,
+  overrides: Partial<Record<"stage" | "priority" | "source" | "search", string>>,
 ) {
   const params = new URLSearchParams();
 
   for (const [key, value] of Object.entries(overrides)) {
     if (value) {
-      params.set(key, value);
+      params.set(key === "stage" ? "crmStatus" : key, value);
     }
   }
 
@@ -251,6 +255,288 @@ function getFirstNameLabel(value?: string | null) {
   return trimmed.split(/\s+/)[0] ?? trimmed;
 }
 
+function resolveLeadStageBadge(stageId?: string | null): CrmStatus {
+  return (stageId ?? "new") as CrmStatus;
+}
+
+function createDemoLead(
+  index: number,
+  overrides: Partial<LeadRecord> & {
+    firstName: string;
+    lastName: string;
+    email: string;
+    source: LeadRecord["source"];
+    crmStatus: CrmStatus;
+    assignedTo: string | null;
+  },
+): LeadRecord {
+  const now = new Date();
+  const createdAt = new Date(now.getTime() - index * 6 * 60 * 60 * 1000).toISOString();
+  const lastActivityAt = new Date(now.getTime() - index * 90 * 60 * 1000).toISOString();
+
+  return {
+    id: `demo-lead-${index}`,
+    reportToken: null,
+    createdAt,
+    updatedAt: lastActivityAt,
+    lastActivityAt,
+    completedAt: null,
+    deletedAt: null,
+    deletedBy: null,
+    completionStatus: "complete",
+    sourceDetail: null,
+    priority: "medium",
+    assignedToList: overrides.assignedTo ? [overrides.assignedTo] : [],
+    whatsappNumber: `+234 80${index} 555 01${index}`,
+    state: "Lagos",
+    country: "Nigeria",
+    region: "Lagos",
+    city: index % 2 === 0 ? "Lekki" : "Ikeja",
+    address: null,
+    postalCode: null,
+    companyName: null,
+    sourceId: null,
+    stageId: overrides.crmStatus,
+    campaignId: null,
+    campaignLabel: null,
+    assignedUserId: null,
+    teamId: null,
+    branchId: null,
+    departmentId: null,
+    estimatedValue: 250000 + index * 85000,
+    expectedValue: 125000 + index * 42000,
+    wonValue: overrides.crmStatus === "converted" ? 380000 + index * 75000 : null,
+    closeProbability: overrides.crmStatus === "converted" ? 100 : 35 + index * 9,
+    expectedCloseDate: new Date(now.getTime() + (index + 3) * 24 * 60 * 60 * 1000).toISOString(),
+    wonAt: overrides.crmStatus === "converted" ? lastActivityAt : null,
+    lostAt: overrides.crmStatus === "lost" ? lastActivityAt : null,
+    lostReason: overrides.crmStatus === "lost" ? "Budget paused" : null,
+    nextFollowUpAt: new Date(now.getTime() + (index - 2) * 24 * 60 * 60 * 1000).toISOString(),
+    archivedAt: null,
+    externalLeadId: null,
+    externalFormId: null,
+    facebookLeadgenId: null,
+    facebookFormId: null,
+    facebookPageId: null,
+    facebookCampaignId: null,
+    facebookAdId: null,
+    facebookAdsetId: null,
+    googleClickId: null,
+    googleCampaignId: null,
+    googleAdGroupId: null,
+    googleAdId: null,
+    utmSource: null,
+    utmMedium: null,
+    utmCampaign: null,
+    utmContent: null,
+    utmTerm: null,
+    landingPage: null,
+    sourcePayload: null,
+    primaryGoal: null,
+    currentStepKey: "contact",
+    currentStepIndex: 0,
+    progressPercent: 100,
+    readinessLevel: null,
+    topPathwayTitle: null,
+    answers: {},
+    report: null,
+    publicReport: null,
+    sync: {
+      googleSheets: { status: "skipped", message: "Use export when needed." },
+      sender: { status: "success", message: "Demo lead ready." },
+    },
+    analytics: {
+      whatsappClicked: false,
+      consultationClicked: false,
+      reportViewed: false,
+    },
+    ...overrides,
+  } as LeadRecord;
+}
+
+function buildDevelopmentDashboardData() {
+  const now = new Date();
+  const users = [
+    {
+      id: "demo-user-sarah",
+      email: "sarah@example.com",
+      fullName: "Sarah Kim",
+      role: "sales_agent",
+      isActive: true,
+      avatarUrl: null,
+      createdAt: now.toISOString(),
+      updatedAt: now.toISOString(),
+    },
+    {
+      id: "demo-user-james",
+      email: "james@example.com",
+      fullName: "James Lee",
+      role: "lead_sales_rep",
+      isActive: true,
+      avatarUrl: null,
+      createdAt: now.toISOString(),
+      updatedAt: now.toISOString(),
+    },
+    {
+      id: "demo-user-ama",
+      email: "ama@example.com",
+      fullName: "Ama Okafor",
+      role: "sales_agent",
+      isActive: true,
+      avatarUrl: null,
+      createdAt: now.toISOString(),
+      updatedAt: now.toISOString(),
+    },
+  ] as Awaited<ReturnType<typeof leadStore.listCrmUsers>>;
+  const leads = [
+    createDemoLead(1, {
+      firstName: "Aurelia",
+      lastName: "Systems",
+      email: "hello@aurelia.example",
+      source: "website_form",
+      crmStatus: "qualified",
+      assignedTo: "sarah@example.com",
+      priority: "high",
+      companyName: "Aurelia Systems",
+    }),
+    createDemoLead(2, {
+      firstName: "Vertex",
+      lastName: "Labs",
+      email: "growth@vertex.example",
+      source: "referral",
+      crmStatus: "contacted",
+      assignedTo: "james@example.com",
+      priority: "urgent",
+      companyName: "Vertex Labs",
+    }),
+    createDemoLead(3, {
+      firstName: "Northwind",
+      lastName: "Co",
+      email: "team@northwind.example",
+      source: "manual_entry",
+      crmStatus: "new",
+      assignedTo: null,
+      priority: "medium",
+      companyName: "Northwind Co.",
+    }),
+    createDemoLead(4, {
+      firstName: "BrightWave",
+      lastName: "Studio",
+      email: "ops@brightwave.example",
+      source: "facebook_lead_ads",
+      crmStatus: "converted",
+      assignedTo: "ama@example.com",
+      priority: "high",
+      companyName: "BrightWave Studio",
+    }),
+    createDemoLead(5, {
+      firstName: "Cobalt",
+      lastName: "Dynamics",
+      email: "sales@cobalt.example",
+      source: "google_ads",
+      crmStatus: "qualified",
+      assignedTo: "sarah@example.com",
+      priority: "medium",
+      companyName: "Cobalt Dynamics",
+    }),
+  ];
+  const tasks = [
+    {
+      id: "demo-task-1",
+      leadId: leads[1].id,
+      title: "Prepare proposal for Vertex Labs",
+      description: "Send pricing and next-step summary.",
+      dueAt: new Date(now.getTime() - 2 * 60 * 60 * 1000).toISOString(),
+      completedAt: null,
+      assignedTo: "james@example.com",
+      createdBy: "owner@example.com",
+      createdAt: new Date(now.getTime() - 20 * 60 * 60 * 1000).toISOString(),
+    },
+    {
+      id: "demo-task-2",
+      leadId: leads[0].id,
+      title: "Call Aurelia Systems",
+      description: "Confirm decision timeline.",
+      dueAt: new Date(now.getTime() + 3 * 60 * 60 * 1000).toISOString(),
+      completedAt: null,
+      assignedTo: "sarah@example.com",
+      createdBy: "owner@example.com",
+      createdAt: new Date(now.getTime() - 12 * 60 * 60 * 1000).toISOString(),
+    },
+  ] as Awaited<ReturnType<typeof leadStore.listLeadTasks>>;
+  const intakeEvents = [
+    {
+      id: "demo-intake-1",
+      status: "lead_created",
+      sourceName: "Website contact form",
+      leadId: leads[0].id,
+      leadName: "Aurelia Systems",
+      errorMessage: null,
+      normalizedSummary: [
+        { label: "Name", value: "Aurelia Systems" },
+        { label: "Interest", value: "Private sales command center" },
+      ],
+      rawPayload: null,
+      createdAt: new Date(now.getTime() - 45 * 60 * 1000).toISOString(),
+    },
+    {
+      id: "demo-intake-2",
+      status: "failed",
+      sourceName: "Landing page",
+      leadId: null,
+      leadName: null,
+      errorMessage: "Email is required.",
+      normalizedSummary: [{ label: "Source", value: "Landing page" }],
+      rawPayload: null,
+      createdAt: new Date(now.getTime() - 4 * 60 * 60 * 1000).toISOString(),
+    },
+  ] as Awaited<ReturnType<typeof listLeadIntakeEvents>>;
+  const stats = {
+    totalLeads: leads.length,
+    newLeadsToday: 2,
+    unassignedLeads: leads.filter((lead) => !lead.assignedTo).length,
+    followUpsDueToday: 2,
+    completedAssessments: leads.length,
+    consultationReadyLeads: 3,
+    highPriorityLeads: leads.filter((lead) => lead.priority === "high" || lead.priority === "urgent").length,
+    failedIntegrations: 0,
+    facebookLeadsThisWeek: leads.filter((lead) => lead.source === "facebook_lead_ads").length,
+    websiteLeadsThisWeek: leads.filter((lead) => lead.source === "website_form").length,
+    senderSyncStatus: {
+      success: leads.length,
+      pending: 0,
+      failed: 0,
+      notConfigured: 0,
+      skipped: 0,
+    },
+  } as Awaited<ReturnType<typeof leadStore.getDashboardStats>>;
+  const activeTarget = {
+    id: "demo-target-global",
+    name: "Monthly Revenue Target",
+    scope: "global",
+    scopeId: null,
+    period: "monthly",
+    targetValue: 2500000,
+    currency: "NGN",
+    startDate: new Date(now.getFullYear(), now.getMonth(), 1).toISOString(),
+    endDate: new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString(),
+    createdAt: now.toISOString(),
+    updatedAt: now.toISOString(),
+    isActive: true,
+    archived: false,
+  } as Awaited<ReturnType<typeof getActiveGlobalSalesTarget>>;
+
+  return {
+    leads,
+    stats,
+    tasks,
+    users,
+    integrations: [] as Awaited<ReturnType<typeof leadStore.listIntegrations>>,
+    intakeEvents,
+    activeTarget,
+  };
+}
+
 export default async function AdminPage({
   searchParams,
 }: {
@@ -266,6 +552,7 @@ export default async function AdminPage({
   } = await getAdminAccessContext("/admin");
   const params = await searchParams;
   const filters = parseLeadListFilters(params);
+  const selectedStage = readStageFilter(params) ?? (filters.stageId === "all" ? "all" : filters.stageId);
   const scopedFilters = scopeLeadListFilters(filters, accessLevel, session.user?.email);
   const showTeamViews = canViewSalesTeam(accessLevel);
   const showTechnicalSummary = canManageIntegrationsAccess(accessLevel, role);
@@ -281,14 +568,19 @@ export default async function AdminPage({
         activeTarget: Awaited<ReturnType<typeof getActiveGlobalSalesTarget>>;
       }
     | null = null;
+  let usingDevelopmentDemoData = false;
 
   try {
     const [leads, stats, tasks, users, integrations, intakeEvents, activeTarget] = await Promise.all([
       leadStore.list({
         ...scopedFilters,
+        stageId: selectedStage,
         limit: 120,
       }),
-      leadStore.getDashboardStats(scopedFilters),
+      leadStore.getDashboardStats({
+        ...scopedFilters,
+        stageId: selectedStage,
+      }),
       leadStore.listLeadTasks({
         assignedTo: accessLevel === "sales_rep" ? session.user?.email ?? undefined : undefined,
       }),
@@ -310,11 +602,16 @@ export default async function AdminPage({
   } catch (error) {
     pageError = error;
     logCrmPageError("dashboard", error);
+
+    if (process.env.NODE_ENV !== "production") {
+      pageData = buildDevelopmentDashboardData();
+      usingDevelopmentDemoData = true;
+    }
   }
 
   const shellActions = (
     <>
-      <div className="hidden rounded-full border border-white/70 bg-white/76 px-4 py-2 text-sm text-slate-600 shadow-[inset_0_1px_0_rgba(255,255,255,0.72)] md:block">
+      <div className="ld-floating-control hidden h-10 items-center px-4 text-sm font-semibold text-white/72 md:inline-flex">
         {session.user?.email}
       </div>
       {canExportLeads({ accessLevel, email: session.user?.email, role }) ? (
@@ -337,6 +634,9 @@ export default async function AdminPage({
         title={getDashboardTitle(accessLevel)}
         description={getDashboardDescription(accessLevel)}
         actions={shellActions}
+        userName={crmUser?.fullName || session.user?.name}
+        userEmail={crmUser?.email || session.user?.email}
+        userAvatarUrl={crmUser?.avatarUrl}
       >
         <ErrorState
           title={errorCopy.title}
@@ -384,8 +684,6 @@ export default async function AdminPage({
   const repsWithOverdueWork = teamRows.filter((row) => row.overdueTasks > 0);
   const personalRow =
     teamRows.find((row) => row.email.toLowerCase() === session.user?.email?.toLowerCase()) ?? null;
-  const todayFollowUps = openTasks.filter((task) => isDateToday(task.dueAt));
-  const overdueTasks = openTasks.filter((task) => isTaskOverdue(task));
   const unassignedLeads = leads.filter((lead) => !lead.assignedTo);
   const leadNameById = buildLeadDisplayNameMap(leads);
   const focusedTasks = openTasks
@@ -403,23 +701,38 @@ export default async function AdminPage({
   const leadStateById = Object.fromEntries(
     leads.map((lead) => [lead.id, lead.state]),
   );
-  const activityFeed = (
-    await Promise.all(
-      leads.slice(0, 8).map(async (lead) => {
-        const events = await leadStore.listLeadEvents(lead.id);
-        return events.slice(0, 3).map((event) => ({
-          event,
-          lead,
-        }));
-      }),
-    )
-  )
-    .flat()
-    .sort((left, right) => new Date(right.event.createdAt).getTime() - new Date(left.event.createdAt).getTime())
-    .slice(0, 6);
+  const activityFeed = usingDevelopmentDemoData
+    ? leads.slice(0, 5).map((lead, index) => ({
+        lead,
+        event: {
+          id: `demo-event-${index + 1}`,
+          leadId: lead.id,
+          eventType: index === 0 ? "lead_created" : index === 1 ? "stage_changed" : "follow_up_due",
+          eventData:
+            index === 1
+              ? { to: formatLeadStateLabel(lead.state) }
+              : { preview: index === 0 ? "New demo lead captured." : "Follow-up queued for today." },
+          createdBy: lead.assignedTo ?? "Demo workspace",
+          createdAt: lead.lastActivityAt,
+        },
+      }))
+    : (
+        await Promise.all(
+          leads.slice(0, 8).map(async (lead) => {
+            const events = await listDashboardLeadEvents(lead.id);
+            return events.slice(0, 3).map((event) => ({
+              event,
+              lead,
+            }));
+          }),
+        )
+      )
+        .flat()
+        .sort((left, right) => new Date(right.event.createdAt).getTime() - new Date(left.event.createdAt).getTime())
+        .slice(0, 6);
   const hasFilters = Boolean(
     filters.search ||
-      (filters.crmStatus && filters.crmStatus !== "all") ||
+      (selectedStage && selectedStage !== "all") ||
       (filters.source && filters.source !== "all") ||
       (filters.priority && filters.priority !== "all") ||
       filters.assignedTo,
@@ -450,7 +763,7 @@ export default async function AdminPage({
       value: lead.id,
       label: `${leadNameById[lead.id] || "Lead"} • ${lead.state ? `${formatLeadStateLabel(lead.state)} • ` : ""}${lead.email || lead.whatsappNumber || formatLeadSourceLabel(lead.source)}`.trim(),
       assignedTo: lead.assignedTo,
-      crmStatus: lead.crmStatus,
+      stage: lead.stageId ?? "new",
       priority: lead.priority,
     }));
   const welcomeName = getFirstNameLabel(crmUser?.fullName || session.user?.name || session.user?.email);
@@ -471,48 +784,6 @@ export default async function AdminPage({
     dashboardConfig,
   ).map((item) => item.id);
   const visibleDashboardWidgetSet = new Set<DashboardWidgetKey>(visibleDashboardWidgetKeys);
-  const overviewCards = [
-    {
-      key: "my_tasks" as const,
-      label: accessLevel === "sales_rep" ? "Tasks today" : "Leads to review",
-      value: safeNumber(accessLevel === "sales_rep" ? todayFollowUps.length : actionLeads.length),
-      hint:
-        accessLevel === "sales_rep"
-          ? "Follow-ups scheduled for today."
-          : "Leads that need a next step soon.",
-      icon: AlarmClockCheck,
-    },
-    {
-      key: "overdue_follow_ups" as const,
-      label: "Overdue tasks",
-      value: safeNumber(overdueTasks.length),
-      hint:
-        overdueTasks.length > 0
-          ? `${safeNumber(overdueTasks.length)} ${pluralize(overdueTasks.length, "task")} need attention.`
-          : "No overdue tasks right now.",
-      icon: CircleAlert,
-    },
-    {
-      key: "new_leads" as const,
-      label: accessLevel === "sales_rep" ? "High priority" : "Needs owner",
-      value: safeNumber(accessLevel === "sales_rep" ? stats.highPriorityLeads : stats.unassignedLeads),
-      hint:
-        accessLevel === "sales_rep"
-          ? "Best leads to handle first."
-          : "Leads still waiting for an owner.",
-      icon: accessLevel === "sales_rep" ? UserPlus : Inbox,
-    },
-    {
-      key: "team_performance" as const,
-      label: accessLevel === "sales_rep" ? "Qualified leads" : "Active team",
-      value: safeNumber(accessLevel === "sales_rep" ? personalRow?.qualifiedLeads ?? 0 : teamRows.length),
-      hint:
-        accessLevel === "sales_rep"
-          ? "Leads already moving forward."
-          : "People currently handling leads or tasks.",
-      icon: Users2,
-    },
-  ].filter((card) => visibleDashboardWidgetSet.has(card.key));
   const salesDashboardSummary = buildSalesDashboardSummary({
     leads,
     tasks,
@@ -521,13 +792,12 @@ export default async function AdminPage({
     activeTarget,
   });
   const searchSlot = (
-    <FilterBar>
-      <form action="/admin" className="flex flex-col gap-3">
+      <form action="/admin" className="flex flex-col gap-2">
         <div className="flex flex-col gap-2 lg:flex-row lg:items-center">
           <div className="min-w-0 flex-1">
             <SearchInput
               defaultValue={filters.search ?? ""}
-              placeholder="Search leads, state, tasks, people, or phone number"
+              placeholder="Search leads, region, tasks, people, or phone"
             />
           </div>
           <button
@@ -544,18 +814,18 @@ export default async function AdminPage({
           </Link>
         </div>
 
-        {accessLevel === "sales_rep" ? null : (
+        {accessLevel !== "sales_rep" && hasFilters ? (
           <details
-            open={hasFilters}
-            className="rounded-[22px] border border-slate-200/80 bg-[linear-gradient(180deg,rgba(248,251,255,0.92)_0%,rgba(255,252,247,0.92)_100%)] px-4 py-3"
+            open
+            className="rounded-[18px] border border-white/10 bg-black/16 px-4 py-2.5"
           >
-            <summary className="cursor-pointer list-none text-sm font-medium text-slate-600">
-              More filters {hasFilters ? "• active" : ""}
+            <summary className="cursor-pointer list-none text-sm font-medium text-white/64">
+              Filters active
             </summary>
             <div className="mt-3 grid gap-2 sm:grid-cols-3">
               <AdminSelect
-                name="crmStatus"
-                defaultValue={filters.crmStatus ?? "all"}
+                name="stage"
+                defaultValue={selectedStage ?? "all"}
                 className="h-11"
               >
                 {crmOptions.map((option) => (
@@ -588,9 +858,8 @@ export default async function AdminPage({
               </AdminSelect>
             </div>
           </details>
-        )}
+        ) : null}
       </form>
-    </FilterBar>
   );
 
   return (
@@ -604,73 +873,38 @@ export default async function AdminPage({
       description={getDashboardDescription(accessLevel)}
       searchSlot={searchSlot}
       actions={shellActions}
-      sidebarFooter={
-        <div className="rounded-[28px] border border-white/10 bg-white/[0.045] p-4 text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[color:var(--fc-yellow)]/84">
-            {accessLevel === "sales_rep" ? "My focus" : "Today's focus"}
-          </p>
-          <p className="mt-2 text-sm leading-6 text-white/66">
-            {accessLevel === "sales_rep"
-              ? "Overdue first. Newest leads next."
-              : "Overdue first. Assign fast. Keep the queue moving."}
-          </p>
-        </div>
-      }
+      userName={crmUser?.fullName || session.user?.name}
+      userEmail={crmUser?.email || session.user?.email}
+      userAvatarUrl={crmUser?.avatarUrl}
     >
       <div className="space-y-6">
-        <section className="admin-surface rounded-[32px] p-5 sm:p-6">
+        <section className="px-1 py-4 sm:px-2 sm:py-5">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
             <div className="max-w-3xl">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[#0b123f]/54">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/44">
                 {dashboardDateLabel}
               </p>
-              <h2 className="mt-2 font-[family:var(--font-heading)] text-[2.5rem] leading-none tracking-[-0.05em] text-slate-950 sm:text-[3rem]">
+              <h2 className="mt-2 font-[family:var(--font-heading)] text-[2.5rem] leading-none tracking-[-0.06em] text-white sm:text-[3rem]">
                 Good morning, {welcomeName}.
               </h2>
-              <p className="mt-2 text-sm leading-6 text-slate-600">
+              <p className="mt-2 text-sm leading-6 text-white/68">
                 Here&apos;s what needs attention today.
               </p>
             </div>
             <div className="flex flex-wrap gap-3">
               <Link
                 href="/admin/leads"
-                className="admin-button-secondary inline-flex h-11 items-center justify-center rounded-2xl px-5 text-sm font-medium"
+                className="ld-floating-control inline-flex h-11 items-center justify-center px-5 text-sm font-semibold"
               >
                 Open leads
               </Link>
               <Link
                 href="#action-center"
-                className="admin-button-primary inline-flex h-11 items-center justify-center rounded-2xl px-5 text-sm font-semibold"
+                className="ld-glass-button inline-flex h-11 items-center justify-center px-5 text-sm font-semibold"
               >
                 {accessLevel === "sales_rep" ? "Create task" : "Create task"}
               </Link>
             </div>
-          </div>
-
-          <div className="mt-5 grid gap-4 lg:grid-cols-2 2xl:grid-cols-4">
-            {overviewCards.map((card) => {
-              const Icon = card.icon;
-
-              return (
-                <article
-                  key={card.label}
-                  className="rounded-[28px] bg-[linear-gradient(135deg,#071338_0%,#101d56_62%,#1a2c78_100%)] p-5 text-white shadow-[0_22px_48px_rgba(7,19,56,0.18)]"
-                >
-                  <div className="flex items-center justify-between gap-3">
-                    <span className="inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-[color:var(--fc-yellow)]/28 bg-[color:var(--fc-yellow)]/10 text-[color:var(--fc-yellow)]">
-                      <Icon className="h-4 w-4" />
-                    </span>
-                    <span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/54">
-                      {card.label}
-                    </span>
-                  </div>
-                  <p className="mt-6 text-[2.2rem] font-semibold leading-none tracking-[-0.05em] text-white">
-                    {card.value}
-                  </p>
-                  <p className="mt-3 text-sm leading-6 text-white/68">{card.hint}</p>
-                </article>
-              );
-            })}
           </div>
         </section>
 
@@ -701,18 +935,18 @@ export default async function AdminPage({
               ctaLabel: "View all",
               children:
                 focusedTasks.slice(0, 4).length > 0 ? (
-                  <div className="overflow-hidden rounded-[24px] border border-slate-200 bg-[linear-gradient(180deg,rgba(252,251,247,0.98)_0%,rgba(247,250,255,0.94)_100%)]">
+                  <div className="overflow-hidden rounded-[24px] border border-white/10 bg-white/[0.035]">
                     {focusedTasks.slice(0, 4).map((task, index) => (
                       <article
                         key={task.id}
                         className={[
-                          "flex flex-col gap-4 px-4 py-4 transition hover:bg-white sm:flex-row sm:items-center sm:justify-between",
-                          index < focusedTasks.slice(0, 4).length - 1 ? "border-b border-slate-200/80" : "",
+                          "flex flex-col gap-4 px-4 py-4 transition hover:bg-white/[0.06] sm:flex-row sm:items-center sm:justify-between",
+                          index < focusedTasks.slice(0, 4).length - 1 ? "border-b border-white/10" : "",
                         ].join(" ")}
                       >
                         <div className="min-w-0">
-                            <p className="text-base font-semibold text-slate-950">{task.title}</p>
-                            <p className="mt-1 text-sm text-slate-500">
+                            <p className="text-base font-semibold text-white">{task.title}</p>
+                            <p className="mt-1 text-sm text-white/54">
                               {leadNameById[task.leadId] || "Lead"}
                               {leadStateById[task.leadId]
                                 ? ` • ${formatLeadStateLabel(leadStateById[task.leadId])}`
@@ -724,7 +958,7 @@ export default async function AdminPage({
                         <div className="flex items-center gap-2">
                           <Link
                             href={`/admin/leads/${task.leadId}`}
-                            className="inline-flex items-center gap-1.5 text-sm font-semibold text-[#0b123f] transition hover:text-[#1f3486]"
+                            className="inline-flex items-center gap-1.5 text-sm font-semibold text-cyan-100 transition hover:text-white"
                           >
                             Open lead
                           </Link>
@@ -751,37 +985,37 @@ export default async function AdminPage({
               ctaLabel: "View all",
               children:
                 recentLeads.length > 0 ? (
-                  <div className="overflow-hidden rounded-[24px] border border-slate-200 bg-[linear-gradient(180deg,rgba(252,251,247,0.98)_0%,rgba(247,250,255,0.94)_100%)]">
+                  <div className="overflow-hidden rounded-[24px] border border-white/10 bg-white/[0.035]">
                     {recentLeads.map((lead, index) => (
                       <Link
                         key={lead.id}
                         href={`/admin/leads/${lead.id}`}
                         className={[
-                          "block px-4 py-4 transition hover:bg-white",
-                          index < recentLeads.length - 1 ? "border-b border-slate-200/80" : "",
+                          "block px-4 py-4 transition hover:bg-white/[0.06]",
+                          index < recentLeads.length - 1 ? "border-b border-white/10" : "",
                         ].join(" ")}
                       >
                         <div className="flex items-start gap-3">
                           <div className="min-w-0 flex-1">
-                            <p className="text-base font-semibold text-slate-950 [overflow-wrap:anywhere]">
+                            <p className="text-base font-semibold text-white [overflow-wrap:anywhere]">
                               {recentLeadNameById[lead.id] || `${(lead.firstName || "Lead").trim()} ${lead.lastName}`.trim()}
                             </p>
-                            <p className="mt-1 text-sm leading-6 text-slate-500 [overflow-wrap:anywhere]">
+                            <p className="mt-1 text-sm leading-6 text-white/54 [overflow-wrap:anywhere]">
                               {lead.email || lead.whatsappNumber || "No contact details yet"}
                             </p>
-                            <p className="mt-2 text-xs font-medium uppercase tracking-[0.14em] text-slate-400">
-                              {lead.state ? formatLeadStateLabel(lead.state) : "State not captured yet"}
+                            <p className="mt-2 text-xs font-medium uppercase tracking-[0.14em] text-white/38">
+                              {lead.state ? formatLeadStateLabel(lead.state) : "Region not captured yet"}
                             </p>
                           </div>
-                          <div className="shrink-0 rounded-full border border-slate-200 bg-white/84 px-2.5 py-1">
-                            <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-400">
+                          <div className="shrink-0 rounded-full border border-white/10 bg-white/[0.06] px-2.5 py-1">
+                            <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/42">
                               {formatCrmDateTime(lead.createdAt)}
                             </p>
                           </div>
                         </div>
                         <div className="mt-3 flex flex-wrap gap-2">
                           <SourceBadge source={lead.source} />
-                          <StatusBadge status={lead.crmStatus} />
+                          <StatusBadge status={resolveLeadStageBadge(lead.stageId)} />
                           <PriorityBadge priority={lead.priority} />
                         </div>
                       </Link>
@@ -802,7 +1036,7 @@ export default async function AdminPage({
               title: "Capture, assign, and move the queue forward",
               description: "Use the action center to add leads, create follow-ups, assign owners, and import lists without leaving the dashboard.",
               accent: "navy" as const,
-              defaultOpen: true,
+              defaultOpen: false,
               children: (
                 <div id="action-center">
                   <AdminWorkspaceComposer
@@ -869,8 +1103,8 @@ export default async function AdminPage({
                     Open leads page
                   </Link>
                   <Link
-                    href={buildDashboardHref({ crmStatus: "new" })}
-                    className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-600 transition hover:border-slate-300 hover:bg-white hover:text-slate-950"
+                    href={buildDashboardHref({ stage: "new" })}
+                    className="rounded-full border border-white/10 bg-white/[0.05] px-3 py-1.5 text-xs font-semibold text-white/64 transition hover:border-cyan-200/22 hover:bg-white/[0.08] hover:text-white"
                   >
                     New
                   </Link>
@@ -883,23 +1117,23 @@ export default async function AdminPage({
                     <Link
                       key={lead.id}
                       href={`/admin/leads/${lead.id}`}
-                      className="admin-surface-muted rounded-[24px] px-4 py-4 transition hover:border-slate-300 hover:bg-white"
+                      className="admin-surface-muted rounded-[24px] px-4 py-4 transition hover:border-cyan-200/22 hover:bg-white/[0.07]"
                     >
                       <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
                         <div className="min-w-0">
-                          <p className="text-base font-semibold text-slate-950">
+                          <p className="text-base font-semibold text-white">
                             {previewActionLeadNameById[lead.id] || `${(lead.firstName || "Lead").trim()} ${lead.lastName}`.trim()}
                           </p>
-                          <p className="mt-1 text-sm text-slate-500 [overflow-wrap:anywhere]">
+                          <p className="mt-1 text-sm text-white/54 [overflow-wrap:anywhere]">
                             {lead.email || lead.whatsappNumber || "No contact yet"}
                           </p>
-                          <p className="mt-2 text-xs font-medium uppercase tracking-[0.14em] text-slate-400">
-                            {lead.state ? formatLeadStateLabel(lead.state) : "State not captured yet"}
+                          <p className="mt-2 text-xs font-medium uppercase tracking-[0.14em] text-white/38">
+                            {lead.state ? formatLeadStateLabel(lead.state) : "Region not captured yet"}
                           </p>
                         </div>
                         <div className="flex flex-wrap gap-2">
                           <SourceBadge source={lead.source} />
-                          <StatusBadge status={lead.crmStatus} />
+                          <StatusBadge status={resolveLeadStageBadge(lead.stageId)} />
                           <PriorityBadge priority={lead.priority} />
                         </div>
                       </div>
@@ -1016,12 +1250,12 @@ export default async function AdminPage({
                       <Link
                         key={lead.id}
                         href={`/admin/leads/${lead.id}`}
-                        className="admin-surface-muted rounded-[22px] px-4 py-3 transition hover:border-slate-300 hover:bg-white"
+                        className="admin-surface-muted rounded-[22px] px-4 py-3 transition hover:border-cyan-200/22 hover:bg-white/[0.07]"
                       >
-                        <p className="text-sm font-semibold text-slate-950">
+                        <p className="text-sm font-semibold text-white">
                           {previewUnassignedLeadNameById[lead.id] || `${(lead.firstName || "Lead").trim()} ${lead.lastName}`.trim()}
                         </p>
-                        <p className="mt-1 text-sm text-slate-500">
+                        <p className="mt-1 text-sm text-white/54">
                           {lead.state ? `${formatLeadStateLabel(lead.state)} • ` : ""}{formatLeadSourceLabel(lead.source)} • {lead.email || lead.whatsappNumber || "No contact yet"}
                         </p>
                       </Link>

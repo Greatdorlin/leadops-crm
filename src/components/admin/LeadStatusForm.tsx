@@ -6,10 +6,10 @@ import { CelebrationPanel } from "@/components/admin/CelebrationPanel";
 import { useAdminWorkspaceSettings } from "@/components/admin/AdminWorkspaceSettingsProvider";
 import { buildLeadStageCelebration, type CelebrationMoment } from "@/lib/crm/celebrations";
 import { crmLabelize } from "@/lib/crm/formatters";
-import type { CrmStatus, LeadPriority } from "@/lib/crm/types";
+import type { LeadPriority } from "@/lib/crm/types";
 import { AdminSelect } from "./AdminSelect";
 
-const crmStatuses: CrmStatus[] = [
+const stageKeys = [
   "new",
   "contacted",
   "qualified",
@@ -22,7 +22,7 @@ const crmStatuses: CrmStatus[] = [
   "unresponsive",
   "unqualified",
   "closed",
-];
+] as const;
 
 const priorityOptions: LeadPriority[] = ["low", "medium", "high", "urgent"];
 
@@ -36,27 +36,27 @@ function formatDateTimeLocalValue(value?: string | null) {
 
 export function LeadStatusForm({
   leadId,
-  initialStatus,
+  initialStage,
   initialPriority,
   initialAssignedTo,
   initialAssignedToList,
   initialNextFollowUpAt,
   assigneeOptions,
-  stageOptions = crmStatuses.map((status, index) => ({
+  stageOptions = stageKeys.map((status, index) => ({
     value: status,
     label: crmLabelize(status),
     sortOrder: index,
   })),
 }: {
   leadId: string;
-  initialStatus: CrmStatus;
+  initialStage: string;
   initialPriority: LeadPriority;
   initialAssignedTo: string | null;
   initialAssignedToList: string[];
   initialNextFollowUpAt?: string | null;
   assigneeOptions: Array<{ label: string; value: string }>;
   stageOptions?: Array<{
-    value: CrmStatus;
+    value: string;
     label: string;
     sortOrder?: number;
     isWon?: boolean;
@@ -65,7 +65,7 @@ export function LeadStatusForm({
 }) {
   const router = useRouter();
   const workspaceSettings = useAdminWorkspaceSettings();
-  const [crmStatus, setCrmStatus] = useState<CrmStatus>(initialStatus);
+  const [stage, setStage] = useState<string>(initialStage);
   const [priority, setPriority] = useState<LeadPriority>(initialPriority);
   const [assignedTo, setAssignedTo] = useState(initialAssignedTo ?? "");
   const [assignedToList, setAssignedToList] = useState<string[]>(initialAssignedToList);
@@ -102,7 +102,7 @@ export function LeadStatusForm({
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          crmStatus,
+          stage,
           priority,
           assignedTo: assignedTo || null,
           assignedToList: assignedToList.filter(Boolean),
@@ -120,10 +120,10 @@ export function LeadStatusForm({
 
       if (workspaceSettings.celebrationsEnabled && workspaceSettings.stageCelebrationsEnabled) {
         const activeStageLabel =
-          stageOptions.find((option) => option.value === crmStatus)?.label ?? crmLabelize(crmStatus);
+          stageOptions.find((option) => option.value === stage)?.label ?? crmLabelize(stage);
         const nextCelebration = buildLeadStageCelebration({
-          previousStatus: initialStatus,
-          nextStatus: crmStatus,
+          previousStatus: initialStage as Parameters<typeof buildLeadStageCelebration>[0]["previousStatus"],
+          nextStatus: stage as Parameters<typeof buildLeadStageCelebration>[0]["nextStatus"],
           stageLabel: activeStageLabel,
         });
         setCelebration(nextCelebration);
@@ -141,17 +141,17 @@ export function LeadStatusForm({
   }
 
   return (
-    <div className="rounded-[24px] border border-slate-200/85 bg-[linear-gradient(180deg,rgba(250,251,255,0.98)_0%,rgba(255,252,247,0.95)_100%)] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.8)]">
+    <div className="ld-glass-card ld-glass-soft rounded-[24px] p-4">
       <CelebrationPanel celebration={celebration} onClose={() => setCelebration(null)} className="mb-4" />
-      <div className="mb-4 rounded-[18px] border border-slate-200/70 bg-white/72 px-4 py-3 text-sm leading-6 text-slate-500">
+      <div className="mb-4 rounded-[18px] border border-white/10 bg-white/[0.06] px-4 py-3 text-sm leading-6 text-white/58">
         Update routing before the next touch so ownership and status stay clean.
       </div>
       <div className="grid gap-4">
         <label className="space-y-2">
           <span className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Stage</span>
           <AdminSelect
-            value={crmStatus}
-            onChange={(event) => setCrmStatus(event.target.value as CrmStatus)}
+            value={stage}
+            onChange={(event) => setStage(event.target.value)}
             className="h-12"
           >
             {stageOptions.map((status) => (
@@ -219,7 +219,7 @@ export function LeadStatusForm({
             <span className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
               Also share with
             </span>
-            <div className="grid gap-2 rounded-[18px] border border-slate-200/80 bg-white/82 p-3">
+            <div className="grid gap-2 rounded-[18px] border border-white/10 bg-white/[0.06] p-3">
               {assigneeOptions
                 .filter((option) => option.value !== assignedTo)
                 .map((option) => {
@@ -227,7 +227,7 @@ export function LeadStatusForm({
                   return (
                     <label
                       key={option.value}
-                      className="flex items-center gap-3 rounded-2xl border border-slate-200/80 px-3 py-2 text-sm text-slate-600"
+                      className="flex items-center gap-3 rounded-2xl border border-white/10 px-3 py-2 text-sm text-white/64"
                     >
                       <input
                         type="checkbox"

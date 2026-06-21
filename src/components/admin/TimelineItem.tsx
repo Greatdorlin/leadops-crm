@@ -16,7 +16,7 @@ export function TimelineItem({
 }) {
   const toneClass = {
     neutral: "bg-slate-300",
-    accent: "bg-[color:var(--fc-yellow)]",
+    accent: "bg-[color:var(--ld-color-accent)]",
     success: "bg-emerald-300",
     warning: "bg-amber-300",
     danger: "bg-rose-300",

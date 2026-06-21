@@ -140,18 +140,5 @@ export function mapTikTokLeadToExternalInput(payload: UnknownRecord): ExternalLe
     ]),
     state: readIntegrationFieldValue(fields, ["state", "region", "state_of_residence"]),
     sourcePayload: payload,
-    answers: {
-      stateOfResidence:
-        readIntegrationFieldValue(fields, ["state", "region", "state_of_residence"]) || null,
-      timeline:
-        readIntegrationFieldValue(fields, ["timeline", "travel_timeline", "move_timeline"]) ||
-        null,
-      destinationInterest:
-        readIntegrationFieldValue(fields, [
-          "destination",
-          "destination_interest",
-          "country_interest",
-        ]) || null,
-    },
   };
 }

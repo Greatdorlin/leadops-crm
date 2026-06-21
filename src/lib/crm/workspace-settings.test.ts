@@ -47,22 +47,28 @@ test("theme settings resolve safely and generate CSS variables", () => {
     glassBlur: 22,
   });
 
-  assert.equal(themeFlags.themeMode, "light");
-  assert.equal(themeFlags.designStyle, "modern");
+  assert.equal(themeFlags.themeMode, "dark");
+  assert.equal(themeFlags.designStyle, "liquid_glass");
   assert.equal(themeFlags.density, "compact");
   assert.equal(themeFlags.fontPreset, "editorial");
   assert.equal(themeFlags.glassEnabled, true);
-  assert.equal(getDesignStyleClass(themeFlags.designStyle), "admin-style-modern");
+  assert.equal(getDesignStyleClass(themeFlags.designStyle), "admin-style-liquid_glass");
   assert.equal(getDensityClass(themeFlags.density), "admin-density-compact");
   assert.equal(variables["--color-primary"], "#112233");
   assert.equal(variables["--color-sidebar"], "#050b18");
+  assert.equal(variables["--ld-color-primary"], "#112233");
+  assert.equal(variables["--ld-color-sidebar"], "color-mix(in srgb, #050b18 84%, transparent)");
   assert.equal(variables["--radius-ui"], "18px");
   assert.equal(variables["--font-scale"], "1.1");
+  assert.equal(variables["--ld-font-scale"], "1.1");
   assert.equal(variables["--font-heading"], getFontPresetVariables("editorial").heading);
   assert.equal(variables["--font-body"], getFontPresetVariables("editorial").body);
   assert.equal(variables["--density-scale"], "0.92");
   assert.equal(variables["--glass-opacity"], "0.64");
   assert.equal(variables["--glass-blur"], "22px");
+  assert.equal(variables["--ld-glass-opacity"], "0.64");
+  assert.equal(variables["--ld-glass-blur"], "22px");
+  assert.equal(variables["--ld-background-image"], 'url("/backgrounds/bg-butterfly-glass.png")');
 });
 
 test("appearance settings validation rejects malformed colors and keeps concise login copy", () => {
@@ -90,6 +96,7 @@ test("appearance settings validation rejects malformed colors and keeps concise 
     targetCelebrationsEnabled: true,
     loginHeadline: "Welcome back",
     loginSubheadline: "Manage leads in one private workspace.",
+    loginBackgroundUrl: "/backgrounds/bg-dark-luxury.png",
   });
   const invalid = appearanceSettingsSchema.safeParse({
     ...DEFAULT_WORKSPACE_APPEARANCE,

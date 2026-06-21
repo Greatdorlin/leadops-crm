@@ -49,7 +49,7 @@ const adminNavigation: AdminNavigationItem[] = [
   },
   {
     key: "team",
-    label: "Team Dashboard",
+    label: "Team",
     href: "/admin/team",
     icon: Users2,
     description: "Rep coverage, workload, and team performance.",
@@ -70,10 +70,10 @@ const adminNavigation: AdminNavigationItem[] = [
   },
   {
     key: "integrations",
-    label: "Integrations",
+    label: "Intake",
     href: "/admin/integrations",
     icon: PlugZap,
-    description: "Connected tools, imports, exports, and sync activity.",
+    description: "Connected forms, imports, exports, and source activity.",
   },
   {
     key: "settings",

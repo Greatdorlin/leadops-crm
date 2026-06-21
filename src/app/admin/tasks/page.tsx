@@ -23,6 +23,66 @@ export const dynamic = "force-dynamic";
 
 const views = ["today", "overdue", "my", "all", "completed"] as const;
 
+function buildDevelopmentTaskData() {
+  const now = new Date();
+  const lead = {
+    id: "demo-task-lead",
+    firstName: "Michael",
+    lastName: "Anderson",
+    email: "michael@vertexlabs.example",
+    whatsappNumber: "+1 (415) 555-0198",
+    state: "San Francisco",
+    country: "United States",
+    region: "California",
+    city: "San Francisco",
+    companyName: "Vertex Labs",
+    assignedTo: "sarah@local.leadsdesk.test",
+    stageId: null,
+    priority: "high",
+  } as Awaited<ReturnType<typeof leadStore.list>>[number];
+  const dueToday = new Date(now);
+  dueToday.setHours(16, 0, 0, 0);
+
+  return {
+    users: [
+      {
+        id: "demo-user-sarah",
+        email: "sarah@local.leadsdesk.test",
+        fullName: "Sarah Kim",
+        role: "manager",
+        isActive: true,
+        avatarUrl: null,
+        createdAt: now.toISOString(),
+        updatedAt: now.toISOString(),
+      },
+      {
+        id: "demo-user-james",
+        email: "james@local.leadsdesk.test",
+        fullName: "James Lee",
+        role: "sales_agent",
+        isActive: true,
+        avatarUrl: null,
+        createdAt: now.toISOString(),
+        updatedAt: now.toISOString(),
+      },
+    ] as Awaited<ReturnType<typeof leadStore.listCrmUsers>>,
+    tasks: [
+      {
+        id: "demo-task-follow-up",
+        leadId: lead.id,
+        title: "Follow up with Vertex Labs",
+        description: "Confirm timeline and decision maker before the proposal call.",
+        dueAt: dueToday.toISOString(),
+        completedAt: null,
+        assignedTo: "sarah@local.leadsdesk.test",
+        createdBy: "preview@local.leadsdesk.test",
+        createdAt: now.toISOString(),
+      },
+    ] as Awaited<ReturnType<typeof leadStore.listLeadTasks>>,
+    leads: [lead] as Awaited<ReturnType<typeof leadStore.list>>,
+  };
+}
+
 function formatTaskView(view: (typeof views)[number]) {
   const labels = {
     my: "My tasks",
@@ -98,6 +158,9 @@ export default async function AdminTasksPage({
   } catch (error) {
     pageError = error;
     logCrmPageError("tasks", error);
+    if (process.env.NODE_ENV !== "production") {
+      pageData = buildDevelopmentTaskData();
+    }
   }
 
   const errorCopy = pageError ? getCrmPageErrorCopy(pageError) : null;
@@ -160,13 +223,13 @@ export default async function AdminTasksPage({
     ? requestedLeadId
     : undefined;
   const assignmentLeadOptions = pageData.leads
-    .filter((lead) => !lead.assignedTo || lead.crmStatus === "new")
+    .filter((lead) => !lead.assignedTo || !lead.stageId)
     .slice(0, 20)
     .map((lead) => ({
       value: lead.id,
       label: `${leadNamesById[lead.id] || "Lead"} • ${lead.state ? `${formatLeadStateLabel(lead.state)} • ` : ""}${lead.email || lead.whatsappNumber || "No contact yet"}`.trim(),
       assignedTo: lead.assignedTo,
-      crmStatus: lead.crmStatus,
+      stage: lead.stageId ?? "new",
       priority: lead.priority,
     }));
   const openTasks = pageData.tasks.filter((task) => !task.completedAt);

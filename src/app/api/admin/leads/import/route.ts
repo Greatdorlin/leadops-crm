@@ -2,13 +2,19 @@ import { NextResponse } from "next/server";
 import { normalizeAdminEmail } from "@/lib/admin-access";
 import { getAdminRequestContext } from "@/lib/admin";
 import { canImportLeadRecords } from "@/lib/admin-permissions";
+import { CRM_STATUSES, LEAD_PRIORITIES } from "@/lib/crm/constants";
 import { listCustomFields } from "@/lib/crm/custom-fields-admin";
 import { upsertLeadCustomFieldValues } from "@/lib/crm/custom-field-values-store";
 import { validateCustomFieldValues } from "@/lib/crm/custom-field-values";
 import { parseLeadImportCsv } from "@/lib/crm/csv";
 import { normalizeAdminLeadImportPayload } from "@/lib/crm/form-contracts";
-import { mapAdminImportRowToLegacyLeadPayload } from "@/lib/crm/input-mapping";
 import { createNotificationEvent } from "@/lib/crm/notification-events";
+import {
+  resolveCrmUserIdByEmail,
+  resolveLeadSourceIdByLegacySource,
+  resolveLeadStageIdByLegacyStatus,
+  updateLeadSalesCommandFields,
+} from "@/lib/crm/sales-command";
 import { leadStore } from "@/lib/storage";
 
 function normalizeEmail(value?: string | null) {
@@ -72,19 +78,37 @@ export async function POST(request: Request) {
 
       const assignedTo =
         row.assignedTo ?? parsed.data.assignedTo ?? null;
-      const legacyRow = mapAdminImportRowToLegacyLeadPayload(row);
+      const stage =
+        typeof row.stage === "string" &&
+        CRM_STATUSES.includes(row.stage as (typeof CRM_STATUSES)[number])
+          ? (row.stage as (typeof CRM_STATUSES)[number])
+          : "new";
+      const priority =
+        typeof row.priority === "string" &&
+        LEAD_PRIORITIES.includes(row.priority as (typeof LEAD_PRIORITIES)[number])
+          ? (row.priority as (typeof LEAD_PRIORITIES)[number])
+          : "medium";
+      const sourceId = await resolveLeadSourceIdByLegacySource(row.source);
+      const stageId = await resolveLeadStageIdByLegacyStatus(stage);
+      const assignedUserId = await resolveCrmUserIdByEmail(assignedTo);
+      const nowIso = new Date().toISOString();
+      const wonAt = stage === "converted" ? nowIso : null;
+      const lostAt = stage === "lost" ? nowIso : null;
       const result = await leadStore.upsertExternalLead({
-        source: legacyRow.source,
-        sourceDetail: legacyRow.sourceDetail ?? parsed.data.sourceDetail ?? "csv_import",
-        firstName: legacyRow.firstName,
-        lastName: legacyRow.lastName,
-        email: legacyRow.email,
-        whatsappNumber: legacyRow.whatsappNumber,
-        state: legacyRow.state,
-        primaryGoal: legacyRow.primaryGoal,
-        crmStatus: legacyRow.crmStatus,
-        priority: legacyRow.priority,
+        source: row.source,
+        sourceId,
+        stageId,
+        sourceDetail: row.sourceDetail ?? parsed.data.sourceDetail ?? "csv_import",
+        firstName: row.firstName,
+        lastName: row.lastName || null,
+        email: row.email,
+        whatsappNumber: row.whatsappNumber,
+        state: row.state,
+        assignedUserId,
         assignedTo,
+        priority,
+        wonAt,
+        lostAt,
       });
 
       let lead = result.lead;
@@ -103,21 +127,10 @@ export async function POST(request: Request) {
         }
       }
 
-      if (lead.crmStatus !== legacyRow.crmStatus) {
-        const updated = await leadStore.updateCrmStatus(
-          lead.id,
-          legacyRow.crmStatus,
-          context.session.user?.email ?? null,
-        );
-        if (updated) {
-          lead = updated;
-        }
-      }
-
-      if (lead.priority !== legacyRow.priority) {
+      if (lead.priority !== priority) {
         const updated = await leadStore.updateLeadPriority(
           lead.id,
-          legacyRow.priority,
+          priority,
           context.session.user?.email ?? null,
         );
         if (updated) {
@@ -125,6 +138,13 @@ export async function POST(request: Request) {
         }
       }
 
+      await updateLeadSalesCommandFields(lead.id, {
+        assignedUserId,
+        sourceId,
+        stageId,
+        wonAt: wonAt ?? undefined,
+        lostAt: lostAt ?? undefined,
+      });
       await upsertLeadCustomFieldValues(lead.id, customFieldValidation.values);
 
       if (result.created) {

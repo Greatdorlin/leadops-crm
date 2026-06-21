@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { POST } from "@/app/api/integrations/google-ads/webhook/route";
 import { leadStore } from "@/lib/storage";
+import type { ExternalLeadUpsertInput, LeadEventCreateInput } from "@/lib/storage/types";
 import { mapGoogleAdsLeadToExternalInput, type GoogleAdsLeadWebhookPayload } from "./map-lead";
 import { processGoogleAdsPayload } from "./process-payload";
 
@@ -95,7 +96,7 @@ test("processGoogleAdsPayload upserts a lead and records attribution details", a
   let eventData: Record<string, unknown> | null | undefined;
   let processedId = "";
 
-  t.mock.method(leadStore, "upsertExternalLead", async (input) => {
+  t.mock.method(leadStore, "upsertExternalLead", async (input: ExternalLeadUpsertInput) => {
     receivedInput = input;
     return {
       lead: {
@@ -106,7 +107,7 @@ test("processGoogleAdsPayload upserts a lead and records attribution details", a
       duplicateOfId: null,
     } as Awaited<ReturnType<typeof leadStore.upsertExternalLead>>;
   });
-  t.mock.method(leadStore, "addLeadEvent", async (input) => {
+  t.mock.method(leadStore, "addLeadEvent", async (input: LeadEventCreateInput) => {
     eventData = input.eventData;
     return {
       id: "event-1",
@@ -117,7 +118,7 @@ test("processGoogleAdsPayload upserts a lead and records attribution details", a
       createdAt: new Date().toISOString(),
     };
   });
-  t.mock.method(leadStore, "markPayloadProcessed", async (id) => {
+  t.mock.method(leadStore, "markPayloadProcessed", async (id: string) => {
     processedId = id;
     return null;
   });
@@ -142,7 +143,7 @@ test("processGoogleAdsPayload handles duplicate leads without creating a new CRM
     created: false,
     duplicateOfId: "lead-1",
   }) as Awaited<ReturnType<typeof leadStore.upsertExternalLead>>);
-  t.mock.method(leadStore, "addLeadEvent", async (input) => {
+  t.mock.method(leadStore, "addLeadEvent", async (input: LeadEventCreateInput) => {
     createdFlag = input.eventData?.created as boolean | undefined;
     return {
       id: "event-1",
@@ -167,7 +168,7 @@ test("processGoogleAdsPayload marks the payload as failed when lead upsert throw
   t.mock.method(leadStore, "upsertExternalLead", async () => {
     throw new Error("Lead store unavailable");
   });
-  t.mock.method(leadStore, "markPayloadFailed", async (id, errorMessage) => {
+  t.mock.method(leadStore, "markPayloadFailed", async (id: string, errorMessage: string) => {
     failed = { id, message: errorMessage };
     return null;
   });

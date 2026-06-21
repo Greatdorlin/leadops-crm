@@ -18,7 +18,7 @@ import {
 } from "@/lib/admin-view";
 import { authOptions } from "@/lib/auth";
 import { isCrmConfigurationError } from "@/lib/crm/runtime";
-import type { CrmUserRecord } from "@/lib/pathway-engine/types";
+import type { CrmUserRecord } from "@/lib/crm/types";
 import { leadStore } from "@/lib/storage";
 
 function normalizeEmail(value?: string | null) {

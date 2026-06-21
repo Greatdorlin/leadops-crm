@@ -181,6 +181,22 @@ function normalizeOptionalString(value: unknown) {
   return normalized.length > 0 ? normalized : null;
 }
 
+const urlOrRootPathSchema = (label: string) =>
+  z
+    .string()
+    .trim()
+    .refine((value) => {
+      if (value.length === 0) {
+        return true;
+      }
+
+      if (value.startsWith("/")) {
+        return !value.startsWith("//");
+      }
+
+      return z.string().url().safeParse(value).success;
+    }, `${label} must be a valid URL or root-relative path.`);
+
 function normalizeDisplayString(value: unknown, fallback: string) {
   return normalizeOptionalString(value) ?? fallback;
 }
@@ -222,27 +238,27 @@ export const DEFAULT_WORKSPACE_APPEARANCE: WorkspaceAppearanceSettings = {
   loginLogoUrl: null,
   loginLogoUrlLightMode: null,
   loginLogoUrlDarkMode: null,
-  primaryColor: "#1f4ed8",
-  accentColor: "#f4b400",
-  backgroundColor: "#f6efe6",
-  surfaceColor: "#fffaf5",
-  cardColor: "#ffffff",
-  sidebarColor: "#0b1438",
-  textColor: "#0f172a",
-  borderColor: "#d8e2f0",
-  borderRadius: 24,
+  primaryColor: "#3b82f6",
+  accentColor: "#8b5cf6",
+  backgroundColor: "#0a0a0f",
+  surfaceColor: "#12121a",
+  cardColor: "#111827",
+  sidebarColor: "#080b14",
+  textColor: "#ffffff",
+  borderColor: "#273449",
+  borderRadius: 20,
   fontScale: 1,
   fontPreset: "brand",
   density: "comfortable",
-  themeMode: "light",
-  designStyle: "modern",
-  glassEnabled: false,
-  glassOpacity: 72,
-  glassBlur: 18,
+  themeMode: "dark",
+  designStyle: "liquid_glass",
+  glassEnabled: true,
+  glassOpacity: 60,
+  glassBlur: 20,
   celebrationsEnabled: true,
   stageCelebrationsEnabled: true,
   targetCelebrationsEnabled: true,
-  loginBackgroundUrl: null,
+  loginBackgroundUrl: "/backgrounds/bg-butterfly-glass.png",
   loginHeadline: "Welcome back",
   loginSubheadline:
     "Manage leads, follow-ups, and sales performance in one private workspace.",
@@ -373,13 +389,13 @@ export const VERTICAL_PRESET_DEFINITIONS: Record<IndustryPresetKey, VerticalPres
 
 export const appearanceSettingsSchema = z.object({
   companyName: z.string().trim().min(1, "Company name is required."),
-  logoUrl: z.string().trim().url("Logo URL must be a valid URL.").optional().nullable(),
-  logoUrlLightMode: z.string().trim().url("Light mode logo URL must be a valid URL.").optional().nullable(),
-  logoUrlDarkMode: z.string().trim().url("Dark mode logo URL must be a valid URL.").optional().nullable(),
-  faviconUrl: z.string().trim().url("Favicon URL must be a valid URL.").optional().nullable(),
-  loginLogoUrl: z.string().trim().url("Login logo URL must be a valid URL.").optional().nullable(),
-  loginLogoUrlLightMode: z.string().trim().url("Light mode login logo URL must be a valid URL.").optional().nullable(),
-  loginLogoUrlDarkMode: z.string().trim().url("Dark mode login logo URL must be a valid URL.").optional().nullable(),
+  logoUrl: urlOrRootPathSchema("Logo URL").optional().nullable(),
+  logoUrlLightMode: urlOrRootPathSchema("Light mode logo URL").optional().nullable(),
+  logoUrlDarkMode: urlOrRootPathSchema("Dark mode logo URL").optional().nullable(),
+  faviconUrl: urlOrRootPathSchema("Favicon URL").optional().nullable(),
+  loginLogoUrl: urlOrRootPathSchema("Login logo URL").optional().nullable(),
+  loginLogoUrlLightMode: urlOrRootPathSchema("Light mode login logo URL").optional().nullable(),
+  loginLogoUrlDarkMode: urlOrRootPathSchema("Dark mode login logo URL").optional().nullable(),
   primaryColor: z.string().trim(),
   accentColor: z.string().trim(),
   backgroundColor: z.string().trim(),
@@ -400,7 +416,7 @@ export const appearanceSettingsSchema = z.object({
   celebrationsEnabled: z.boolean(),
   stageCelebrationsEnabled: z.boolean(),
   targetCelebrationsEnabled: z.boolean(),
-  loginBackgroundUrl: z.string().trim().url("Login background URL must be a valid URL.").optional().nullable(),
+  loginBackgroundUrl: urlOrRootPathSchema("Login background URL").optional().nullable(),
   loginHeadline: z.string().trim().min(1, "Login headline is required."),
   loginSubheadline: z.string().trim().min(1, "Login subheadline is required."),
 });
@@ -624,6 +640,12 @@ export function getPanelClass(style: DesignStyle) {
 
 export function buildThemeCssVariables(settings: WorkspaceAppearanceSettings) {
   const fontVariables = getFontPresetVariables(settings.fontPreset);
+  const backgroundImage = settings.loginBackgroundUrl?.trim()
+    ? `url("${settings.loginBackgroundUrl.trim()}")`
+    : 'url("/backgrounds/bg-butterfly-glass.png")';
+  const glassOpacity = clampNumber(settings.glassOpacity, 0, 100) / 100;
+  const glassBlur = `${clampNumber(settings.glassBlur, 0, 40)}px`;
+
   return {
     "--color-primary": settings.primaryColor,
     "--color-accent": settings.accentColor,
@@ -635,13 +657,36 @@ export function buildThemeCssVariables(settings: WorkspaceAppearanceSettings) {
     "--color-text": settings.textColor,
     "--radius-ui": `${settings.borderRadius}px`,
     "--font-scale": String(settings.fontScale),
+    "--ld-color-primary": settings.primaryColor,
+    "--ld-color-primary-strong": settings.primaryColor,
+    "--ld-color-accent": settings.accentColor,
+    "--ld-color-background": settings.backgroundColor,
+    "--ld-color-background-soft": settings.surfaceColor,
+    "--ld-color-surface": `color-mix(in srgb, ${settings.surfaceColor} 70%, transparent)`,
+    "--ld-color-surface-strong": `color-mix(in srgb, ${settings.surfaceColor} 84%, transparent)`,
+    "--ld-color-card": `color-mix(in srgb, ${settings.cardColor} 62%, transparent)`,
+    "--ld-color-card-strong": `color-mix(in srgb, ${settings.cardColor} 78%, transparent)`,
+    "--ld-color-card-border": `color-mix(in srgb, ${settings.borderColor} 56%, rgba(255, 255, 255, 0.08))`,
+    "--ld-color-sidebar": `color-mix(in srgb, ${settings.sidebarColor} 84%, transparent)`,
+    "--ld-color-sidebar-active": `color-mix(in srgb, ${settings.primaryColor} 24%, rgba(255, 255, 255, 0.1))`,
+    "--ld-color-text": settings.textColor,
+    "--ld-color-muted": `color-mix(in srgb, ${settings.textColor} 58%, #9ca3af)`,
+    "--ld-background-image": backgroundImage,
+    "--ld-background-overlay-opacity": "0.48",
+    "--ld-sidebar-width": "260px",
+    "--ld-card-radius": `${settings.borderRadius}px`,
+    "--ld-control-radius": `${Math.max(8, settings.borderRadius - 10)}px`,
+    "--ld-font-scale": String(settings.fontScale),
+    "--ld-glass-opacity": String(glassOpacity),
+    "--ld-glass-blur": glassBlur,
+    "--ld-glass-saturation": settings.designStyle === "liquid_glass" ? "1.35" : "1.12",
     "--font-heading": fontVariables.heading,
     "--font-body": fontVariables.body,
     "--font-heading-active": fontVariables.heading,
     "--font-body-active": fontVariables.body,
     "--density-scale": settings.density === "compact" ? "0.92" : "1",
-    "--glass-opacity": String(settings.glassOpacity / 100),
-    "--glass-blur": `${settings.glassBlur}px`,
+    "--glass-opacity": String(glassOpacity),
+    "--glass-blur": glassBlur,
   } as Record<string, string>;
 }
 

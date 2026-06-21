@@ -8,7 +8,6 @@ import {
   DEFAULT_LEADS_DESK_SOURCE_ROWS,
   DEFAULT_LEADS_DESK_STAGE_ROWS,
   LEADS_DESK_SOURCE_BACKFILL_PLAN,
-  LEADS_DESK_STAGE_BACKFILL_PLAN,
 } from "@/lib/db/defaults";
 import type {
   CustomFieldDefinition,
@@ -72,7 +71,10 @@ export interface IntakeEventSummary {
   hasNormalizedPayload: boolean;
 }
 
-type LeadReadRecord = Pick<LeadRecord, "crmStatus" | "source" | "assignedTo"> & {
+type LeadReadRecord = Pick<
+  LeadRecord,
+  "source" | "assignedTo" | "wonAt" | "lostAt" | "nextFollowUpAt" | "lastActivityAt"
+> & {
   stageId?: string | null;
   sourceId?: string | null;
   assignedUserId?: string | null;
@@ -135,8 +137,10 @@ export function resolveLeadStageDisplay(lead: LeadReadRecord, stage?: StageLike 
     };
   }
 
-  const legacyStageKey = lead.crmStatus ? LEADS_DESK_STAGE_BACKFILL_PLAN[lead.crmStatus] : null;
-  const fallbackStage = DEFAULT_LEADS_DESK_STAGE_ROWS.find((item) => item.key === legacyStageKey) ?? DEFAULT_LEADS_DESK_STAGE_ROWS[0];
+  const fallbackKey = lead.wonAt ? "won" : lead.lostAt ? "lost" : "new";
+  const fallbackStage =
+    DEFAULT_LEADS_DESK_STAGE_ROWS.find((item) => item.key === fallbackKey) ??
+    DEFAULT_LEADS_DESK_STAGE_ROWS[0];
 
   return {
     id: lead.stageId ?? null,

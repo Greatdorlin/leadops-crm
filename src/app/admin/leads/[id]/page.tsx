@@ -82,6 +82,10 @@ function eventTone(eventType: string) {
   return "neutral" as const;
 }
 
+function resolveLegacyStageBadge(stage?: string | null): CrmStatus {
+  return (stage ?? "new") as CrmStatus;
+}
+
 export default async function AdminLeadDetailPage({
   params,
 }: {
@@ -117,15 +121,34 @@ export default async function AdminLeadDetailPage({
       notFound();
     }
 
-    const [users, notes, tasks, events, allLeads] = await Promise.all([
-      leadStore.listCrmUsers(),
-      leadStore.listLeadNotes(id),
-      leadStore.listLeadTasks({ leadId: id }),
-      leadStore.listLeadEvents(id),
-      leadStore.list(
-        accessLevel === "sales_rep" ? { assignedTo: session.user?.email ?? undefined } : undefined,
-      ),
-    ]);
+    let users: Awaited<ReturnType<typeof leadStore.listCrmUsers>>;
+    let notes: Awaited<ReturnType<typeof leadStore.listLeadNotes>>;
+    let tasks: Awaited<ReturnType<typeof leadStore.listLeadTasks>>;
+    let events: Awaited<ReturnType<typeof leadStore.listLeadEvents>>;
+    let allLeads: Awaited<ReturnType<typeof leadStore.list>>;
+
+    try {
+      [users, notes, tasks, events, allLeads] = await Promise.all([
+        leadStore.listCrmUsers(),
+        leadStore.listLeadNotes(id),
+        leadStore.listLeadTasks({ leadId: id }),
+        leadStore.listLeadEvents(id),
+        leadStore.list(
+          accessLevel === "sales_rep" ? { assignedTo: session.user?.email ?? undefined } : undefined,
+        ),
+      ]);
+    } catch (relatedDataError) {
+      if (process.env.NODE_ENV === "production") {
+        throw relatedDataError;
+      }
+
+      logCrmPageError(`lead:${id}:related-data`, relatedDataError);
+      users = [];
+      notes = [];
+      tasks = [];
+      events = [];
+      allLeads = [lead];
+    }
 
     pageData = {
       lead,
@@ -217,11 +240,37 @@ export default async function AdminLeadDetailPage({
       return leftTime - rightTime;
     })[0];
   const whatsappHref = buildWhatsAppHref(lead.whatsappNumber);
-  const readContext = await loadAdminLeadReadContext([lead], { includeCustomFields: true });
-  const editableCustomFields = (await listCustomFields()).filter(
+  let readContext: Awaited<ReturnType<typeof loadAdminLeadReadContext>>;
+  let editableCustomFields: Awaited<ReturnType<typeof listCustomFields>>;
+  let configuredStageOptions: Awaited<ReturnType<typeof listLeadStages>>;
+
+  try {
+    [readContext, editableCustomFields, configuredStageOptions] = await Promise.all([
+      loadAdminLeadReadContext([lead], { includeCustomFields: true }),
+      listCustomFields(),
+      listLeadStages(),
+    ]);
+  } catch (relatedModelError) {
+    if (process.env.NODE_ENV === "production") {
+      throw relatedModelError;
+    }
+
+    logCrmPageError(`lead:${id}:read-model`, relatedModelError);
+    readContext = {
+      stagesById: new Map(),
+      sourcesById: new Map(),
+      ownersById: new Map(),
+      customFieldDefinitionsByLeadId: new Map(),
+      customFieldValuesByLeadId: new Map(),
+    };
+    editableCustomFields = [];
+    configuredStageOptions = [];
+  }
+
+  editableCustomFields = editableCustomFields.filter(
     (field) => field.showInForm && !field.archived,
   );
-  const configuredStageOptions = (await listLeadStages()).filter(
+  configuredStageOptions = configuredStageOptions.filter(
     (stage) => !stage.archived && CRM_STATUSES.includes(stage.key as (typeof CRM_STATUSES)[number]),
   );
   const leadView = buildAdminLeadDetailView(lead, {
@@ -259,7 +308,7 @@ export default async function AdminLeadDetailPage({
           >
             {lead.deletedAt ? "Back to trash" : "Back to leads"}
           </Link>
-          <div className="hidden rounded-full border border-slate-200 bg-white px-4 py-2 text-sm text-slate-600 md:block">
+          <div className="ld-floating-control hidden rounded-full px-4 py-2 text-sm md:block">
             {session.user?.email}
           </div>
           <AdminSignOutButton />
@@ -274,22 +323,22 @@ export default async function AdminLeadDetailPage({
         ) : null}
 
         <section className="admin-surface overflow-hidden rounded-[30px] p-0">
-          <div className="border-b border-slate-200/80 bg-[radial-gradient(circle_at_top,rgba(205,220,255,0.78),transparent_44%),linear-gradient(180deg,rgba(255,255,255,0.98)_0%,rgba(249,250,255,0.95)_100%)] px-5 py-6 sm:px-6 sm:py-7">
+          <div className="border-b border-white/10 bg-[radial-gradient(circle_at_top_left,rgba(103,232,249,0.18),transparent_38%),radial-gradient(circle_at_top_right,rgba(139,92,246,0.2),transparent_34%),linear-gradient(180deg,rgba(255,255,255,0.09)_0%,rgba(255,255,255,0.035)_100%)] px-5 py-6 sm:px-6 sm:py-7">
             <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(320px,0.92fr)] xl:items-center">
               <div className="flex items-start gap-4 sm:gap-5">
-                <div className="flex h-18 w-18 shrink-0 items-center justify-center rounded-[28px] bg-[linear-gradient(180deg,#dbe7ff_0%,#cfdcff_100%)] text-[2rem] font-semibold tracking-[-0.05em] text-[#132d78] shadow-[inset_0_1px_0_rgba(255,255,255,0.9)] sm:h-24 sm:w-24 sm:text-[2.5rem]">
+                <div className="flex h-18 w-18 shrink-0 items-center justify-center rounded-[28px] border border-white/14 bg-[linear-gradient(145deg,rgba(59,130,246,0.34),rgba(139,92,246,0.24))] text-[2rem] font-semibold tracking-[-0.05em] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.12),0_18px_42px_rgba(15,23,42,0.22)] sm:h-24 sm:w-24 sm:text-[2.5rem]">
                     {leadView.initials}
                 </div>
 
                 <div className="min-w-0">
-                  <h2 className="font-[family:var(--font-heading)] text-[2.4rem] leading-[0.94] tracking-[-0.06em] text-slate-950 sm:text-[3.3rem]">
+                  <h2 className="font-[family:var(--font-heading)] text-[2.4rem] leading-[0.94] tracking-[-0.06em] text-white sm:text-[3.3rem]">
                     {leadView.leadName}
                   </h2>
-                  <p className="mt-3 max-w-[24ch] text-base leading-7 text-slate-700 sm:max-w-none sm:text-[1.05rem] [overflow-wrap:anywhere]">
+                  <p className="mt-3 max-w-[24ch] text-base leading-7 text-white/66 sm:max-w-none sm:text-[1.05rem] [overflow-wrap:anywhere]">
                     {lead.email || "No email yet"}
                   </p>
                   {leadView.routeLine ? (
-                    <p className="mt-2 text-xs font-semibold uppercase tracking-[0.14em] text-amber-700">
+                    <p className="mt-2 text-xs font-semibold uppercase tracking-[0.14em] text-amber-200">
                       {leadView.routeLine}
                     </p>
                   ) : null}
@@ -299,10 +348,13 @@ export default async function AdminLeadDetailPage({
               <div className="space-y-4 xl:justify-self-end xl:text-right">
                 <div className="flex flex-wrap gap-2 xl:justify-end">
                   <SourceBadge source={lead.source} label={leadView.sourceLabel} />
-                  <StatusBadge status={lead.crmStatus} label={leadView.stageLabel} />
+                  <StatusBadge
+                    status={resolveLegacyStageBadge(leadView.stage)}
+                    label={leadView.stageLabel}
+                  />
                   <PriorityBadge priority={lead.priority} />
                   {lead.state ? (
-                    <span className="inline-flex items-center gap-1.5 rounded-full border border-sky-200 bg-sky-50 px-3 py-1.5 text-sm font-medium text-sky-700 shadow-[0_8px_18px_rgba(56,132,255,0.08)]">
+                    <span className="inline-flex items-center gap-1.5 rounded-full border border-cyan-300/24 bg-cyan-300/12 px-3 py-1.5 text-sm font-medium text-cyan-100 shadow-[0_8px_18px_rgba(56,132,255,0.08)]">
                       <MapPin className="h-4 w-4" />
                       {formatLeadStateLabel(lead.state)}
                     </span>
@@ -367,9 +419,9 @@ export default async function AdminLeadDetailPage({
                     <MapPin className="h-5 w-5" />
                   </span>
                   <div className="min-w-0">
-                    <p className="text-sm font-medium text-slate-500">State</p>
+                    <p className="text-sm font-medium text-slate-500">Region</p>
                     <p className="mt-1 text-[1.05rem] leading-8 text-slate-950 [overflow-wrap:anywhere]">
-                      {lead.state ? formatLeadStateLabel(lead.state) : "State not captured yet"}
+                      {lead.state ? formatLeadStateLabel(lead.state) : "Region not captured yet"}
                     </p>
                   </div>
                 </div>
@@ -427,9 +479,9 @@ export default async function AdminLeadDetailPage({
               <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#243f7e]">Next touch</p>
               <div className="mt-4 h-px bg-[linear-gradient(90deg,rgba(158,183,255,0.75)_0%,rgba(158,183,255,0.18)_100%)]" />
 
-              <div className="mt-6 rounded-[28px] border border-[#cfdbfb] bg-[linear-gradient(180deg,#fdfefe_0%,#f7faff_100%)] p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.92)]">
+              <div className="mt-6 rounded-[28px] border border-white/10 bg-white/[0.06] p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
                 <div className="flex items-start gap-4">
-                  <span className="inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[linear-gradient(180deg,#dce7ff_0%,#d0deff_100%)] text-[#2252db] shadow-[inset_0_1px_0_rgba(255,255,255,0.88)]">
+                  <span className="inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-full border border-cyan-300/20 bg-cyan-300/12 text-cyan-100 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
                     <CalendarDays className="h-5 w-5" />
                   </span>
                   <div className="min-w-0">
@@ -446,7 +498,7 @@ export default async function AdminLeadDetailPage({
 
                 <a
                   href="#lead-tasks"
-                  className="mt-6 inline-flex h-12 w-full items-center justify-center rounded-2xl border border-[#b7ccff] bg-white px-5 text-base font-semibold text-[#2252db] shadow-[0_10px_24px_rgba(51,92,196,0.08)] transition hover:border-[#98b6ff] hover:bg-[#f8fbff] sm:w-auto"
+                  className="ld-floating-control mt-6 inline-flex h-12 w-full items-center justify-center rounded-2xl px-5 text-base font-semibold sm:w-auto"
                 >
                   <ListTodo className="mr-2 h-5 w-5" />
                   Schedule follow-up
@@ -574,7 +626,7 @@ export default async function AdminLeadDetailPage({
                 ) : (
                   <LeadStatusForm
                     leadId={lead.id}
-                    initialStatus={lead.crmStatus}
+                    initialStage={resolveLegacyStageBadge(leadView.stage)}
                     initialPriority={lead.priority}
                     initialAssignedTo={lead.assignedTo}
                     initialAssignedToList={lead.assignedToList}
@@ -607,8 +659,12 @@ export default async function AdminLeadDetailPage({
                     initialEmail={leadView.profile.email}
                     initialWhatsappNumber={leadView.profile.whatsappNumber}
                     initialState={leadView.profile.state}
+                    initialCountry={leadView.profile.country}
+                    initialRegion={leadView.profile.region}
+                    initialCity={leadView.profile.city}
+                    initialAddress={leadView.profile.address}
+                    initialPostalCode={leadView.profile.postalCode}
                     initialCompanyName={leadView.companyName}
-                    initialPrimaryGoal={leadView.profile.primaryGoal}
                     initialEstimatedValue={leadView.estimatedValue}
                     initialCloseProbability={leadView.closeProbability}
                     initialExpectedCloseDate={leadView.expectedCloseDate}
@@ -632,7 +688,7 @@ export default async function AdminLeadDetailPage({
                     ["Lost reason", leadView.lostReason || "Not set"],
                     ["Fit signal", leadView.fitSignalLabel],
                     ["Top interest", leadView.interestLabel],
-                    ["Completed", lead.completedAt ? formatCrmDateTime(lead.completedAt) : "Not completed yet"],
+                    ["Last updated", formatCrmDateTime(lead.updatedAt)],
                   ].map(([label, value]) => (
                     <div key={label} className="rounded-2xl border border-slate-200 bg-slate-50/80 px-4 py-3">
                       <p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">{label}</p>

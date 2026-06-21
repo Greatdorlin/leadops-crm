@@ -2,24 +2,25 @@
 
 import { startTransition, useState } from "react";
 import { useRouter } from "next/navigation";
-import { CRM_STATUSES, LEAD_PRIORITIES, PRIMARY_GOALS } from "@/lib/crm/constants";
+import { CRM_STATUSES, LEAD_PRIORITIES } from "@/lib/crm/constants";
 import {
   buildCustomFieldInputModel,
   type CustomFieldDefinitionWithOptions,
 } from "@/lib/crm/custom-field-values";
 import { crmLabelize } from "@/lib/crm/formatters";
-import { nigeriaStateOptions } from "@/lib/nigeria-state-options";
 import type { AdminAccessLevel } from "@/lib/admin-permissions";
 import {
   type CrmStatus,
   type LeadPriority,
   type LeadSource,
-  type PrimaryGoal,
 } from "@/lib/crm/types";
 import { CustomFieldValueInputs } from "./CustomFieldValueInputs";
 import { AdminSelect } from "./AdminSelect";
 
 const manualSourceOptions: LeadSource[] = ["manual_entry", "agent", "referral"];
+const labelClass = "text-xs font-semibold uppercase tracking-[0.16em] text-white/54";
+const panelClass =
+  "space-y-3 rounded-[24px] border border-white/10 bg-white/[0.045] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]";
 
 export function LeadCaptureForm({
   accessLevel,
@@ -42,10 +43,13 @@ export function LeadCaptureForm({
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
   const [whatsappNumber, setWhatsappNumber] = useState("");
-  const [state, setState] = useState("");
+  const [country, setCountry] = useState("");
+  const [region, setRegion] = useState("");
+  const [city, setCity] = useState("");
+  const [address, setAddress] = useState("");
+  const [postalCode, setPostalCode] = useState("");
   const [companyName, setCompanyName] = useState("");
   const [source, setSource] = useState<LeadSource>("manual_entry");
-  const [category, setCategory] = useState<PrimaryGoal | "">("");
   const [stage, setStage] = useState<CrmStatus>("new");
   const [priority, setPriority] = useState<LeadPriority>("medium");
   const [assignedTo, setAssignedTo] = useState(defaultAssignedTo);
@@ -85,9 +89,12 @@ export function LeadCaptureForm({
           lastName: lastName.trim() || null,
           email: email.trim() || null,
           whatsappNumber: whatsappNumber.trim() || null,
-          state: state || null,
+          country: country.trim() || null,
+          region: region.trim() || null,
+          city: city.trim() || null,
+          address: address.trim() || null,
+          postalCode: postalCode.trim() || null,
           companyName: companyName.trim() || null,
-          category: category || null,
           stage,
           priority,
           assignedTo: accessLevel === "sales_rep" ? defaultAssignedTo || null : assignedTo || null,
@@ -115,10 +122,13 @@ export function LeadCaptureForm({
       setLastName("");
       setEmail("");
       setWhatsappNumber("");
-      setState("");
+      setCountry("");
+      setRegion("");
+      setCity("");
+      setAddress("");
+      setPostalCode("");
       setCompanyName("");
       setSource("manual_entry");
-      setCategory("");
       setStage("new");
       setPriority("medium");
       setAssignedTo(defaultAssignedTo);
@@ -143,7 +153,7 @@ export function LeadCaptureForm({
     <div className="space-y-5">
       <div className="grid gap-3 sm:grid-cols-2">
         <label className="space-y-2">
-          <span className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">First name</span>
+          <span className={labelClass}>First name</span>
           <input
             type="text"
             value={firstName}
@@ -153,7 +163,7 @@ export function LeadCaptureForm({
           />
         </label>
         <label className="space-y-2">
-          <span className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Last name</span>
+          <span className={labelClass}>Last name</span>
           <input
             type="text"
             value={lastName}
@@ -166,7 +176,7 @@ export function LeadCaptureForm({
 
       <div className="grid gap-3 sm:grid-cols-2">
         <label className="space-y-2">
-          <span className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Email</span>
+          <span className={labelClass}>Email</span>
           <input
             type="email"
             value={email}
@@ -176,7 +186,7 @@ export function LeadCaptureForm({
           />
         </label>
         <label className="space-y-2">
-          <span className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">WhatsApp</span>
+          <span className={labelClass}>WhatsApp</span>
           <input
             type="text"
             value={whatsappNumber}
@@ -186,22 +196,7 @@ export function LeadCaptureForm({
           />
         </label>
         <label className="space-y-2">
-          <span className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">State</span>
-          <AdminSelect
-            value={state}
-            onChange={(event) => setState(event.target.value)}
-            className="h-11"
-          >
-            <option value="">State not set yet</option>
-            {nigeriaStateOptions.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </AdminSelect>
-        </label>
-        <label className="space-y-2">
-          <span className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Company</span>
+          <span className={labelClass}>Company</span>
           <input
             type="text"
             value={companyName}
@@ -212,24 +207,62 @@ export function LeadCaptureForm({
         </label>
       </div>
 
-      <div className="grid gap-3">
+      <div className="grid gap-3 sm:grid-cols-2">
         <label className="space-y-2">
-          <span className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Category</span>
-          <AdminSelect
-            value={category}
-            onChange={(event) => setCategory(event.target.value as PrimaryGoal | "")}
-            className="h-11"
-          >
-            <option value="">Not set yet</option>
-            {PRIMARY_GOALS.map((option) => (
-              <option key={option} value={option}>
-                {crmLabelize(option)}
-              </option>
-            ))}
-          </AdminSelect>
+          <span className={labelClass}>Country</span>
+          <input
+            type="text"
+            value={country}
+            onChange={(event) => setCountry(event.target.value)}
+            placeholder="United States"
+            className="admin-input h-11 w-full rounded-2xl px-4 text-sm outline-none"
+          />
         </label>
         <label className="space-y-2">
-          <span className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Lead source</span>
+          <span className={labelClass}>State/Province/Region</span>
+          <input
+            type="text"
+            value={region}
+            onChange={(event) => setRegion(event.target.value)}
+            placeholder="California"
+            className="admin-input h-11 w-full rounded-2xl px-4 text-sm outline-none"
+          />
+        </label>
+        <label className="space-y-2">
+          <span className={labelClass}>City</span>
+          <input
+            type="text"
+            value={city}
+            onChange={(event) => setCity(event.target.value)}
+            placeholder="San Francisco"
+            className="admin-input h-11 w-full rounded-2xl px-4 text-sm outline-none"
+          />
+        </label>
+        <label className="space-y-2">
+          <span className={labelClass}>Postal Code</span>
+          <input
+            type="text"
+            value={postalCode}
+            onChange={(event) => setPostalCode(event.target.value)}
+            placeholder="94105"
+            className="admin-input h-11 w-full rounded-2xl px-4 text-sm outline-none"
+          />
+        </label>
+        <label className="space-y-2 sm:col-span-2">
+          <span className={labelClass}>Address</span>
+          <input
+            type="text"
+            value={address}
+            onChange={(event) => setAddress(event.target.value)}
+            placeholder="Street address"
+            className="admin-input h-11 w-full rounded-2xl px-4 text-sm outline-none"
+          />
+        </label>
+      </div>
+
+      <div className="grid gap-3">
+        <label className="space-y-2">
+          <span className={labelClass}>Lead source</span>
           <AdminSelect
             value={source}
             onChange={(event) => setSource(event.target.value as LeadSource)}
@@ -243,7 +276,7 @@ export function LeadCaptureForm({
           </AdminSelect>
         </label>
         <label className="space-y-2">
-          <span className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Stage</span>
+          <span className={labelClass}>Stage</span>
           <AdminSelect
             value={stage}
             onChange={(event) => setStage(event.target.value as CrmStatus)}
@@ -257,7 +290,7 @@ export function LeadCaptureForm({
           </AdminSelect>
         </label>
         <label className="space-y-2">
-          <span className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Priority</span>
+          <span className={labelClass}>Priority</span>
           <AdminSelect
             value={priority}
             onChange={(event) => setPriority(event.target.value as LeadPriority)}
@@ -272,7 +305,7 @@ export function LeadCaptureForm({
         </label>
         {accessLevel === "sales_rep" ? null : (
           <label className="space-y-2">
-            <span className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Owner</span>
+            <span className={labelClass}>Owner</span>
             <AdminSelect
               value={assignedTo}
               onChange={(event) => setAssignedTo(event.target.value)}
@@ -290,7 +323,7 @@ export function LeadCaptureForm({
       </div>
 
       <label className="space-y-2">
-        <span className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Source note</span>
+        <span className={labelClass}>Source note</span>
         <textarea
           value={sourceDetail}
           onChange={(event) => setSourceDetail(event.target.value)}
@@ -306,16 +339,16 @@ export function LeadCaptureForm({
         />
       </label>
 
-      <section className="space-y-3 rounded-[24px] border border-slate-200/85 bg-slate-50/70 p-4">
+      <section className={panelClass}>
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
+          <p className={labelClass}>
             Sales details
           </p>
-          <p className="mt-1 text-sm text-slate-600">Capture the next follow-up and the value this lead could bring in.</p>
+          <p className="mt-1 text-sm text-white/58">Capture the next follow-up and potential value.</p>
         </div>
         <div className="grid gap-3 sm:grid-cols-2">
           <label className="space-y-2">
-            <span className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Next follow-up</span>
+            <span className={labelClass}>Next follow-up</span>
             <input
               type="datetime-local"
               value={nextFollowUpAt}
@@ -324,7 +357,7 @@ export function LeadCaptureForm({
             />
           </label>
           <label className="space-y-2">
-            <span className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Estimated value</span>
+            <span className={labelClass}>Estimated value</span>
             <input
               type="number"
               min="0"
@@ -336,7 +369,7 @@ export function LeadCaptureForm({
             />
           </label>
           <label className="space-y-2">
-            <span className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Close probability</span>
+            <span className={labelClass}>Close probability</span>
             <input
               type="number"
               min="0"
@@ -349,7 +382,7 @@ export function LeadCaptureForm({
             />
           </label>
           <label className="space-y-2">
-            <span className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Expected close date</span>
+            <span className={labelClass}>Expected close date</span>
             <input
               type="datetime-local"
               value={expectedCloseDate}
@@ -361,12 +394,12 @@ export function LeadCaptureForm({
       </section>
 
       {customFieldInputModel.length > 0 ? (
-        <section className="space-y-3 rounded-[24px] border border-slate-200/85 bg-slate-50/70 p-4">
+        <section className={panelClass}>
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
+            <p className={labelClass}>
               Extra lead details
             </p>
-            <p className="mt-1 text-sm text-slate-600">Capture the extra business-specific details this lead came with.</p>
+            <p className="mt-1 text-sm text-white/58">Capture business-specific details.</p>
           </div>
           <CustomFieldValueInputs
             fields={customFieldInputModel}
@@ -381,9 +414,9 @@ export function LeadCaptureForm({
         </section>
       ) : null}
 
-      <div className="flex flex-col gap-3 border-t border-slate-200 pt-4 sm:flex-row sm:items-end sm:justify-between">
-        <p className="max-w-[18rem] text-sm leading-6 text-slate-500">
-          Same CRM pipeline.
+      <div className="flex flex-col gap-3 border-t border-white/10 pt-4 sm:flex-row sm:items-end sm:justify-between">
+        <p className="max-w-[18rem] text-sm leading-6 text-white/54">
+          Saved into your sales pipeline.
         </p>
         <button
           type="button"
@@ -394,7 +427,7 @@ export function LeadCaptureForm({
           {isSaving ? "Saving..." : "Save lead"}
         </button>
       </div>
-      {message ? <p className="text-sm text-slate-600">{message}</p> : null}
+      {message ? <p className="text-sm text-white/68">{message}</p> : null}
     </div>
   );
 }

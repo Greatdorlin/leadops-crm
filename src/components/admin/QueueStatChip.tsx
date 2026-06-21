@@ -18,7 +18,7 @@ export function QueueStatChip({
   href,
   icon: Icon,
   tone = "default",
-  surface = "default",
+  surface = "contrast",
 }: {
   label: string;
   value: string | number;
@@ -32,7 +32,7 @@ export function QueueStatChip({
   const iconToneClass = isContrast
     ? {
         default: "border-white/12 bg-white/10 text-white/82",
-        accent: "border-[#ffe08a]/25 bg-[color:var(--fc-yellow)]/14 text-[color:var(--fc-yellow)]",
+        accent: "border-[color:var(--ld-color-accent)]/25 bg-[color:var(--ld-color-accent)]/14 text-[color:var(--ld-color-accent)]",
         warning: "border-amber-300/24 bg-amber-300/12 text-amber-200",
         danger: "border-rose-300/24 bg-rose-300/14 text-rose-200",
         positive: "border-emerald-300/24 bg-emerald-300/14 text-emerald-200",

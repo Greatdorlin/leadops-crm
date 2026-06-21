@@ -45,8 +45,8 @@ export function LeadNoteForm({ leadId }: { leadId: string }) {
   }
 
   return (
-    <div className="rounded-[24px] border border-slate-200/85 bg-[linear-gradient(180deg,rgba(250,251,255,0.98)_0%,rgba(255,252,247,0.95)_100%)] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.8)]">
-      <div className="mb-3 rounded-[18px] border border-slate-200/70 bg-white/72 px-4 py-3 text-sm leading-6 text-slate-500">
+    <div className="ld-glass-card ld-glass-soft rounded-[24px] p-4">
+      <div className="mb-3 rounded-[18px] border border-white/10 bg-white/[0.06] px-4 py-3 text-sm leading-6 text-white/58">
         Capture objections, nuance, and handoff context in one concise note.
       </div>
       <textarea

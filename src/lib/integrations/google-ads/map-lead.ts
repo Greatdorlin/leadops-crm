@@ -75,18 +75,5 @@ export function mapGoogleAdsLeadToExternalInput(
     googleAdGroupId: payload.adgroup_id ?? null,
     googleAdId: payload.creative_id ?? null,
     sourcePayload: payload as Record<string, unknown>,
-    answers: {
-      stateOfResidence:
-        readIntegrationFieldValue(fields, ["state", "region", "state_of_residence"]) || null,
-      timeline:
-        readIntegrationFieldValue(fields, ["timeline", "purchase_timeline", "travel_timeline"]) ||
-        null,
-      destinationInterest:
-        readIntegrationFieldValue(fields, [
-          "destination",
-          "destination_interest",
-          "country_interest",
-        ]) || null,
-    },
   };
 }

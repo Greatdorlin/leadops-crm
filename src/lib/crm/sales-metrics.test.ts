@@ -34,11 +34,12 @@ function createTask(overrides: Partial<LeadTaskRecord> = {}) {
     id: overrides.id ?? "task-1",
     leadId: overrides.leadId ?? "lead-1",
     title: overrides.title ?? "Call back",
+    description: overrides.description ?? null,
     dueAt: overrides.dueAt ?? "2026-06-18T10:00:00.000Z",
     assignedTo: overrides.assignedTo ?? "rep@example.com",
     completedAt: overrides.completedAt ?? null,
+    createdBy: overrides.createdBy ?? null,
     createdAt: overrides.createdAt ?? "2026-06-17T09:00:00.000Z",
-    updatedAt: overrides.updatedAt ?? "2026-06-17T09:00:00.000Z",
   } as LeadTaskRecord;
 }
 

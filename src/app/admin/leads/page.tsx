@@ -15,7 +15,11 @@ import { loadAdminLeadReadContext } from "@/lib/crm/admin-read-context";
 import { listCustomFields } from "@/lib/crm/custom-fields-admin";
 import { CRM_STATUSES, LEAD_PRIORITIES, LEAD_SOURCES } from "@/lib/crm/constants";
 import { getTableVisibleCustomFields } from "@/lib/crm/custom-field-values";
-import { getCompanySettings, resolveLeadPreviewConfig } from "@/lib/crm/workspace-settings";
+import {
+  DEFAULT_LEAD_PREVIEW_CONFIG,
+  getCompanySettings,
+  resolveLeadPreviewConfig,
+} from "@/lib/crm/workspace-settings";
 import {
   canAccessLeadTrash,
   canSoftDeleteLead,
@@ -29,6 +33,135 @@ import { leadStore } from "@/lib/storage";
 export const dynamic = "force-dynamic";
 
 const PAGE_SIZE = 50;
+
+function buildDevelopmentLeadRows() {
+  const now = new Date();
+  const baseRows = [
+    {
+      id: "demo-lead-aurelia",
+      displayName: "Aurelia Systems",
+      initials: "AS",
+      email: "hello@aurelia.example",
+      phone: "+1 (555) 014-2201",
+      source: "website_form" as const,
+      sourceLabel: "Website",
+      stage: "qualified",
+      stageLabel: "Qualified",
+      priority: "high" as const,
+      owner: "Sarah Kim",
+      companyName: "Aurelia Systems",
+      estimatedValue: 280000,
+      followUpDays: 0,
+      city: "Austin",
+    },
+    {
+      id: "demo-lead-vertex",
+      displayName: "Michael Anderson",
+      initials: "MA",
+      email: "michael@vertexlabs.example",
+      phone: "+1 (415) 555-0198",
+      source: "referral" as const,
+      sourceLabel: "Referral",
+      stage: "contacted",
+      stageLabel: "Contacted",
+      priority: "medium" as const,
+      owner: "James Lee",
+      companyName: "Vertex Labs",
+      estimatedValue: 125000,
+      followUpDays: 1,
+      city: "San Francisco",
+    },
+    {
+      id: "demo-lead-northwind",
+      displayName: "Northwind Co.",
+      initials: "NC",
+      email: "ops@northwind.example",
+      phone: "+44 20 7946 0100",
+      source: "google_ads" as const,
+      sourceLabel: "Google Ads",
+      stage: "consultation_booked",
+      stageLabel: "Consultation booked",
+      priority: "urgent" as const,
+      owner: "Priya Shah",
+      companyName: "Northwind Co.",
+      estimatedValue: 420000,
+      followUpDays: -1,
+      city: "London",
+    },
+  ];
+
+  return baseRows.map((row) => {
+    const followUp = new Date(now);
+    followUp.setDate(now.getDate() + row.followUpDays);
+    followUp.setHours(row.followUpDays < 0 ? 9 : 15, 0, 0, 0);
+
+    return {
+      id: row.id,
+      displayName: row.displayName,
+      initials: row.initials,
+      email: row.email,
+      phone: row.phone,
+      source: row.source,
+      sourceLabel: row.sourceLabel,
+      sourceDisplay: {
+        id: `demo-source-${row.source}`,
+        key: row.source,
+        label: row.sourceLabel,
+        type: "demo",
+        color: "#60a5fa",
+        isNormalized: true,
+      },
+      stage: row.stage,
+      stageLabel: row.stageLabel,
+      stageDisplay: {
+        id: `demo-stage-${row.stage}`,
+        key: row.stage,
+        label: row.stageLabel,
+        color: "#8b5cf6",
+        isNormalized: true,
+      },
+      priority: row.priority,
+      priorityLabel: crmLabelize(row.priority),
+      completionStatus: "active" as const,
+      completionLabel: "Active lead",
+      categoryLabel: "Sales lead",
+      fitSignalLabel: "Good fit",
+      interestLabel: `${row.companyName} needs a follow-up on pipeline fit.`,
+      assignedUserName: row.owner,
+      assignedTo: row.owner.toLowerCase().replace(/\s+/g, ".") + "@local.leadsdesk.test",
+      assignedToList: [],
+      ownerDisplay: {
+        id: `demo-owner-${row.owner.toLowerCase().replace(/\s+/g, "-")}`,
+        label: row.owner,
+        email: row.owner.toLowerCase().replace(/\s+/g, ".") + "@local.leadsdesk.test",
+        isNormalized: true,
+      },
+      customFieldDisplayValues: [],
+      stateLabel: row.city,
+      stateRaw: row.city,
+      createdAt: now.toISOString(),
+      lastActivityAt: now.toISOString(),
+      nextFollowUpAt: followUp.toISOString(),
+      nextFollowUpStatus:
+        row.followUpDays < 0 ? ("overdue" as const) : row.followUpDays === 0 ? ("due_today" as const) : ("upcoming" as const),
+      companyName: row.companyName,
+      estimatedValue: row.estimatedValue,
+      expectedValue: Math.round(row.estimatedValue * 0.62),
+      wonValue: null,
+      closeProbability: 62,
+      expectedCloseDate: followUp.toISOString(),
+      lostReason: null,
+      routeId: null,
+      routeLabel: row.sourceLabel,
+      nigeriaState: null,
+    };
+  });
+}
+
+function readStageFilter(input: Record<string, string | string[] | undefined>) {
+  const raw = Array.isArray(input.stage) ? input.stage[0] : input.stage;
+  return raw?.trim() ? raw : undefined;
+}
 
 function readPage(input: Record<string, string | string[] | undefined>) {
   const raw = Array.isArray(input.page) ? input.page[0] : input.page;
@@ -44,7 +177,7 @@ function buildLeadsHref(
   params: {
     page: number;
     search?: string;
-    crmStatus?: string;
+    stage?: string;
     source?: string;
     priority?: string;
     assignedTo?: string;
@@ -60,8 +193,8 @@ function buildLeadsHref(
     query.set("search", params.search.trim());
   }
 
-  if (params.crmStatus && params.crmStatus !== "all") {
-    query.set("crmStatus", params.crmStatus);
+  if (params.stage && params.stage !== "all") {
+    query.set("crmStatus", params.stage);
   }
 
   if (params.source && params.source !== "all") {
@@ -94,9 +227,11 @@ export default async function AdminLeadsPage({
   } = await getAdminAccessContext("/admin/leads");
   const params = await searchParams;
   const filters = parseLeadListFilters(params);
+  const selectedStage = readStageFilter(params) ?? (filters.stageId === "all" ? "all" : filters.stageId);
   const scopedFilters = scopeLeadListFilters(filters, accessLevel, session.user?.email);
   const requestedPage = readPage(params);
   let pageError: unknown = null;
+  let usingDevelopmentDemoData = false;
   let pageData:
     | {
         leads: Awaited<ReturnType<typeof leadStore.list>>;
@@ -114,6 +249,7 @@ export default async function AdminLeadsPage({
     const [leads, users] = await Promise.all([
       leadStore.list({
         ...scopedFilters,
+        stageId: selectedStage,
         limit: PAGE_SIZE,
         offset: (page - 1) * PAGE_SIZE,
       }),
@@ -130,6 +266,15 @@ export default async function AdminLeadsPage({
   } catch (error) {
     pageError = error;
     logCrmPageError("leads", error);
+    if (process.env.NODE_ENV !== "production") {
+      usingDevelopmentDemoData = true;
+      pageData = {
+        leads: [],
+        totalLeads: buildDevelopmentLeadRows().length,
+        users: [],
+        trashCount: 0,
+      };
+    }
   }
 
   if (!pageData) {
@@ -164,14 +309,14 @@ export default async function AdminLeadsPage({
   const rangeEnd = totalLeads === 0 ? 0 : Math.min(totalLeads, currentPage * PAGE_SIZE);
   const baseHrefParams = {
     search: filters.search,
-    crmStatus: filters.crmStatus,
+    stage: selectedStage,
     source: filters.source,
     priority: filters.priority,
     assignedTo: scopedFilters.assignedTo,
   };
   const hasFilters = Boolean(
     filters.search ||
-      (filters.crmStatus && filters.crmStatus !== "all") ||
+      (selectedStage && selectedStage !== "all") ||
       (filters.source && filters.source !== "all") ||
       (filters.priority && filters.priority !== "all") ||
       scopedFilters.assignedTo,
@@ -192,24 +337,50 @@ export default async function AdminLeadsPage({
           label: user.fullName || user.email,
           value: user.email,
         }));
-  const [customFields, workspaceSettings] = await Promise.all([
-    listCustomFields(),
-    getCompanySettings(),
-  ]);
-  const previewConfig = resolveLeadPreviewConfig(workspaceSettings.leadPreview, customFields);
-  const tableVisibleCustomFields = getTableVisibleCustomFields(customFields, {
-    limit: previewConfig.maxCustomFieldColumns,
-  });
-  const readContext = await loadAdminLeadReadContext(leads, { includeCustomFields: true });
-  const leadRows = leads.map((lead) =>
-    buildAdminLeadListItem(lead, {
-      stage: lead.stageId ? readContext.stagesById.get(lead.stageId) ?? null : null,
-      source: lead.sourceId ? readContext.sourcesById.get(lead.sourceId) ?? null : null,
-      owner: lead.assignedUserId ? readContext.ownersById.get(lead.assignedUserId) ?? null : null,
-      customFieldDefinitions: tableVisibleCustomFields,
-      customFieldValues: readContext.customFieldValuesByLeadId.get(lead.id) ?? [],
-    }),
-  );
+  const [previewConfig, leadRows] = await (async () => {
+    if (usingDevelopmentDemoData) {
+      return [DEFAULT_LEAD_PREVIEW_CONFIG, buildDevelopmentLeadRows()] as const;
+    }
+
+    try {
+        const [customFields, workspaceSettings] = await Promise.all([
+          listCustomFields(),
+          getCompanySettings(),
+        ]);
+        const resolvedPreviewConfig = resolveLeadPreviewConfig(workspaceSettings.leadPreview, customFields);
+        const tableVisibleCustomFields = getTableVisibleCustomFields(customFields, {
+          limit: resolvedPreviewConfig.maxCustomFieldColumns,
+        });
+        const readContext = await loadAdminLeadReadContext(leads, { includeCustomFields: true });
+        return [
+          resolvedPreviewConfig,
+          leads.map((lead) =>
+            buildAdminLeadListItem(lead, {
+              stage: lead.stageId ? readContext.stagesById.get(lead.stageId) ?? null : null,
+              source: lead.sourceId ? readContext.sourcesById.get(lead.sourceId) ?? null : null,
+              owner: lead.assignedUserId ? readContext.ownersById.get(lead.assignedUserId) ?? null : null,
+              customFieldDefinitions: tableVisibleCustomFields,
+              customFieldValues: readContext.customFieldValuesByLeadId.get(lead.id) ?? [],
+            }),
+          ),
+        ] as const;
+    } catch (error) {
+      if (process.env.NODE_ENV === "production") {
+        throw error;
+      }
+
+      console.warn("[admin-leads] Falling back to basic lead rows for local preview.", error);
+      return [
+        DEFAULT_LEAD_PREVIEW_CONFIG,
+        leads.map((lead) =>
+          buildAdminLeadListItem(lead, {
+            customFieldDefinitions: [],
+            customFieldValues: [],
+          }),
+        ),
+      ] as const;
+    }
+  })();
 
   return (
     <AdminShell
@@ -233,16 +404,16 @@ export default async function AdminLeadsPage({
       }
     >
       <div className="space-y-6">
-        <section className="admin-surface rounded-[32px] p-5 sm:p-6">
+        <section className="ld-glass-panel rounded-[32px] p-5 sm:p-6">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
             <div className="max-w-3xl">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[#0b123f]/54">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/54">
                 Lead queue
               </p>
-              <h2 className="mt-2 font-[family:var(--font-heading)] text-[2.4rem] leading-none tracking-[-0.05em] text-slate-950 sm:text-[2.9rem]">
+              <h2 className="mt-2 font-[family:var(--font-heading)] text-[2.4rem] leading-none tracking-[-0.05em] text-white sm:text-[2.9rem]">
                 Review every lead in one dedicated queue.
               </h2>
-              <p className="mt-2 text-sm leading-6 text-slate-600">
+              <p className="mt-2 text-sm leading-6 text-white/66">
                 Search, filter, assign, and move through the queue in pages.
               </p>
             </div>
@@ -250,14 +421,14 @@ export default async function AdminLeadsPage({
               {showTrashFolder ? (
                 <Link
                   href="/admin/leads/trash"
-                  className="admin-button-secondary inline-flex h-11 items-center justify-center rounded-2xl px-5 text-sm font-medium"
+                  className="ld-floating-control inline-flex h-11 items-center justify-center rounded-2xl px-5 text-sm font-medium"
                 >
                   Trash ({safeNumber(trashCount)})
                 </Link>
               ) : null}
               <Link
                 href="/admin"
-                className="admin-button-secondary inline-flex h-11 items-center justify-center rounded-2xl px-5 text-sm font-medium"
+                className="ld-floating-control inline-flex h-11 items-center justify-center rounded-2xl px-5 text-sm font-medium"
               >
                 Back to dashboard
               </Link>
@@ -271,20 +442,23 @@ export default async function AdminLeadsPage({
               hint="Results after the current filters."
               icon={Rows3}
               tone="accent"
+              surface="contrast"
             />
             <QueueStatChip
               label="Showing"
               value={totalLeads === 0 ? "0" : `${safeNumber(rangeStart)} - ${safeNumber(rangeEnd)}`}
               hint={`${safeNumber(PAGE_SIZE)} rows per page.`}
               icon={Search}
+              surface="contrast"
             />
             <QueueStatChip
               label="Owners visible"
               value={safeNumber(
-                new Set(leads.map((lead) => lead.assignedTo).filter(Boolean)).size,
+                new Set(leadRows.map((lead) => lead.assignedTo).filter(Boolean)).size,
               )}
               hint="Distinct owners on this page."
               icon={UserRoundPlus}
+              surface="contrast"
             />
           </div>
         </section>
@@ -294,9 +468,9 @@ export default async function AdminLeadsPage({
             <div className="grid gap-3 xl:grid-cols-[minmax(0,1.35fr)_minmax(180px,0.65fr)_minmax(180px,0.65fr)_minmax(180px,0.65fr)_minmax(220px,0.75fr)]">
               <SearchInput
                 defaultValue={filters.search}
-                placeholder="Search name, state, email, phone, source, or owner"
+                placeholder="Search name, region, email, phone, source, or owner"
               />
-              <AdminSelect name="crmStatus" defaultValue={filters.crmStatus ?? "all"} className="h-12">
+              <AdminSelect name="stage" defaultValue={selectedStage ?? "all"} className="h-12">
                 <option value="all">All stages</option>
                 {CRM_STATUSES.map((option) => (
                   <option key={option} value={option}>
@@ -347,7 +521,7 @@ export default async function AdminLeadsPage({
               >
                 Reset
               </Link>
-              <div className="rounded-full border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-500">
+              <div className="rounded-full border border-white/10 bg-white/[0.07] px-3 py-2 text-xs font-medium text-white/58">
                 {hasFilters ? "Filtered view" : "All leads"}
               </div>
             </div>
@@ -380,8 +554,8 @@ export default async function AdminLeadsPage({
             )}
           />
 
-          <div className="flex flex-col gap-3 rounded-[26px] border border-slate-200 bg-[linear-gradient(180deg,rgba(255,255,255,0.96)_0%,rgba(248,250,255,0.92)_100%)] px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5">
-            <p className="text-sm leading-6 text-slate-500">
+          <div className="ld-glass-card ld-glass-soft flex flex-col gap-3 rounded-[26px] px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5">
+            <p className="text-sm leading-6 text-white/60">
               Page {safeNumber(currentPage)} of {safeNumber(totalPages)}.
             </p>
             <div className="flex flex-wrap gap-2">

@@ -21,7 +21,6 @@ import {
 } from "@/lib/crm/lead-assignees";
 import { elevatePriority, isUnassigned } from "@/lib/crm/assignments";
 import {
-  mergeAssessmentAnswers,
   normalizeEmail,
   normalizePhone,
   normalizeText,
@@ -41,12 +40,8 @@ import {
   syncJobs,
 } from "@/lib/db/schema";
 import { parseNigeriaStateValue } from "@/lib/nigeria-state-options";
-import { getPublicReportPrimaryPathway } from "@/lib/pathway-engine/report/public-report-payload";
 import type {
   AdCampaignMetricRecord,
-  AnalyticsEventType,
-  AssessmentAnswers,
-  CrmStatus,
   CrmUserRecord,
   IntegrationProvider,
   IntegrationRecord,
@@ -63,10 +58,8 @@ import type {
   AdCampaignMetricListFilters,
   AdCampaignMetricUpsertInput,
   CampaignReportItem,
-  CompleteLeadInput,
   CrmDashboardStats,
   CrmUserUpsertInput,
-  DraftLeadUpsertInput,
   ExternalLeadUpsertInput,
   ExternalLeadUpsertResult,
   IntegrationUpsertInput,
@@ -93,7 +86,7 @@ function defaultAnalytics() {
   };
 }
 
-function defaultSyncState(message: string): SyncStatus {
+function defaultSyncState(message: string): LeadRecord["sync"]["sender"] {
   return {
     status: "pending",
     message,
@@ -116,10 +109,6 @@ function defaultSyncMetadata(message = "Lead captured. Sync pending.") {
     googleSheets: retiredGoogleSheetsSyncState(),
     sender: defaultSyncState(message),
   };
-}
-
-function clampProgress(progressPercent: number) {
-  return Math.max(0, Math.min(100, Math.round(progressPercent)));
 }
 
 function toIsoString(value: Date | string | null | undefined) {
@@ -148,20 +137,69 @@ function formatSpend(value: string | number | null | undefined) {
   return Number.isFinite(numericValue) ? numericValue.toFixed(2) : "0.00";
 }
 
+function parseOptionalNumeric(value?: string | number | null) {
+  if (value === undefined || value === null || value === "") {
+    return null;
+  }
+
+  const parsed = typeof value === "number" ? value : Number.parseFloat(value);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function normalizeLeadRegion(value?: string | null) {
+  if (value === undefined) {
+    return undefined;
+  }
+
+  if (value === null) {
+    return null;
+  }
+
+  return parseNigeriaStateValue(value) ?? normalizeText(value);
+}
+
+function deriveCompatibilityStatus(row: typeof leads.$inferSelect): LeadRecord["crmStatus"] {
+  if (row.wonAt) {
+    return "converted";
+  }
+
+  if (row.lostAt) {
+    return "lost";
+  }
+
+  if (row.stageId || row.assignedTo || row.nextFollowUpAt) {
+    return "contacted";
+  }
+
+  return "new";
+}
+
+function buildCompatibilityAnswers(row: typeof leads.$inferSelect): LeadRecord["answers"] {
+  return {
+    ...emptyAnswers,
+    firstName: row.firstName,
+    lastName: row.lastName,
+    whatsappNumber: row.whatsappNumber,
+    email: row.email,
+    stateOfResidence: row.region ?? row.state ?? null,
+  };
+}
+
 function mapLeadRecord(row: typeof leads.$inferSelect): LeadRecord {
   const assignedToList = parseLeadAssignees(row.assignedTo);
+  const compatibilityStatus = deriveCompatibilityStatus(row);
 
   return {
     id: row.id,
-    reportToken: row.reportToken,
+    reportToken: null,
     createdAt: toIsoString(row.createdAt) ?? new Date(0).toISOString(),
     updatedAt: toIsoString(row.updatedAt) ?? new Date(0).toISOString(),
     lastActivityAt: toIsoString(row.lastActivityAt) ?? new Date(0).toISOString(),
-    completedAt: toIsoString(row.completedAt),
+    completedAt: null,
     deletedAt: toIsoString(row.deletedAt),
     deletedBy: row.deletedBy,
-    completionStatus: row.completionStatus,
-    crmStatus: row.crmStatus,
+    completionStatus: "complete",
+    crmStatus: compatibilityStatus,
     source: row.source,
     sourceId: row.sourceId,
     sourceDetail: row.sourceDetail,
@@ -191,6 +229,11 @@ function mapLeadRecord(row: typeof leads.$inferSelect): LeadRecord {
     email: row.email,
     whatsappNumber: row.whatsappNumber,
     state: row.state,
+    country: row.country,
+    region: row.region,
+    city: row.city,
+    address: row.address,
+    postalCode: row.postalCode,
     externalLeadId: row.externalLeadId,
     externalFormId: row.externalFormId,
     facebookLeadgenId: row.facebookLeadgenId,
@@ -210,17 +253,17 @@ function mapLeadRecord(row: typeof leads.$inferSelect): LeadRecord {
     utmTerm: row.utmTerm,
     landingPage: row.landingPage,
     sourcePayload: row.sourcePayload ?? null,
-    primaryGoal: row.primaryGoal,
-    currentStepKey: row.currentStepKey,
-    currentStepIndex: row.currentStepIndex,
-    progressPercent: row.progressPercent,
-    readinessLevel: row.readinessLevel as LeadRecord["readinessLevel"],
-    topPathwayTitle: row.topPathwayTitle,
-    answers: row.answers,
-    report: row.report,
-    publicReport: row.publicReport ?? null,
-    sync: row.sync,
-    analytics: row.analytics,
+    primaryGoal: null,
+    currentStepKey: "analysis",
+    currentStepIndex: 0,
+    progressPercent: 100,
+    readinessLevel: null,
+    topPathwayTitle: null,
+    answers: buildCompatibilityAnswers(row),
+    report: null,
+    publicReport: null,
+    sync: defaultSyncMetadata("Legacy sync fields retired. Use Leads Desk exports and intake logs."),
+    analytics: defaultAnalytics(),
   };
 }
 
@@ -231,6 +274,7 @@ function mapCrmUserRecord(row: typeof crmUsers.$inferSelect): CrmUserRecord {
     fullName: row.fullName,
     role: row.role,
     isActive: row.isActive,
+    avatarUrl: row.avatarUrl,
     createdAt: toIsoString(row.createdAt) ?? new Date(0).toISOString(),
     updatedAt: toIsoString(row.updatedAt) ?? new Date(0).toISOString(),
   };
@@ -342,17 +386,6 @@ function mapAdCampaignMetricRecord(
   };
 }
 
-function deriveLeadSnapshot(answers: AssessmentAnswers) {
-  return {
-    firstName: answers.firstName,
-    lastName: answers.lastName,
-    email: answers.email,
-    whatsappNumber: answers.whatsappNumber,
-    state: answers.stateOfResidence,
-    primaryGoal: answers.primaryGoal,
-  };
-}
-
 function buildSearchConditions(search: string) {
   const query = `%${search.trim()}%`;
 
@@ -362,21 +395,15 @@ function buildSearchConditions(search: string) {
     ilike(leads.email, query),
     ilike(leads.whatsappNumber, query),
     ilike(leads.state, query),
+    ilike(leads.country, query),
+    ilike(leads.region, query),
+    ilike(leads.city, query),
+    ilike(leads.address, query),
+    ilike(leads.postalCode, query),
+    ilike(leads.companyName, query),
     ilike(leads.sourceDetail, query),
     ilike(leads.assignedTo, query),
   );
-}
-
-function buildLeadAnswersFromExternal(input: ExternalLeadUpsertInput) {
-  return mergeAssessmentAnswers(emptyAnswers, {
-    firstName: normalizeText(input.firstName) ?? "",
-    lastName: normalizeText(input.lastName) ?? "",
-    email: normalizeText(input.email) ?? "",
-    whatsappNumber: normalizeText(input.whatsappNumber) ?? "",
-    stateOfResidence: parseNigeriaStateValue(input.state) ?? null,
-    primaryGoal: input.primaryGoal ?? null,
-    ...input.answers,
-  });
 }
 
 function serializedLeadAssigneeValue(input?: {
@@ -395,27 +422,13 @@ function buildLeadAssigneeFilterCondition(email: string) {
   );
 }
 
-function normalizeLeadState(value?: string | null) {
-  if (value === undefined) {
-    return undefined;
-  }
-
-  if (value === null) {
-    return null;
-  }
-
-  return parseNigeriaStateValue(value) ?? normalizeText(value);
-}
-
-function isQualifiedLikeStatus(status: CrmStatus) {
-  return [
-    "qualified",
-    "consultation_booked",
-    "application_started",
-    "documents_pending",
-    "payment_pending",
-    "converted",
-  ].includes(status);
+function leadLooksQualified(lead: Pick<LeadRecord, "stageId" | "wonAt" | "estimatedValue" | "expectedValue">) {
+  return Boolean(
+    lead.wonAt ||
+      lead.stageId ||
+      (lead.estimatedValue !== null && lead.estimatedValue !== undefined) ||
+      (lead.expectedValue !== null && lead.expectedValue !== undefined),
+  );
 }
 
 function buildLeadListConditions(filters: LeadListFilters) {
@@ -427,16 +440,12 @@ function buildLeadListConditions(filters: LeadListFilters) {
     conditions.push(isNull(leads.deletedAt));
   }
 
-  if (filters.completionStatus && filters.completionStatus !== "all") {
-    conditions.push(eq(leads.completionStatus, filters.completionStatus));
+  if (filters.stageId && filters.stageId !== "all") {
+    conditions.push(eq(leads.stageId, filters.stageId));
   }
 
-  if (filters.crmStatus && filters.crmStatus !== "all") {
-    conditions.push(eq(leads.crmStatus, filters.crmStatus));
-  }
-
-  if (filters.primaryGoal && filters.primaryGoal !== "all") {
-    conditions.push(eq(leads.primaryGoal, filters.primaryGoal));
+  if (filters.sourceId && filters.sourceId !== "all") {
+    conditions.push(eq(leads.sourceId, filters.sourceId));
   }
 
   if (filters.source && filters.source !== "all") {
@@ -454,6 +463,10 @@ function buildLeadListConditions(filters: LeadListFilters) {
     }
   }
 
+  if (filters.assignedUserId?.trim()) {
+    conditions.push(eq(leads.assignedUserId, filters.assignedUserId.trim()));
+  }
+
   if (filters.search?.trim()) {
     const condition = buildSearchConditions(filters.search);
     if (condition) {
@@ -467,126 +480,10 @@ function buildLeadListConditions(filters: LeadListFilters) {
 export class NeonLeadStore implements LeadStorage {
   constructor(private readonly getDatabase: typeof getDb = getDb) {}
 
-  async upsertDraft(input: DraftLeadUpsertInput) {
-    const db = this.getDatabase();
-    const now = new Date();
-    const baseUpdate = {
-      ...deriveLeadSnapshot(input.answers),
-      currentStepKey: input.currentStepKey,
-      currentStepIndex: input.currentStepIndex,
-      progressPercent: clampProgress(input.progressPercent),
-      answers: input.answers,
-      deletedAt: null,
-      deletedBy: null,
-      updatedAt: now,
-      lastActivityAt: now,
-    };
-
-    if (input.leadId) {
-      const existing = await db.query.leads.findFirst({
-        where: eq(leads.id, input.leadId),
-      });
-
-      if (existing) {
-        if (existing.completionStatus === "complete") {
-          return mapLeadRecord(existing);
-        }
-
-        const [updated] = await db
-          .update(leads)
-          .set(baseUpdate)
-          .where(eq(leads.id, input.leadId))
-          .returning();
-
-        return mapLeadRecord(updated);
-      }
-    }
-
-    const [created] = await db
-      .insert(leads)
-      .values({
-        ...baseUpdate,
-        source: "pathway_finder",
-        sourceDetail: "assessment_draft",
-        priority: "medium",
-        assignedTo: null,
-        answers: {
-          ...emptyAnswers,
-          ...input.answers,
-        },
-        completionStatus: "incomplete",
-        crmStatus: "new",
-        reportToken: null,
-        report: null,
-        publicReport: null,
-        sourcePayload: null,
-        analytics: defaultAnalytics(),
-        sync: defaultSyncMetadata("Lead is incomplete. Awaiting completed submission."),
-      })
-      .returning();
-
-    return mapLeadRecord(created);
-  }
-
-  async completeLead(input: CompleteLeadInput) {
-    const db = this.getDatabase();
-    const existing = await db.query.leads.findFirst({
-      where: eq(leads.id, input.leadId),
-    });
-
-    if (!existing) {
-      throw new Error("Lead not found.");
-    }
-
-    const now = new Date();
-    const reportToken = existing.reportToken ?? crypto.randomUUID();
-    const pendingSync = {
-      googleSheets: retiredGoogleSheetsSyncState(),
-      sender: defaultSyncState("Completed lead saved. Sender sync pending."),
-    };
-
-    const [completed] = await db
-      .update(leads)
-      .set({
-        ...deriveLeadSnapshot(input.answers),
-        primaryGoal: input.answers.primaryGoal,
-        currentStepKey: "analysis",
-        currentStepIndex: existing.currentStepIndex,
-        progressPercent: 100,
-        answers: input.answers,
-        report: input.report,
-        publicReport: input.publicReport,
-        reportToken,
-        completionStatus: "complete",
-        crmStatus: existing.crmStatus ?? "new",
-        readinessLevel: input.report.readinessLevel,
-        topPathwayTitle: getPublicReportPrimaryPathway(input.publicReport),
-        completedAt: now,
-        deletedAt: null,
-        deletedBy: null,
-        updatedAt: now,
-        lastActivityAt: now,
-        sync: pendingSync,
-      })
-      .where(eq(leads.id, input.leadId))
-      .returning();
-
-    return mapLeadRecord(completed);
-  }
-
   async getById(id: string) {
     const db = this.getDatabase();
     const record = await db.query.leads.findFirst({
       where: eq(leads.id, id),
-    });
-
-    return record ? mapLeadRecord(record) : null;
-  }
-
-  async getByReportToken(reportToken: string) {
-    const db = this.getDatabase();
-    const record = await db.query.leads.findFirst({
-      where: eq(leads.reportToken, reportToken),
     });
 
     return record ? mapLeadRecord(record) : null;
@@ -617,90 +514,6 @@ export class NeonLeadStore implements LeadStorage {
     return Number(row?.count ?? 0);
   }
 
-  async listCompletedUnsynced() {
-    const completed = await this.list({ completionStatus: "complete" });
-    return completed.filter((lead) => lead.sync.googleSheets.status !== "success");
-  }
-
-  async trackByReportToken(reportToken: string, event: AnalyticsEventType) {
-    const db = this.getDatabase();
-    const existing = await db.query.leads.findFirst({
-      where: eq(leads.reportToken, reportToken),
-    });
-
-    if (!existing) {
-      return null;
-    }
-
-    const analytics = { ...existing.analytics };
-    if (event === "report_viewed") {
-      analytics.reportViewed = true;
-    }
-    if (event === "whatsapp_clicked") {
-      analytics.whatsappClicked = true;
-    }
-    if (event === "consultation_clicked") {
-      analytics.consultationClicked = true;
-    }
-
-    const [updated] = await db
-      .update(leads)
-      .set({
-        analytics,
-        updatedAt: new Date(),
-        lastActivityAt: new Date(),
-      })
-      .where(eq(leads.id, existing.id))
-      .returning();
-
-    return mapLeadRecord(updated);
-  }
-
-  async updateCrmStatus(id: string, crmStatus: CrmStatus, changedBy?: string | null) {
-    const db = this.getDatabase();
-    const existing = await db.query.leads.findFirst({
-      where: eq(leads.id, id),
-    });
-
-    if (!existing) {
-      return null;
-    }
-
-    if (existing.crmStatus === crmStatus) {
-      return mapLeadRecord(existing);
-    }
-
-    const [updated] = await db
-      .update(leads)
-      .set({
-        crmStatus,
-        updatedAt: new Date(),
-        lastActivityAt: new Date(),
-      })
-      .where(eq(leads.id, id))
-      .returning();
-
-    await this.addLeadEvent({
-      leadId: id,
-      eventType: leadEventTypes.statusChanged,
-      eventData: {
-        from: existing.crmStatus,
-        to: crmStatus,
-      },
-      createdBy: changedBy ?? null,
-    });
-
-    return updated ? mapLeadRecord(updated) : null;
-  }
-
-  async updateGoogleSheetsSync(id: string, status: SyncStatus) {
-    return this.updateSyncChannel(id, "googleSheets", status);
-  }
-
-  async updateSenderSync(id: string, status: SyncStatus) {
-    return this.updateSyncChannel(id, "sender", status);
-  }
-
   async upsertExternalLead(input: ExternalLeadUpsertInput): Promise<ExternalLeadUpsertResult> {
     const db = this.getDatabase();
     const duplicate = input.alwaysCreateNewRecord ? null : await this.findDuplicateLead(input);
@@ -723,20 +536,10 @@ export class NeonLeadStore implements LeadStorage {
         duplicateOfId: null,
       };
     }
-
-    const mergedAnswers = mergeAssessmentAnswers(duplicate.answers, {
-      firstName: normalizeText(input.firstName) ?? undefined,
-      lastName: normalizeText(input.lastName) ?? undefined,
-      email: normalizeText(input.email) ?? undefined,
-      whatsappNumber: normalizeText(input.whatsappNumber) ?? undefined,
-      stateOfResidence: parseNigeriaStateValue(input.state) ?? undefined,
-      primaryGoal: input.primaryGoal ?? undefined,
-      ...input.answers,
-    });
     const incomingSourceDetail = normalizeText(input.sourceDetail);
     const incomingLandingPage = normalizeText(input.landingPage);
-    const incomingTopPathwayTitle = normalizeText(input.topPathwayTitle);
     const shouldRefreshWebsiteAttribution = input.source === "website_form";
+    const nextRegion = normalizeLeadRegion(input.region ?? input.state);
 
     const [updated] = await db
       .update(leads)
@@ -745,8 +548,15 @@ export class NeonLeadStore implements LeadStorage {
         lastName: duplicate.lastName || normalizeText(input.lastName) || "",
         email: duplicate.email || normalizeText(input.email) || "",
         whatsappNumber: duplicate.whatsappNumber || normalizeText(input.whatsappNumber) || "",
-        state: pickPreferredValue(duplicate.state, parseNigeriaStateValue(input.state)),
-        primaryGoal: duplicate.primaryGoal ?? input.primaryGoal ?? null,
+        state: pickPreferredValue(duplicate.state, nextRegion),
+        country: pickPreferredValue(duplicate.country ?? null, normalizeText(input.country)),
+        region: pickPreferredValue(duplicate.region ?? null, nextRegion),
+        city: pickPreferredValue(duplicate.city ?? null, normalizeText(input.city)),
+        address: pickPreferredValue(duplicate.address ?? null, normalizeText(input.address)),
+        postalCode: pickPreferredValue(duplicate.postalCode ?? null, normalizeText(input.postalCode)),
+        companyName: pickPreferredValue(duplicate.companyName ?? null, normalizeText(input.companyName)),
+        sourceId: pickPreferredValue(duplicate.sourceId ?? null, input.sourceId ?? null),
+        stageId: pickPreferredValue(duplicate.stageId ?? null, input.stageId ?? null),
         sourceDetail:
           shouldRefreshWebsiteAttribution && incomingSourceDetail
             ? incomingSourceDetail
@@ -778,13 +588,59 @@ export class NeonLeadStore implements LeadStorage {
         utmCampaign: pickPreferredValue(duplicate.utmCampaign, normalizeText(input.utmCampaign)),
         utmContent: pickPreferredValue(duplicate.utmContent, normalizeText(input.utmContent)),
         utmTerm: pickPreferredValue(duplicate.utmTerm, normalizeText(input.utmTerm)),
+        assignedUserId: pickPreferredValue(duplicate.assignedUserId ?? null, input.assignedUserId ?? null),
+        teamId: pickPreferredValue(duplicate.teamId ?? null, input.teamId ?? null),
+        branchId: pickPreferredValue(duplicate.branchId ?? null, input.branchId ?? null),
+        departmentId: pickPreferredValue(duplicate.departmentId ?? null, input.departmentId ?? null),
+        campaignId: pickPreferredValue(duplicate.campaignId ?? null, normalizeText(input.campaignId)),
+        campaignLabel: pickPreferredValue(
+          duplicate.campaignLabel ?? null,
+          normalizeText(input.campaignLabel),
+        ),
+        estimatedValue:
+          duplicate.estimatedValue !== null && duplicate.estimatedValue !== undefined
+            ? String(duplicate.estimatedValue)
+            : parseOptionalNumeric(input.estimatedValue)?.toString() ?? null,
+        expectedValue:
+          duplicate.expectedValue !== null && duplicate.expectedValue !== undefined
+            ? String(duplicate.expectedValue)
+            : parseOptionalNumeric(input.expectedValue)?.toString() ?? null,
+        wonValue:
+          duplicate.wonValue !== null && duplicate.wonValue !== undefined
+            ? String(duplicate.wonValue)
+            : parseOptionalNumeric(input.wonValue)?.toString() ?? null,
+        closeProbability:
+          duplicate.closeProbability ?? (input.closeProbability === undefined ? null : input.closeProbability),
+        expectedCloseDate:
+          duplicate.expectedCloseDate
+            ? new Date(duplicate.expectedCloseDate)
+            : input.expectedCloseDate
+              ? new Date(input.expectedCloseDate)
+              : null,
+        wonAt:
+          duplicate.wonAt
+            ? new Date(duplicate.wonAt)
+            : input.wonAt
+              ? new Date(input.wonAt)
+              : null,
+        lostAt:
+          duplicate.lostAt
+            ? new Date(duplicate.lostAt)
+            : input.lostAt
+              ? new Date(input.lostAt)
+              : null,
+        lostReason: pickPreferredValue(duplicate.lostReason ?? null, normalizeText(input.lostReason)),
+        nextFollowUpAt:
+          duplicate.nextFollowUpAt
+            ? new Date(duplicate.nextFollowUpAt)
+            : input.nextFollowUpAt
+              ? new Date(input.nextFollowUpAt)
+              : null,
         landingPage:
           shouldRefreshWebsiteAttribution && incomingLandingPage
             ? incomingLandingPage
             : pickPreferredValue(duplicate.landingPage, incomingLandingPage),
         sourcePayload: input.sourcePayload ?? duplicate.sourcePayload,
-        topPathwayTitle: pickPreferredValue(duplicate.topPathwayTitle, incomingTopPathwayTitle),
-        answers: mergedAnswers,
         deletedAt: null,
         deletedBy: null,
         updatedAt: new Date(),
@@ -814,25 +670,47 @@ export class NeonLeadStore implements LeadStorage {
 
   async createExternalLead(input: ExternalLeadUpsertInput) {
     const db = this.getDatabase();
-    const answers = buildLeadAnswersFromExternal(input);
     const now = new Date();
-    const isComplete = input.completionStatus === "complete";
+    const region = normalizeLeadRegion(input.region ?? input.state);
 
     const [created] = await db
       .insert(leads)
       .values({
         source: input.source,
+        sourceId: input.sourceId ?? null,
+        stageId: input.stageId ?? null,
         sourceDetail: normalizeText(input.sourceDetail),
         priority: input.priority ?? "medium",
         assignedTo: serializedLeadAssigneeValue({
           primary: input.assignedTo,
           assignees: input.assignedToList ?? null,
         }),
-        firstName: answers.firstName,
-        lastName: answers.lastName,
-        email: answers.email,
-        whatsappNumber: answers.whatsappNumber,
-        state: answers.stateOfResidence,
+        assignedUserId: input.assignedUserId ?? null,
+        teamId: input.teamId ?? null,
+        branchId: input.branchId ?? null,
+        departmentId: input.departmentId ?? null,
+        companyName: normalizeText(input.companyName),
+        campaignId: normalizeText(input.campaignId),
+        campaignLabel: normalizeText(input.campaignLabel),
+        estimatedValue: parseOptionalNumeric(input.estimatedValue)?.toString() ?? null,
+        expectedValue: parseOptionalNumeric(input.expectedValue)?.toString() ?? null,
+        wonValue: parseOptionalNumeric(input.wonValue)?.toString() ?? null,
+        closeProbability: input.closeProbability ?? null,
+        expectedCloseDate: input.expectedCloseDate ? new Date(input.expectedCloseDate) : null,
+        wonAt: input.wonAt ? new Date(input.wonAt) : null,
+        lostAt: input.lostAt ? new Date(input.lostAt) : null,
+        lostReason: normalizeText(input.lostReason),
+        nextFollowUpAt: input.nextFollowUpAt ? new Date(input.nextFollowUpAt) : null,
+        firstName: normalizeText(input.firstName) ?? "",
+        lastName: normalizeText(input.lastName) ?? "",
+        email: normalizeText(input.email) ?? "",
+        whatsappNumber: normalizeText(input.whatsappNumber) ?? "",
+        state: region,
+        country: normalizeText(input.country),
+        region,
+        city: normalizeText(input.city),
+        address: normalizeText(input.address),
+        postalCode: normalizeText(input.postalCode),
         externalLeadId: normalizeText(input.externalLeadId),
         externalFormId: normalizeText(input.externalFormId),
         facebookLeadgenId: normalizeText(input.facebookLeadgenId),
@@ -852,23 +730,6 @@ export class NeonLeadStore implements LeadStorage {
         utmTerm: normalizeText(input.utmTerm),
         landingPage: normalizeText(input.landingPage),
         sourcePayload: input.sourcePayload ?? null,
-        primaryGoal: input.primaryGoal ?? answers.primaryGoal ?? null,
-        currentStepKey: input.currentStepKey ?? "contact",
-        currentStepIndex: input.currentStepIndex ?? 0,
-        progressPercent: clampProgress(input.progressPercent ?? 0),
-        readinessLevel: input.readinessLevel ?? input.report?.readinessLevel ?? null,
-        topPathwayTitle:
-          input.topPathwayTitle ??
-          (input.publicReport ? getPublicReportPrimaryPathway(input.publicReport) : null),
-        answers,
-        report: input.report ?? null,
-        publicReport: input.publicReport ?? null,
-        completionStatus: input.completionStatus ?? "incomplete",
-        crmStatus: input.crmStatus ?? "new",
-        reportToken: null,
-        analytics: defaultAnalytics(),
-        sync: defaultSyncMetadata("External lead captured. CRM export pending."),
-        completedAt: isComplete ? now : null,
         deletedAt: null,
         deletedBy: null,
         createdAt: now,
@@ -1068,8 +929,8 @@ export class NeonLeadStore implements LeadStorage {
       conditions.push(and(isNull(leadTasks.completedAt), lte(leadTasks.dueAt, new Date())) as SQL);
     }
 
-    if (filters.crmStatus) {
-      leadScopeFilters.crmStatus = filters.crmStatus;
+    if (filters.stageId) {
+      leadScopeFilters.stageId = filters.stageId;
     }
 
     const leadScopeConditions = buildLeadListConditions(leadScopeFilters);
@@ -1230,9 +1091,65 @@ export class NeonLeadStore implements LeadStorage {
       input.whatsappNumber === undefined
         ? existing.whatsappNumber
         : normalizeText(input.whatsappNumber) ?? "";
-    const nextState = input.state === undefined ? existing.state : normalizeLeadState(input.state) ?? null;
-    const nextPrimaryGoal =
-      input.primaryGoal === undefined ? existing.primaryGoal : input.primaryGoal ?? null;
+    const nextState =
+      input.state === undefined && input.region === undefined
+        ? existing.state
+        : normalizeLeadRegion(input.region ?? input.state) ?? null;
+    const nextCountry =
+      input.country === undefined ? existing.country : normalizeText(input.country) ?? null;
+    const nextRegion =
+      input.region === undefined ? existing.region : normalizeLeadRegion(input.region) ?? null;
+    const nextCity = input.city === undefined ? existing.city : normalizeText(input.city) ?? null;
+    const nextAddress =
+      input.address === undefined ? existing.address : normalizeText(input.address) ?? null;
+    const nextPostalCode =
+      input.postalCode === undefined ? existing.postalCode : normalizeText(input.postalCode) ?? null;
+    const nextCompanyName =
+      input.companyName === undefined ? existing.companyName : normalizeText(input.companyName) ?? null;
+    const nextCampaignId =
+      input.campaignId === undefined ? existing.campaignId : normalizeText(input.campaignId) ?? null;
+    const nextCampaignLabel =
+      input.campaignLabel === undefined
+        ? existing.campaignLabel
+        : normalizeText(input.campaignLabel) ?? null;
+    const nextAssignedUserId =
+      input.assignedUserId === undefined ? existing.assignedUserId : input.assignedUserId ?? null;
+    const nextTeamId = input.teamId === undefined ? existing.teamId : input.teamId ?? null;
+    const nextBranchId = input.branchId === undefined ? existing.branchId : input.branchId ?? null;
+    const nextDepartmentId =
+      input.departmentId === undefined ? existing.departmentId : input.departmentId ?? null;
+    const nextEstimatedValue =
+      input.estimatedValue === undefined
+        ? existing.estimatedValue
+        : parseOptionalNumeric(input.estimatedValue)?.toString() ?? null;
+    const nextExpectedValue =
+      input.expectedValue === undefined
+        ? existing.expectedValue
+        : parseOptionalNumeric(input.expectedValue)?.toString() ?? null;
+    const nextWonValue =
+      input.wonValue === undefined
+        ? existing.wonValue
+        : parseOptionalNumeric(input.wonValue)?.toString() ?? null;
+    const nextCloseProbability =
+      input.closeProbability === undefined ? existing.closeProbability : input.closeProbability ?? null;
+    const nextExpectedCloseDate =
+      input.expectedCloseDate === undefined
+        ? existing.expectedCloseDate
+        : input.expectedCloseDate
+          ? new Date(input.expectedCloseDate)
+          : null;
+    const nextWonAt =
+      input.wonAt === undefined ? existing.wonAt : input.wonAt ? new Date(input.wonAt) : null;
+    const nextLostAt =
+      input.lostAt === undefined ? existing.lostAt : input.lostAt ? new Date(input.lostAt) : null;
+    const nextLostReason =
+      input.lostReason === undefined ? existing.lostReason : normalizeText(input.lostReason) ?? null;
+    const nextFollowUpAt =
+      input.nextFollowUpAt === undefined
+        ? existing.nextFollowUpAt
+        : input.nextFollowUpAt
+          ? new Date(input.nextFollowUpAt)
+          : null;
 
     const changedFields = [
       existing.firstName !== nextFirstName ? "firstName" : null,
@@ -1240,21 +1157,32 @@ export class NeonLeadStore implements LeadStorage {
       existing.email !== nextEmail ? "email" : null,
       existing.whatsappNumber !== nextWhatsappNumber ? "whatsappNumber" : null,
       existing.state !== nextState ? "state" : null,
-      existing.primaryGoal !== nextPrimaryGoal ? "primaryGoal" : null,
+      existing.country !== nextCountry ? "country" : null,
+      existing.region !== nextRegion ? "region" : null,
+      existing.city !== nextCity ? "city" : null,
+      existing.address !== nextAddress ? "address" : null,
+      existing.postalCode !== nextPostalCode ? "postalCode" : null,
+      existing.companyName !== nextCompanyName ? "companyName" : null,
+      existing.campaignId !== nextCampaignId ? "campaignId" : null,
+      existing.campaignLabel !== nextCampaignLabel ? "campaignLabel" : null,
+      existing.assignedUserId !== nextAssignedUserId ? "assignedUserId" : null,
+      existing.teamId !== nextTeamId ? "teamId" : null,
+      existing.branchId !== nextBranchId ? "branchId" : null,
+      existing.departmentId !== nextDepartmentId ? "departmentId" : null,
+      existing.estimatedValue !== nextEstimatedValue ? "estimatedValue" : null,
+      existing.expectedValue !== nextExpectedValue ? "expectedValue" : null,
+      existing.wonValue !== nextWonValue ? "wonValue" : null,
+      existing.closeProbability !== nextCloseProbability ? "closeProbability" : null,
+      `${existing.expectedCloseDate ?? ""}` !== `${nextExpectedCloseDate ?? ""}` ? "expectedCloseDate" : null,
+      `${existing.wonAt ?? ""}` !== `${nextWonAt ?? ""}` ? "wonAt" : null,
+      `${existing.lostAt ?? ""}` !== `${nextLostAt ?? ""}` ? "lostAt" : null,
+      existing.lostReason !== nextLostReason ? "lostReason" : null,
+      `${existing.nextFollowUpAt ?? ""}` !== `${nextFollowUpAt ?? ""}` ? "nextFollowUpAt" : null,
     ].filter((value): value is string => Boolean(value));
 
     if (changedFields.length === 0) {
       return mapLeadRecord(existing);
     }
-
-    const nextAnswers = mergeAssessmentAnswers(existing.answers, {
-      firstName: input.firstName === undefined ? undefined : nextFirstName,
-      lastName: input.lastName === undefined ? undefined : nextLastName,
-      email: input.email === undefined ? undefined : nextEmail,
-      whatsappNumber: input.whatsappNumber === undefined ? undefined : nextWhatsappNumber,
-      stateOfResidence: input.state === undefined ? undefined : nextState,
-      primaryGoal: input.primaryGoal === undefined ? undefined : nextPrimaryGoal,
-    });
 
     const [updated] = await db
       .update(leads)
@@ -1264,8 +1192,27 @@ export class NeonLeadStore implements LeadStorage {
         email: nextEmail,
         whatsappNumber: nextWhatsappNumber,
         state: nextState,
-        primaryGoal: nextPrimaryGoal,
-        answers: nextAnswers,
+        country: nextCountry,
+        region: nextRegion,
+        city: nextCity,
+        address: nextAddress,
+        postalCode: nextPostalCode,
+        companyName: nextCompanyName,
+        campaignId: nextCampaignId,
+        campaignLabel: nextCampaignLabel,
+        assignedUserId: nextAssignedUserId,
+        teamId: nextTeamId,
+        branchId: nextBranchId,
+        departmentId: nextDepartmentId,
+        estimatedValue: nextEstimatedValue,
+        expectedValue: nextExpectedValue,
+        wonValue: nextWonValue,
+        closeProbability: nextCloseProbability,
+        expectedCloseDate: nextExpectedCloseDate,
+        wonAt: nextWonAt,
+        lostAt: nextLostAt,
+        lostReason: nextLostReason,
+        nextFollowUpAt: nextFollowUpAt,
         updatedAt: new Date(),
         lastActivityAt: new Date(),
       })
@@ -1678,10 +1625,8 @@ export class NeonLeadStore implements LeadStorage {
       newLeadsToday: leadsForDashboard.filter((lead) => new Date(lead.createdAt) >= today).length,
       unassignedLeads: leadsForDashboard.filter((lead) => isUnassigned(lead.assignedTo)).length,
       followUpsDueToday: dueTodayTasks.length,
-      completedAssessments: leadsForDashboard.filter((lead) => lead.completionStatus === "complete")
-        .length,
-      consultationReadyLeads: leadsForDashboard.filter((lead) => isQualifiedLikeStatus(lead.crmStatus))
-        .length,
+      completedAssessments: leadsForDashboard.length,
+      consultationReadyLeads: leadsForDashboard.filter((lead) => leadLooksQualified(lead)).length,
       highPriorityLeads: leadsForDashboard.filter((lead) =>
         lead.priority === "high" || lead.priority === "urgent",
       ).length,
@@ -1715,10 +1660,10 @@ export class NeonLeadStore implements LeadStorage {
       };
 
       existing.leadCount += 1;
-      if (isQualifiedLikeStatus(lead.crmStatus)) {
+      if (leadLooksQualified(lead)) {
         existing.qualifiedCount += 1;
       }
-      if (lead.crmStatus === "converted") {
+      if (lead.wonAt) {
         existing.convertedCount += 1;
       }
       if (lead.priority === "high" || lead.priority === "urgent") {
@@ -1792,6 +1737,7 @@ export class NeonLeadStore implements LeadStorage {
         fullName: input.fullName.trim(),
         role: input.role,
         isActive: input.isActive ?? true,
+        avatarUrl: input.avatarUrl ?? null,
       })
       .onConflictDoUpdate({
         target: crmUsers.email,
@@ -1799,6 +1745,7 @@ export class NeonLeadStore implements LeadStorage {
           fullName: input.fullName.trim(),
           role: input.role,
           isActive: input.isActive ?? true,
+          avatarUrl: input.avatarUrl ?? null,
           updatedAt: new Date(),
         },
       })
@@ -1899,37 +1846,6 @@ export class NeonLeadStore implements LeadStorage {
       .returning();
 
     return mapIntegrationRecord(created);
-  }
-
-  private async updateSyncChannel(
-    id: string,
-    channel: "googleSheets" | "sender",
-    status: SyncStatus,
-  ) {
-    const db = this.getDatabase();
-    const existing = await db.query.leads.findFirst({
-      where: eq(leads.id, id),
-    });
-
-    if (!existing) {
-      return null;
-    }
-
-    const nextSync = {
-      ...existing.sync,
-      [channel]: status,
-    };
-
-    const [updated] = await db
-      .update(leads)
-      .set({
-        sync: nextSync,
-        updatedAt: new Date(),
-      })
-      .where(eq(leads.id, id))
-      .returning();
-
-    return updated ? mapLeadRecord(updated) : null;
   }
 
   private async findLeadByWhere(where: SQL | undefined) {

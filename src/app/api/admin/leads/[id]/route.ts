@@ -1,12 +1,14 @@
 import { NextResponse } from "next/server";
 import { normalizeAdminEmail } from "@/lib/admin-access";
 import { getAdminRequestContext } from "@/lib/admin";
+import { canManageLeadRecord, canViewLeadRecord } from "@/lib/admin-permissions";
 import { buildLeadAssigneeList } from "@/lib/crm/lead-assignees";
+import { CRM_STATUSES, LEAD_PRIORITIES } from "@/lib/crm/constants";
 import { listCustomFields } from "@/lib/crm/custom-fields-admin";
-import { upsertLeadCustomFieldValues } from "@/lib/crm/custom-field-values-store";
 import { validateCustomFieldValues } from "@/lib/crm/custom-field-values";
+import { upsertLeadCustomFieldValues } from "@/lib/crm/custom-field-values-store";
 import { normalizeAdminLeadProfilePayload } from "@/lib/crm/form-contracts";
-import { mapAdminInputToSalesCommandUpdate, mapAdminProfileInputToLegacyLeadProfile } from "@/lib/crm/input-mapping";
+import { mapAdminInputToSalesCommandUpdate } from "@/lib/crm/input-mapping";
 import {
   notifyFollowUpDue,
   notifyFollowUpOverdue,
@@ -15,15 +17,12 @@ import {
   notifyLeadStageChanged,
   notifyNewLeadAssigned,
 } from "@/lib/crm/notification-events";
-import { canManageLeadRecord, canViewLeadRecord } from "@/lib/admin-permissions";
 import {
-  getLeadFollowUpStatus,
   resolveCrmUserIdByEmail,
   resolveLeadSourceIdByLegacySource,
   resolveLeadStageIdByLegacyStatus,
   updateLeadSalesCommandFields,
 } from "@/lib/crm/sales-command";
-import { adminLeadUpdateSchema } from "@/lib/pathway-engine/schemas";
 import { leadStore } from "@/lib/storage";
 
 function hasOwnKey(payload: object, key: string) {
@@ -32,6 +31,42 @@ function hasOwnKey(payload: object, key: string) {
 
 function normalizeEmail(value?: string | null) {
   return value ? normalizeAdminEmail(value) : "";
+}
+
+function normalizeOptionalString(value: unknown) {
+  if (typeof value !== "string") {
+    return null;
+  }
+
+  const normalized = value.trim();
+  return normalized.length > 0 ? normalized : null;
+}
+
+function resolveFollowUpState(input: {
+  nextFollowUpAt?: string | null;
+  wonAt?: string | null;
+  lostAt?: string | null;
+}) {
+  if (input.wonAt || input.lostAt || !input.nextFollowUpAt) {
+    return "no_follow_up" as const;
+  }
+
+  const dueAt = new Date(input.nextFollowUpAt);
+  const now = new Date();
+  const startOfToday = new Date(now);
+  startOfToday.setHours(0, 0, 0, 0);
+  const endOfToday = new Date(now);
+  endOfToday.setHours(23, 59, 59, 999);
+
+  if (dueAt < startOfToday) {
+    return "overdue" as const;
+  }
+
+  if (dueAt <= endOfToday) {
+    return "due_today" as const;
+  }
+
+  return "upcoming" as const;
 }
 
 export async function GET(
@@ -67,34 +102,40 @@ export async function PATCH(
   }
 
   const payload = (await request.json().catch(() => null)) as Record<string, unknown> | null;
-  const normalizedProfile = payload ? normalizeAdminLeadProfilePayload(payload) : { success: false as const };
-  const legacyPayload = payload
-    ? {
-        ...payload,
-        ...(normalizedProfile.success
-          ? {
-              firstName: normalizedProfile.data.firstName,
-              lastName: normalizedProfile.data.lastName,
-              email: normalizedProfile.data.email,
-              whatsappNumber: normalizedProfile.data.whatsappNumber,
-              state: normalizedProfile.data.state,
-              primaryGoal: normalizedProfile.data.category,
-            }
-          : {}),
-      }
-    : null;
-  const parsed = adminLeadUpdateSchema.safeParse(legacyPayload);
+  const normalizedProfile = payload
+    ? normalizeAdminLeadProfilePayload(payload)
+    : { success: false as const };
 
-  if (!parsed.success) {
+  if (!payload || !normalizedProfile.success) {
     return NextResponse.json({ error: "Invalid lead update payload." }, { status: 400 });
   }
+
+  const requestedStage =
+    typeof payload.stage === "string" &&
+    CRM_STATUSES.includes(payload.stage as (typeof CRM_STATUSES)[number])
+      ? (payload.stage as (typeof CRM_STATUSES)[number])
+      : undefined;
+  const requestedPriority =
+    typeof payload.priority === "string" &&
+    LEAD_PRIORITIES.includes(payload.priority as (typeof LEAD_PRIORITIES)[number])
+      ? (payload.priority as (typeof LEAD_PRIORITIES)[number])
+      : undefined;
+  const requestedAssignedTo = hasOwnKey(payload, "assignedTo")
+    ? normalizeOptionalString(payload.assignedTo)
+    : undefined;
+  const requestedAssignedToList =
+    hasOwnKey(payload, "assignedToList") && Array.isArray(payload.assignedToList)
+      ? payload.assignedToList
+          .map((value) => (typeof value === "string" ? value.trim() : ""))
+          .filter(Boolean)
+      : undefined;
 
   const activeCustomFieldDefinitions = (await listCustomFields()).filter(
     (field) => field.showInForm && !field.archived,
   );
   const customFieldValidation = validateCustomFieldValues(
     activeCustomFieldDefinitions,
-    normalizedProfile.success ? normalizedProfile.data.customFieldValues : {},
+    normalizedProfile.data.customFieldValues,
   );
 
   if (!customFieldValidation.success) {
@@ -128,16 +169,14 @@ export async function PATCH(
 
   if (
     context.accessLevel === "sales_rep" &&
-    (
-      (parsed.data.assignedTo &&
-        normalizeAdminEmail(parsed.data.assignedTo) !==
-          normalizeAdminEmail(context.session.user?.email ?? "")) ||
-      (parsed.data.assignedToList &&
-        parsed.data.assignedToList.some(
+    ((requestedAssignedTo &&
+      normalizeAdminEmail(requestedAssignedTo) !==
+        normalizeAdminEmail(context.session.user?.email ?? "")) ||
+      (requestedAssignedToList &&
+        requestedAssignedToList.some(
           (email) =>
             normalizeAdminEmail(email) !== normalizeAdminEmail(context.session.user?.email ?? ""),
-        ))
-    )
+        )))
   ) {
     return NextResponse.json(
       { error: "Sales access cannot reassign leads to another owner." },
@@ -147,8 +186,8 @@ export async function PATCH(
 
   if (
     context.accessLevel === "sales_rep" &&
-    ((hasOwnKey(parsed.data, "assignedTo") && parsed.data.assignedTo === null) ||
-      (hasOwnKey(parsed.data, "assignedToList") && parsed.data.assignedToList?.length === 0))
+    ((requestedAssignedTo !== undefined && requestedAssignedTo === null) ||
+      (requestedAssignedToList !== undefined && requestedAssignedToList.length === 0))
   ) {
     return NextResponse.json(
       { error: "Sales access cannot remove lead ownership." },
@@ -157,11 +196,13 @@ export async function PATCH(
   }
 
   const nextEmail =
-    parsed.data.email === undefined ? existingLead.email : (parsed.data.email ?? "").trim();
+    normalizedProfile.data.email === undefined
+      ? existingLead.email
+      : (normalizedProfile.data.email ?? "").trim();
   const nextWhatsappNumber =
-    parsed.data.whatsappNumber === undefined
+    normalizedProfile.data.whatsappNumber === undefined
       ? existingLead.whatsappNumber
-      : (parsed.data.whatsappNumber ?? "").trim();
+      : (normalizedProfile.data.whatsappNumber ?? "").trim();
 
   if (!nextEmail && !nextWhatsappNumber) {
     return NextResponse.json(
@@ -172,26 +213,12 @@ export async function PATCH(
 
   let updatedLead = existingLead;
   const previousAssignedTo = existingLead.assignedTo;
-  const previousStatus = existingLead.crmStatus;
+  const previousStageId = existingLead.stageId ?? null;
 
-  if (parsed.data.crmStatus !== undefined) {
-    const updated = await leadStore.updateCrmStatus(
-      id,
-      parsed.data.crmStatus,
-      context.session.user?.email ?? null,
-    );
-
-    if (!updated) {
-      return NextResponse.json({ error: "Lead not found." }, { status: 404 });
-    }
-
-    updatedLead = updated;
-  }
-
-  if (parsed.data.priority !== undefined) {
+  if (requestedPriority !== undefined) {
     const updated = await leadStore.updateLeadPriority(
       id,
-      parsed.data.priority,
+      requestedPriority,
       context.session.user?.email ?? null,
     );
 
@@ -202,15 +229,15 @@ export async function PATCH(
     updatedLead = updated;
   }
 
-  if (hasOwnKey(parsed.data, "assignedTo") || hasOwnKey(parsed.data, "assignedToList")) {
-    const nextAssignedToList = hasOwnKey(parsed.data, "assignedToList")
+  if (requestedAssignedTo !== undefined || requestedAssignedToList !== undefined) {
+    const nextAssignedToList = requestedAssignedToList !== undefined
       ? buildLeadAssigneeList({
-          primary: parsed.data.assignedTo ?? existingLead.assignedTo,
-          all: parsed.data.assignedToList ?? [],
+          primary: requestedAssignedTo ?? existingLead.assignedTo,
+          all: requestedAssignedToList,
         })
-      : parsed.data.assignedTo
+      : requestedAssignedTo
         ? buildLeadAssigneeList({
-            primary: parsed.data.assignedTo,
+            primary: requestedAssignedTo,
             all: existingLead.assignedToList.filter((email) => email !== existingLead.assignedTo),
           })
         : [];
@@ -228,71 +255,60 @@ export async function PATCH(
     updatedLead = updated;
   }
 
-  if (normalizedProfile.success) {
-    const legacyProfile = mapAdminProfileInputToLegacyLeadProfile(normalizedProfile.data);
-    const updated = await leadStore.updateLeadProfile(
-      id,
-      legacyProfile,
-      context.session.user?.email ?? null,
-    );
+  const updatedProfileLead = await leadStore.updateLeadProfile(
+    id,
+    {
+      firstName: normalizedProfile.data.firstName,
+      lastName: normalizedProfile.data.lastName ?? null,
+      email: normalizedProfile.data.email ?? null,
+      whatsappNumber: normalizedProfile.data.whatsappNumber ?? null,
+      state: normalizedProfile.data.state ?? null,
+      companyName: normalizedProfile.data.companyName ?? null,
+      estimatedValue: normalizedProfile.data.estimatedValue ?? null,
+      closeProbability: normalizedProfile.data.closeProbability ?? null,
+      expectedCloseDate: normalizedProfile.data.expectedCloseDate ?? null,
+      nextFollowUpAt: normalizedProfile.data.nextFollowUpAt ?? null,
+      wonValue: normalizedProfile.data.wonValue ?? null,
+      lostReason: normalizedProfile.data.lostReason ?? null,
+    },
+    context.session.user?.email ?? null,
+  );
 
-    if (!updated) {
-      return NextResponse.json({ error: "Lead not found." }, { status: 404 });
-    }
-
-    updatedLead = updated;
+  if (!updatedProfileLead) {
+    return NextResponse.json({ error: "Lead not found." }, { status: 404 });
   }
 
+  updatedLead = updatedProfileLead;
+
   const effectiveAssignedTo =
-    hasOwnKey(parsed.data, "assignedTo") ? parsed.data.assignedTo ?? null : updatedLead.assignedTo;
+    requestedAssignedTo !== undefined ? requestedAssignedTo ?? null : updatedLead.assignedTo;
   const assignedUserId = await resolveCrmUserIdByEmail(effectiveAssignedTo);
-  const effectiveStatus =
-    parsed.data.crmStatus !== undefined ? parsed.data.crmStatus : updatedLead.crmStatus;
-  const stageId = await resolveLeadStageIdByLegacyStatus(effectiveStatus);
+  const stageId = requestedStage
+    ? await resolveLeadStageIdByLegacyStatus(requestedStage)
+    : updatedLead.stageId ?? null;
   const sourceId = await resolveLeadSourceIdByLegacySource(updatedLead.source);
   const nowIso = new Date().toISOString();
+  const wonAt = requestedStage === "converted" ? updatedLead.wonAt ?? nowIso : undefined;
+  const lostAt = requestedStage === "lost" ? updatedLead.lostAt ?? nowIso : undefined;
 
-  if (normalizedProfile.success) {
-    await updateLeadSalesCommandFields(id, {
-      ...mapAdminInputToSalesCommandUpdate(
-        {
-          ...normalizedProfile.data,
-          stage: effectiveStatus,
-          assignedTo: effectiveAssignedTo,
-        },
-        {
-          assignedUserId,
-          stageId,
-          wonAt:
-            parsed.data.crmStatus === "converted"
-              ? updatedLead.wonAt ?? nowIso
-              : undefined,
-          lostAt:
-            parsed.data.crmStatus === "lost"
-              ? updatedLead.lostAt ?? nowIso
-              : undefined,
-        },
-      ),
-      sourceId,
-    });
-  } else if (parsed.data.crmStatus !== undefined || hasOwnKey(parsed.data, "assignedTo")) {
-    await updateLeadSalesCommandFields(id, {
+  await updateLeadSalesCommandFields(id, {
+    ...mapAdminInputToSalesCommandUpdate(normalizedProfile.data, {
       assignedUserId,
       stageId,
-      sourceId,
-      wonAt:
-        parsed.data.crmStatus === "converted"
-          ? updatedLead.wonAt ?? nowIso
-          : undefined,
-      lostAt:
-        parsed.data.crmStatus === "lost"
-          ? updatedLead.lostAt ?? nowIso
-          : undefined,
-    });
+      wonAt,
+      lostAt,
+    }),
+    sourceId,
+  });
+
+  const refreshedLead = await leadStore.getById(id);
+  if (refreshedLead) {
+    updatedLead = refreshedLead;
   }
 
   await upsertLeadCustomFieldValues(id, customFieldValidation.values);
   const leadName = `${updatedLead.firstName || "Lead"} ${updatedLead.lastName || ""}`.trim();
+
   if (normalizeEmail(previousAssignedTo) !== normalizeEmail(effectiveAssignedTo)) {
     await notifyNewLeadAssigned({
       leadId: id,
@@ -301,42 +317,36 @@ export async function PATCH(
     });
   }
 
-  if (parsed.data.crmStatus && parsed.data.crmStatus !== previousStatus) {
+  if (requestedStage && stageId && stageId !== previousStageId) {
     await notifyLeadStageChanged({
       recipientUserId: assignedUserId,
       leadId: id,
       leadName,
-      stageLabel: parsed.data.crmStatus.replace(/_/g, " "),
+      stageLabel: requestedStage.replace(/_/g, " "),
     });
 
-    if (parsed.data.crmStatus === "converted") {
+    if (requestedStage === "converted") {
       await notifyLeadMarkedWon({
         recipientUserId: assignedUserId,
         leadId: id,
         leadName,
       });
-    } else if (parsed.data.crmStatus === "lost") {
+    } else if (requestedStage === "lost") {
       await notifyLeadMarkedLost({
         recipientUserId: assignedUserId,
         leadId: id,
         leadName,
-        reasonLabel: normalizedProfile.success ? normalizedProfile.data.lostReason ?? null : null,
+        reasonLabel: normalizedProfile.data.lostReason ?? null,
       });
     }
   }
 
-  const followUpAt =
-    normalizedProfile.success
-      ? normalizedProfile.data.nextFollowUpAt ?? null
-      : typeof payload?.nextFollowUpAt === "string"
-        ? payload.nextFollowUpAt
-        : null;
+  const followUpAt = normalizedProfile.data.nextFollowUpAt ?? null;
   if (followUpAt) {
-    const followUpStatus = getLeadFollowUpStatus({
-      crmStatus: effectiveStatus,
+    const followUpStatus = resolveFollowUpState({
       nextFollowUpAt: followUpAt,
-      wonAt: effectiveStatus === "converted" ? updatedLead.wonAt ?? nowIso : null,
-      lostAt: effectiveStatus === "lost" ? updatedLead.lostAt ?? nowIso : null,
+      wonAt: requestedStage === "converted" ? updatedLead.wonAt ?? nowIso : null,
+      lostAt: requestedStage === "lost" ? updatedLead.lostAt ?? nowIso : null,
     });
     const dueLabel = new Date(followUpAt).toLocaleString();
 

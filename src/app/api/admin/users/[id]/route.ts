@@ -3,13 +3,36 @@ import { z } from "zod";
 import { getAdminRequestContext } from "@/lib/admin";
 import {
   canManageTeamMember,
+  getGrantableAccessLevels,
+  getStoredRoleForAccessLevel,
+  type AdminAccessLevel,
   resolveAdminAccessLevel,
 } from "@/lib/admin-permissions";
 import { canManageUsers } from "@/lib/crm/authz";
 import { leadStore } from "@/lib/storage";
 
-const crmUserActiveSchema = z.object({
-  isActive: z.boolean(),
+const avatarImageSchema = z
+  .string()
+  .trim()
+  .refine((value) => {
+    if (!value) {
+      return true;
+    }
+
+    if (/^https?:\/\//i.test(value)) {
+      return true;
+    }
+
+    return /^data:image\/(png|jpe?g|webp|gif);base64,/i.test(value) && value.length <= 2_900_000;
+  }, "Profile photo must be a valid image under 2MB.");
+
+const crmUserUpdateSchema = z.object({
+  fullName: z.string().trim().min(1, "Full name is required.").optional(),
+  avatarUrl: avatarImageSchema.nullable().optional(),
+  accessLevel: z
+    .enum(["master_admin", "general_admin", "lead_sales_rep", "sales_rep"])
+    .optional(),
+  isActive: z.boolean().optional(),
 });
 
 export async function PATCH(
@@ -21,12 +44,8 @@ export async function PATCH(
     return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
   }
 
-  if (!canManageUsers({ accessLevel: context.accessLevel, role: context.role })) {
-    return NextResponse.json({ error: "Forbidden." }, { status: 403 });
-  }
-
   const payload = await request.json().catch(() => null);
-  const parsed = crmUserActiveSchema.safeParse(payload);
+  const parsed = crmUserUpdateSchema.safeParse(payload);
 
   if (!parsed.success) {
     return NextResponse.json({ error: "Invalid team member payload." }, { status: 400 });
@@ -39,23 +58,56 @@ export async function PATCH(
     return NextResponse.json({ error: "Team member not found." }, { status: 404 });
   }
 
+  const currentUserEmail = context.session.user?.email?.trim().toLowerCase() ?? "";
+  const targetEmail = targetUser.email.trim().toLowerCase();
+  const isSelfUpdate = Boolean(currentUserEmail && currentUserEmail === targetEmail);
   const targetAccessLevel = resolveAdminAccessLevel({
     email: targetUser.email,
     role: targetUser.role,
   });
+  const wantsRosterChange =
+    typeof parsed.data.isActive === "boolean" ||
+    typeof parsed.data.accessLevel === "string";
 
-  if (
-    !canManageTeamMember(
-      context.accessLevel,
-      targetAccessLevel,
-      context.session.user?.email,
-      targetUser.email,
-    )
-  ) {
-    return NextResponse.json({ error: "You cannot remove this team member." }, { status: 403 });
+  if (wantsRosterChange || !isSelfUpdate) {
+    if (!canManageUsers({ accessLevel: context.accessLevel, role: context.role })) {
+      return NextResponse.json({ error: "Forbidden." }, { status: 403 });
+    }
+
+    if (
+      !canManageTeamMember(
+        context.accessLevel,
+        targetAccessLevel,
+        context.session.user?.email,
+        targetUser.email,
+      )
+    ) {
+      return NextResponse.json({ error: "You cannot manage this team member." }, { status: 403 });
+    }
   }
 
-  const updated = await leadStore.setCrmUserActive(id, parsed.data.isActive);
+  if (isSelfUpdate && wantsRosterChange) {
+    return NextResponse.json({ error: "You cannot change your own access here." }, { status: 403 });
+  }
+
+  const nextAccessLevel = (parsed.data.accessLevel ?? targetAccessLevel) as AdminAccessLevel;
+  if (parsed.data.accessLevel) {
+    const grantableAccessLevels = getGrantableAccessLevels(context.accessLevel);
+    if (!grantableAccessLevels.includes(parsed.data.accessLevel)) {
+      return NextResponse.json({ error: "You cannot grant this access level." }, { status: 403 });
+    }
+  }
+
+  const updated = await leadStore.upsertCrmUser({
+    email: targetUser.email,
+    fullName: parsed.data.fullName ?? targetUser.fullName,
+    role: getStoredRoleForAccessLevel(nextAccessLevel),
+    isActive: parsed.data.isActive ?? targetUser.isActive,
+    avatarUrl:
+      parsed.data.avatarUrl === undefined
+        ? targetUser.avatarUrl ?? null
+        : parsed.data.avatarUrl?.trim() || null,
+  });
 
   if (!updated) {
     return NextResponse.json({ error: "Team member not found." }, { status: 404 });

@@ -14,8 +14,11 @@ export function mapAdminCaptureInputToLegacyLeadPayload(input: AdminLeadCaptureI
     email: input.email ?? null,
     whatsappNumber: input.whatsappNumber ?? null,
     state: input.state ?? null,
-    primaryGoal: input.category ?? null,
-    crmStatus: input.stage,
+    country: input.country ?? null,
+    region: input.region ?? null,
+    city: input.city ?? null,
+    address: input.address ?? null,
+    postalCode: input.postalCode ?? null,
     priority: input.priority,
     assignedTo: input.assignedTo ?? null,
     source: input.source,
@@ -30,7 +33,12 @@ export function mapAdminProfileInputToLegacyLeadProfile(input: AdminLeadProfileI
     email: input.email ?? null,
     whatsappNumber: input.whatsappNumber ?? null,
     state: input.state ?? null,
-    primaryGoal: input.category ?? null,
+    country: input.country ?? null,
+    region: input.region ?? null,
+    city: input.city ?? null,
+    address: input.address ?? null,
+    postalCode: input.postalCode ?? null,
+    companyName: input.companyName ?? null,
   };
 }
 
@@ -64,9 +72,7 @@ export function mapAdminInputToSalesCommandUpdate(
 
 export function mapAdminLeadFilterInputToLegacyFilters(input: AdminLeadFilterInput): LeadListFilters {
   return {
-    completionStatus: input.completionStatus as LeadListFilters["completionStatus"],
-    crmStatus: input.crmStatus as LeadListFilters["crmStatus"],
-    primaryGoal: input.category as LeadListFilters["primaryGoal"],
+    stageId: input.stage as LeadListFilters["stageId"],
     source: input.source as LeadListFilters["source"],
     priority: input.priority as LeadListFilters["priority"],
     assignedTo: input.assignedTo?.trim() || undefined,
@@ -81,8 +87,6 @@ export function mapAdminImportRowToLegacyLeadPayload(row: ParsedLeadImportRow) {
     email: row.email,
     whatsappNumber: row.whatsappNumber,
     state: row.state,
-    primaryGoal: row.category,
-    crmStatus: row.stage,
     priority: row.priority,
     assignedTo: row.assignedTo,
     source: row.source,

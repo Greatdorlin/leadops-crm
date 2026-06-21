@@ -15,6 +15,10 @@ import { PriorityBadge } from "./PriorityBadge";
 import { SourceBadge } from "./SourceBadge";
 import { StatusBadge } from "./StatusBadge";
 
+function resolveLegacyStageBadge(stage?: string | null) {
+  return (stage ?? "new") as Parameters<typeof StatusBadge>[0]["status"];
+}
+
 function formatMoney(value?: number | null) {
   if (value === null || value === undefined) {
     return "Not set";
@@ -82,13 +86,13 @@ function resolvePreviewFieldValue(
     case "source":
       return <SourceBadge source={lead.source} label={lead.sourceLabel} />;
     case "stage":
-      return <StatusBadge status={lead.stage} label={lead.stageLabel} />;
+      return <StatusBadge status={resolveLegacyStageBadge(lead.stage)} label={lead.stageLabel} />;
     case "owner":
       return assigneeOptions.length > 0 ? (
         <LeadOwnerQuickAssign
           leadId={lead.id}
           initialAssignedTo={lead.assignedTo}
-          crmStatus={lead.stage}
+          stage={lead.stage ?? "new"}
           priority={lead.priority}
           assigneeOptions={assigneeOptions}
           variant="compact"
@@ -161,62 +165,62 @@ export function LeadDataTable({
 
   return (
     <>
-      <div className="overflow-hidden rounded-[28px] border border-slate-200 bg-[linear-gradient(180deg,rgba(255,255,255,0.98)_0%,rgba(247,250,255,0.95)_100%)] md:hidden">
+      <div className="ld-glass-card ld-glass-soft overflow-hidden rounded-[28px] md:hidden">
         {leads.map((lead, index) => (
           <article
             key={lead.id}
             className={[
               "px-4 py-4",
-              index < leads.length - 1 ? "border-b border-slate-200/80" : "",
+              index < leads.length - 1 ? "border-b border-white/10" : "",
             ].join(" ")}
           >
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
                 <Link
                   href={`/admin/leads/${lead.id}`}
-                  className="text-lg font-semibold tracking-[-0.03em] text-slate-950 transition hover:text-[#1f3486]"
+                  className="text-lg font-semibold tracking-[-0.03em] text-white transition hover:text-[color:var(--ld-color-accent)]"
                 >
                   {lead.displayName}
                 </Link>
-                <p className="mt-1 text-sm leading-6 text-slate-500 [overflow-wrap:anywhere]">
+                <p className="mt-1 text-sm leading-6 text-white/58 [overflow-wrap:anywhere]">
                   {lead.interestLabel}
                 </p>
               </div>
-              <StatusBadge status={lead.stage} label={lead.stageLabel} />
+              <StatusBadge status={resolveLegacyStageBadge(lead.stage)} label={lead.stageLabel} />
             </div>
 
             <div className="mt-3 flex flex-wrap gap-2">
               <SourceBadge source={lead.source} label={lead.sourceLabel} />
               <PriorityBadge priority={lead.priority} />
               {lead.stateRaw ? (
-                <span className="inline-flex items-center gap-1.5 rounded-full border border-sky-200 bg-sky-50 px-3 py-1 text-xs font-semibold text-sky-700">
+                <span className="inline-flex items-center gap-1.5 rounded-full border border-cyan-300/24 bg-cyan-300/12 px-3 py-1 text-xs font-semibold text-cyan-100">
                   <MapPin className="h-3.5 w-3.5" />
                   {lead.stateLabel}
                 </span>
               ) : null}
             </div>
 
-            <div className="mt-4 grid gap-3 rounded-[22px] border border-slate-200/80 bg-white/80 p-4 text-sm">
+            <div className="mt-4 grid gap-3 rounded-[22px] border border-white/10 bg-white/[0.06] p-4 text-sm shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
               <div className="flex items-start gap-2.5">
-                <Mail className="mt-0.5 h-4 w-4 shrink-0 text-[#2252db]" />
-                <p className="min-w-0 text-slate-700 [overflow-wrap:anywhere]">
+                <Mail className="mt-0.5 h-4 w-4 shrink-0 text-cyan-200" />
+                <p className="min-w-0 text-white/76 [overflow-wrap:anywhere]">
                   {lead.email || "No email yet"}
                 </p>
               </div>
               <div className="flex items-start gap-2.5">
-                <PhoneCall className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" />
-                <p className="min-w-0 text-slate-700 [overflow-wrap:anywhere]">
+                <PhoneCall className="mt-0.5 h-4 w-4 shrink-0 text-emerald-200" />
+                <p className="min-w-0 text-white/76 [overflow-wrap:anywhere]">
                   {lead.phone || "No phone yet"}
                 </p>
               </div>
               <div className="flex items-start gap-2.5">
-                <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-sky-600" />
-                <p className="min-w-0 text-slate-700 [overflow-wrap:anywhere]">{lead.stateLabel}</p>
+                <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-blue-200" />
+                <p className="min-w-0 text-white/76 [overflow-wrap:anywhere]">{lead.stateLabel}</p>
               </div>
-              <div className="grid grid-cols-2 gap-3 text-xs uppercase tracking-[0.14em] text-slate-400">
+              <div className="grid grid-cols-2 gap-3 text-xs uppercase tracking-[0.14em] text-white/42">
                 <div>
                   <p>Category</p>
-                  <p className="mt-1 text-sm font-medium normal-case tracking-normal text-slate-700">
+                  <p className="mt-1 text-sm font-medium normal-case tracking-normal text-white/76">
                     {lead.categoryLabel}
                   </p>
                 </div>
@@ -227,41 +231,41 @@ export function LeadDataTable({
                       <LeadOwnerQuickAssign
                         leadId={lead.id}
                         initialAssignedTo={lead.assignedTo}
-                        crmStatus={lead.stage}
+                        stage={lead.stage ?? "new"}
                         priority={lead.priority}
                         assigneeOptions={assigneeOptions}
                         variant="compact"
                       />
                     </div>
                   ) : (
-                    <p className="mt-1 text-sm font-medium normal-case tracking-normal text-slate-700 [overflow-wrap:anywhere]">
+                    <p className="mt-1 text-sm font-medium normal-case tracking-normal text-white/76 [overflow-wrap:anywhere]">
                       {lead.assignedUserName}
                     </p>
                   )}
                 </div>
               </div>
-              <div className="grid gap-3 text-xs uppercase tracking-[0.14em] text-slate-400 sm:grid-cols-2">
+              <div className="grid gap-3 text-xs uppercase tracking-[0.14em] text-white/42 sm:grid-cols-2">
                 <div>
                   <p>Follow-up</p>
-                  <p className="mt-1 text-sm font-medium normal-case tracking-normal text-slate-700">
+                  <p className="mt-1 text-sm font-medium normal-case tracking-normal text-white/76">
                     {followUpLabel(lead)}
                   </p>
                 </div>
                 <div>
                   <p>Pipeline</p>
-                  <p className="mt-1 text-sm font-medium normal-case tracking-normal text-slate-700">
+                  <p className="mt-1 text-sm font-medium normal-case tracking-normal text-white/76">
                     {formatMoney(lead.expectedValue ?? lead.estimatedValue)}
                   </p>
                 </div>
                 <div className="sm:col-span-2">
                   <p>Updated</p>
-                  <p className="mt-1 text-sm font-medium normal-case tracking-normal text-slate-700">
+                  <p className="mt-1 text-sm font-medium normal-case tracking-normal text-white/76">
                     {formatCrmDateTime(lead.lastActivityAt)}
                   </p>
                 </div>
               </div>
               {mobileFields.length > 0 ? (
-                <div className="grid gap-3 text-xs uppercase tracking-[0.14em] text-slate-400">
+                <div className="grid gap-3 text-xs uppercase tracking-[0.14em] text-white/42">
                   <p>Preview fields</p>
                   <div className="grid gap-3 sm:grid-cols-2">
                     {mobileFields.map((fieldKey) => (
@@ -271,7 +275,7 @@ export function LeadDataTable({
                             ? customFieldColumns.find((field) => `custom:${field.fieldId}` === fieldKey)?.label ?? "Custom field"
                             : previewFieldLabels[fieldKey]}
                         </p>
-                        <div className="mt-1 text-sm font-medium normal-case tracking-normal text-slate-700 [overflow-wrap:anywhere]">
+                        <div className="mt-1 text-sm font-medium normal-case tracking-normal text-white/76 [overflow-wrap:anywhere]">
                           {resolvePreviewFieldValue(lead, fieldKey, assigneeOptions)}
                         </div>
                       </div>
@@ -298,25 +302,25 @@ export function LeadDataTable({
         ))}
       </div>
 
-      <div className="hidden overflow-hidden rounded-[30px] border border-slate-200 bg-[linear-gradient(180deg,rgba(255,255,255,0.98)_0%,rgba(247,250,255,0.95)_100%)] md:block">
+      <div className="ld-glass-card ld-glass-soft hidden overflow-hidden rounded-[30px] md:block">
         <div className="overflow-x-auto">
-          <table className="min-w-full border-collapse">
+          <table className="ld-readable-table min-w-full border-collapse">
             <thead>
-              <tr className="border-b border-slate-200/80 bg-[linear-gradient(180deg,rgba(249,251,255,0.95)_0%,rgba(245,248,255,0.92)_100%)] text-left">
-                <th className="px-5 py-4 text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">
+              <tr className="border-b border-white/10 bg-white/[0.04] text-left">
+                <th className="px-5 py-4 text-[11px] font-semibold uppercase tracking-[0.16em] text-white/50">
                   Lead
                 </th>
                 {desktopColumns.map((column) => (
                   <th
                     key={column}
-                    className="px-4 py-4 text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500"
+                    className="px-4 py-4 text-[11px] font-semibold uppercase tracking-[0.16em] text-white/50"
                   >
                     {column.startsWith("custom:")
                       ? customFieldColumns.find((field) => `custom:${field.fieldId}` === column)?.label ?? "Custom field"
                       : previewFieldLabels[column]}
                   </th>
                 ))}
-                <th className="px-5 py-4 text-right text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">
+                <th className="px-5 py-4 text-right text-[11px] font-semibold uppercase tracking-[0.16em] text-white/50">
                   Action
                 </th>
               </tr>
@@ -326,36 +330,36 @@ export function LeadDataTable({
                 <tr
                   key={lead.id}
                   className={[
-                    "align-top transition hover:bg-white",
-                    index < leads.length - 1 ? "border-b border-slate-200/70" : "",
+                    "align-top transition hover:bg-white/[0.06]",
+                    index < leads.length - 1 ? "border-b border-white/10" : "",
                   ].join(" ")}
                 >
                   <td className="px-5 py-4">
                     <div className="min-w-[280px]">
                       <Link
                         href={`/admin/leads/${lead.id}`}
-                        className="text-base font-semibold tracking-[-0.03em] text-slate-950 transition hover:text-[#1f3486]"
+                        className="text-base font-semibold tracking-[-0.03em] text-white transition hover:text-[color:var(--ld-color-accent)]"
                       >
                         {lead.displayName}
                       </Link>
-                      <p className="mt-1 text-sm text-slate-700 [overflow-wrap:anywhere]">
+                      <p className="mt-1 text-sm text-white/70 [overflow-wrap:anywhere]">
                         {lead.email || lead.phone || "No contact yet"}
                       </p>
-                      <p className="mt-2 text-xs font-medium uppercase tracking-[0.14em] text-slate-400">
+                      <p className="mt-2 text-xs font-medium uppercase tracking-[0.14em] text-white/38">
                         {lead.stateLabel}
                       </p>
-                      <p className="mt-2 text-sm leading-6 text-slate-500">{lead.interestLabel}</p>
-                      <p className="mt-2 text-sm text-slate-600">
+                      <p className="mt-2 text-sm leading-6 text-white/58">{lead.interestLabel}</p>
+                      <p className="mt-2 text-sm text-white/64">
                         {lead.companyName || "No company set"} • {formatMoney(lead.expectedValue ?? lead.estimatedValue)}
                       </p>
-                      <p className="mt-2 text-xs font-medium uppercase tracking-[0.14em] text-slate-400">
+                      <p className="mt-2 text-xs font-medium uppercase tracking-[0.14em] text-white/38">
                         {lead.completionLabel}
                       </p>
                     </div>
                   </td>
                   {desktopColumns.map((column) => {
                     return (
-                      <td key={column} className="px-4 py-4 text-sm text-slate-700">
+                      <td key={column} className="px-4 py-4 text-sm text-white/72">
                         <div className="min-w-[140px] [overflow-wrap:anywhere]">
                           {resolvePreviewFieldValue(lead, column, assigneeOptions)}
                         </div>

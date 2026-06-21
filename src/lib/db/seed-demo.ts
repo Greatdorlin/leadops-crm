@@ -21,6 +21,7 @@ import { getDb } from "@/lib/db/client";
 import { seedLeadsDeskDefaults } from "@/lib/db/seed-defaults";
 import {
   branches,
+  companySettings,
   customFields,
   departments,
   formFieldMappings,
@@ -29,7 +30,7 @@ import {
   teams,
 } from "@/lib/db/schema";
 import { leadStore } from "@/lib/storage";
-import type { CrmStatus, LeadPriority, LeadSource } from "@/lib/pathway-engine/types";
+import type { CrmStatus, LeadPriority, LeadSource } from "@/lib/crm/types";
 
 export interface LeadsDeskDemoSeedResult {
   usersSeeded: number;
@@ -54,7 +55,7 @@ interface DemoLeadSeed {
   phone: string;
   state: string;
   source: LeadSource;
-  crmStatus: CrmStatus;
+  stageKey: CrmStatus;
   priority: LeadPriority;
   assignedTo: string;
   companyName: string;
@@ -237,6 +238,52 @@ async function ensureDemoFieldVisibility() {
       updatedAt: new Date(),
     })
     .where(inArray(customFields.key, ["budget", "interest", "urgency", "location"]));
+}
+
+async function ensureDemoAppearance() {
+  const db = getDb();
+  const demoAppearance = {
+    companyName: "Leads Desk",
+    primaryColor: "#5b7cfa",
+    accentColor: "#8b5cf6",
+    backgroundColor: "#060814",
+    surfaceColor: "#10172a",
+    cardColor: "#111827",
+    sidebarColor: "#06111f",
+    textColor: "#ffffff",
+    borderColor: "#263452",
+    borderRadius: 24,
+    fontScale: "1.00",
+    fontPreset: "brand",
+    density: "comfortable",
+    themeMode: "dark",
+    designStyle: "liquid_glass",
+    glassEnabled: true,
+    glassOpacity: 52,
+    glassBlur: 24,
+    loginBackgroundUrl: "/backgrounds/bg-butterfly-glass.png",
+    loginHeadline: "Welcome back",
+    loginSubheadline: "Manage leads, follow-ups, and sales performance in one private workspace.",
+    updatedAt: new Date(),
+  };
+
+  try {
+    const [existing] = await db.select({ id: companySettings.id }).from(companySettings).limit(1);
+
+    if (existing) {
+      await db.update(companySettings).set(demoAppearance).where(eq(companySettings.id, existing.id));
+      return;
+    }
+
+    await db.insert(companySettings).values(demoAppearance);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "";
+    if (message.includes("company_settings")) {
+      return;
+    }
+
+    throw error;
+  }
 }
 
 async function ensureNotificationRecord(input: {
@@ -523,10 +570,10 @@ async function ensureDemoLead(
     priority: seed.priority,
     assignedTo: seed.assignedTo,
     assignedToList: [seed.assignedTo],
-    crmStatus: seed.crmStatus,
+    stageId: seed.stageId,
     sourcePayload: {
       seed: "leads_desk_demo",
-      scenario: seed.crmStatus,
+      scenario: seed.stageKey,
     },
   });
 
@@ -536,13 +583,6 @@ async function ensureDemoLead(
     const assignedLead = await leadStore.assignLead(lead.id, seed.assignedTo, "demo-seed");
     if (assignedLead) {
       lead = assignedLead;
-    }
-  }
-
-  if (lead.crmStatus !== seed.crmStatus) {
-    const statusLead = await leadStore.updateCrmStatus(lead.id, seed.crmStatus, "demo-seed");
-    if (statusLead) {
-      lead = statusLead;
     }
   }
 
@@ -594,7 +634,7 @@ async function ensureDemoLead(
 
   await ensureLeadEvent(lead.id, "lead_created", {
     source: "demo_seed",
-    scenario: seed.crmStatus,
+    scenario: seed.stageKey,
   });
 
   return lead.id;
@@ -610,6 +650,7 @@ export async function seedLeadsDeskDemoData(): Promise<LeadsDeskDemoSeedResult> 
   }, db);
   await ensureUrgencyFieldOptions();
   await ensureDemoFieldVisibility();
+  await ensureDemoAppearance();
 
   for (const user of DEMO_USERS) {
     await leadStore.upsertCrmUser({
@@ -667,7 +708,7 @@ export async function seedLeadsDeskDemoData(): Promise<LeadsDeskDemoSeedResult> 
       phone: "+2348011110001",
       state: "Lagos",
       source: "website_form",
-      crmStatus: "new",
+      stageKey: "new",
       priority: "high",
       assignedTo: "rep@example.com",
       companyName: "Northwind Ventures",
@@ -702,7 +743,7 @@ export async function seedLeadsDeskDemoData(): Promise<LeadsDeskDemoSeedResult> 
       phone: "+2348011110002",
       state: "Abuja",
       source: "referral",
-      crmStatus: "qualified",
+      stageKey: "qualified",
       priority: "medium",
       assignedTo: "lead@example.com",
       companyName: "Prime Harbor Realty",
@@ -737,7 +778,7 @@ export async function seedLeadsDeskDemoData(): Promise<LeadsDeskDemoSeedResult> 
       phone: "+2348011110003",
       state: "Lagos",
       source: "manual_entry",
-      crmStatus: "converted",
+      stageKey: "converted",
       priority: "high",
       assignedTo: "manager@example.com",
       companyName: "Bluepeak Insurance",
@@ -775,7 +816,7 @@ export async function seedLeadsDeskDemoData(): Promise<LeadsDeskDemoSeedResult> 
       phone: "+2348011110004",
       state: "Port Harcourt",
       source: "google_sheets",
-      crmStatus: "lost",
+      stageKey: "lost",
       priority: "low",
       assignedTo: "rep@example.com",
       companyName: "Vertex Training Hub",

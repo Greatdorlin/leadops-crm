@@ -24,6 +24,27 @@ interface AdminShellProps extends PropsWithChildren {
   actions?: ReactNode;
   sidebarFooter?: ReactNode;
   searchSlot?: ReactNode;
+  userName?: string | null;
+  userEmail?: string | null;
+  userAvatarUrl?: string | null;
+}
+
+function getGlassStyle(settings: ReturnType<typeof useAdminWorkspaceSettings>) {
+  if (!settings.glassEnabled) {
+    return "off";
+  }
+
+  if (settings.designStyle === "liquid_glass") {
+    if (settings.glassOpacity >= 78 || settings.glassBlur >= 28) {
+      return "bold";
+    }
+
+    if (settings.glassOpacity >= 62 || settings.glassBlur >= 22) {
+      return "vibrant";
+    }
+  }
+
+  return "soft";
 }
 
 export function AdminShell({
@@ -37,16 +58,20 @@ export function AdminShell({
   actions,
   sidebarFooter,
   searchSlot,
+  userName,
+  userEmail,
+  userAvatarUrl,
   children,
 }: AdminShellProps) {
   const workspaceSettings = useAdminWorkspaceSettings();
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const adminThemeStyle = buildThemeCssVariables(workspaceSettings) as CSSProperties;
   const shellClasses = [
-    "admin-shell text-slate-950",
+    "admin-shell text-white",
     getDesignStyleClass(workspaceSettings.designStyle),
     getDensityClass(workspaceSettings.density),
   ].join(" ");
+  const glassStyle = getGlassStyle(workspaceSettings);
 
   function toggleSidebar() {
     setIsSidebarCollapsed((current) => !current);
@@ -60,14 +85,16 @@ export function AdminShell({
       data-density={workspaceSettings.density}
       data-theme-mode={workspaceSettings.themeMode}
       data-glass={workspaceSettings.glassEnabled ? "on" : "off"}
+      data-glass-style={glassStyle}
     >
+      <div className="ld-bg-overlay" aria-hidden="true" />
       <div className="relative z-10 min-h-screen p-3 sm:p-4">
         <div
           className={[
             "grid min-h-[calc(100vh-1.5rem)] gap-4 xl:gap-5",
             isSidebarCollapsed
               ? "xl:grid-cols-[92px_minmax(0,1fr)]"
-              : "xl:grid-cols-[248px_minmax(0,1fr)] 2xl:grid-cols-[260px_minmax(0,1fr)]",
+              : "xl:grid-cols-[var(--ld-sidebar-width)_minmax(0,1fr)]",
           ].join(" ")}
         >
             <AdminSidebar
@@ -79,6 +106,9 @@ export function AdminShell({
               onToggleCollapse={toggleSidebar}
               companyName={workspaceSettings.companyName}
               logoUrl={workspaceSettings.logoUrl}
+              userName={userName}
+              userEmail={userEmail}
+              userAvatarUrl={userAvatarUrl}
             />
           <div className="min-w-0">
             <AdminTopbar

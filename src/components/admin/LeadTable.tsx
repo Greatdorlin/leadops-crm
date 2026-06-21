@@ -22,6 +22,10 @@ import { PriorityBadge } from "./PriorityBadge";
 import { SourceBadge } from "./SourceBadge";
 import { StatusBadge } from "./StatusBadge";
 
+function resolveLegacyStageBadge(stage?: string | null) {
+  return (stage ?? "new") as Parameters<typeof StatusBadge>[0]["status"];
+}
+
 function buildWhatsAppHref(value?: string | null) {
   const sanitized = value?.replace(/[^\d]/g, "") ?? "";
   return sanitized ? `https://wa.me/${sanitized}` : null;
@@ -95,17 +99,15 @@ function LeadMetric({
 }
 
 function LeadProgressPanel({
-  crmStatus,
+  stage,
   stageLabel,
-  completionStatus,
   priority,
   source,
   sourceLabel,
   lastActivityAt,
 }: {
-  crmStatus: AdminLeadListItem["stage"];
+  stage: AdminLeadListItem["stage"];
   stageLabel: string;
-  completionStatus: AdminLeadListItem["completionStatus"];
   priority: AdminLeadListItem["priority"];
   source: AdminLeadListItem["source"];
   sourceLabel: string;
@@ -119,11 +121,11 @@ function LeadProgressPanel({
             Lead stage
           </p>
           <div className="mt-3">
-            <StatusBadge status={crmStatus} label={stageLabel} />
+            <StatusBadge status={resolveLegacyStageBadge(stage)} label={stageLabel} />
           </div>
         </div>
         <span className="rounded-full border border-[#cad8ff] bg-white px-3 py-1.5 text-sm font-medium tracking-[-0.02em] text-slate-700 shadow-[0_8px_18px_rgba(34,82,219,0.06)]">
-          {completionStatus === "complete" ? "Profile ready" : "Profile active"}
+          Profile active
         </span>
       </div>
 
@@ -137,9 +139,7 @@ function LeadProgressPanel({
           <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-400">
             Profile
           </p>
-          <p className="mt-1 font-medium text-slate-900">
-            {completionStatus === "complete" ? "Completed" : "In progress"}
-          </p>
+          <p className="mt-1 font-medium text-slate-900">Tracked</p>
         </div>
         <div>
           <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-400">
@@ -216,7 +216,11 @@ function LeadHeader({
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap gap-2">
           <SourceBadge source={lead.source} label={lead.sourceLabel} className={badgeClassName} />
-          <StatusBadge status={lead.stage} label={lead.stageLabel} className={badgeClassName} />
+          <StatusBadge
+            status={resolveLegacyStageBadge(lead.stage)}
+            label={lead.stageLabel}
+            className={badgeClassName}
+          />
           <PriorityBadge priority={lead.priority} className={badgeClassName} />
         </div>
 
@@ -333,9 +337,8 @@ export function LeadTable({
 
                 <div className="mt-4">
                   <LeadProgressPanel
-                    crmStatus={lead.stage}
+                    stage={lead.stage ?? "new"}
                     stageLabel={lead.stageLabel}
-                    completionStatus={lead.completionStatus}
                     priority={lead.priority}
                     source={lead.source}
                     sourceLabel={lead.sourceLabel}
@@ -366,11 +369,11 @@ export function LeadTable({
                       <div className="mt-3">
                         <LeadOwnerQuickAssign
                           leadId={lead.id}
-                          initialAssignedTo={lead.assignedTo}
-                          crmStatus={lead.stage}
-                          priority={lead.priority}
-                          assigneeOptions={assigneeOptions}
-                        />
+                    initialAssignedTo={lead.assignedTo}
+                    stage={lead.stage ?? "new"}
+                    priority={lead.priority}
+                    assigneeOptions={assigneeOptions}
+                  />
                       </div>
                     ) : (
                       <p className="mt-2 text-sm leading-6 text-slate-500">
@@ -486,15 +489,14 @@ export function LeadTable({
                     </LeadMetric>
 
                     <div className="grid gap-3">
-                      <LeadProgressPanel
-                        crmStatus={lead.stage}
-                        stageLabel={lead.stageLabel}
-                        completionStatus={lead.completionStatus}
-                        priority={lead.priority}
-                        source={lead.source}
-                        sourceLabel={lead.sourceLabel}
-                        lastActivityAt={lead.lastActivityAt}
-                      />
+                  <LeadProgressPanel
+                    stage={lead.stage ?? "new"}
+                    stageLabel={lead.stageLabel}
+                    priority={lead.priority}
+                    source={lead.source}
+                    sourceLabel={lead.sourceLabel}
+                    lastActivityAt={lead.lastActivityAt}
+                  />
 
                       <div className="grid gap-3">
                         <LeadMetric icon={UserRound} label="Owner" tone="violet">
@@ -506,7 +508,7 @@ export function LeadTable({
                               <LeadOwnerQuickAssign
                                 leadId={lead.id}
                                 initialAssignedTo={lead.assignedTo}
-                                crmStatus={lead.stage}
+                                stage={lead.stage ?? "new"}
                                 priority={lead.priority}
                                 assigneeOptions={assigneeOptions}
                               />

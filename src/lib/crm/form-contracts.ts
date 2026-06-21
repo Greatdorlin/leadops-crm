@@ -1,6 +1,6 @@
 import { z } from "zod";
-import { CRM_STATUSES, LEAD_PRIORITIES, LEAD_SOURCES, PRIMARY_GOALS } from "@/lib/crm/constants";
-import type { CrmStatus, LeadPriority, LeadSource, PrimaryGoal } from "@/lib/crm/types";
+import { CRM_STATUSES, LEAD_PRIORITIES, LEAD_SOURCES } from "@/lib/crm/constants";
+import type { CrmStatus, LeadPriority, LeadSource } from "@/lib/crm/types";
 
 function normalizeOptionalString(value: unknown) {
   if (typeof value !== "string") {
@@ -48,6 +48,11 @@ const baseLeadAdminInputShape = {
   email: z.string().trim().email().nullable().optional().or(z.literal("").transform(() => null)),
   whatsappNumber: z.string().trim().nullable().optional(),
   state: z.string().trim().nullable().optional(),
+  country: z.string().trim().nullable().optional(),
+  region: z.string().trim().nullable().optional(),
+  city: z.string().trim().nullable().optional(),
+  address: z.string().trim().nullable().optional(),
+  postalCode: z.string().trim().nullable().optional(),
   companyName: z.string().trim().nullable().optional(),
   estimatedValue: z.coerce.number().nonnegative().nullable().optional(),
   closeProbability: z.coerce.number().min(0).max(100).nullable().optional(),
@@ -61,7 +66,6 @@ const baseLeadAdminInputShape = {
 export const adminLeadCaptureInputSchema = z
   .object({
     ...baseLeadAdminInputShape,
-    category: z.enum(PRIMARY_GOALS).nullable().optional(),
     stage: z.enum(CRM_STATUSES).default("new"),
     priority: z.enum(LEAD_PRIORITIES).default("medium"),
     assignedTo: z.string().trim().email().nullable().optional().or(z.literal("").transform(() => null)),
@@ -83,7 +87,6 @@ export type AdminLeadCaptureInput = z.infer<typeof adminLeadCaptureInputSchema>;
 export const adminLeadProfileInputSchema = z
   .object({
     ...baseLeadAdminInputShape,
-    category: z.enum(PRIMARY_GOALS).nullable().optional(),
   })
   .superRefine((value, ctx) => {
     if (!value.email && !value.whatsappNumber) {
@@ -98,9 +101,7 @@ export const adminLeadProfileInputSchema = z
 export type AdminLeadProfileInput = z.infer<typeof adminLeadProfileInputSchema>;
 
 export const adminLeadFilterInputSchema = z.object({
-  completionStatus: z.string().optional(),
-  crmStatus: z.string().optional(),
-  category: z.string().optional(),
+  stage: z.string().optional(),
   source: z.string().optional(),
   priority: z.string().optional(),
   assignedTo: z.string().optional(),
@@ -119,8 +120,7 @@ export type AdminLeadImportInput = z.infer<typeof adminLeadImportInputSchema>;
 
 export interface AdminLeadExportOptions {
   format: "csv" | "xlsx";
-  category?: PrimaryGoal | "all";
-  crmStatus?: CrmStatus | "all";
+  stage?: CrmStatus | "all";
   priority?: LeadPriority | "all";
   source?: LeadSource | "all";
   assignedTo?: string;
@@ -134,6 +134,11 @@ export function normalizeAdminLeadCapturePayload(payload: Record<string, unknown
     email: pickAliasString(payload, ["email"]),
     whatsappNumber: pickAliasString(payload, ["whatsappNumber"]),
     state: pickAliasString(payload, ["state"]),
+    country: pickAliasString(payload, ["country"]),
+    region: pickAliasString(payload, ["region", "stateProvinceRegion"]),
+    city: pickAliasString(payload, ["city"]),
+    address: pickAliasString(payload, ["address"]),
+    postalCode: pickAliasString(payload, ["postalCode", "postal_code"]),
     companyName: pickAliasString(payload, ["companyName", "company"]),
     estimatedValue:
       payload.estimatedValue === undefined || payload.estimatedValue === null || payload.estimatedValue === ""
@@ -154,8 +159,7 @@ export function normalizeAdminLeadCapturePayload(payload: Record<string, unknown
       typeof payload.customFieldValues === "object" && payload.customFieldValues
         ? (payload.customFieldValues as Record<string, unknown>)
         : {},
-    category: pickAliasEnum(payload, ["category", "primaryGoal"], PRIMARY_GOALS),
-    stage: pickAliasEnum(payload, ["stage", "crmStatus"], CRM_STATUSES) ?? "new",
+    stage: pickAliasEnum(payload, ["stage"], CRM_STATUSES) ?? "new",
     priority: pickAliasEnum(payload, ["priority"], LEAD_PRIORITIES) ?? "medium",
     assignedTo: pickAliasString(payload, ["assignedTo"]),
     source: pickAliasEnum(payload, ["source"], LEAD_SOURCES) ?? "manual_entry",
@@ -170,6 +174,11 @@ export function normalizeAdminLeadProfilePayload(payload: Record<string, unknown
     email: pickAliasString(payload, ["email"]),
     whatsappNumber: pickAliasString(payload, ["whatsappNumber"]),
     state: pickAliasString(payload, ["state"]),
+    country: pickAliasString(payload, ["country"]),
+    region: pickAliasString(payload, ["region", "stateProvinceRegion"]),
+    city: pickAliasString(payload, ["city"]),
+    address: pickAliasString(payload, ["address"]),
+    postalCode: pickAliasString(payload, ["postalCode", "postal_code"]),
     companyName: pickAliasString(payload, ["companyName", "company"]),
     estimatedValue:
       payload.estimatedValue === undefined || payload.estimatedValue === null || payload.estimatedValue === ""
@@ -190,7 +199,6 @@ export function normalizeAdminLeadProfilePayload(payload: Record<string, unknown
       typeof payload.customFieldValues === "object" && payload.customFieldValues
         ? (payload.customFieldValues as Record<string, unknown>)
         : {},
-    category: pickAliasEnum(payload, ["category", "primaryGoal"], PRIMARY_GOALS),
   });
 }
 

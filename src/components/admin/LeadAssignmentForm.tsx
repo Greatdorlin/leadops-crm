@@ -5,14 +5,14 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { CRM_STATUSES, LEAD_PRIORITIES } from "@/lib/crm/constants";
 import { crmLabelize } from "@/lib/crm/formatters";
-import type { CrmStatus, LeadPriority } from "@/lib/crm/types";
+import type { LeadPriority } from "@/lib/crm/types";
 import { AdminSelect } from "./AdminSelect";
 
 export interface LeadAssignmentOption {
   value: string;
   label: string;
   assignedTo: string | null;
-  crmStatus: CrmStatus;
+  stage: string;
   priority: LeadPriority;
 }
 
@@ -26,7 +26,7 @@ export function LeadAssignmentForm({
   const router = useRouter();
   const [selectedLeadId, setSelectedLeadId] = useState(leadOptions[0]?.value ?? "");
   const [assignedTo, setAssignedTo] = useState(leadOptions[0]?.assignedTo ?? "");
-  const [crmStatus, setCrmStatus] = useState<CrmStatus>(leadOptions[0]?.crmStatus ?? "new");
+  const [stage, setStage] = useState<string>(leadOptions[0]?.stage ?? "new");
   const [priority, setPriority] = useState<LeadPriority>(leadOptions[0]?.priority ?? "medium");
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState("");
@@ -39,7 +39,7 @@ export function LeadAssignmentForm({
     }
 
     setAssignedTo(selectedLead.assignedTo ?? "");
-    setCrmStatus(selectedLead.crmStatus);
+    setStage(selectedLead.stage);
     setPriority(selectedLead.priority);
   }
 
@@ -59,7 +59,7 @@ export function LeadAssignmentForm({
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          crmStatus,
+          stage,
           priority,
           assignedTo: assignedTo || null,
         }),
@@ -125,8 +125,8 @@ export function LeadAssignmentForm({
         <label className="space-y-2">
           <span className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Stage</span>
           <AdminSelect
-            value={crmStatus}
-            onChange={(event) => setCrmStatus(event.target.value as CrmStatus)}
+            value={stage}
+            onChange={(event) => setStage(event.target.value)}
             className="h-11"
           >
             {CRM_STATUSES.map((option) => (

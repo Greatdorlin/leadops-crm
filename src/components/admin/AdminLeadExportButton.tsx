@@ -48,7 +48,7 @@ export function AdminLeadExportButton() {
       }
 
       const blob = await response.blob();
-      const fallbackName = `fly-connect-leads.${format}`;
+      const fallbackName = `leads-desk-leads.${format}`;
       const fileName = getFilenameFromDisposition(
         response.headers.get("content-disposition"),
         fallbackName,
@@ -84,7 +84,7 @@ export function AdminLeadExportButton() {
       </button>
 
       {isOpen ? (
-        <div className="absolute right-0 top-[calc(100%+0.5rem)] z-30 min-w-[13rem] rounded-[20px] border border-slate-200 bg-white p-2 shadow-[0_18px_48px_rgba(15,23,42,0.12)]">
+        <div className="ld-glass-panel absolute right-0 top-[calc(100%+0.5rem)] z-30 min-w-[13rem] rounded-[20px] p-2 shadow-[0_18px_48px_rgba(0,0,0,0.28)]">
           {([
             { format: "csv", label: "Download CSV" },
             { format: "xlsx", label: "Download XLSX" },
@@ -94,10 +94,10 @@ export function AdminLeadExportButton() {
               type="button"
               disabled={activeFormat !== null}
               onClick={() => void downloadExport(option.format)}
-              className="flex w-full items-center justify-between rounded-2xl px-3 py-2.5 text-left text-sm font-medium text-slate-700 transition hover:bg-slate-50 hover:text-slate-950 disabled:cursor-wait disabled:opacity-70"
+              className="flex w-full items-center justify-between rounded-2xl px-3 py-2.5 text-left text-sm font-medium text-white/82 transition hover:bg-white/[0.08] hover:text-white disabled:cursor-wait disabled:opacity-70"
             >
               <span>{option.label}</span>
-              <span className="text-xs uppercase tracking-[0.14em] text-slate-400">
+              <span className="text-xs uppercase tracking-[0.14em] text-white/42">
                 {option.format}
               </span>
             </button>
@@ -105,7 +105,7 @@ export function AdminLeadExportButton() {
         </div>
       ) : null}
 
-      {message ? <p className="text-right text-xs text-slate-500">{message}</p> : null}
+      {message ? <p className="text-right text-xs text-white/58">{message}</p> : null}
     </div>
   );
 }

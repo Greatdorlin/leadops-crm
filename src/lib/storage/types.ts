@@ -1,11 +1,6 @@
 import type {
   AdCampaignMetricRecord,
-  AnalyticsEventType,
-  AssessmentAnswers,
-  AssessmentStepKey,
-  CrmStatus,
   CrmUserRecord,
-  GeneratedReport,
   IntegrationProvider,
   IntegrationRecord,
   LeadEventRecord,
@@ -15,44 +10,28 @@ import type {
   LeadSource,
   LeadSourcePayloadRecord,
   LeadTaskRecord,
-  PrimaryGoal,
-  PublicAssessmentResult,
   SourcePayloadProcessingStatus,
   SyncJobRecord,
   SyncJobStatus,
-  SyncStatus,
 } from "../crm/types";
 
 export interface LeadListFilters {
-  completionStatus?: "all" | LeadRecord["completionStatus"];
-  crmStatus?: "all" | CrmStatus;
-  primaryGoal?: "all" | PrimaryGoal;
+  stageId?: string | "all";
+  sourceId?: string | "all";
   source?: "all" | LeadSource;
   priority?: "all" | LeadPriority;
   assignedTo?: string;
+  assignedUserId?: string;
   search?: string;
   recordState?: "active" | "trashed" | "all";
   limit?: number;
   offset?: number;
 }
 
-export interface DraftLeadUpsertInput {
-  leadId?: string | null;
-  answers: AssessmentAnswers;
-  currentStepKey: AssessmentStepKey;
-  currentStepIndex: number;
-  progressPercent: number;
-}
-
-export interface CompleteLeadInput {
-  leadId: string;
-  answers: AssessmentAnswers;
-  report: GeneratedReport;
-  publicReport: PublicAssessmentResult;
-}
-
 export interface ExternalLeadUpsertInput {
   source: LeadSource;
+  sourceId?: string | null;
+  stageId?: string | null;
   sourceDetail?: string | null;
   alwaysCreateNewRecord?: boolean;
   externalLeadId?: string | null;
@@ -60,22 +39,32 @@ export interface ExternalLeadUpsertInput {
   priority?: LeadPriority;
   assignedTo?: string | null;
   assignedToList?: string[] | null;
+  assignedUserId?: string | null;
+  teamId?: string | null;
+  branchId?: string | null;
+  departmentId?: string | null;
   firstName?: string | null;
   lastName?: string | null;
   email?: string | null;
   whatsappNumber?: string | null;
   state?: string | null;
-  primaryGoal?: PrimaryGoal | null;
-  crmStatus?: CrmStatus;
-  completionStatus?: LeadRecord["completionStatus"];
-  currentStepKey?: AssessmentStepKey;
-  currentStepIndex?: number;
-  progressPercent?: number;
-  readinessLevel?: LeadRecord["readinessLevel"];
-  topPathwayTitle?: string | null;
-  answers?: Partial<AssessmentAnswers>;
-  report?: GeneratedReport | null;
-  publicReport?: PublicAssessmentResult | null;
+  country?: string | null;
+  region?: string | null;
+  city?: string | null;
+  address?: string | null;
+  postalCode?: string | null;
+  companyName?: string | null;
+  campaignId?: string | null;
+  campaignLabel?: string | null;
+  estimatedValue?: string | number | null;
+  expectedValue?: string | number | null;
+  wonValue?: string | number | null;
+  closeProbability?: number | null;
+  expectedCloseDate?: string | Date | null;
+  wonAt?: string | Date | null;
+  lostAt?: string | Date | null;
+  lostReason?: string | null;
+  nextFollowUpAt?: string | Date | null;
   facebookLeadgenId?: string | null;
   facebookFormId?: string | null;
   facebookPageId?: string | null;
@@ -135,7 +124,7 @@ export interface LeadTaskCreateInput {
 export interface LeadTaskListFilters {
   leadId?: string;
   assignedTo?: string;
-  crmStatus?: CrmStatus;
+  stageId?: string;
   completion?: "all" | "open" | "completed";
   leadRecordState?: "active" | "trashed" | "all";
   dueBefore?: string | Date;
@@ -149,7 +138,27 @@ export interface LeadProfileUpdateInput {
   email?: string | null;
   whatsappNumber?: string | null;
   state?: string | null;
-  primaryGoal?: PrimaryGoal | null;
+  country?: string | null;
+  region?: string | null;
+  city?: string | null;
+  address?: string | null;
+  postalCode?: string | null;
+  companyName?: string | null;
+  campaignId?: string | null;
+  campaignLabel?: string | null;
+  assignedUserId?: string | null;
+  teamId?: string | null;
+  branchId?: string | null;
+  departmentId?: string | null;
+  estimatedValue?: string | number | null;
+  expectedValue?: string | number | null;
+  wonValue?: string | number | null;
+  closeProbability?: number | null;
+  expectedCloseDate?: string | Date | null;
+  wonAt?: string | Date | null;
+  lostAt?: string | Date | null;
+  lostReason?: string | null;
+  nextFollowUpAt?: string | Date | null;
 }
 
 export interface LeadSourcePayloadCreateInput {
@@ -262,6 +271,7 @@ export interface CrmUserUpsertInput {
   fullName: string;
   role: CrmUserRecord["role"];
   isActive?: boolean;
+  avatarUrl?: string | null;
 }
 
 export interface IntegrationUpsertInput {
@@ -277,17 +287,9 @@ export interface IntegrationUpsertInput {
 }
 
 export interface LeadStorage {
-  upsertDraft(input: DraftLeadUpsertInput): Promise<LeadRecord>;
-  completeLead(input: CompleteLeadInput): Promise<LeadRecord>;
   getById(id: string): Promise<LeadRecord | null>;
-  getByReportToken(reportToken: string): Promise<LeadRecord | null>;
   list(filters?: LeadListFilters): Promise<LeadRecord[]>;
   countLeads(filters?: LeadListFilters): Promise<number>;
-  listCompletedUnsynced(): Promise<LeadRecord[]>;
-  trackByReportToken(reportToken: string, event: AnalyticsEventType): Promise<LeadRecord | null>;
-  updateCrmStatus(id: string, crmStatus: CrmStatus, changedBy?: string | null): Promise<LeadRecord | null>;
-  updateGoogleSheetsSync(id: string, status: SyncStatus): Promise<LeadRecord | null>;
-  updateSenderSync(id: string, status: SyncStatus): Promise<LeadRecord | null>;
   upsertExternalLead(input: ExternalLeadUpsertInput): Promise<ExternalLeadUpsertResult>;
   createExternalLead(input: ExternalLeadUpsertInput): Promise<LeadRecord>;
   findDuplicateLead(input: LeadDuplicateLookupInput): Promise<LeadRecord | null>;

@@ -9,6 +9,14 @@ import { leadStore } from "@/lib/storage";
 
 export const dynamic = "force-dynamic";
 
+function readExportFieldIds(searchParams: URLSearchParams) {
+  const repeated = searchParams.getAll("fields").flatMap((value) =>
+    value.split(",").map((item) => item.trim()).filter(Boolean),
+  );
+
+  return [...new Set(repeated)];
+}
+
 export async function GET(request: Request) {
   try {
     const context = await getAdminRequestContext();
@@ -33,6 +41,7 @@ export async function GET(request: Request) {
     }
 
     const filters = parseLeadListFilters(Object.fromEntries(url.searchParams.entries()));
+    const fieldIds = readExportFieldIds(url.searchParams);
     const scopedFilters = scopeLeadListFilters(
       {
         ...filters,
@@ -44,7 +53,7 @@ export async function GET(request: Request) {
     );
 
     const leads = await leadStore.list(scopedFilters);
-    const values = await buildLeadExportValues(leads);
+    const values = await buildLeadExportValues(leads, { fieldIds });
     const fileName = buildLeadExportFileName(format);
     if (context.crmUser?.id) {
       await createNotificationEvent({

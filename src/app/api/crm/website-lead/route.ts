@@ -135,8 +135,10 @@ export async function POST(request: Request) {
     getTrimmedString(payloadRecord, ["selectedTimeline", "selected_timeline"]);
   const passportStatus = getTrimmedString(answerRecord, ["passportStatus"]);
   const highestQualification = getTrimmedString(answerRecord, ["highestQualification"]);
+  const highestQualificationOther = getTrimmedString(answerRecord, ["highestQualificationOther"]);
   const degreeClass = getTrimmedString(answerRecord, ["degreeClass"]);
   const graduationYear = getTrimmedString(answerRecord, ["graduationYear"]);
+  const olevelCompletionYear = getTrimmedString(answerRecord, ["olevelCompletionYear"]);
   const studiedCourse = getTrimmedString(answerRecord, ["studiedCourse"]);
   const desiredCourse = getTrimmedString(answerRecord, ["desiredCourse"]);
   const fundingReadiness = getTrimmedString(answerRecord, [
@@ -193,8 +195,10 @@ export async function POST(request: Request) {
         targetIntake: targetIntake ?? null,
         passportStatus: passportStatus ?? null,
         highestQualification: highestQualification ?? null,
+        highestQualificationOther: highestQualificationOther ?? null,
         degreeClass: degreeClass ?? null,
         graduationYear: graduationYear ?? null,
+        olevelCompletionYear: olevelCompletionYear ?? null,
         studiedCourse: studiedCourse ?? null,
         desiredCourse: desiredCourse ?? null,
         fundingReadiness: fundingReadiness ?? null,

@@ -1,5 +1,6 @@
 import { formatLeadAssigneeSummary } from "@/lib/crm/lead-assignees";
 import { buildLeadAttributionSummary } from "@/lib/crm/attribution";
+import { extractWebsiteLeadAnswers } from "@/lib/crm/website-lead-answers";
 import {
   buildLeadSalesCommandReadModel,
   type LeadCustomFieldDisplayValue,
@@ -325,7 +326,18 @@ function buildKeyFacts(lead: LeadRecord, listItem: AdminLeadListItem) {
   }));
 }
 
-function buildIntakeAnswers(customFields: LeadCustomFieldDisplayValue[]) {
+function buildIntakeAnswers(
+  lead: Pick<LeadRecord, "source" | "sourcePayload">,
+  customFields: LeadCustomFieldDisplayValue[],
+) {
+  const websiteAnswers = extractWebsiteLeadAnswers(lead);
+  if (websiteAnswers.length > 0) {
+    return websiteAnswers.map((field) => ({
+      label: field.label,
+      value: field.value,
+    }));
+  }
+
   return customFields
     .filter((field) => field.showInDetails && field.displayValue)
     .map((field) => ({
@@ -440,7 +452,7 @@ export function buildAdminLeadDetailView(
     budgetStatusLabel: buildBudgetStatusLabel(listItem.customFieldDisplayValues),
     completedAtLabel: lead.updatedAt,
     keyFacts: buildKeyFacts(lead, listItem),
-    intakeAnswers: buildIntakeAnswers(listItem.customFieldDisplayValues),
+    intakeAnswers: buildIntakeAnswers(lead, listItem.customFieldDisplayValues),
     reportSummary: null,
     attributionDetails: ([
       ["Source", listItem.sourceLabel],

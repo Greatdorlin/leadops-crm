@@ -10,6 +10,7 @@ import { LeadDataTable } from "@/components/admin/LeadDataTable";
 import { LeadLifecycleButton } from "@/components/admin/LeadLifecycleButton";
 import { QueueStatChip } from "@/components/admin/QueueStatChip";
 import { SearchInput } from "@/components/admin/SearchInput";
+import { buildLeadExportFieldOptions } from "@/lib/admin-lead-export";
 import { getAdminAccessContext } from "@/lib/admin";
 import { parseLeadListFilters } from "@/lib/admin-leads";
 import { loadAdminLeadReadContext } from "@/lib/crm/admin-read-context";
@@ -366,9 +367,13 @@ export default async function AdminLeadsPage({
           label: user.fullName || user.email,
           value: user.email,
         }));
-  const [previewConfig, leadRows] = await (async () => {
+  const [previewConfig, leadRows, leadCaptureCustomFields] = await (async () => {
     if (usingDevelopmentDemoData) {
-      return [DEFAULT_LEAD_PREVIEW_CONFIG, buildDevelopmentLeadRows()] as const;
+      return [
+        DEFAULT_LEAD_PREVIEW_CONFIG,
+        buildDevelopmentLeadRows(),
+        [] as Awaited<ReturnType<typeof listCustomFields>>,
+      ] as const;
     }
 
     try {
@@ -392,6 +397,7 @@ export default async function AdminLeadsPage({
               customFieldValues: readContext.customFieldValuesByLeadId.get(lead.id) ?? [],
             }),
           ),
+          customFields,
         ] as const;
     } catch (error) {
       if (process.env.NODE_ENV === "production") {
@@ -407,9 +413,11 @@ export default async function AdminLeadsPage({
             customFieldValues: [],
           }),
         ),
+        [] as Awaited<ReturnType<typeof listCustomFields>>,
       ] as const;
     }
   })();
+  const leadExportFieldOptions = buildLeadExportFieldOptions(leadCaptureCustomFields);
 
   return (
     <AdminShell
@@ -434,7 +442,13 @@ export default async function AdminLeadsPage({
           >
             Import leads
           </Link>
-          {canExportCurrentView ? <AdminLeadExportButton /> : null}
+          {canExportCurrentView ? (
+            <AdminLeadExportButton
+              fieldOptions={leadExportFieldOptions}
+              defaultCreatedFrom={typeof filters.createdFrom === "string" ? filters.createdFrom : ""}
+              defaultCreatedTo={typeof filters.createdTo === "string" ? filters.createdTo : ""}
+            />
+          ) : null}
           <AdminSignOutButton />
         </>
       }

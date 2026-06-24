@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   buildExportCustomFieldColumns,
+  buildLeadExportFieldOptions,
   formatCustomFieldExportValue,
 } from "@/lib/admin-lead-export";
 
@@ -73,5 +74,14 @@ test("export formatting prefers display values and avoids raw json output", () =
       value: true,
     }),
     "Yes",
+  );
+});
+
+test("export field options include website answer columns", () => {
+  const fields = buildLeadExportFieldOptions([]);
+
+  assert.equal(
+    fields.some((field) => field.id === "websiteAnswer:olevelCompletionYear" && field.label === "Year completed O'Level"),
+    true,
   );
 });

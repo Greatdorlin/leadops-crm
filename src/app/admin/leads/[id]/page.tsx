@@ -21,6 +21,7 @@ import { LeadLifecycleButton } from "@/components/admin/LeadLifecycleButton";
 import { AdminSignOutButton } from "@/components/admin/AdminSignOutButton";
 import { EmptyState } from "@/components/admin/EmptyState";
 import { LeadNoteForm } from "@/components/admin/LeadNoteForm";
+import { LeadOpportunityManager } from "@/components/admin/LeadOpportunityManager";
 import { LeadProfileForm } from "@/components/admin/LeadProfileForm";
 import { LeadStatusForm } from "@/components/admin/LeadStatusForm";
 import { LeadSyncActions } from "@/components/admin/LeadSyncActions";
@@ -34,13 +35,14 @@ import { StatusBadge } from "@/components/admin/StatusBadge";
 import { TaskCard } from "@/components/admin/TaskCard";
 import { TimelineItem } from "@/components/admin/TimelineItem";
 import { getAdminAccessContext } from "@/lib/admin";
+import { appRoutes } from "@/lib/app-routes";
 import {
   canAccessLeadTrash,
   canSoftDeleteLead,
   canViewLeadRecord,
   canViewTechnicalLeadContext,
 } from "@/lib/admin-permissions";
-import { normalizeEmail, normalizePhone } from "@/lib/crm/dedupe";
+import { normalizeEmail, normalizePhone } from "@/lib/crm/value-normalization";
 import { CRM_STATUSES } from "@/lib/crm/constants";
 import {
   crmLabelize,
@@ -53,6 +55,7 @@ import {
 } from "@/lib/crm/formatters";
 import { loadAdminLeadReadContext } from "@/lib/crm/admin-read-context";
 import { listCustomFields } from "@/lib/crm/custom-fields-admin";
+import { buildLeadOpportunityRollup, listLeadOpportunities } from "@/lib/crm/lead-opportunities";
 import { listLeadStages } from "@/lib/crm/lead-stages-admin";
 import { getCrmPageErrorCopy, logCrmPageError } from "@/lib/crm/runtime";
 import type { CrmStatus } from "@/lib/crm/types";
@@ -93,7 +96,7 @@ export default async function AdminLeadDetailPage({
 }) {
   const { id } = await params;
   const { session, role, accessLevel, actualAccessLevel, canSwitchAccessViews } =
-    await getAdminAccessContext(`/admin/leads/${id}`);
+    await getAdminAccessContext(appRoutes.lead(id));
   const canOpenLeadTrash = canAccessLeadTrash(accessLevel);
   let pageData:
     | {
@@ -178,7 +181,7 @@ export default async function AdminLeadDetailPage({
         actions={
           <>
             <Link
-              href="/admin/leads"
+              href={appRoutes.leads}
               className="admin-button-secondary inline-flex h-10 items-center justify-center rounded-full px-4 text-sm font-medium"
             >
               Back to leads
@@ -243,12 +246,14 @@ export default async function AdminLeadDetailPage({
   let readContext: Awaited<ReturnType<typeof loadAdminLeadReadContext>>;
   let editableCustomFields: Awaited<ReturnType<typeof listCustomFields>>;
   let configuredStageOptions: Awaited<ReturnType<typeof listLeadStages>>;
+  let opportunityRows: Awaited<ReturnType<typeof listLeadOpportunities>>;
 
   try {
-    [readContext, editableCustomFields, configuredStageOptions] = await Promise.all([
+    [readContext, editableCustomFields, configuredStageOptions, opportunityRows] = await Promise.all([
       loadAdminLeadReadContext([lead], { includeCustomFields: true }),
       listCustomFields(),
       listLeadStages(),
+      listLeadOpportunities(lead.id),
     ]);
   } catch (relatedModelError) {
     if (process.env.NODE_ENV === "production") {
@@ -265,6 +270,7 @@ export default async function AdminLeadDetailPage({
     };
     editableCustomFields = [];
     configuredStageOptions = [];
+    opportunityRows = [];
   }
 
   editableCustomFields = editableCustomFields.filter(
@@ -290,6 +296,7 @@ export default async function AdminLeadDetailPage({
         isLost: stage.isLost,
       }))
     : undefined;
+  const opportunityRollup = buildLeadOpportunityRollup(opportunityRows);
 
   return (
     <AdminShell
@@ -303,7 +310,7 @@ export default async function AdminLeadDetailPage({
       actions={
         <>
           <Link
-            href={lead.deletedAt ? "/admin/leads/trash" : "/admin/leads"}
+            href={lead.deletedAt ? appRoutes.leadsTrash : appRoutes.leads}
             className="admin-button-secondary inline-flex h-10 items-center justify-center rounded-full px-4 text-sm font-medium"
           >
             {lead.deletedAt ? "Back to trash" : "Back to leads"}
@@ -555,7 +562,7 @@ export default async function AdminLeadDetailPage({
                 <LeadLifecycleButton
                   leadId={lead.id}
                   action="trash"
-                  onSuccessHref="/admin/leads"
+                  onSuccessHref={appRoutes.leads}
                   className="inline-flex h-12 items-center justify-center rounded-2xl border border-rose-200 bg-rose-50 px-5 text-base font-medium text-rose-700 transition hover:bg-rose-100"
                 />
               ) : null}
@@ -564,13 +571,13 @@ export default async function AdminLeadDetailPage({
                   <LeadLifecycleButton
                     leadId={lead.id}
                     action="restore"
-                    onSuccessHref="/admin/leads/trash"
+                    onSuccessHref={appRoutes.leadsTrash}
                     className="inline-flex h-12 items-center justify-center rounded-2xl border border-emerald-200 bg-emerald-50 px-5 text-base font-medium text-emerald-700 transition hover:bg-emerald-100"
                   />
                   <LeadLifecycleButton
                     leadId={lead.id}
                     action="delete"
-                    onSuccessHref="/admin/leads/trash"
+                    onSuccessHref={appRoutes.leadsTrash}
                     className="inline-flex h-12 items-center justify-center rounded-2xl border border-rose-200 bg-rose-50 px-5 text-base font-medium text-rose-700 transition hover:bg-rose-100"
                   />
                 </>
@@ -595,7 +602,7 @@ export default async function AdminLeadDetailPage({
                   {duplicateCandidates.slice(0, 4).map((candidate) => (
                     <Link
                       key={candidate.id}
-                      href={`/admin/leads/${candidate.id}`}
+                      href={appRoutes.lead(candidate.id)}
                       className="admin-button-secondary rounded-full px-3 py-2 text-sm"
                     >
                       {[`${candidate.firstName || "Lead"} ${candidate.lastName}`.trim(), candidate.state ? formatLeadStateLabel(candidate.state) : null]
@@ -697,6 +704,37 @@ export default async function AdminLeadDetailPage({
                     </div>
                   ))}
                 </div>
+              </div>
+            </section>
+
+            <section className="admin-surface rounded-[24px] p-5">
+              <SectionHeader
+                eyebrow="Offer tracking"
+                title="Offer opportunities"
+                description="Track multiple offers per lead so lost or unqualified options stop inflating pipeline."
+              />
+              <div className="mt-4 space-y-4">
+                <div className="grid gap-4 text-sm text-slate-600 md:grid-cols-2 xl:grid-cols-4">
+                  {[
+                    ["Pipeline value", opportunityRollup.expectedValue ? `NGN ${opportunityRollup.expectedValue.toLocaleString()}` : "Not set"],
+                    ["Open offers", `${opportunityRollup.activeCount}`],
+                    ["Removed from pipeline", `${opportunityRollup.inactiveCount}`],
+                    ["Won offers", `${opportunityRollup.wonCount}`],
+                  ].map(([label, value]) => (
+                    <div key={label} className="rounded-2xl border border-slate-200 bg-slate-50/80 px-4 py-3">
+                      <p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">{label}</p>
+                      <p className="mt-1.5 text-sm text-slate-800">{value}</p>
+                    </div>
+                  ))}
+                </div>
+                {lead.deletedAt ? (
+                  <EmptyState
+                    title="Lead is in trash"
+                    description="Restore this lead before editing offer opportunities."
+                  />
+                ) : (
+                  <LeadOpportunityManager leadId={lead.id} initialOpportunities={opportunityRows} />
+                )}
               </div>
             </section>
 

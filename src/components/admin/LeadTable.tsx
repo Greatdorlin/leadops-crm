@@ -12,6 +12,7 @@ import {
   PhoneCall,
   UserRound,
 } from "lucide-react";
+import { appRoutes } from "@/lib/app-routes";
 import { formatCrmDateTime } from "@/lib/crm/formatters";
 import { cn } from "@/lib/cn";
 import type { AdminLeadListItem } from "@/lib/crm/view-models";
@@ -49,7 +50,16 @@ function formatLeadSummary(lead: AdminLeadListItem) {
 }
 
 function buildFollowUpHref(leadId: string) {
-  return `/admin/tasks?leadId=${encodeURIComponent(leadId)}#task-action-center`;
+  return `${appRoutes.tasks}?leadId=${encodeURIComponent(leadId)}#task-action-center`;
+}
+
+function formatPotentialValue(lead: AdminLeadListItem) {
+  const value = lead.expectedValue ?? lead.estimatedValue;
+  if (value === null || value === undefined) {
+    return "Potential value not set";
+  }
+
+  return `Potential value NGN ${value.toLocaleString()}`;
 }
 
 function LeadMetric({
@@ -168,7 +178,7 @@ function LeadActions({
   return (
     <div className={cn("flex flex-wrap items-center gap-2", className)}>
       <Link
-        href={`/admin/leads/${leadId}`}
+        href={appRoutes.lead(leadId)}
         className="admin-button-primary inline-flex h-11 items-center justify-center rounded-2xl px-5 text-sm"
       >
         Open lead
@@ -225,7 +235,7 @@ function LeadHeader({
         </div>
 
         <Link
-          href={`/admin/leads/${lead.id}`}
+          href={appRoutes.lead(lead.id)}
           className={cn(
             "mt-3 block font-semibold leading-[0.98] tracking-[-0.05em] text-slate-950 transition hover:text-[#0b123f]",
             compact ? "text-[1.45rem]" : "text-[2rem]",
@@ -355,6 +365,7 @@ export function LeadTable({
                       {websiteContextLine}
                     </p>
                   ) : null}
+                  <p className="mt-2 text-sm font-medium text-slate-700">{formatPotentialValue(lead)}</p>
                   <p className="mt-2 text-sm leading-6 text-slate-500">
                     Primary interest and current summary for this lead.
                   </p>
@@ -455,6 +466,7 @@ export function LeadTable({
                           {websiteContextLine}
                         </p>
                       ) : null}
+                      <p className="mt-2 text-sm font-medium text-slate-700">{formatPotentialValue(lead)}</p>
                       <p className="mt-2 text-sm leading-6 text-slate-500">
                         {lead.fitSignalLabel !== "Not provided"
                           ? `Fit: ${lead.fitSignalLabel}`

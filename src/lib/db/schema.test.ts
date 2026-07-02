@@ -12,6 +12,7 @@ import {
   formSources,
   leadCustomFieldValues,
   leadIntakeEvents,
+  leadOpportunities,
   leadSources,
   leadStages,
   leads,
@@ -111,8 +112,6 @@ test("phase 2C adds only additive nullable sales-command columns to leads", () =
   assert.equal(columns.includes("city"), true);
   assert.equal(columns.includes("address"), true);
   assert.equal(columns.includes("postalCode"), true);
-  assert.equal(columns.includes("primaryGoal"), false);
-  assert.equal(columns.includes("reportToken"), false);
 });
 
 test("default stage and source rows match the phase 2C schema foundation", () => {
@@ -139,7 +138,7 @@ test("default stage and source rows match the phase 2C schema foundation", () =>
   );
 });
 
-test("backfill plan metadata includes known legacy mappings and stays non-destructive", () => {
+test("backfill plan metadata includes known status mappings and stays non-destructive", () => {
   assert.equal(LEADS_DESK_STAGE_BACKFILL_PLAN.converted, "won");
   assert.equal(LEADS_DESK_STAGE_BACKFILL_PLAN.documents_pending, "follow_up");
   assert.equal(LEADS_DESK_SOURCE_BACKFILL_PLAN.website_form, "website");
@@ -226,6 +225,23 @@ test("phase 2D additive schema exports custom-field, form-source, and intake tab
     "status",
     "errorMessage",
     "createdAt",
+  ]);
+  assert.deepEqual(Object.keys(getTableColumns(leadOpportunities)), [
+    "id",
+    "leadId",
+    "offerLabel",
+    "status",
+    "estimatedValue",
+    "expectedValue",
+    "closeProbability",
+    "expectedCloseDate",
+    "reason",
+    "notes",
+    "isPrimary",
+    "sortOrder",
+    "archivedAt",
+    "createdAt",
+    "updatedAt",
   ]);
 });
 

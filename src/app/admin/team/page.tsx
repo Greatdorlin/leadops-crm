@@ -4,21 +4,18 @@ import { AdminShell } from "@/components/admin/AdminShell";
 import { AdminSignOutButton } from "@/components/admin/AdminSignOutButton";
 import { EmptyState } from "@/components/admin/EmptyState";
 import { ErrorState } from "@/components/admin/ErrorState";
-import { LeadTable } from "@/components/admin/LeadTable";
 import { MetricCard } from "@/components/admin/MetricCard";
 import { SectionHeader } from "@/components/admin/SectionHeader";
 import { TeamAvatar } from "@/components/admin/TeamAvatar";
 import { getAdminAccessContext } from "@/lib/admin";
 import {
-  buildNextFollowUpByLeadId,
   buildTeamPerformance,
   isTaskOverdue,
 } from "@/lib/admin-insights";
 import { canViewSalesTeam } from "@/lib/admin-permissions";
 import { crmLabelize } from "@/lib/crm/formatters";
-import { loadAdminLeadReadContext } from "@/lib/crm/admin-read-context";
 import { getCrmPageErrorCopy, logCrmPageError } from "@/lib/crm/runtime";
-import { buildAdminLeadListItem } from "@/lib/crm/view-models";
+import { appRoutes } from "@/lib/app-routes";
 import { leadStore } from "@/lib/storage";
 
 export const dynamic = "force-dynamic";
@@ -29,9 +26,9 @@ function safeNumber(value: number) {
 
 export default async function AdminTeamPage() {
   const { role, accessLevel, actualAccessLevel, canSwitchAccessViews } =
-    await getAdminAccessContext("/admin/team");
+    await getAdminAccessContext(appRoutes.team);
   if (!canViewSalesTeam(accessLevel)) {
-    redirect("/admin");
+    redirect(appRoutes.dashboard);
   }
 
   let pageData:
@@ -81,23 +78,6 @@ export default async function AdminTeamPage() {
 
   const { users, leads, tasks } = pageData;
   const teamRows = buildTeamPerformance(users, leads, tasks);
-  const nextFollowUpByLeadId = buildNextFollowUpByLeadId(tasks);
-  const assigneeOptions = users
-    .filter((user) => user.isActive)
-    .map((user) => ({
-      value: user.email,
-      label: user.fullName || user.email,
-    }));
-  const unassignedLeads = leads.filter((lead) => !lead.assignedTo).slice(0, 8);
-  const readContext = await loadAdminLeadReadContext(unassignedLeads);
-  const unassignedLeadRows = unassignedLeads.map((lead) =>
-    buildAdminLeadListItem(lead, {
-      nextFollowUpAt: nextFollowUpByLeadId[lead.id],
-      stage: lead.stageId ? readContext.stagesById.get(lead.stageId) ?? null : null,
-      source: lead.sourceId ? readContext.sourcesById.get(lead.sourceId) ?? null : null,
-      owner: lead.assignedUserId ? readContext.ownersById.get(lead.assignedUserId) ?? null : null,
-    }),
-  );
   const overdueTasks = tasks.filter((task) => isTaskOverdue(task));
   const teamQualifiedLeads = teamRows.reduce((total, row) => total + row.qualifiedLeads, 0);
   const teamConvertedLeads = teamRows.reduce((total, row) => total + row.convertedLeads, 0);
@@ -114,13 +94,13 @@ export default async function AdminTeamPage() {
       actions={
         <>
           <Link
-            href="/admin/tasks#create-task"
+            href={appRoutes.tasks}
             className="admin-button-primary inline-flex h-10 items-center justify-center rounded-full px-4 text-sm font-semibold"
           >
-            Assign task
+            Open tasks
           </Link>
           <Link
-            href="/admin"
+            href={appRoutes.leads}
             className="admin-button-secondary inline-flex h-10 items-center justify-center rounded-full px-4 text-sm font-medium"
           >
             Open leads
@@ -161,8 +141,8 @@ export default async function AdminTeamPage() {
           />
         </section>
 
-        <section className="grid gap-6 xl:grid-cols-[minmax(0,1.3fr)_minmax(320px,0.92fr)]">
-          <div className="space-y-6">
+        <section className="grid gap-6 xl:grid-cols-[minmax(0,1.45fr)_minmax(320px,0.9fr)]">
+          <div>
             <section className="admin-surface rounded-[28px] p-5 md:p-6">
               <SectionHeader
                 eyebrow="Sales rep performance"
@@ -232,16 +212,6 @@ export default async function AdminTeamPage() {
                 )}
               </div>
             </section>
-
-            <LeadTable
-              leads={unassignedLeadRows}
-              eyebrow="Needs assignment"
-              title="Unassigned leads"
-              description="Assign ownership before these leads lose momentum."
-              emptyTitle="No unassigned leads"
-              emptyDescription="Every lead currently in view already has an owner."
-              assigneeOptions={assigneeOptions}
-            />
           </div>
 
           <div className="space-y-6">
@@ -296,7 +266,7 @@ export default async function AdminTeamPage() {
                             </p>
                           </div>
                           <Link
-                            href={`/admin/tasks?assignedTo=${encodeURIComponent(row.email)}&view=all`}
+                            href={`${appRoutes.tasks}?assignedTo=${encodeURIComponent(row.email)}&view=all`}
                             className="rounded-full border border-cyan-200/18 bg-cyan-300/10 px-3 py-1.5 text-sm font-semibold text-cyan-100 transition hover:bg-cyan-300/16"
                           >
                             Open tasks
@@ -310,7 +280,7 @@ export default async function AdminTeamPage() {
                     description="No team member currently needs task reassignment for overdue work."
                     action={
                       <Link
-                        href="/admin/tasks"
+                        href={appRoutes.tasks}
                         className="admin-button-secondary inline-flex h-10 items-center justify-center rounded-full px-4 text-sm font-medium"
                       >
                         Open tasks

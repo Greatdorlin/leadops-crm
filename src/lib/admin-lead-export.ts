@@ -1,5 +1,6 @@
 import { listCustomFields } from "@/lib/crm/custom-fields-admin";
 import { formatCustomFieldDisplayValue } from "@/lib/crm/custom-field-values";
+import { listLeadOpportunitySummariesByLeadIds } from "@/lib/crm/lead-opportunities";
 import { loadAdminLeadReadContext } from "@/lib/crm/admin-read-context";
 import type { AdminCustomFieldRecord } from "@/lib/crm/custom-fields-admin";
 import type { LeadRecord } from "@/lib/crm/types";
@@ -20,6 +21,11 @@ export const ADMIN_LEAD_EXPORT_HEADERS = [
   "Interest",
   "Assigned To",
   "Next Follow-up",
+  "Pipeline Value",
+  "Open Offers",
+  "Qualified Offers",
+  "Removed Offers",
+  "Opportunity Summary",
   "Notes Count",
   "Tasks Count",
   "Created At",
@@ -63,10 +69,11 @@ export function formatCustomFieldExportValue(
 }
 
 export async function buildLeadExportValues(leads: LeadRecord[]) {
-  const [notesByLead, allTasks, activeCustomFields, readContext] = await Promise.all([
+  const [notesByLead, allTasks, activeCustomFields, opportunitySummaries, readContext] = await Promise.all([
     Promise.all(leads.map((lead) => leadStore.listLeadNotes(lead.id))),
     leads.length > 0 ? leadStore.listLeadTasks({ completion: "all" }) : Promise.resolve([]),
     listCustomFields(),
+    listLeadOpportunitySummariesByLeadIds(leads.map((lead) => lead.id)),
     leads.length > 0
       ? loadAdminLeadReadContext(leads, { includeCustomFields: true })
       : Promise.resolve({
@@ -131,6 +138,13 @@ export async function buildLeadExportValues(leads: LeadRecord[]) {
         leadView.interestLabel,
         leadView.assignedUserName,
         leadView.nextFollowUpAt ? formatCrmDateTime(leadView.nextFollowUpAt) : "",
+        lead.expectedValue ?? lead.estimatedValue
+          ? `NGN ${(lead.expectedValue ?? lead.estimatedValue ?? 0).toLocaleString()}`
+          : "",
+        String(opportunitySummaries.get(lead.id)?.activeCount ?? 0),
+        String(opportunitySummaries.get(lead.id)?.qualifiedCount ?? 0),
+        String(opportunitySummaries.get(lead.id)?.inactiveCount ?? 0),
+        opportunitySummaries.get(lead.id)?.summaryLabel ?? "No offer opportunities yet",
         String(noteCountByLeadId.get(lead.id) ?? 0),
         String(taskCountByLeadId.get(lead.id) ?? 0),
         formatCrmDateTime(lead.createdAt),

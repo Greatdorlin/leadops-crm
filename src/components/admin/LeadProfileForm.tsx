@@ -221,6 +221,10 @@ export function LeadProfileForm({
 
       <section className={panelClass}>
         <p className={labelClass}>Sales details</p>
+        <p className="text-sm leading-6 text-white/54">
+          Use these top-line fields for the overall lead. For multiple offers with separate
+          qualification outcomes, use the offer tracking section on this page.
+        </p>
         <div className="grid gap-3 sm:grid-cols-2">
           <ProfileInput label="Next follow-up" type="datetime-local" value={nextFollowUpAt} onChange={setNextFollowUpAt} />
           <ProfileInput label="Estimated value" type="number" value={estimatedValue} onChange={setEstimatedValue} />

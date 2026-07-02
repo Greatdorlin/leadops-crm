@@ -3,7 +3,7 @@
 import type { CSSProperties } from "react";
 import { startTransition, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Check, ImagePlus, Monitor, Sparkles, X } from "lucide-react";
+import { Check, Eye, ImagePlus, Monitor, Sparkles, X } from "lucide-react";
 import { LeadsDeskWordmark } from "@/components/brand/LeadsDeskWordmark";
 import { cn } from "@/lib/cn";
 import {
@@ -59,6 +59,16 @@ const BACKGROUND_PRESETS = [
 
 const DEFAULT_BACKGROUND = BACKGROUND_PRESETS[0].value;
 const MAX_THEME_IMAGE_BYTES = 2 * 1024 * 1024;
+const QUICK_COLOR_SWATCHES = [
+  "#0f172a",
+  "#1d4ed8",
+  "#0f766e",
+  "#b45309",
+  "#be123c",
+  "#7c3aed",
+  "#111827",
+  "#f59e0b",
+] as const;
 
 function toOptionalString(value: string | null | undefined) {
   const normalized = (value ?? "").trim();
@@ -234,21 +244,46 @@ function ColorControl({
   return (
     <label className="space-y-2">
       <FieldLabel>{label}</FieldLabel>
-      <div className="group flex items-center gap-2 rounded-[20px] border border-white/10 bg-white/[0.045] p-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] transition focus-within:border-[color:var(--ld-color-accent)]/55 focus-within:bg-white/[0.07]">
-        <input
-          type="color"
-          value={value}
-          onChange={(event) => onChange(event.target.value)}
-          className="h-10 w-12 cursor-pointer overflow-hidden rounded-2xl border border-white/12 bg-transparent p-0"
-          aria-label={label}
-        />
-        <input
-          type="text"
-          value={value}
-          onChange={(event) => onChange(event.target.value)}
-          className="min-w-0 flex-1 bg-transparent px-2 text-sm font-medium text-white outline-none"
-          aria-label={`${label} hex value`}
-        />
+      <div className="group rounded-[24px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.08),rgba(255,255,255,0.03))] p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_16px_34px_rgba(0,0,0,0.18)] transition focus-within:border-[color:var(--ld-color-accent)]/55 focus-within:bg-white/[0.08]">
+        <div className="flex items-center gap-3">
+          <input
+            type="color"
+            value={value}
+            onChange={(event) => onChange(event.target.value)}
+            className="h-12 w-14 cursor-pointer overflow-hidden rounded-[18px] border border-white/12 bg-transparent p-0 shadow-[0_10px_24px_rgba(0,0,0,0.2)]"
+            aria-label={label}
+          />
+          <div className="min-w-0 flex-1">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/42">{label}</p>
+            <input
+              type="text"
+              value={value}
+              onChange={(event) => onChange(event.target.value)}
+              className="mt-1 min-w-0 w-full bg-transparent text-base font-semibold tracking-[-0.02em] text-white outline-none"
+              aria-label={`${label} hex value`}
+            />
+          </div>
+        </div>
+        <div className="mt-3 flex flex-wrap gap-2">
+          {QUICK_COLOR_SWATCHES.map((swatch) => {
+            const isActive = value.toLowerCase() === swatch.toLowerCase();
+            return (
+              <button
+                key={swatch}
+                type="button"
+                onClick={() => onChange(swatch)}
+                className={cn(
+                  "h-8 w-8 rounded-full border transition",
+                  isActive
+                    ? "scale-105 border-white shadow-[0_0_0_3px_rgba(255,255,255,0.12)]"
+                    : "border-white/12 hover:border-white/40",
+                )}
+                style={{ background: swatch }}
+                aria-label={`${label} swatch ${swatch}`}
+              />
+            );
+          })}
+        </div>
       </div>
     </label>
   );
@@ -285,6 +320,9 @@ function RangeControl({
         value={value}
         onChange={(event) => onChange(Number(event.target.value))}
         className="admin-range w-full"
+        style={{
+          background: `linear-gradient(90deg, var(--ld-color-primary) 0%, var(--ld-color-accent) ${((value - min) / (max - min)) * 100}%, rgba(255,255,255,0.08) ${((value - min) / (max - min)) * 100}%)`,
+        }}
       />
     </label>
   );
@@ -489,6 +527,7 @@ export function AppearanceSettingsManager({
   });
   const [message, setMessage] = useState("");
   const [isSaving, setIsSaving] = useState(false);
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
 
   const previewStyle = useMemo(
     () =>
@@ -567,8 +606,8 @@ export function AppearanceSettingsManager({
   const glassStyle = getGlassStyle(draft);
 
   return (
-    <div className="grid gap-6 2xl:grid-cols-[minmax(0,0.95fr)_minmax(520px,1.05fr)]">
-      <div className="space-y-5">
+    <>
+    <div className="space-y-5">
         <GlassCard className="p-5 sm:p-6">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
             <div>
@@ -580,14 +619,24 @@ export function AppearanceSettingsManager({
                 Brand the workspace, login screen, colors, glass, and layout.
               </p>
             </div>
-            <button
-              type="button"
-              onClick={() => void saveSettings()}
-              disabled={isSaving}
-              className="admin-button-primary h-11 rounded-2xl px-5 text-sm"
-            >
-              {isSaving ? "Saving..." : "Save theme"}
-            </button>
+            <div className="flex flex-wrap gap-3">
+              <button
+                type="button"
+                onClick={() => setIsPreviewOpen(true)}
+                className="admin-button-secondary inline-flex h-11 items-center justify-center rounded-2xl px-5 text-sm font-semibold"
+              >
+                <Eye className="mr-2 h-4 w-4" />
+                Open preview
+              </button>
+              <button
+                type="button"
+                onClick={() => void saveSettings()}
+                disabled={isSaving}
+                className="admin-button-primary h-11 rounded-2xl px-5 text-sm"
+              >
+                {isSaving ? "Saving..." : "Save theme"}
+              </button>
+            </div>
           </div>
           {message ? <p className="mt-4 text-sm text-white/64">{message}</p> : null}
         </GlassCard>
@@ -811,29 +860,53 @@ export function AppearanceSettingsManager({
             ))}
           </div>
         </ThemeSection>
-      </div>
-
-      <aside className="2xl:sticky 2xl:top-5 2xl:self-start">
-        <GlassCard glassStyle="vibrant" className="p-4">
-          <div className="mb-4 flex items-center justify-between gap-3">
+        <GlassCard className="p-5">
+          <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[color:var(--ld-color-accent)]">
                 Preview
               </p>
-              <h2 className="mt-1 text-xl font-semibold tracking-[-0.04em] text-white">Live workspace</h2>
+              <h2 className="mt-1 text-xl font-semibold tracking-[-0.04em] text-white">Preview before you save</h2>
+              <p className="mt-2 text-sm leading-6 text-white/58">Open the live workspace mockup in a focused view instead of squeezing it beside the controls.</p>
             </div>
-            <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.06] px-3 py-1.5 text-xs font-semibold text-white/62">
-              <Monitor className="h-3.5 w-3.5" />
-              Live
-            </span>
-          </div>
-          <MiniPreview draft={draft} previewStyle={previewStyle} />
-          <div className="mt-4 flex items-start gap-3 rounded-2xl border border-white/10 bg-white/[0.045] px-4 py-3 text-sm leading-6 text-white/62">
-            <Sparkles className="mt-0.5 h-4 w-4 shrink-0 text-[color:var(--ld-color-accent)]" />
-            Theme changes update this page instantly and save to company settings.
+            <button
+              type="button"
+              onClick={() => setIsPreviewOpen(true)}
+              className="admin-button-secondary inline-flex h-11 items-center justify-center rounded-2xl px-5 text-sm font-semibold"
+            >
+              <Monitor className="mr-2 h-4 w-4" />
+              Open live preview
+            </button>
           </div>
         </GlassCard>
-      </aside>
-    </div>
+      </div>
+
+      {isPreviewOpen ? (
+        <div className="fixed inset-0 z-[90] flex items-center justify-center bg-[#030712]/78 p-4 backdrop-blur-xl">
+          <div className="relative w-full max-w-[1240px] rounded-[34px] border border-white/10 bg-[#040918]/92 p-4 shadow-[0_40px_120px_rgba(0,0,0,0.55)]">
+            <div className="mb-4 flex flex-wrap items-center justify-between gap-3 px-2 pt-2">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[color:var(--ld-color-accent)]">
+                  Live preview
+                </p>
+                <h2 className="mt-1 text-2xl font-semibold tracking-[-0.04em] text-white">Workspace snapshot</h2>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsPreviewOpen(false)}
+                className="admin-button-secondary inline-flex h-11 items-center justify-center rounded-2xl px-5 text-sm font-semibold"
+              >
+                Close preview
+              </button>
+            </div>
+            <MiniPreview draft={draft} previewStyle={previewStyle} />
+            <div className="mt-4 flex items-start gap-3 rounded-2xl border border-white/10 bg-white/[0.045] px-4 py-3 text-sm leading-6 text-white/62">
+              <Sparkles className="mt-0.5 h-4 w-4 shrink-0 text-[color:var(--ld-color-accent)]" />
+              Theme changes update this page instantly and save to company settings.
+            </div>
+          </div>
+        </div>
+      ) : null}
+    </>
   );
 }

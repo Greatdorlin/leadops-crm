@@ -62,6 +62,14 @@ export const notificationChannelEnum = pgEnum("notification_channel", NOTIFICATI
 export const notificationStatusEnum = pgEnum("notification_status", NOTIFICATION_STATUSES);
 export const salesTargetScopeEnum = pgEnum("sales_target_scope", SALES_TARGET_SCOPES);
 export const salesTargetPeriodEnum = pgEnum("sales_target_period", SALES_TARGET_PERIODS);
+export const leadOpportunityStatusEnum = pgEnum("lead_opportunity_status", [
+  "active",
+  "qualified",
+  "unqualified",
+  "lost",
+  "won",
+  "on_hold",
+]);
 
 export const branches = pgTable(
   "branches",
@@ -485,6 +493,36 @@ export const leads = pgTable(
   }),
 );
 
+export const leadOpportunities = pgTable(
+  "lead_opportunities",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    leadId: uuid("lead_id")
+      .notNull()
+      .references(() => leads.id, { onDelete: "cascade" }),
+    offerLabel: text("offer_label").notNull(),
+    status: leadOpportunityStatusEnum("status").notNull().default("active"),
+    estimatedValue: numeric("estimated_value", { precision: 12, scale: 2 }),
+    expectedValue: numeric("expected_value", { precision: 12, scale: 2 }),
+    closeProbability: integer("close_probability"),
+    expectedCloseDate: timestamp("expected_close_date", { withTimezone: true }),
+    reason: text("reason"),
+    notes: text("notes"),
+    isPrimary: boolean("is_primary").notNull().default(false),
+    sortOrder: integer("sort_order").notNull().default(0),
+    archivedAt: timestamp("archived_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => ({
+    leadIdIdx: index("lead_opportunities_lead_id_idx").on(table.leadId),
+    statusIdx: index("lead_opportunities_status_idx").on(table.status),
+    primaryIdx: index("lead_opportunities_is_primary_idx").on(table.isPrimary),
+    archivedAtIdx: index("lead_opportunities_archived_at_idx").on(table.archivedAt),
+    sortOrderIdx: index("lead_opportunities_sort_order_idx").on(table.sortOrder),
+  }),
+);
+
 export const crmUsers = pgTable(
   "crm_users",
   {
@@ -680,6 +718,7 @@ export const adCampaignMetrics = pgTable(
 
 export type LeadRow = typeof leads.$inferSelect;
 export type NewLeadRow = typeof leads.$inferInsert;
+export type LeadOpportunityRow = typeof leadOpportunities.$inferSelect;
 export type BranchRow = typeof branches.$inferSelect;
 export type DepartmentRow = typeof departments.$inferSelect;
 export type TeamRow = typeof teams.$inferSelect;

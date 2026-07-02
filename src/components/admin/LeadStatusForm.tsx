@@ -144,7 +144,9 @@ export function LeadStatusForm({
     <div className="ld-glass-card ld-glass-soft rounded-[24px] p-4">
       <CelebrationPanel celebration={celebration} onClose={() => setCelebration(null)} className="mb-4" />
       <div className="mb-4 rounded-[18px] border border-white/10 bg-white/[0.06] px-4 py-3 text-sm leading-6 text-white/58">
-        Update routing before the next touch so ownership and status stay clean.
+        Update routing before the next touch so ownership and status stay clean. Use offer tracking
+        below to remove value from offers that go unqualified or lost without losing the rest of the
+        lead’s pipeline.
       </div>
       <div className="grid gap-4">
         <label className="space-y-2">

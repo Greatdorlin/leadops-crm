@@ -54,6 +54,7 @@ export function LeadsDeskWordmark({
       {resolvedLogoUrl ? (
         <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-[16px] border border-white/10 bg-white/90 shadow-[0_14px_30px_rgba(15,23,42,0.12)]">
           <Image
+            key={resolvedLogoUrl ?? "default-logo"}
             src={resolvedLogoUrl}
             alt={`${companyName} logo`}
             width={40}

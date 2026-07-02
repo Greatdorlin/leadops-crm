@@ -3,10 +3,10 @@ import { crmLabelize } from "@/lib/crm/formatters";
 import type { LeadPriority } from "@/lib/crm/types";
 
 const priorityClassMap: Record<LeadPriority, string> = {
-  low: "border-white/12 bg-white/[0.07] text-white/68",
-  medium: "border-sky-300/24 bg-sky-300/12 text-sky-100",
-  high: "border-amber-300/26 bg-amber-300/13 text-amber-100",
-  urgent: "border-rose-300/24 bg-rose-300/12 text-rose-100",
+  low: "border-slate-200 bg-slate-100 text-slate-800",
+  medium: "border-sky-200 bg-sky-50 text-sky-900",
+  high: "border-amber-200 bg-amber-50 text-amber-900",
+  urgent: "border-rose-200 bg-rose-50 text-rose-900",
 };
 
 export function PriorityBadge({
@@ -17,7 +17,7 @@ export function PriorityBadge({
   className?: string;
 }) {
   return (
-    <span className={cn("inline-flex rounded-full border px-3 py-1.5 text-xs font-semibold shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]", priorityClassMap[priority], className)}>
+    <span className={cn("inline-flex rounded-full border px-3 py-1.5 text-xs font-semibold shadow-[0_8px_18px_rgba(15,23,42,0.05)]", priorityClassMap[priority], className)}>
       {crmLabelize(priority)}
     </span>
   );

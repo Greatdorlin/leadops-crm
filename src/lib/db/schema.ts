@@ -477,6 +477,7 @@ export const leads = pgTable(
     deletedAtIdx: index("leads_deleted_at_idx").on(table.deletedAt),
     createdAtIdx: index("leads_created_at_idx").on(table.createdAt),
     updatedAtIdx: index("leads_updated_at_idx").on(table.updatedAt),
+    updatedAtIdIdx: index("leads_updated_at_id_idx").on(table.updatedAt, table.id),
     emailIdx: index("leads_email_idx").on(table.email),
     whatsappNumberIdx: index("leads_whatsapp_number_idx").on(table.whatsappNumber),
     stateIdx: index("leads_state_idx").on(table.state),
@@ -541,6 +542,22 @@ export const crmUsers = pgTable(
     emailUnique: uniqueIndex("crm_users_email_unique").on(table.email),
     roleIdx: index("crm_users_role_idx").on(table.role),
     isActiveIdx: index("crm_users_is_active_idx").on(table.isActive),
+  }),
+);
+
+export const rolePermissions = pgTable(
+  "role_permissions",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    role: crmUserRoleEnum("role").$type<CrmUserRole>().notNull(),
+    permission: text("permission").notNull(),
+    enabled: boolean("enabled").notNull().default(true),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => ({
+    rolePermissionUnique: uniqueIndex("role_permissions_role_permission_unique").on(table.role, table.permission),
+    roleIdx: index("role_permissions_role_idx").on(table.role),
   }),
 );
 

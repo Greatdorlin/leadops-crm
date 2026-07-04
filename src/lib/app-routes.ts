@@ -27,6 +27,7 @@ export const appRoutes = {
   settingsCurrency: "/settings/currency",
   settingsBranches: "/settings/branches",
   settingsTeam: "/settings/team",
+  settingsRolePermissions: "/settings/role-permissions",
   form: (id: string) => `/admin/forms/${id}`,
   integrations: "/integrations",
   integration: (slug: string) => `/integrations/${slug}`,

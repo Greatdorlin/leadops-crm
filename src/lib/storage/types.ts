@@ -30,6 +30,10 @@ export interface LeadListFilters {
   recordState?: "active" | "trashed" | "all";
   limit?: number;
   offset?: number;
+  /** Cursor-based pagination: base64-encoded `updatedAt|id` string. Prefer over offset for large tables. */
+  cursor?: string;
+  /** Cursor direction: "next" (default) or "prev" for bidirectional pagination. */
+  cursorDirection?: "next" | "prev";
 }
 
 export interface ExternalLeadUpsertInput {
@@ -341,6 +345,7 @@ export interface LeadStorage {
   getCampaignReport(): Promise<CampaignReportItem[]>;
   listCrmUsers(): Promise<CrmUserRecord[]>;
   getCrmUserById(id: string): Promise<CrmUserRecord | null>;
+  getCrmUserByEmail(email: string): Promise<CrmUserRecord | null>;
   upsertCrmUser(input: CrmUserUpsertInput): Promise<CrmUserRecord>;
   setCrmUserActive(id: string, isActive: boolean): Promise<CrmUserRecord | null>;
   listIntegrations(): Promise<IntegrationRecord[]>;

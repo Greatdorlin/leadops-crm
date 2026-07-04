@@ -30,6 +30,7 @@ import {
   canManageBranches,
   canManageSalesTargets,
   canViewSystemStatus,
+  canManageAdminSettings,
 } from "@/lib/crm/authz";
 import {
   formatAdminAccessLevelLabel,
@@ -119,6 +120,7 @@ export default async function AdminSettingsPage() {
   const canOpenDashboard = canManageDashboardSettings({ accessLevel, role });
   const canOpenIndustry = canManageIndustryPresets({ accessLevel, role });
   const canOpenSystemStatus = canViewSystemStatus({ accessLevel, role });
+  const canOpenRolePermissions = canManageAdminSettings({ accessLevel, role });
   const canOpenCurrency = canManageCurrencySettings({ accessLevel, role });
   const canOpenBranches = canManageBranches({ accessLevel, role });
   let pageData:
@@ -337,6 +339,7 @@ export default async function AdminSettingsPage() {
                       { label: "Team Settings", href: appRoutes.settingsTeam, enabled: canGrantAccess || activeUsers.length > 0 || inactiveUsers.length > 0, copy: "Manage members, access, profile photos, and roster coverage." },
                       { label: "Export Data", href: appRoutes.reports, enabled: true, copy: "Review performance and export current lead data." },
                       { label: "Navigation", href: appRoutes.settingsNavigation, enabled: canOpenNavigation, copy: "Show, hide, rename, and reorder sidebar items." },
+                      { label: "Role Permissions", href: appRoutes.settingsRolePermissions, enabled: canOpenRolePermissions, copy: "Turn permissions on or off for every role." },
                       { label: "System Status", href: appRoutes.settingsSystemStatus, enabled: canOpenSystemStatus, copy: "Check deployment readiness without exposing secrets." },
                       { label: "Intake Logs", href: appRoutes.intake, enabled: canOpenFormSources, copy: "Review recent submissions and failed syncs." },
                     ]

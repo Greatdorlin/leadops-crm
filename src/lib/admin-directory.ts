@@ -13,8 +13,8 @@ export async function getStoredAdminUserByEmail(email?: string | null) {
   }
 
   try {
-    const users = await leadStore.listCrmUsers();
-    return users.find((user) => user.email === normalizedEmail && user.isActive) ?? null;
+    const user = await leadStore.getCrmUserByEmail(normalizedEmail);
+    return user && user.isActive ? user : null;
   } catch (error) {
     const logger = isCrmConfigurationError(error) ? console.warn : console.error;
     logger("[admin-directory:getStoredAdminUserByEmail]", error);

@@ -8,6 +8,7 @@ import {
   inArray,
   isNotNull,
   isNull,
+  lt,
   lte,
   or,
   sql,
@@ -480,11 +481,34 @@ export class NeonLeadStore implements LeadStorage {
     const db = this.getDatabase();
     const conditions = buildLeadListConditions(filters);
 
+    // Cursor-based pagination for scale (preferred over offset for 1M+ rows)
+    const limit = Math.min(filters.limit ?? 50, 200);
+    if (filters.cursor) {
+      try {
+        const decoded = Buffer.from(filters.cursor, "base64").toString("utf-8");
+        const [cursorUpdatedAt, cursorId] = decoded.split("|");
+        if (cursorUpdatedAt && cursorId) {
+          const direction = filters.cursorDirection ?? "next";
+          if (direction === "next") {
+            conditions.push(
+              sql`(${leads.updatedAt}, ${leads.id}) < (${new Date(cursorUpdatedAt)}, ${cursorId})`,
+            );
+          } else {
+            conditions.push(
+              sql`(${leads.updatedAt}, ${leads.id}) > (${new Date(cursorUpdatedAt)}, ${cursorId})`,
+            );
+          }
+        }
+      } catch {
+        // Ignore invalid cursors; fall through to regular query
+      }
+    }
+
     const records = await db.query.leads.findMany({
       where: conditions.length > 0 ? and(...conditions) : undefined,
-      orderBy: [desc(leads.updatedAt)],
-      limit: filters.limit,
-      offset: filters.offset,
+      orderBy: [desc(leads.updatedAt), desc(leads.id)],
+      limit,
+      offset: filters.cursor ? undefined : filters.offset,
     });
 
     return records.map(mapLeadRecord);
@@ -1710,6 +1734,19 @@ export class NeonLeadStore implements LeadStorage {
     });
 
     return records.map(mapCrmUserRecord);
+  }
+
+  async getCrmUserByEmail(email: string) {
+    const db = this.getDatabase();
+    const normalizedEmail = normalizeEmail(email);
+    if (!normalizedEmail) {
+      return null;
+    }
+    const record = await db.query.crmUsers.findFirst({
+      where: eq(crmUsers.email, normalizedEmail),
+    });
+
+    return record ? mapCrmUserRecord(record) : null;
   }
 
   async getCrmUserById(id: string) {

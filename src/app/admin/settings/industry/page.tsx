@@ -1,7 +1,7 @@
 import { AdminShell } from "@/components/admin/AdminShell";
 import { getAdminAccessContext } from "@/lib/admin";
 import { appRoutes } from "@/lib/app-routes";
-import { INDUSTRY_PRESETS } from "@/lib/crm/industry-presets";
+import { ALL_INDUSTRY_PRESETS } from "@/lib/crm/industry-presets";
 import { IndustryPresetManager } from "@/components/admin/IndustryPresetManager";
 
 export default async function IndustryPresetPage() {
@@ -18,7 +18,7 @@ export default async function IndustryPresetPage() {
       title="Industry preset"
       description="Apply a pre-built configuration for your business type."
     >
-      <IndustryPresetManager presets={INDUSTRY_PRESETS} />
+      <IndustryPresetManager presets={ALL_INDUSTRY_PRESETS} />
     </AdminShell>
   );
 }

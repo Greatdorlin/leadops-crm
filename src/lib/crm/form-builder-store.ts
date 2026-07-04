@@ -24,11 +24,18 @@ export async function listForms(options?: { includeArchived?: boolean }): Promis
   const db = getDb();
   const conditions = options?.includeArchived ? undefined : sql`${forms.status} <> 'archived'`;
 
-  if (conditions) {
-    return db.select().from(forms).where(conditions).orderBy(desc(forms.createdAt));
+  try {
+    if (conditions) {
+      return db.select().from(forms).where(conditions).orderBy(desc(forms.createdAt));
+    }
+    return db.select().from(forms).orderBy(desc(forms.createdAt));
+  } catch (error) {
+    // Gracefully handle missing table (migration not yet run)
+    if (error instanceof Error && /relation "forms" does not exist/i.test(error.message)) {
+      return [];
+    }
+    throw error;
   }
-
-  return db.select().from(forms).orderBy(desc(forms.createdAt));
 }
 
 export async function getFormById(id: string): Promise<FormRow | null> {

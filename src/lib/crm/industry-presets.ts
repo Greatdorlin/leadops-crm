@@ -154,6 +154,13 @@ export const INDUSTRY_PRESETS: IndustryPreset[] = [
   },
 ];
 
+import { ADDITIONAL_INDUSTRY_PRESETS } from "./industry-presets-additional";
+
+export const ALL_INDUSTRY_PRESETS: IndustryPreset[] = [
+  ...INDUSTRY_PRESETS,
+  ...ADDITIONAL_INDUSTRY_PRESETS,
+];
+
 export function getIndustryPreset(id: string): IndustryPreset | undefined {
-  return INDUSTRY_PRESETS.find((p) => p.id === id);
+  return ALL_INDUSTRY_PRESETS.find((p) => p.id === id);
 }

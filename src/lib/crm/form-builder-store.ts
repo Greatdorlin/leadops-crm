@@ -18,36 +18,52 @@ import type {
   NewFormSubmissionRow,
 } from "@/lib/db/schema";
 
+/**
+ * Check if an error indicates a missing database table.
+ * This happens when migrations haven't been run yet.
+ */
+function isMissingTableError(error: unknown): boolean {
+  if (!(error instanceof Error)) return false;
+  const msg = error.message.toLowerCase();
+  return msg.includes('does not exist') || msg.includes("relation") || msg.includes("table");
+}
+
 // ===== Forms =====
 
 export async function listForms(options?: { includeArchived?: boolean }): Promise<FormRow[]> {
   const db = getDb();
   const conditions = options?.includeArchived ? undefined : sql`${forms.status} <> 'archived'`;
-
   try {
     if (conditions) {
-      return db.select().from(forms).where(conditions).orderBy(desc(forms.createdAt));
+      return await db.select().from(forms).where(conditions).orderBy(desc(forms.createdAt));
     }
-    return db.select().from(forms).orderBy(desc(forms.createdAt));
+    return await db.select().from(forms).orderBy(desc(forms.createdAt));
   } catch (error) {
-    // Gracefully handle missing table (migration not yet run)
-    if (error instanceof Error && /relation "forms" does not exist/i.test(error.message)) {
-      return [];
-    }
+    if (isMissingTableError(error)) return [];
     throw error;
   }
 }
 
 export async function getFormById(id: string): Promise<FormRow | null> {
-  const db = getDb();
-  const rows = await db.select().from(forms).where(eq(forms.id, id)).limit(1);
-  return rows[0] ?? null;
+  try {
+    const db = getDb();
+    const rows = await db.select().from(forms).where(eq(forms.id, id)).limit(1);
+    return rows[0] ?? null;
+  } catch (error) {
+    if (isMissingTableError(error)) return null;
+    throw error;
+  }
 }
 
 export async function getFormBySlug(slug: string): Promise<FormRow | null> {
-  const db = getDb();
-  const rows = await db.select().from(forms).where(eq(forms.slug, slug)).limit(1);
-  return rows[0] ?? null;
+  try {
+    const db = getDb();
+    const rows = await db.select().from(forms).where(eq(forms.slug, slug)).limit(1);
+    return rows[0] ?? null;
+  } catch (error) {
+    if (isMissingTableError(error)) return null;
+    throw error;
+  }
 }
 
 export async function createForm(input: Omit<NewFormRow, "id" | "createdAt" | "updatedAt">): Promise<FormRow> {
@@ -78,64 +94,28 @@ export async function deleteForm(id: string): Promise<boolean> {
 // ===== Form Fields =====
 
 export async function listFormFields(formId: string): Promise<FormFieldRow[]> {
-  const db = getDb();
   try {
-    return db
+    const db = getDb();
+    return await db
       .select()
       .from(formFields)
       .where(eq(formFields.formId, formId))
       .orderBy(asc(formFields.order));
   } catch (error) {
-    if (error instanceof Error && /relation "form_fields" does not exist/i.test(error.message)) {
-      return [];
-    }
+    if (isMissingTableError(error)) return [];
     throw error;
   }
-}
-
-export async function listFormRules(formId: string): Promise<FormRuleRow[]> {
-  const db = getDb();
-  try {
-    return db
-      .select()
-      .from(formRules)
-      .where(eq(formRules.formId, formId))
-      .orderBy(asc(formRules.order));
-  } catch (error) {
-    if (error instanceof Error && /relation "form_rules" does not exist/i.test(error.message)) {
-      return [];
-    }
-    throw error;
-  }
-}
-
-export async function listFormSubmissions(formId: string): Promise<FormSubmissionRow[]> {
-  const db = getDb();
-  try {
-    return db
-      .select()
-      .from(formSubmissions)
-      .where(eq(formSubmissions.formId, formId))
-      .orderBy(desc(formSubmissions.createdAt));
-  } catch (error) {
-    if (error instanceof Error && /relation "form_submissions" does not exist/i.test(error.message)) {
-      return [];
-    }
-    throw error;
-  }
-}
-  const db = getDb();
-  return db
-    .select()
-    .from(formFields)
-    .where(eq(formFields.formId, formId))
-    .orderBy(asc(formFields.order));
 }
 
 export async function getFormFieldById(id: string): Promise<FormFieldRow | null> {
-  const db = getDb();
-  const rows = await db.select().from(formFields).where(eq(formFields.id, id)).limit(1);
-  return rows[0] ?? null;
+  try {
+    const db = getDb();
+    const rows = await db.select().from(formFields).where(eq(formFields.id, id)).limit(1);
+    return rows[0] ?? null;
+  } catch (error) {
+    if (isMissingTableError(error)) return null;
+    throw error;
+  }
 }
 
 export async function createFormField(
@@ -181,18 +161,28 @@ export async function reorderFormFields(
 // ===== Form Rules =====
 
 export async function listFormRules(formId: string): Promise<FormRuleRow[]> {
-  const db = getDb();
-  return db
-    .select()
-    .from(formRules)
-    .where(eq(formRules.formId, formId))
-    .orderBy(asc(formRules.order));
+  try {
+    const db = getDb();
+    return await db
+      .select()
+      .from(formRules)
+      .where(eq(formRules.formId, formId))
+      .orderBy(asc(formRules.order));
+  } catch (error) {
+    if (isMissingTableError(error)) return [];
+    throw error;
+  }
 }
 
 export async function getFormRuleById(id: string): Promise<FormRuleRow | null> {
-  const db = getDb();
-  const rows = await db.select().from(formRules).where(eq(formRules.id, id)).limit(1);
-  return rows[0] ?? null;
+  try {
+    const db = getDb();
+    const rows = await db.select().from(formRules).where(eq(formRules.id, id)).limit(1);
+    return rows[0] ?? null;
+  } catch (error) {
+    if (isMissingTableError(error)) return null;
+    throw error;
+  }
 }
 
 export async function createFormRule(
@@ -246,12 +236,17 @@ export async function updateFormSubmission(
 }
 
 export async function listFormSubmissions(formId: string): Promise<FormSubmissionRow[]> {
-  const db = getDb();
-  return db
-    .select()
-    .from(formSubmissions)
-    .where(eq(formSubmissions.formId, formId))
-    .orderBy(desc(formSubmissions.createdAt));
+  try {
+    const db = getDb();
+    return await db
+      .select()
+      .from(formSubmissions)
+      .where(eq(formSubmissions.formId, formId))
+      .orderBy(desc(formSubmissions.createdAt));
+  } catch (error) {
+    if (isMissingTableError(error)) return [];
+    throw error;
+  }
 }
 
 // ===== Lead Creation from Form Submission =====

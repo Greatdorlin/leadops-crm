@@ -1,0 +1,84 @@
+▲ Next.js 16.2.6 (Turbopack)
+- Local:         http://localhost:3000
+- Network:       http://192.168.0.171:3000
+- Environments: .env
+✓ Ready in 1203ms
+
+ GET /api/test/forms-fallback 200 in 9.4s (next.js: 2.6s, application-code: 6.8s)
+⨯ ./src/lib/crm/form-builder-store.ts:32:34
+Return statement is not allowed here
+  [90m30 |[0m   [36mreturn[0m msg.includes([32m"failed query"[0m) || msg.includes([32m"does not exist"[0m) || msg.includes([32m"r...[0m
+  [90m31 |[0m }
+[31m[1m>[0m [90m32 |[0m   [36mif[0m (!(error [36minstanceof[0m [33mError[0m)) [36mreturn[0m [36mfalse[0m;
+  [90m   |[0m                                  [31m[1m^^^^^^^^^^^^^[0m
+  [90m33 |[0m   [36mconst[0m msg = error.message.toLowerCase();
+  [90m34 |[0m   [36mreturn[0m msg.includes([32m'does not exist'[0m) || msg.includes([32m"relation"[0m) || msg.includes([32m"table"[0m);
+  [90m35 |[0m }
+
+Parsing ecmascript source code failed
+
+Import trace:
+  App Route:
+    ./src/lib/crm/form-builder-store.ts
+    ./src/app/api/test/forms-fallback/route.ts
+
+
+
+./src/lib/crm/form-builder-store.ts:34:3
+Return statement is not allowed here
+  [90m32 |[0m   [36mif[0m (!(error [36minstanceof[0m [33mError[0m)) [36mreturn[0m [36mfalse[0m;
+  [90m33 |[0m   [36mconst[0m msg = error.message.toLowerCase();
+[31m[1m>[0m [90m34 |[0m   [36mreturn[0m msg.includes([32m'does not exist'[0m) || msg.includes([32m"relation"[0m) || msg.includes([32m"table"[0m);
+  [90m   |[0m   [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m35 |[0m }
+  [90m36 |[0m
+  [90m37 |[0m [90m// ===== Forms =====[0m
+
+Parsing ecmascript source code failed
+
+Import trace:
+  App Route:
+    ./src/lib/crm/form-builder-store.ts
+    ./src/app/api/test/forms-fallback/route.ts
+
+
+○ Compiling /_error ...
+ GET /api/test/forms-fallback 500 in 5.0s (next.js: 4.7s, application-code: 304ms)
+⨯ ./src/lib/crm/form-builder-store.ts:32:34
+Return statement is not allowed here
+  [90m30 |[0m   [36mreturn[0m msg.includes([32m"failed query"[0m) || msg.includes([32m"does not exist"[0m) || msg.includes([32m"r...[0m
+  [90m31 |[0m }
+[31m[1m>[0m [90m32 |[0m   [36mif[0m (!(error [36minstanceof[0m [33mError[0m)) [36mreturn[0m [36mfalse[0m;
+  [90m   |[0m                                  [31m[1m^^^^^^^^^^^^^[0m
+  [90m33 |[0m   [36mconst[0m msg = error.message.toLowerCase();
+  [90m34 |[0m   [36mreturn[0m msg.includes([32m'does not exist'[0m) || msg.includes([32m"relation"[0m) || msg.includes([32m"table"[0m);
+  [90m35 |[0m }
+
+Parsing ecmascript source code failed
+
+Import trace:
+  App Route:
+    ./src/lib/crm/form-builder-store.ts
+    ./src/app/api/test/forms-fallback/route.ts
+
+
+
+./src/lib/crm/form-builder-store.ts:34:3
+Return statement is not allowed here
+  [90m32 |[0m   [36mif[0m (!(error [36minstanceof[0m [33mError[0m)) [36mreturn[0m [36mfalse[0m;
+  [90m33 |[0m   [36mconst[0m msg = error.message.toLowerCase();
+[31m[1m>[0m [90m34 |[0m   [36mreturn[0m msg.includes([32m'does not exist'[0m) || msg.includes([32m"relation"[0m) || msg.includes([32m"table"[0m);
+  [90m   |[0m   [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m35 |[0m }
+  [90m36 |[0m
+  [90m37 |[0m [90m// ===== Forms =====[0m
+
+Parsing ecmascript source code failed
+
+Import trace:
+  App Route:
+    ./src/lib/crm/form-builder-store.ts
+    ./src/app/api/test/forms-fallback/route.ts
+
+
+ GET /api/test/forms-fallback 500 in 22ms (next.js: 11ms, application-code: 11ms)

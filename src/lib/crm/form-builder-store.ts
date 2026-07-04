@@ -25,7 +25,9 @@ import type {
 function isMissingTableError(error: unknown): boolean {
   if (!(error instanceof Error)) return false;
   const msg = error.message.toLowerCase();
-  return msg.includes('does not exist') || msg.includes("relation") || msg.includes("table");
+  // Neon driver throws "Failed query: ..." when table doesn't exist
+  // pg throws "relation ... does not exist"
+  return msg.includes("failed query") || msg.includes("does not exist") || msg.includes("relation") || msg.includes("table");
 }
 
 // ===== Forms =====

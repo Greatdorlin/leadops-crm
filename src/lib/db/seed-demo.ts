@@ -45,7 +45,7 @@ export interface LeadsDeskDemoSeedResult {
 interface DemoUserSeed {
   email: string;
   fullName: string;
-  role: "admin" | "manager" | "consultant" | "sales_agent" | "finance";
+  role: "admin" | "manager" | "consultant" | "sales_agent" | "finance" | "affiliate";
 }
 
 interface DemoLeadSeed {
@@ -55,6 +55,7 @@ interface DemoLeadSeed {
   phone: string;
   state: string;
   source: LeadSource;
+  leadCustomerType?: "direct" | "business";
   stageKey: CrmStatus;
   priority: LeadPriority;
   assignedTo: string;
@@ -86,6 +87,8 @@ const DEMO_USERS: DemoUserSeed[] = [
   { email: "manager@example.com", fullName: "Sales Manager", role: "manager" },
   { email: "lead@example.com", fullName: "Team Lead", role: "consultant" },
   { email: "rep@example.com", fullName: "Sales Rep", role: "sales_agent" },
+  { email: "finance@example.com", fullName: "Finance Reviewer", role: "finance" },
+  { email: "affiliate@example.com", fullName: "Affiliate Partner", role: "affiliate" },
 ];
 
 const URGENCY_OPTIONS = [
@@ -562,6 +565,7 @@ async function ensureDemoLead(
     source: seed.source,
     sourceDetail: "demo_seed",
     alwaysCreateNewRecord: false,
+    leadCustomerType: seed.leadCustomerType ?? "direct",
     firstName: seed.firstName,
     lastName: seed.lastName,
     email: seed.email,
@@ -668,6 +672,7 @@ export async function seedLeadsDeskDemoData(): Promise<LeadsDeskDemoSeedResult> 
   const previewUserId = crmUsersByEmail["preview@local.leadsdesk.test"]?.id ?? null;
   const leadUserId = crmUsersByEmail["lead@example.com"]?.id ?? null;
   const repUserId = crmUsersByEmail["rep@example.com"]?.id ?? null;
+  const affiliateUserId = crmUsersByEmail["affiliate@example.com"]?.id ?? null;
 
   const branchId = await ensureBranch("Lagos HQ", "Ikeja, Lagos", managerUserId);
   const departmentId = await ensureDepartment("Sales", managerUserId);
@@ -684,6 +689,7 @@ export async function seedLeadsDeskDemoData(): Promise<LeadsDeskDemoSeedResult> 
     referral: await resolveLeadSourceIdByLegacySource("referral"),
     manual: await resolveLeadSourceIdByLegacySource("manual_entry"),
     csv: await resolveLeadSourceIdByLegacySource("google_sheets"),
+    agent: await resolveLeadSourceIdByLegacySource("agent"),
   };
 
   const customFieldDefinitions = (await listCustomFields())
@@ -840,13 +846,49 @@ export async function seedLeadsDeskDemoData(): Promise<LeadsDeskDemoSeedResult> 
       notes: ["Lost because the buyer delayed rollout to next quarter."],
       tasks: [],
     },
+    {
+      firstName: "Elena",
+      lastName: "Martins",
+      email: "elena.affiliate@local.leadsdesk.test",
+      phone: "+2348011110005",
+      state: "Lagos",
+      source: "agent",
+      leadCustomerType: "business",
+      stageKey: "qualified",
+      priority: "high",
+      assignedTo: "affiliate@example.com",
+      companyName: "Global Clinic Group",
+      sourceId: sourceIds.agent,
+      stageId: stageIds.qualified,
+      estimatedValue: 2200000,
+      closeProbability: 55,
+      expectedCloseDate: isoOffsetFromNow(18),
+      nextFollowUpAt: isoOffsetFromNow(2, 12),
+      campaignLabel: "Affiliate Partner Demo",
+      customFieldValues: {
+        budget: 2500000,
+        interest: "Clinic lead operations",
+        urgency: "high",
+        location: "Lekki",
+        preferred_contact_time: "12:00 PM",
+        form_notes: "Brought in by an affiliate partner for owner review.",
+      },
+      notes: ["Affiliate partner submitted this B2B opportunity."],
+      tasks: [
+        {
+          title: "Verify affiliate opportunity",
+          description: "Confirm decision maker and potential commission status.",
+          dueAt: isoOffsetFromNow(2, 12),
+        },
+      ],
+    },
   ];
 
   const leadIds: string[] = [];
   for (const lead of leads) {
     const assignedUserId = await resolveCrmUserIdByEmail(lead.assignedTo);
     const leadId = await ensureDemoLead(lead, customFieldDefinitions, {
-      assignedUserId,
+      assignedUserId: lead.assignedTo === "affiliate@example.com" ? affiliateUserId : assignedUserId,
       teamId,
       branchId,
       departmentId,

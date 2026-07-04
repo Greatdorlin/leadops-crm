@@ -82,7 +82,7 @@ function SourceEditor({
 
       <div className="grid gap-3 sm:grid-cols-2">
         <label className="space-y-2">
-          <span className="text-xs font-semibold uppercase tracking-[0.16em] text-white/50">Source Name</span>
+          <span className="text-xs font-semibold uppercase tracking-[0.16em] text-white/70">Source Name</span>
           <input
             type="text"
             value={draft.name}
@@ -92,7 +92,7 @@ function SourceEditor({
           />
         </label>
         <label className="space-y-2">
-          <span className="text-xs font-semibold uppercase tracking-[0.16em] text-white/50">Source Key</span>
+          <span className="text-xs font-semibold uppercase tracking-[0.16em] text-white/70">Source Key</span>
           <input
             type="text"
             value={draft.key}
@@ -102,7 +102,7 @@ function SourceEditor({
           />
         </label>
         <label className="space-y-2">
-          <span className="text-xs font-semibold uppercase tracking-[0.16em] text-white/50">Source Type</span>
+          <span className="text-xs font-semibold uppercase tracking-[0.16em] text-white/70">Source Type</span>
           <AdminSelect
             value={draft.type}
             onChange={(event) => onChange({ ...draft, type: event.target.value })}
@@ -116,7 +116,7 @@ function SourceEditor({
           </AdminSelect>
         </label>
         <label className="space-y-2">
-          <span className="text-xs font-semibold uppercase tracking-[0.16em] text-white/50">Color</span>
+          <span className="text-xs font-semibold uppercase tracking-[0.16em] text-white/70">Color</span>
           <input
             type="text"
             value={draft.color}
@@ -136,7 +136,7 @@ function SourceEditor({
         >
           {isSaving ? "Saving..." : saveLabel}
         </button>
-        {message ? <p className="text-sm text-white/62">{message}</p> : null}
+        {message ? <p className="text-sm text-white/70">{message}</p> : null}
       </div>
     </div>
   );
@@ -280,7 +280,7 @@ export function LeadSourceManager({
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
                   <p className="text-base font-semibold text-white">{source.name}</p>
-                  <p className="mt-1 text-sm text-white/54">
+                  <p className="mt-1 text-sm text-white/70">
                     {crmLabelize(source.type || "other")}
                     {source.color ? ` • ${source.color}` : ""}
                   </p>
@@ -307,7 +307,7 @@ export function LeadSourceManager({
                 </div>
               </div>
 
-              <div className="mt-4 flex flex-wrap gap-2 text-xs text-white/56">
+              <div className="mt-4 flex flex-wrap gap-2 text-xs text-white/70">
                 <span className="rounded-full border border-white/10 bg-white/[0.035] px-3 py-1">{source.key}</span>
               </div>
 
@@ -332,7 +332,7 @@ export function LeadSourceManager({
       <div className="space-y-4">
         <div>
           <p className="text-base font-semibold text-white">Archived sources</p>
-          <p className="mt-1 text-sm text-white/54">Restore archived sources when you want them back in active use.</p>
+          <p className="mt-1 text-sm text-white/70">Restore archived sources when you want them back in active use.</p>
         </div>
         {archivedSources.length > 0 ? (
           archivedSources.map((source) => (
@@ -340,7 +340,7 @@ export function LeadSourceManager({
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
                   <p className="text-base font-semibold text-white">{source.name}</p>
-                  <p className="mt-1 text-sm text-white/54">{source.key}</p>
+                  <p className="mt-1 text-sm text-white/70">{source.key}</p>
                 </div>
                 <button
                   type="button"
@@ -355,7 +355,7 @@ export function LeadSourceManager({
             </div>
           ))
         ) : (
-          <div className="rounded-[24px] border border-dashed border-white/12 bg-white/[0.035] px-4 py-4 text-sm text-white/52">
+          <div className="rounded-[24px] border border-dashed border-white/12 bg-white/[0.035] px-4 py-4 text-sm text-white/70">
             No archived sources yet.
           </div>
         )}

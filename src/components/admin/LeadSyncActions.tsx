@@ -59,7 +59,7 @@ export function LeadSyncActions({
 
   return (
     <div className="admin-surface-soft space-y-3 rounded-[24px] p-5">
-      <p className="text-sm font-medium text-slate-950">Manual updates</p>
+      <p className="text-sm font-medium text-white">Manual updates</p>
       <div className="flex flex-col gap-3 sm:flex-row">
         <button
           type="button"
@@ -79,11 +79,11 @@ export function LeadSyncActions({
         </button>
       </div>
       {!canSyncSender ? (
-        <p className="text-sm text-slate-500">
+        <p className="text-sm text-white/70">
           Sender updates only run when marketing consent is granted.
         </p>
       ) : null}
-      {message ? <p className="text-sm text-slate-600">{message}</p> : null}
+      {message ? <p className="text-sm text-white/70">{message}</p> : null}
     </div>
   );
 }

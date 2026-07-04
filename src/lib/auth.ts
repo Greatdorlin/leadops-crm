@@ -8,8 +8,8 @@ export const authOptions: NextAuthOptions = {
     strategy: "jwt",
   },
   pages: {
-    signIn: "/admin/signin",
-    error: "/admin/signin",
+    signIn: "/login",
+    error: "/login",
   },
   providers:
     process.env.AUTH_GOOGLE_ID && process.env.AUTH_GOOGLE_SECRET

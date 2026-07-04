@@ -6,7 +6,9 @@ export const LEADS_DESK_ROLES = [
   "admin",
   "manager",
   "team_lead",
+  "finance",
   "sales_rep",
+  "affiliate",
 ] as const;
 
 export const PERMISSION_SCOPES = [
@@ -24,7 +26,9 @@ const ACCESS_LEVEL_ROLE_MAP: Record<AdminAccessLevel, LeadsDeskRole> = {
   master_admin: "owner",
   general_admin: "admin",
   lead_sales_rep: "team_lead",
+  finance: "finance",
   sales_rep: "sales_rep",
+  affiliate: "affiliate",
 };
 
 const LEGACY_CRM_ROLE_MAP: Record<CrmUserRole, LeadsDeskRole> = {
@@ -33,7 +37,8 @@ const LEGACY_CRM_ROLE_MAP: Record<CrmUserRole, LeadsDeskRole> = {
   sales_agent: "sales_rep",
   ad_manager: "manager",
   consultant: "team_lead",
-  finance: "manager",
+  finance: "finance",
+  affiliate: "affiliate",
 };
 
 const ROLE_LABELS: Record<LeadsDeskRole, string> = {
@@ -41,11 +46,15 @@ const ROLE_LABELS: Record<LeadsDeskRole, string> = {
   admin: "Admin",
   manager: "Manager",
   team_lead: "Team Lead",
+  finance: "Finance",
   sales_rep: "Sales Rep",
+  affiliate: "Affiliate",
 };
 
 const ROLE_RANKS: Record<LeadsDeskRole, number> = {
+  affiliate: 5,
   sales_rep: 10,
+  finance: 15,
   team_lead: 20,
   manager: 30,
   admin: 40,
@@ -57,7 +66,9 @@ const DEFAULT_ROLE_SCOPES: Record<LeadsDeskRole, PermissionScope> = {
   admin: "global",
   manager: "branch",
   team_lead: "team",
+  finance: "global",
   sales_rep: "own",
+  affiliate: "own",
 };
 
 export type RoleResolutionInput = {

@@ -11,7 +11,9 @@ export const ADMIN_ACCESS_LEVELS = [
   "master_admin",
   "general_admin",
   "lead_sales_rep",
+  "finance",
   "sales_rep",
+  "affiliate",
 ] as const;
 
 export type AdminAccessLevel = (typeof ADMIN_ACCESS_LEVELS)[number];
@@ -19,6 +21,7 @@ export type AdminAccessLevel = (typeof ADMIN_ACCESS_LEVELS)[number];
 type AdminNavKey =
   | "dashboard"
   | "leads"
+  | "forms"
   | "tasks"
   | "team"
   | "reports"
@@ -35,11 +38,14 @@ export function getAccessLevelFromRole(role?: CrmUserRole | null): AdminAccessLe
     case "admin":
       return "master_admin";
     case "manager":
-    case "finance":
     case "ad_manager":
       return "general_admin";
     case "consultant":
       return "lead_sales_rep";
+    case "finance":
+      return "finance";
+    case "affiliate":
+      return "affiliate";
     case "sales_agent":
     default:
       return "sales_rep";
@@ -69,18 +75,26 @@ export function getStoredRoleForAccessLevel(level: AdminAccessLevel): CrmUserRol
       return "manager";
     case "lead_sales_rep":
       return "consultant";
+    case "finance":
+      return "finance";
+    case "affiliate":
+      return "affiliate";
     case "sales_rep":
     default:
       return "sales_agent";
   }
 }
 
-export function canAccessReports() {
-  return true;
+export function canAccessReports(accessLevel: AdminAccessLevel = "sales_rep") {
+  return accessLevel !== "affiliate" && accessLevel !== "finance";
 }
 
 export function canViewSalesTeam(accessLevel: AdminAccessLevel) {
-  return accessLevel !== "sales_rep";
+  return (
+    accessLevel === "master_admin" ||
+    accessLevel === "general_admin" ||
+    accessLevel === "lead_sales_rep"
+  );
 }
 
 export function canManageIntegrationsAccess(
@@ -120,23 +134,33 @@ export function canManageTeamRoster(accessLevel: AdminAccessLevel) {
 export function getGrantableAccessLevels(accessLevel: AdminAccessLevel): AdminAccessLevel[] {
   switch (accessLevel) {
     case "master_admin":
-      return [...ADMIN_ACCESS_LEVELS];
+      return ["general_admin", "lead_sales_rep", "finance", "sales_rep", "affiliate"];
     case "general_admin":
-      return ["lead_sales_rep", "sales_rep"];
+      return ["lead_sales_rep", "finance", "sales_rep", "affiliate"];
     case "lead_sales_rep":
-      return ["sales_rep"];
+      return ["sales_rep", "affiliate"];
+    case "finance":
     case "sales_rep":
+    case "affiliate":
     default:
       return [];
   }
 }
 
 export function canAssignTasksToOthers(accessLevel: AdminAccessLevel) {
-  return accessLevel !== "sales_rep";
+  return (
+    accessLevel === "master_admin" ||
+    accessLevel === "general_admin" ||
+    accessLevel === "lead_sales_rep"
+  );
 }
 
 export function canAssignLeadOwners(accessLevel: AdminAccessLevel) {
-  return accessLevel !== "sales_rep";
+  return (
+    accessLevel === "master_admin" ||
+    accessLevel === "general_admin" ||
+    accessLevel === "lead_sales_rep"
+  );
 }
 
 export function canSoftDeleteLead(accessLevel: AdminAccessLevel) {
@@ -156,7 +180,11 @@ export function canCreateLeadRecords() {
 }
 
 export function canImportLeadRecords(accessLevel: AdminAccessLevel) {
-  return accessLevel !== "sales_rep";
+  return (
+    accessLevel === "master_admin" ||
+    accessLevel === "general_admin" ||
+    accessLevel === "lead_sales_rep"
+  );
 }
 
 export function canViewTechnicalLeadContext(
@@ -171,12 +199,15 @@ export function canViewLeadRecord(
   lead: LeadRecord,
   currentUserEmail?: string | null,
 ) {
-  if (accessLevel !== "sales_rep") {
+  if (accessLevel !== "sales_rep" && accessLevel !== "affiliate") {
     return true;
   }
 
   return leadHasAssignee(
-    buildLeadAssigneeList({ all: lead.assignedToList }).join("|"),
+    buildLeadAssigneeList({
+      primary: lead.assignedTo,
+      all: lead.assignedToList,
+    }).join("|"),
     currentUserEmail,
   );
 }
@@ -186,6 +217,10 @@ export function canManageLeadRecord(
   lead: LeadRecord,
   currentUserEmail?: string | null,
 ) {
+  if (accessLevel === "finance") {
+    return false;
+  }
+
   return canViewLeadRecord(accessLevel, lead, currentUserEmail);
 }
 
@@ -211,11 +246,16 @@ export function canManageTeamMember(
   }
 
   if (accessLevel === "general_admin") {
-    return targetAccessLevel === "lead_sales_rep" || targetAccessLevel === "sales_rep";
+    return (
+      targetAccessLevel === "lead_sales_rep" ||
+      targetAccessLevel === "finance" ||
+      targetAccessLevel === "sales_rep" ||
+      targetAccessLevel === "affiliate"
+    );
   }
 
   if (accessLevel === "lead_sales_rep") {
-    return targetAccessLevel === "sales_rep";
+    return targetAccessLevel === "sales_rep" || targetAccessLevel === "affiliate";
   }
 
   return true;
@@ -226,7 +266,7 @@ export function canManageTaskRecord(
   task: LeadTaskRecord,
   currentUserEmail?: string | null,
 ) {
-  if (accessLevel !== "sales_rep") {
+  if (accessLevel !== "sales_rep" && accessLevel !== "affiliate" && accessLevel !== "finance") {
     return true;
   }
 
@@ -238,7 +278,7 @@ export function scopeLeadListFilters(
   accessLevel: AdminAccessLevel,
   currentUserEmail?: string | null,
 ): LeadListFilters {
-  if (accessLevel !== "sales_rep") {
+  if (accessLevel !== "sales_rep" && accessLevel !== "affiliate") {
     return filters;
   }
 
@@ -253,7 +293,7 @@ export function getVisibleAdminNavKeys(
   accessLevel: AdminAccessLevel,
   role?: CrmUserRole | null,
 ) {
-  const keys: AdminNavKey[] = ["dashboard", "leads", "tasks"];
+  const keys: AdminNavKey[] = ["dashboard", "leads", "forms", "tasks"];
 
   keys.push("notifications");
 
@@ -261,7 +301,7 @@ export function getVisibleAdminNavKeys(
     keys.push("team");
   }
 
-  if (canAccessReports()) {
+  if (canAccessReports(accessLevel)) {
     keys.push("reports");
   }
 

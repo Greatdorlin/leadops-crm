@@ -7,6 +7,7 @@ import { LeadSourceManager } from "@/components/admin/LeadSourceManager";
 import { MetricCard } from "@/components/admin/MetricCard";
 import { SectionHeader } from "@/components/admin/SectionHeader";
 import { getAdminAccessContext } from "@/lib/admin";
+import { appRoutes } from "@/lib/app-routes";
 import { canManageLeadSources } from "@/lib/crm/authz";
 import { listLeadSources } from "@/lib/crm/lead-sources-admin";
 import { getCrmPageErrorCopy, logCrmPageError } from "@/lib/crm/runtime";
@@ -15,10 +16,10 @@ export const dynamic = "force-dynamic";
 
 export default async function AdminLeadSourcesPage() {
   const { role, accessLevel, actualAccessLevel, canSwitchAccessViews } =
-    await getAdminAccessContext("/admin/settings/sources");
+    await getAdminAccessContext(appRoutes.settingsSources);
 
   if (!canManageLeadSources({ accessLevel, role })) {
-    redirect("/admin/settings");
+    redirect(appRoutes.settings);
   }
 
   let sources = null;
@@ -43,7 +44,7 @@ export default async function AdminLeadSourcesPage() {
       actions={
         <>
           <Link
-            href="/admin/settings"
+            href={appRoutes.settings}
             className="admin-button-secondary inline-flex h-10 items-center justify-center rounded-full px-4 text-sm font-medium"
           >
             Back to settings

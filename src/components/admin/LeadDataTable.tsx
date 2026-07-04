@@ -4,6 +4,9 @@ import { ArrowUpRight, Mail, MapPin, PhoneCall } from "lucide-react";
 import { buildLeadTableCustomFieldColumns } from "@/lib/crm/custom-field-values";
 import { formatCrmDateTime } from "@/lib/crm/formatters";
 import type { AdminLeadListItem } from "@/lib/crm/view-models";
+import type { LeadPriority } from "@/lib/crm/types";
+import { cn } from "@/lib/cn";
+import { GradientText } from "./ui/GradientText";
 import {
   DEFAULT_LEAD_PREVIEW_CONFIG,
   type LeadPreviewCustomizationConfig,
@@ -11,6 +14,7 @@ import {
 } from "@/lib/crm/workspace-settings";
 import { EmptyState } from "./EmptyState";
 import { LeadOwnerQuickAssign } from "./LeadOwnerQuickAssign";
+import { appRoutes } from "@/lib/app-routes";
 import { PriorityBadge } from "./PriorityBadge";
 import { SourceBadge } from "./SourceBadge";
 import { StatusBadge } from "./StatusBadge";
@@ -63,6 +67,13 @@ const previewFieldLabels: Record<string, string> = {
   team: "Team",
   branch: "Branch",
   department: "Department",
+};
+
+const priorityBorderMap: Record<LeadPriority, string> = {
+  urgent: "border-l-2 border-l-rose-500",
+  high: "border-l-2 border-l-amber-500",
+  medium: "border-l-2 border-l-emerald-500",
+  low: "border-l-2 border-l-white/20",
 };
 
 function resolvePreviewFieldValue(
@@ -176,55 +187,57 @@ export function LeadDataTable({
         {leads.map((lead, index) => (
           <article
             key={lead.id}
-            className={[
-              "px-4 py-4",
+            className={cn(
+              "px-4 py-5 ld-animate-fade-in-up transition-colors duration-200 hover:bg-white/[0.04]",
+              priorityBorderMap[lead.priority],
               index < leads.length - 1 ? "border-b border-white/10" : "",
-            ].join(" ")}
+            )}
+            style={{ animationDelay: `${Math.min(index * 50, 400)}ms` }}
           >
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
                 <Link
-                  href={`/admin/leads/${lead.id}`}
+                  href={appRoutes.lead(lead.id)}
                   className="text-lg font-semibold tracking-[-0.03em] text-white transition hover:text-[color:var(--ld-color-accent)]"
                 >
                   {lead.displayName}
                 </Link>
-                <p className="mt-1 text-sm leading-6 text-white/58 [overflow-wrap:anywhere]">
+                <p className="mt-1 text-sm leading-6 text-white/70 [overflow-wrap:anywhere]">
                   {lead.interestLabel}
                 </p>
               </div>
-              <StatusBadge status={resolveLegacyStageBadge(lead.stage)} label={lead.stageLabel} />
+              <StatusBadge status={resolveLegacyStageBadge(lead.stage)} label={lead.stageLabel} className="shrink-0" />
             </div>
 
             <div className="mt-3 flex flex-wrap gap-2">
               <SourceBadge source={lead.source} label={lead.sourceLabel} />
               <PriorityBadge priority={lead.priority} />
               {lead.stateRaw ? (
-                <span className="inline-flex items-center gap-1.5 rounded-full border border-cyan-300/24 bg-cyan-300/12 px-3 py-1 text-xs font-semibold text-cyan-100">
+                <span className="inline-flex items-center gap-1.5 rounded-full border border-white/14 bg-white/[0.07] px-3 py-1 text-xs font-semibold text-white/90">
                   <MapPin className="h-3.5 w-3.5" />
                   {lead.stateLabel}
                 </span>
               ) : null}
             </div>
 
-            <div className="mt-4 grid gap-3 rounded-[22px] border border-white/10 bg-white/[0.06] p-4 text-sm shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
+            <div className="mt-4 grid gap-4 rounded-[22px] border border-white/10 bg-white/[0.06] p-4 text-sm shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
               <div className="flex items-start gap-2.5">
-                <Mail className="mt-0.5 h-4 w-4 shrink-0 text-cyan-200" />
+                <Mail className="mt-0.5 h-4 w-4 shrink-0 text-white/70" />
                 <p className="min-w-0 text-white/76 [overflow-wrap:anywhere]">
                   {lead.email || "No email yet"}
                 </p>
               </div>
               <div className="flex items-start gap-2.5">
-                <PhoneCall className="mt-0.5 h-4 w-4 shrink-0 text-emerald-200" />
+                <PhoneCall className="mt-0.5 h-4 w-4 shrink-0 text-emerald-300" />
                 <p className="min-w-0 text-white/76 [overflow-wrap:anywhere]">
                   {lead.phone || "No phone yet"}
                 </p>
               </div>
               <div className="flex items-start gap-2.5">
-                <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-blue-200" />
+                <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-white/70" />
                 <p className="min-w-0 text-white/76 [overflow-wrap:anywhere]">{lead.stateLabel}</p>
               </div>
-              <div className="grid grid-cols-2 gap-3 text-xs uppercase tracking-[0.14em] text-white/42">
+              <div className="grid grid-cols-2 gap-3 text-xs uppercase tracking-[0.14em] text-white/70">
                 <div>
                   <p>Category</p>
                   <p className="mt-1 text-sm font-medium normal-case tracking-normal text-white/76">
@@ -234,7 +247,7 @@ export function LeadDataTable({
                 <div>
                   <p>Owner</p>
                   {assigneeOptions.length > 0 ? (
-                    <div className="mt-2">
+                    <div className="mt-1">
                       <LeadOwnerQuickAssign
                         leadId={lead.id}
                         initialAssignedTo={lead.assignedTo}
@@ -251,7 +264,7 @@ export function LeadDataTable({
                   )}
                 </div>
               </div>
-              <div className="grid gap-3 text-xs uppercase tracking-[0.14em] text-white/42 sm:grid-cols-2">
+              <div className="grid gap-3 text-xs uppercase tracking-[0.14em] text-white/70 sm:grid-cols-2">
                 <div>
                   <p>Follow-up</p>
                   <p className="mt-1 text-sm font-medium normal-case tracking-normal text-white/76">
@@ -272,7 +285,7 @@ export function LeadDataTable({
                 </div>
               </div>
               {mobileFields.length > 0 ? (
-                <div className="grid gap-3 text-xs uppercase tracking-[0.14em] text-white/42">
+                <div className="grid gap-3 text-xs uppercase tracking-[0.14em] text-white/70">
                   <p>Preview fields</p>
                   <div className="grid gap-3 sm:grid-cols-2">
                     {mobileFields.map((fieldKey) => (
@@ -297,7 +310,7 @@ export function LeadDataTable({
                 <div className="flex flex-wrap gap-2">{renderActions(lead)}</div>
               ) : (
                 <Link
-                  href={`/admin/leads/${lead.id}`}
+                  href={appRoutes.lead(lead.id)}
                   className="admin-button-primary inline-flex h-11 items-center justify-center rounded-2xl px-5 text-sm"
                 >
                   Open lead
@@ -313,22 +326,22 @@ export function LeadDataTable({
         <div className="overflow-x-auto">
           <table className="ld-readable-table min-w-full border-collapse">
             <thead>
-              <tr className="border-b border-white/10 bg-white/[0.04] text-left">
-                <th className="px-5 py-4 text-[11px] font-semibold uppercase tracking-[0.16em] text-white/50">
+              <tr className="text-left">
+                <th className="sticky top-0 z-10 bg-white/[0.06] backdrop-blur-md border-b border-white/10 px-4 py-3.5 text-[11px] font-semibold uppercase tracking-[0.16em] text-white/70">
                   Lead
                 </th>
                 {desktopColumns.map((column) => (
                   <th
                     key={column}
-                    className="px-4 py-4 text-[11px] font-semibold uppercase tracking-[0.16em] text-white/50"
+                    className="sticky top-0 z-10 bg-white/[0.06] backdrop-blur-md border-b border-white/10 px-4 py-3.5 text-[11px] font-semibold uppercase tracking-[0.16em] text-white/70"
                   >
                     {column.startsWith("custom:")
                       ? customFieldColumns.find((field) => `custom:${field.fieldId}` === column)?.label ?? "Custom field"
                       : previewFieldLabels[column]}
                   </th>
                 ))}
-                <th className="px-5 py-4 text-right text-[11px] font-semibold uppercase tracking-[0.16em] text-white/50">
-                  Action
+                <th className="sticky top-0 z-10 bg-white/[0.06] backdrop-blur-md border-b border-white/10 px-4 py-3.5 text-right align-middle text-[11px] font-semibold uppercase tracking-[0.16em] text-white/70">
+                  <GradientText>Action</GradientText>
                 </th>
               </tr>
             </thead>
@@ -336,49 +349,51 @@ export function LeadDataTable({
               {leads.map((lead, index) => (
                 <tr
                   key={lead.id}
-                  className={[
-                    "align-top transition hover:bg-white/[0.06]",
+                  className={cn(
+                    "align-middle transition-all duration-200 hover:bg-white/[0.06] ld-animate-fade-in-up",
+                    priorityBorderMap[lead.priority],
                     index < leads.length - 1 ? "border-b border-white/10" : "",
-                  ].join(" ")}
+                  )}
+                  style={{ animationDelay: `${Math.min(index * 50, 400)}ms` }}
                 >
-                  <td className="px-5 py-4">
-                    <div className="min-w-[280px]">
+                  <td className="px-4 py-3.5">
+                    <div className="min-w-0">
                       <Link
-                        href={`/admin/leads/${lead.id}`}
+                        href={appRoutes.lead(lead.id)}
                         className="text-base font-semibold tracking-[-0.03em] text-white transition hover:text-[color:var(--ld-color-accent)]"
                       >
                         {lead.displayName}
                       </Link>
-                      <p className="mt-1 text-sm text-white/70 [overflow-wrap:anywhere]">
+                      <p className="mt-1 text-sm leading-5 text-white/70 [overflow-wrap:anywhere]">
                         {lead.email || lead.phone || "No contact yet"}
                       </p>
-                      <p className="mt-2 text-xs font-medium uppercase tracking-[0.14em] text-white/38">
+                      <p className="mt-1.5 text-xs font-medium uppercase tracking-[0.14em] text-white/70">
                         {lead.stateLabel}
                       </p>
-                      <p className="mt-2 text-sm leading-6 text-white/58">{lead.interestLabel}</p>
-                      <p className="mt-2 text-sm text-white/64">
+                      <p className="mt-1.5 text-sm leading-5 text-white/70 [overflow-wrap:anywhere]">{lead.interestLabel}</p>
+                      <p className="mt-1.5 text-sm leading-5 text-white/70 [overflow-wrap:anywhere]">
                         {lead.companyName || "No company set"} • {formatMoney(lead.expectedValue ?? lead.estimatedValue)}
                       </p>
-                      <p className="mt-2 text-xs font-medium uppercase tracking-[0.14em] text-white/38">
+                      <p className="mt-1.5 text-xs font-medium uppercase tracking-[0.14em] text-white/70">
                         {lead.completionLabel}
                       </p>
                     </div>
                   </td>
                   {desktopColumns.map((column) => {
                     return (
-                      <td key={column} className="px-4 py-4 text-sm text-white/72">
-                        <div className="min-w-[140px] [overflow-wrap:anywhere]">
+                      <td key={column} className="px-4 py-3.5 text-sm leading-5 text-white/80">
+                        <div className="min-w-0 [overflow-wrap:anywhere]">
                           {resolvePreviewFieldValue(lead, column, assigneeOptions)}
                         </div>
                       </td>
                     );
                   })}
-                  <td className="px-5 py-4 text-right">
+                  <td className="px-4 py-3.5 text-right align-middle whitespace-nowrap">
                     {renderActions ? (
-                      <div className="flex min-w-[210px] justify-end gap-2">{renderActions(lead)}</div>
+                      <div className="flex min-w-0 justify-end gap-2">{renderActions(lead)}</div>
                     ) : (
                       <Link
-                        href={`/admin/leads/${lead.id}`}
+                        href={appRoutes.lead(lead.id)}
                         className="admin-button-secondary inline-flex h-10 items-center justify-center rounded-full px-4 text-sm font-medium"
                       >
                         Open

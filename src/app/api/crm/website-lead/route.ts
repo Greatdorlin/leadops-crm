@@ -139,11 +139,7 @@ export async function POST(request: Request) {
   const graduationYear = getTrimmedString(answerRecord, ["graduationYear"]);
   const studiedCourse = getTrimmedString(answerRecord, ["studiedCourse"]);
   const desiredCourse = getTrimmedString(answerRecord, ["desiredCourse"]);
-  const fundingReadiness = getTrimmedString(answerRecord, [
-    "assessmentReadiness",
-    "studyFundingReadiness",
-    "fundingReadiness",
-  ]);
+  const fundingReadiness = getTrimmedString(answerRecord, ["fitSignal", "budgetReadiness", "fundingReadiness"]);
   const contactTimeline = getTrimmedString(answerRecord, ["contactTimeline"]);
   const consent = getTrimmedString(answerRecord, ["consent"]);
   const routeSummary =

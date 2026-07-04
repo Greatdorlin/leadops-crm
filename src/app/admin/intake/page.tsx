@@ -7,6 +7,7 @@ import { IntakeEventTable } from "@/components/admin/IntakeEventTable";
 import { MetricCard } from "@/components/admin/MetricCard";
 import { SectionHeader } from "@/components/admin/SectionHeader";
 import { getAdminAccessContext } from "@/lib/admin";
+import { appRoutes } from "@/lib/app-routes";
 import { canViewIntakeLogs, resolveRole } from "@/lib/crm/authz";
 import { listFormSources } from "@/lib/crm/form-sources-admin";
 import { listLeadIntakeEvents } from "@/lib/crm/intake-runtime";
@@ -22,10 +23,10 @@ export default async function AdminIntakePage({
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const { role, accessLevel, actualAccessLevel, canSwitchAccessViews } =
-    await getAdminAccessContext("/admin/intake");
+    await getAdminAccessContext(appRoutes.intake);
 
   if (!canViewIntakeLogs({ accessLevel, role })) {
-    redirect("/admin");
+    redirect(appRoutes.dashboard);
   }
 
   const params = await searchParams;
@@ -92,7 +93,7 @@ export default async function AdminIntakePage({
       actions={
         <>
           <Link
-            href="/admin/settings/form-sources"
+            href={appRoutes.settingsFormSources}
             className="admin-button-secondary inline-flex h-10 items-center justify-center rounded-full px-4 text-sm font-medium"
           >
             Form sources
@@ -114,7 +115,7 @@ export default async function AdminIntakePage({
             title="Intake activity"
             description="Narrow the log by source, status, or date range when a client needs an answer fast."
           />
-          <form action="/admin/intake" className="mt-5 grid gap-3 lg:grid-cols-5">
+          <form action={appRoutes.intake} className="mt-5 grid gap-3 lg:grid-cols-5">
             <select name="status" defaultValue={status} className="admin-input h-11 rounded-2xl px-4 text-sm outline-none">
               <option value="all">All statuses</option>
               <option value="received">Received</option>
@@ -137,7 +138,7 @@ export default async function AdminIntakePage({
               <button type="submit" className="admin-button-primary inline-flex h-11 flex-1 items-center justify-center rounded-2xl px-5 text-sm font-semibold">
                 Apply
               </button>
-              <Link href="/admin/intake" className="admin-button-secondary inline-flex h-11 items-center justify-center rounded-2xl px-5 text-sm font-medium">
+              <Link href={appRoutes.intake} className="admin-button-secondary inline-flex h-11 items-center justify-center rounded-2xl px-5 text-sm font-medium">
                 Reset
               </Link>
             </div>

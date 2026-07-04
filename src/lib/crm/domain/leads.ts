@@ -43,12 +43,6 @@ export interface IntakeSourceSummary {
   campaignLabel: string | null;
 }
 
-export interface LegacyProgressSummary {
-  stepKey: string | null;
-  stepIndex: number | null;
-  progressPercent: number | null;
-}
-
 export interface LeadCoreRecord {
   id: string;
   name: string;
@@ -129,12 +123,6 @@ export interface LeadDetailRecord extends LeadCoreRecord {
   intakeSummary: {
     keyFacts: Array<{ label: string; value: string }>;
     intakeAnswers: Array<{ label: string; value: string }>;
-    legacyProgress: LegacyProgressSummary | null;
-    reportSummary: {
-      reportToken: string | null;
-      summaryDiagnosis: string | null;
-      recommendedAction: string | null;
-    } | null;
   } | null;
 }
 

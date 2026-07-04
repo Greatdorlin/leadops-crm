@@ -20,7 +20,7 @@ export function PremiumEmptyState({
         <Icon className="h-6 w-6" />
       </span>
       <h3 className="mt-5 text-2xl font-semibold tracking-[-0.05em] text-white">{title}</h3>
-      <p className="mx-auto mt-2 max-w-xl text-sm leading-6 text-white/58">{description}</p>
+      <p className="mx-auto mt-2 max-w-xl text-sm leading-6 text-white/70">{description}</p>
       {action ? <div className="mt-6 flex justify-center">{action}</div> : null}
     </GlassCard>
   );

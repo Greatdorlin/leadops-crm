@@ -3,6 +3,7 @@ import { AdminShell } from "@/components/admin/AdminShell";
 import { AdminSignOutButton } from "@/components/admin/AdminSignOutButton";
 import { NotificationInbox } from "@/components/admin/NotificationInbox";
 import { getAdminAccessContext } from "@/lib/admin";
+import { appRoutes } from "@/lib/app-routes";
 import {
   countUnreadNotifications,
   listUserNotifications,
@@ -12,7 +13,7 @@ export const dynamic = "force-dynamic";
 
 export default async function AdminNotificationsPage() {
   const { crmUser, role, accessLevel, actualAccessLevel, canSwitchAccessViews } =
-    await getAdminAccessContext("/admin/notifications");
+    await getAdminAccessContext(appRoutes.notifications);
 
   const notifications = crmUser?.id
     ? await listUserNotifications(crmUser.id, { includeGlobal: true, includeRead: true })
@@ -33,7 +34,7 @@ export default async function AdminNotificationsPage() {
       actions={
         <>
           <Link
-            href="/admin"
+            href={appRoutes.dashboard}
             className="admin-button-secondary inline-flex h-10 items-center justify-center rounded-full px-4 text-sm font-medium"
           >
             Back to dashboard

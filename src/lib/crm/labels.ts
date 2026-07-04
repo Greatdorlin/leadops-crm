@@ -2,8 +2,6 @@ import type {
   CrmUserRole,
   IntegrationProvider,
   IntegrationStatus,
-  LeadCategory,
-  LeadQualificationLevel,
   LeadRecord,
   LeadSource,
   SyncJobStatus,
@@ -41,8 +39,8 @@ const labelMap: Record<string, string> = {
   medium: "Medium",
   high: "High",
   urgent: "Urgent",
-  pathway_finder: "Website intake",
   website_form: "Website form",
+  pathway_finder: "Website",
   facebook_lead_ads: "Facebook Lead Ads",
   google_ads: "Google Ads",
   tiktok_lead_ads: "TikTok Lead Ads",
@@ -52,19 +50,13 @@ const labelMap: Record<string, string> = {
   manual_entry: "Manual entry",
   agent: "Agent",
   referral: "Referral",
-  study_abroad: "Education",
-  work_and_relocate: "Employment",
-  business_abroad: "Business",
-  visit_or_tour: "Visitor",
-  event_travel: "Event lead",
-  family_relocation: "Family",
-  not_sure_yet: "General inquiry",
   admin: "Owner",
   manager: "Manager",
   sales_agent: "Sales rep",
   ad_manager: "Manager",
   consultant: "Team Lead",
-  finance: "Manager",
+  finance: "Finance",
+  affiliate: "Affiliate",
   master_admin: "Owner",
   general_admin: "Admin",
   lead_sales_rep: "Team Lead",
@@ -120,7 +112,7 @@ const labelMap: Record<string, string> = {
   desiredCourse: "Interest area",
   targetField: "Interest area",
   targetIntake: "Preferred timeline",
-  assessmentReadiness: "Fit signal",
+  fitSignal: "Fit signal",
   contactTimeline: "Contact timing",
   consent: "Consent",
   passportStatus: "Document status",
@@ -130,12 +122,23 @@ const labelMap: Record<string, string> = {
   whatsappNumber: "Phone",
 };
 
-const qualificationLabelMap: Record<LeadQualificationLevel, string> = {
-  Foundation: "Early stage",
-  Emerging: "Developing",
-  Advancing: "Active",
-  "Action-ready": "Ready",
-};
+function sanitizeLegacyDisplayLabel(value: string) {
+  const normalized = value.trim().toLowerCase();
+
+  if (!normalized) {
+    return "";
+  }
+
+  if (normalized === "pathway finder" || normalized === "pathway_finder") {
+    return "Website";
+  }
+
+  if (normalized === "flyconnect" || normalized === "fly connect") {
+    return "Leads Desk";
+  }
+
+  return value.trim();
+}
 
 function titleCase(value: string) {
   return value
@@ -153,11 +156,20 @@ export function crmLabelize(value?: string | null) {
     return "";
   }
 
-  return labelMap[value] ?? titleCase(value);
+  return labelMap[value] ?? titleCase(sanitizeLegacyDisplayLabel(value));
 }
 
 export function formatLeadSourceLabel(source?: LeadSource | string | null) {
   return source ? crmLabelize(source) : "Unknown source";
+}
+
+export function formatDisplayLabel(value?: string | null, emptyLabel = "") {
+  if (!value) {
+    return emptyLabel;
+  }
+
+  const sanitized = sanitizeLegacyDisplayLabel(value);
+  return sanitized || emptyLabel;
 }
 
 export function formatLeadStateLabel(value?: string | null) {
@@ -166,18 +178,6 @@ export function formatLeadStateLabel(value?: string | null) {
   }
 
   return formatNigeriaStateLabel(value) || crmLabelize(value);
-}
-
-export function formatLeadCategoryLabel(value?: LeadCategory | string | null) {
-  return value ? crmLabelize(value) : "Not set";
-}
-
-export function formatLeadQualificationLabel(value?: LeadQualificationLevel | string | null) {
-  if (!value) {
-    return "Not set";
-  }
-
-  return qualificationLabelMap[value as LeadQualificationLevel] ?? crmLabelize(value);
 }
 
 export function formatLeadInterestLabel(

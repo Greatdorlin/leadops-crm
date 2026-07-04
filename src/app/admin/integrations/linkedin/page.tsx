@@ -12,14 +12,15 @@ import { getCrmPageErrorCopy, logCrmPageError } from "@/lib/crm/runtime";
 import { normalizeEnvValue } from "@/lib/env-utils";
 import { redirect } from "next/navigation";
 import { leadStore } from "@/lib/storage";
+import { appRoutes } from "@/lib/app-routes";
 
 export const dynamic = "force-dynamic";
 
 export default async function AdminLinkedInIntegrationPage() {
   const { role, accessLevel, actualAccessLevel, canSwitchAccessViews } =
-    await getAdminAccessContext("/admin/integrations/linkedin");
+    await getAdminAccessContext(appRoutes.integration("linkedin"));
   if (!canManageIntegrations(accessLevel, role)) {
-    redirect("/admin");
+    redirect(appRoutes.dashboard);
   }
 
   let pageData:
@@ -118,10 +119,10 @@ export default async function AdminLinkedInIntegrationPage() {
                     <div key={payload.id} className="admin-surface-muted rounded-2xl p-4">
                       <div className="flex flex-wrap items-start justify-between gap-3">
                         <div>
-                          <p className="text-sm font-semibold text-slate-950">
+                          <p className="text-sm font-semibold text-white">
                             Lead notification {payload.externalId || payload.id}
                           </p>
-                          <p className="mt-2 text-sm text-slate-500">{payload.errorMessage || "Unknown error"}</p>
+                          <p className="mt-2 text-sm text-white/60">{payload.errorMessage || "Unknown error"}</p>
                         </div>
                         <AdminActionButton
                           endpoint="/api/integrations/linkedin/retry"
@@ -154,7 +155,7 @@ export default async function AdminLinkedInIntegrationPage() {
             title="LinkedIn setup"
             description="Use this list when configuring LinkedIn Lead Sync for CRM lead capture."
           />
-          <div className="mt-4 space-y-3 text-sm text-slate-600">
+          <div className="mt-4 space-y-3 text-sm text-white/70">
             {[
               "Set LINKEDIN_CLIENT_SECRET, LINKEDIN_ACCESS_TOKEN, and optionally LINKEDIN_API_VERSION so the CRM can validate the webhook and fetch the full lead form response.",
               "Point LinkedIn Lead Sync to /api/integrations/linkedin/webhook and complete the webhook challenge validation.",

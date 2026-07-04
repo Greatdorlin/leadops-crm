@@ -13,7 +13,6 @@ import {
   sql,
   type SQL,
 } from "drizzle-orm";
-import { emptyAnswers } from "@/lib/assessment/defaults";
 import {
   getPrimaryLeadAssignee,
   parseLeadAssignees,
@@ -25,7 +24,7 @@ import {
   normalizePhone,
   normalizeText,
   pickPreferredValue,
-} from "@/lib/crm/dedupe";
+} from "@/lib/crm/value-normalization";
 import { leadEventTypes } from "@/lib/crm/lead-events";
 import { getDb } from "@/lib/db/client";
 import {
@@ -77,14 +76,6 @@ import type {
   SyncJobListFilters,
   SyncJobUpdateInput,
 } from "./types";
-
-function defaultAnalytics() {
-  return {
-    whatsappClicked: false,
-    consultationClicked: false,
-    reportViewed: false,
-  };
-}
 
 function defaultSyncState(message: string): LeadRecord["sync"]["sender"] {
   return {
@@ -174,31 +165,17 @@ function deriveCompatibilityStatus(row: typeof leads.$inferSelect): LeadRecord["
   return "new";
 }
 
-function buildCompatibilityAnswers(row: typeof leads.$inferSelect): LeadRecord["answers"] {
-  return {
-    ...emptyAnswers,
-    firstName: row.firstName,
-    lastName: row.lastName,
-    whatsappNumber: row.whatsappNumber,
-    email: row.email,
-    stateOfResidence: row.region ?? row.state ?? null,
-  };
-}
-
 function mapLeadRecord(row: typeof leads.$inferSelect): LeadRecord {
   const assignedToList = parseLeadAssignees(row.assignedTo);
   const compatibilityStatus = deriveCompatibilityStatus(row);
 
   return {
     id: row.id,
-    reportToken: null,
     createdAt: toIsoString(row.createdAt) ?? new Date(0).toISOString(),
     updatedAt: toIsoString(row.updatedAt) ?? new Date(0).toISOString(),
     lastActivityAt: toIsoString(row.lastActivityAt) ?? new Date(0).toISOString(),
-    completedAt: null,
     deletedAt: toIsoString(row.deletedAt),
     deletedBy: row.deletedBy,
-    completionStatus: "complete",
     crmStatus: compatibilityStatus,
     source: row.source,
     sourceId: row.sourceId,
@@ -254,17 +231,7 @@ function mapLeadRecord(row: typeof leads.$inferSelect): LeadRecord {
     utmTerm: row.utmTerm,
     landingPage: row.landingPage,
     sourcePayload: row.sourcePayload ?? null,
-    primaryGoal: null,
-    currentStepKey: "analysis",
-    currentStepIndex: 0,
-    progressPercent: 100,
-    readinessLevel: null,
-    topPathwayTitle: null,
-    answers: buildCompatibilityAnswers(row),
-    report: null,
-    publicReport: null,
     sync: defaultSyncMetadata("Legacy sync fields retired. Use Leads Desk exports and intake logs."),
-    analytics: defaultAnalytics(),
   };
 }
 
@@ -1653,7 +1620,7 @@ export class NeonLeadStore implements LeadStorage {
       newLeadsToday: leadsForDashboard.filter((lead) => new Date(lead.createdAt) >= today).length,
       unassignedLeads: leadsForDashboard.filter((lead) => isUnassigned(lead.assignedTo)).length,
       followUpsDueToday: dueTodayTasks.length,
-      completedAssessments: leadsForDashboard.length,
+      capturedLeads: leadsForDashboard.length,
       consultationReadyLeads: leadsForDashboard.filter((lead) => leadLooksQualified(lead)).length,
       highPriorityLeads: leadsForDashboard.filter((lead) =>
         lead.priority === "high" || lead.priority === "urgent",
@@ -1757,6 +1724,10 @@ export class NeonLeadStore implements LeadStorage {
   async upsertCrmUser(input: CrmUserUpsertInput) {
     const db = this.getDatabase();
     const email = normalizeEmail(input.email);
+
+    if (!email) {
+      throw new Error("CRM user email is required.");
+    }
 
     const [record] = await db
       .insert(crmUsers)

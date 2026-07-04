@@ -31,6 +31,7 @@ export function AdminWorkspaceComposer({
   variant = "hero",
   leadCaptureCustomFields = [],
   leadCaptureStageOptions,
+  allowedModes,
 }: {
   accessLevel: AdminAccessLevel;
   leadOptions: Array<{ value: string; label: string }>;
@@ -47,9 +48,11 @@ export function AdminWorkspaceComposer({
   variant?: "hero" | "compact";
   leadCaptureCustomFields?: CustomFieldDefinitionWithOptions[];
   leadCaptureStageOptions?: Array<{ value: CrmStatus; label: string }>;
+  allowedModes?: ComposerMode[];
 }) {
-  const availableModes: ComposerMode[] =
+  const defaultModes: ComposerMode[] =
     accessLevel === "sales_rep" ? ["task", "lead"] : ["lead", "task", "assignment", "import"];
+  const availableModes = (allowedModes?.length ? allowedModes : defaultModes).filter((mode, index, list) => list.indexOf(mode) === index);
   const [mode, setMode] = useState<ComposerMode>(
     defaultLeadId && availableModes.includes("task") ? "task" : (availableModes[0] ?? "task"),
   );
@@ -155,7 +158,7 @@ export function AdminWorkspaceComposer({
         isCompact ? "rounded-[32px]" : "rounded-[36px]",
       )}
     >
-      <div className="pointer-events-none absolute inset-x-0 top-0 h-36 bg-[radial-gradient(circle_at_top_left,rgba(103,232,249,0.18),transparent_34%),radial-gradient(circle_at_top_right,rgba(139,92,246,0.2),transparent_32%),linear-gradient(180deg,rgba(255,255,255,0.08)_0%,transparent_100%)]" />
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-36 bg-[radial-gradient(circle_at_top_left,color-mix(in_srgb,var(--ld-color-primary)_18%,transparent),transparent_34%),radial-gradient(circle_at_top_right,rgba(139,92,246,0.2),transparent_32%),linear-gradient(180deg,rgba(255,255,255,0.08)_0%,transparent_100%)]" />
       <div className="relative flex flex-col gap-5">
         <div className="rounded-[28px] border border-white/10 bg-white/[0.06] p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
           <div className={cn("grid gap-2", isCompact ? "md:grid-cols-2 2xl:grid-cols-4" : "md:grid-cols-2 xl:grid-cols-4")}>
@@ -172,8 +175,8 @@ export function AdminWorkspaceComposer({
                     className={cn(
                       "rounded-[24px] border px-4 py-3 text-left transition",
                       item === mode
-                        ? "border-[color:var(--ld-color-accent)]/35 bg-[linear-gradient(145deg,rgba(59,130,246,0.28)_0%,rgba(139,92,246,0.22)_68%,rgba(255,255,255,0.08)_100%)] text-white shadow-[0_18px_34px_rgba(7,19,56,0.22)]"
-                        : "border-white/8 bg-white/[0.07] text-white/58 hover:border-white/16 hover:bg-white/[0.1] hover:text-white",
+                        ? "border-[color:var(--ld-color-accent)]/35 bg-[linear-gradient(145deg,color-mix(in_srgb,var(--ld-color-primary)_28%,transparent)_0%,color-mix(in_srgb,var(--ld-color-accent)_22%,transparent)_68%,rgba(255,255,255,0.08)_100%)] text-white shadow-[0_18px_34px_rgba(7,19,56,0.22)]"
+                        : "border-white/8 bg-white/[0.07] text-white/70 hover:border-white/16 hover:bg-white/[0.1] hover:text-white",
                     )}
                   >
                     <div className="flex items-center gap-3">
@@ -182,7 +185,7 @@ export function AdminWorkspaceComposer({
                           "inline-flex h-10 w-10 items-center justify-center rounded-[16px] border",
                           item === mode
                             ? "border-white/12 bg-white/10 text-[color:var(--ld-color-accent)]"
-                            : "border-white/10 bg-white/[0.08] text-white/58",
+                            : "border-white/10 bg-white/[0.08] text-white/70",
                         )}
                       >
                         <ItemIcon className="h-4 w-4" />
@@ -192,7 +195,7 @@ export function AdminWorkspaceComposer({
                         <p
                           className={cn(
                             "mt-1 text-xs",
-                            item === mode ? "text-white/64" : "text-white/44",
+                            item === mode ? "text-white/70" : "text-white/70",
                           )}
                         >
                           {itemContent.description}
@@ -209,18 +212,18 @@ export function AdminWorkspaceComposer({
         <div className="rounded-[32px] border border-white/10 bg-[linear-gradient(145deg,rgba(8,17,48,0.92)_0%,rgba(16,31,89,0.76)_54%,rgba(29,53,134,0.72)_100%)] p-5 text-white shadow-[0_28px_54px_rgba(0,0,0,0.24)] sm:p-6">
           <div className={cn("flex flex-col gap-5", isCompact ? "2xl:flex-row 2xl:items-end 2xl:justify-between" : "xl:flex-row xl:items-end xl:justify-between")}>
             <div className="max-w-2xl">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/58">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/70">
                 {current.eyebrow}
               </p>
               <div className="mt-4 flex items-center gap-3">
                 <span className="inline-flex h-12 w-12 items-center justify-center rounded-[18px] border border-white/12 bg-white/10 text-[color:var(--ld-color-accent)]">
                   <CurrentIcon className="h-5 w-5" />
                 </span>
-                <span className="rounded-full border border-white/12 bg-white/[0.08] px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-white/66">
-                  Quick actions
+                <span className="rounded-full border border-white/12 bg-white/[0.08] px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-white/70">
+                  Action center
                 </span>
               </div>
-              <h3 className="mt-4 font-[family:var(--font-heading)] text-[1.85rem] leading-[1] tracking-[-0.05em] text-white sm:text-[2.2rem]">
+              <h3 className="mt-4 font-[family:var(--font-heading)] text-[1.85rem] leading-[1.1] tracking-[-0.05em] text-white sm:text-[2.2rem]">
                 {current.title}
               </h3>
               <p className="mt-3 max-w-2xl text-sm leading-7 text-white/72">{current.description}</p>
@@ -251,7 +254,7 @@ export function AdminWorkspaceComposer({
                   <Sparkles className="h-4 w-4" />
                 </span>
                 <div>
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/48">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/70">
                     {current.supportTitle}
                   </p>
                   <p className="mt-1 text-base font-semibold tracking-[-0.03em] text-white">
@@ -264,7 +267,7 @@ export function AdminWorkspaceComposer({
                 {current.supportLines.map((line) => (
                   <div
                     key={line}
-                    className="rounded-[18px] border border-white/10 bg-white/[0.06] px-4 py-3 text-sm leading-6 text-white/60"
+                    className="rounded-[18px] border border-white/10 bg-white/[0.06] px-4 py-3 text-sm leading-6 text-white/70"
                   >
                     {line}
                   </div>
@@ -273,20 +276,20 @@ export function AdminWorkspaceComposer({
             </div>
 
             <div className="ld-glass-card ld-glass-soft rounded-[28px] p-5">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/48">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/70">
                 Fast path
               </p>
-              <div className="mt-4 space-y-3 text-sm leading-6 text-white/60">
+              <div className="mt-4 space-y-3 text-sm leading-6 text-white/70">
                 <p>Keep the queue light by capturing clean contact details first.</p>
                 <p>Assign ownership before moving a lead into the next stage.</p>
                 <p>Use tasks for follow-ups that should not disappear from view.</p>
               </div>
               <div className="mt-4 flex flex-wrap gap-2">
-                <span className="rounded-full border border-white/10 bg-white/[0.07] px-3 py-1.5 text-xs font-semibold text-white/68">
+                <span className="rounded-full border border-white/10 bg-white/[0.07] px-3 py-1.5 text-xs font-semibold text-white/70">
                   <Download className="mr-1 inline h-3.5 w-3.5" />
                   Export-ready
                 </span>
-                <span className="rounded-full border border-white/10 bg-white/[0.07] px-3 py-1.5 text-xs font-semibold text-white/68">
+                <span className="rounded-full border border-white/10 bg-white/[0.07] px-3 py-1.5 text-xs font-semibold text-white/70">
                   Shared with tasks
                 </span>
               </div>

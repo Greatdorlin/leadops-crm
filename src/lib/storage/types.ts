@@ -237,7 +237,7 @@ export interface CrmDashboardStats {
   newLeadsToday: number;
   unassignedLeads: number;
   followUpsDueToday: number;
-  completedAssessments: number;
+  capturedLeads: number;
   consultationReadyLeads: number;
   highPriorityLeads: number;
   failedIntegrations: number;

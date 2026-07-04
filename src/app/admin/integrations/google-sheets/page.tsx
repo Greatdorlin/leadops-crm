@@ -16,14 +16,15 @@ import { getCrmPageErrorCopy, logCrmPageError } from "@/lib/crm/runtime";
 import { hasConfiguredEnvValue, normalizeEnvValue } from "@/lib/env-utils";
 import { redirect } from "next/navigation";
 import { leadStore } from "@/lib/storage";
+import { appRoutes } from "@/lib/app-routes";
 
 export const dynamic = "force-dynamic";
 
 export default async function AdminGoogleSheetsIntegrationPage() {
   const { role, accessLevel, actualAccessLevel, canSwitchAccessViews } =
-    await getAdminAccessContext("/admin/integrations/google-sheets");
+    await getAdminAccessContext(appRoutes.integration("google-sheets"));
   if (!canManageIntegrations(accessLevel, role)) {
-    redirect("/admin");
+    redirect(appRoutes.dashboard);
   }
   let jobs: Awaited<ReturnType<typeof leadStore.listSyncJobs>> = [];
   let pageError: unknown = null;
@@ -111,12 +112,12 @@ export default async function AdminGoogleSheetsIntegrationPage() {
                     <div key={job.id} className="admin-surface-muted rounded-2xl p-4">
                       <div className="flex flex-wrap items-start justify-between gap-3">
                         <div>
-                          <p className="text-base font-semibold text-slate-950">{formatSyncJobTypeLabel(job.jobType)}</p>
-                          <p className="mt-1.5 text-sm text-slate-500">
+                          <p className="text-base font-semibold text-white">{formatSyncJobTypeLabel(job.jobType)}</p>
+                          <p className="mt-1.5 text-sm text-white/60">
                             {job.errorMessage || "Finished without any recorded issues."}
                           </p>
                         </div>
-                        <p className="text-sm text-slate-600">{formatSyncJobStatusLabel(job.status)}</p>
+                        <p className="text-sm text-white/70">{formatSyncJobStatusLabel(job.status)}</p>
                       </div>
                     </div>
                   ))

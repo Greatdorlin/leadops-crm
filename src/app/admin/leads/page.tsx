@@ -10,6 +10,7 @@ import { LeadDataTable } from "@/components/admin/LeadDataTable";
 import { LeadLifecycleButton } from "@/components/admin/LeadLifecycleButton";
 import { QueueStatChip } from "@/components/admin/QueueStatChip";
 import { SearchInput } from "@/components/admin/SearchInput";
+import { AdminWorkspaceComposer } from "@/components/admin/AdminWorkspaceComposer";
 import { getAdminAccessContext } from "@/lib/admin";
 import { parseLeadListFilters } from "@/lib/admin-leads";
 import { loadAdminLeadReadContext } from "@/lib/crm/admin-read-context";
@@ -30,6 +31,7 @@ import {
 import { crmLabelize } from "@/lib/crm/formatters";
 import { getCrmPageErrorCopy, logCrmPageError } from "@/lib/crm/runtime";
 import { buildAdminLeadListItem } from "@/lib/crm/view-models";
+import { appRoutes } from "@/lib/app-routes";
 import { leadStore } from "@/lib/storage";
 
 export const dynamic = "force-dynamic";
@@ -204,7 +206,7 @@ function buildLeadsHref(
   }
 
   if (params.stage && params.stage !== "all") {
-    query.set("crmStatus", params.stage);
+    query.set("stage", params.stage);
   }
 
   if (params.source && params.source !== "all") {
@@ -232,7 +234,7 @@ function buildLeadsHref(
   }
 
   const serialized = query.toString();
-  return serialized ? `/admin/leads?${serialized}` : "/admin/leads";
+  return serialized ? `${appRoutes.leads}?${serialized}` : appRoutes.leads;
 }
 
 export default async function AdminLeadsPage({
@@ -246,7 +248,7 @@ export default async function AdminLeadsPage({
     accessLevel,
     actualAccessLevel,
     canSwitchAccessViews,
-  } = await getAdminAccessContext("/admin/leads");
+  } = await getAdminAccessContext(appRoutes.leads);
   const params = await searchParams;
   const filters = parseLeadListFilters(params);
   const selectedStage = readStageFilter(params) ?? (filters.stageId === "all" ? "all" : filters.stageId);
@@ -366,9 +368,13 @@ export default async function AdminLeadsPage({
           label: user.fullName || user.email,
           value: user.email,
         }));
-  const [previewConfig, leadRows] = await (async () => {
+  const [previewConfig, leadRows, leadCaptureCustomFields] = await (async () => {
     if (usingDevelopmentDemoData) {
-      return [DEFAULT_LEAD_PREVIEW_CONFIG, buildDevelopmentLeadRows()] as const;
+      return [
+        DEFAULT_LEAD_PREVIEW_CONFIG,
+        buildDevelopmentLeadRows(),
+        [] as Awaited<ReturnType<typeof listCustomFields>>,
+      ] as const;
     }
 
     try {
@@ -376,6 +382,7 @@ export default async function AdminLeadsPage({
           listCustomFields(),
           getCompanySettings(),
         ]);
+        const formVisibleCustomFields = customFields.filter((field) => field.showInForm && !field.archived);
         const resolvedPreviewConfig = resolveLeadPreviewConfig(workspaceSettings.leadPreview, customFields);
         const tableVisibleCustomFields = getTableVisibleCustomFields(customFields, {
           limit: resolvedPreviewConfig.maxCustomFieldColumns,
@@ -392,6 +399,7 @@ export default async function AdminLeadsPage({
               customFieldValues: readContext.customFieldValuesByLeadId.get(lead.id) ?? [],
             }),
           ),
+          formVisibleCustomFields,
         ] as const;
     } catch (error) {
       if (process.env.NODE_ENV === "production") {
@@ -407,6 +415,7 @@ export default async function AdminLeadsPage({
             customFieldValues: [],
           }),
         ),
+        [] as Awaited<ReturnType<typeof listCustomFields>>,
       ] as const;
     }
   })();
@@ -423,13 +432,13 @@ export default async function AdminLeadsPage({
       actions={
         <>
           <Link
-            href="/admin#action-center"
+            href="#lead-action-center"
             className="admin-button-primary inline-flex h-10 items-center justify-center rounded-full px-4 text-sm font-semibold"
           >
             Add lead
           </Link>
           <Link
-            href="/admin#action-center"
+            href="#lead-action-center"
             className="admin-button-secondary inline-flex h-10 items-center justify-center rounded-full px-4 text-sm font-medium"
           >
             Import leads
@@ -443,25 +452,25 @@ export default async function AdminLeadsPage({
         <section className="ld-glass-panel rounded-[32px] p-5 sm:p-6">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
             <div className="max-w-3xl">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/54">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/70">
                 Lead queue
               </p>
-              <h2 className="mt-2 font-[family:var(--font-heading)] text-[2.4rem] leading-none tracking-[-0.05em] text-white sm:text-[2.9rem]">
-                Leads dashboard
+              <h2 className="mt-2 font-[family:var(--font-heading)] text-[2.4rem] leading-[1.1] tracking-[-0.05em] text-white sm:text-[2.9rem]">
+                Leads
               </h2>
-              <p className="mt-2 text-sm leading-6 text-white/66">Filter, assign, import, and export the current segment.</p>
+              <p className="mt-2 text-sm leading-6 text-white/70">Filter the queue, assign owners quickly, and export the right segment.</p>
             </div>
             <div className="flex flex-wrap gap-3">
               {showTrashFolder ? (
                 <Link
-                  href="/admin/leads/trash"
+                  href={appRoutes.leadsTrash}
                   className="ld-floating-control inline-flex h-11 items-center justify-center rounded-2xl px-5 text-sm font-medium"
                 >
                   Trash ({safeNumber(trashCount)})
                 </Link>
               ) : null}
               <Link
-                href="/admin"
+                href={appRoutes.dashboard}
                 className="ld-floating-control inline-flex h-11 items-center justify-center rounded-2xl px-5 text-sm font-medium"
               >
                 Back to dashboard
@@ -498,8 +507,8 @@ export default async function AdminLeadsPage({
         </section>
 
         <FilterBar>
-          <form action="/admin/leads" className="grid gap-3">
-            <div className="grid gap-3 xl:grid-cols-[minmax(0,1.35fr)_minmax(170px,0.55fr)_minmax(170px,0.55fr)_minmax(170px,0.55fr)_minmax(180px,0.6fr)_minmax(210px,0.75fr)]">
+          <form action={appRoutes.leads} className="grid gap-3">
+            <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-[minmax(0,1.35fr)_minmax(170px,0.55fr)_minmax(170px,0.55fr)_minmax(170px,0.55fr)_minmax(180px,0.6fr)_minmax(210px,0.75fr)] [&>*]:min-w-0">
               <SearchInput
                 defaultValue={filters.search}
                 placeholder="Search name, region, email, phone, source, or owner"
@@ -549,7 +558,7 @@ export default async function AdminLeadsPage({
 
             <div className="grid gap-3 sm:grid-cols-2 lg:max-w-xl">
               <label className="space-y-2">
-                <span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/50">Created from</span>
+                <span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/70">Created from</span>
                 <input
                   type="date"
                   name="createdFrom"
@@ -558,7 +567,7 @@ export default async function AdminLeadsPage({
                 />
               </label>
               <label className="space-y-2">
-                <span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/50">Created to</span>
+                <span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/70">Created to</span>
                 <input
                   type="date"
                   name="createdTo"
@@ -576,17 +585,41 @@ export default async function AdminLeadsPage({
                 Apply filters
               </button>
               <Link
-                href="/admin/leads"
+                href={appRoutes.leads}
                 className="admin-button-secondary inline-flex h-11 items-center justify-center rounded-2xl px-5 text-sm font-medium"
               >
                 Reset
               </Link>
-              <div className="rounded-full border border-white/10 bg-white/[0.07] px-3 py-2 text-xs font-medium text-white/58">
+              <div className="rounded-full border border-white/10 bg-white/[0.07] px-3 py-2 text-xs font-medium text-white/70">
                 {hasFilters ? "Filtered view" : "All leads"}
               </div>
             </div>
           </form>
         </FilterBar>
+
+        <div id="lead-action-center">
+          <AdminWorkspaceComposer
+            accessLevel={accessLevel}
+            leadOptions={leadRows.map((lead) => ({
+              value: lead.id,
+              label: `${lead.displayName} • ${lead.email || lead.phone || "No contact yet"}`,
+            }))}
+            assignmentLeadOptions={leadRows
+              .filter((lead) => !lead.assignedTo || lead.stage === "new")
+              .map((lead) => ({
+                value: lead.id,
+                label: `${lead.displayName} • ${lead.email || lead.phone || "No contact yet"}`,
+                assignedTo: lead.assignedTo,
+                stage: lead.stage ?? "new",
+                priority: lead.priority,
+              }))}
+            assigneeOptions={assigneeOptions}
+            defaultAssignedTo={accessLevel === "sales_rep" ? session.user?.email ?? "" : ""}
+            variant="compact"
+            leadCaptureCustomFields={leadCaptureCustomFields}
+            allowedModes={accessLevel === "sales_rep" ? ["lead"] : ["lead", "assignment", "import"]}
+          />
+        </div>
 
         <section className="space-y-4">
           <LeadDataTable
@@ -598,7 +631,7 @@ export default async function AdminLeadsPage({
             renderActions={(lead) => (
               <>
                 <Link
-                  href={`/admin/leads/${lead.id}`}
+                  href={appRoutes.lead(lead.id)}
                   className="admin-button-secondary inline-flex h-10 items-center justify-center rounded-full px-4 text-sm font-medium"
                 >
                   Open
@@ -607,7 +640,7 @@ export default async function AdminLeadsPage({
                   <LeadLifecycleButton
                     leadId={lead.id}
                     action="trash"
-                    className="inline-flex h-10 items-center justify-center rounded-full border border-rose-200 bg-rose-50 px-4 text-sm font-medium text-rose-700 transition hover:bg-rose-100"
+                    className="inline-flex h-10 items-center justify-center rounded-full border border-rose-300/30 bg-rose-400/10 px-4 text-sm font-medium text-rose-100 transition hover:bg-rose-400/15"
                   />
                 ) : null}
               </>
@@ -615,7 +648,7 @@ export default async function AdminLeadsPage({
           />
 
           <div className="ld-glass-card ld-glass-soft flex flex-col gap-3 rounded-[26px] px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5">
-            <p className="text-sm leading-6 text-white/60">
+            <p className="text-sm leading-6 text-white/70">
               Page {safeNumber(currentPage)} of {safeNumber(totalPages)}.
             </p>
             <div className="flex flex-wrap gap-2">

@@ -2,6 +2,12 @@ import type { SalesDashboardSummary } from "@/lib/crm/sales-metrics";
 import { EmptyState } from "./EmptyState";
 import { MetricCard } from "./MetricCard";
 import { SectionHeader } from "./SectionHeader";
+import {
+  HorizontalBarChart,
+  VerticalBarChart,
+  DonutChart,
+  PieChartLegend,
+} from "@/components/admin/charts";
 
 function formatMoney(value: number, currency = "NGN") {
   return `${currency} ${value.toLocaleString()}`;
@@ -12,6 +18,32 @@ export function SalesCommandReports({
 }: {
   summary: SalesDashboardSummary;
 }) {
+  const sourceChartData = summary.topSources.map((source) => ({
+    label: source.label,
+    value: source.totalLeads,
+    meta: `${source.wonLeads} won • ${source.conversionRate}% conversion`,
+  }));
+
+  const stageChartData = summary.stagePerformance.map((stage) => ({
+    label: stage.label,
+    value: stage.totalLeads,
+  }));
+
+  const repChartData = summary.repPerformance.map((rep) => ({
+    label: rep.label,
+    value: rep.assignedLeads,
+    meta: `${rep.overdueFollowUps} overdue follow-ups`,
+  }));
+
+  const intakeChartData = [
+    { label: "Lead Created", value: summary.intakeSummary.leadCreated },
+    { label: "Mapped", value: summary.intakeSummary.mapped },
+    { label: "Failed", value: summary.intakeSummary.failed },
+  ];
+
+  const hasIntakeData = intakeChartData.some((d) => d.value > 0);
+  const totalIntake = intakeChartData.reduce((sum, d) => sum + d.value, 0);
+
   return (
     <div className="space-y-6">
       <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-6">
@@ -31,24 +63,15 @@ export function SalesCommandReports({
               title="Which sources are converting"
               description="Lead volume, pipeline value, and won value by source."
             />
-            <div className="mt-4 space-y-3">
+            <div className="mt-4">
               {summary.topSources.length > 0 ? (
-                summary.topSources.map((source) => (
-                  <div key={source.label} className="admin-surface-muted rounded-2xl p-4">
-                    <div className="flex flex-wrap items-start justify-between gap-3">
-                      <div>
-                        <p className="text-base font-semibold text-slate-950">{source.label}</p>
-                        <p className="mt-1.5 text-sm text-slate-500">
-                          {source.totalLeads} leads • {source.wonLeads} won • {source.conversionRate}% conversion
-                        </p>
-                      </div>
-                      <div className="text-right text-sm text-slate-600">
-                        <p>{formatMoney(source.pipelineValue, summary.target?.currency ?? "NGN")} pipeline</p>
-                        <p className="mt-1">{formatMoney(source.wonValue, summary.target?.currency ?? "NGN")} won</p>
-                      </div>
-                    </div>
-                  </div>
-                ))
+                <HorizontalBarChart
+                  data={sourceChartData}
+                  showLabels={true}
+                  showValues={true}
+                  showMeta={true}
+                  animate={true}
+                />
               ) : (
                 <EmptyState
                   title="No source performance yet"
@@ -64,24 +87,15 @@ export function SalesCommandReports({
               title="Who is closing and who is stuck"
               description="Lead ownership, overdue follow-ups, and results by rep."
             />
-            <div className="mt-4 space-y-3">
+            <div className="mt-4">
               {summary.repPerformance.length > 0 ? (
-                summary.repPerformance.map((row) => (
-                  <div key={row.id} className="admin-surface-muted rounded-2xl p-4">
-                    <div className="flex flex-wrap items-start justify-between gap-3">
-                      <div>
-                        <p className="text-base font-semibold text-slate-950">{row.label}</p>
-                        <p className="mt-1.5 text-sm text-slate-500">
-                          {row.assignedLeads} leads • {row.overdueFollowUps} overdue
-                        </p>
-                      </div>
-                      <div className="text-right text-sm text-slate-600">
-                        <p>{formatMoney(row.pipelineValue, summary.target?.currency ?? "NGN")} pipeline</p>
-                        <p className="mt-1">{formatMoney(row.wonValue, summary.target?.currency ?? "NGN")} won</p>
-                      </div>
-                    </div>
-                  </div>
-                ))
+                <HorizontalBarChart
+                  data={repChartData}
+                  showLabels={true}
+                  showValues={true}
+                  showMeta={true}
+                  animate={true}
+                />
               ) : (
                 <EmptyState
                   title="No rep performance yet"
@@ -99,19 +113,16 @@ export function SalesCommandReports({
               title="Where leads are getting stuck"
               description="Current lead volume and value by stage."
             />
-            <div className="mt-4 space-y-3">
+            <div className="mt-4">
               {summary.stagePerformance.length > 0 ? (
-                summary.stagePerformance.map((stage) => (
-                  <div key={stage.label} className="admin-surface-muted flex items-start justify-between gap-4 rounded-2xl px-4 py-3">
-                    <div>
-                      <p className="text-sm font-semibold text-slate-950">{stage.label}</p>
-                      <p className="mt-1 text-sm text-slate-500">
-                        {formatMoney(stage.pipelineValue, summary.target?.currency ?? "NGN")} pipeline
-                      </p>
-                    </div>
-                    <p className="text-sm font-semibold text-slate-950">{stage.totalLeads}</p>
-                  </div>
-                ))
+                <div className="ld-animate-fade-in" style={{ height: 240 }}>
+                  <VerticalBarChart
+                    data={stageChartData}
+                    showLabels={true}
+                    showValues={true}
+                    animate={true}
+                  />
+                </div>
               ) : (
                 <EmptyState
                   title="No stage performance yet"
@@ -127,10 +138,27 @@ export function SalesCommandReports({
               title="Webhook success and failure"
               description="A simple summary of successful and failed intake activity."
             />
-            <div className="mt-4 grid gap-3">
-              <MetricCard label="Lead created" value={summary.intakeSummary.leadCreated} supporting="Webhook deliveries that created or updated a lead." tone="positive" />
-              <MetricCard label="Failed" value={summary.intakeSummary.failed} supporting="Intake submissions that need review." tone={summary.intakeSummary.failed > 0 ? "danger" : "positive"} />
-              <MetricCard label="Mapped" value={summary.intakeSummary.mapped} supporting="Payloads validated before lead creation." />
+            <div className="mt-4 space-y-4">
+              {hasIntakeData ? (
+                <div className="flex flex-col items-center gap-4 sm:flex-row sm:items-start">
+                  <DonutChart
+                    data={intakeChartData}
+                    size={140}
+                    strokeWidth={16}
+                    innerText={totalIntake.toLocaleString()}
+                    innerSubtext="Total"
+                    animate={true}
+                  />
+                  <div className="w-full sm:flex-1">
+                    <PieChartLegend data={intakeChartData} showPercent={true} />
+                  </div>
+                </div>
+              ) : null}
+              <div className="grid gap-3">
+                <MetricCard label="Lead created" value={summary.intakeSummary.leadCreated} supporting="Webhook deliveries that created or updated a lead." tone="positive" />
+                <MetricCard label="Failed" value={summary.intakeSummary.failed} supporting="Intake submissions that need review." tone={summary.intakeSummary.failed > 0 ? "danger" : "positive"} />
+                <MetricCard label="Mapped" value={summary.intakeSummary.mapped} supporting="Payloads validated before lead creation." />
+              </div>
             </div>
           </section>
         </div>

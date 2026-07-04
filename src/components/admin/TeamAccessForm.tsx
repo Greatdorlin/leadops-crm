@@ -129,7 +129,7 @@ export function TeamAccessForm({
             Remove
           </button>
         ) : null}
-        <p className="text-xs text-white/45">Max 2MB.</p>
+        <p className="text-xs text-white/70">Max 2MB.</p>
       </div>
       <div className="grid gap-3 lg:grid-cols-[1fr_1fr_0.8fr_auto]">
         <input
@@ -175,7 +175,7 @@ export function TeamAccessForm({
           className="admin-toggle shrink-0"
         />
       </label>
-      {message ? <p className="mt-3 text-sm text-white/62">{message}</p> : null}
+      {message ? <p className="mt-3 text-sm text-white/70">{message}</p> : null}
     </div>
   );
 }

@@ -3,11 +3,14 @@ import { AdminSignOutButton } from "@/components/admin/AdminSignOutButton";
 import { EmptyState } from "@/components/admin/EmptyState";
 import { ErrorState } from "@/components/admin/ErrorState";
 import { MetricCard } from "@/components/admin/MetricCard";
+import { AnimatedCard } from "@/components/admin/ui/AnimatedCard";
+import { GlassSurface } from "@/components/admin/ui/GlassSurface";
 import { SalesCommandReports } from "@/components/admin/SalesCommandReports";
 import { SectionHeader } from "@/components/admin/SectionHeader";
 import { getAdminAccessContext } from "@/lib/admin";
 import { buildTeamPerformance } from "@/lib/admin-insights";
 import { canManageIntegrationsAccess } from "@/lib/admin-permissions";
+import { appRoutes } from "@/lib/app-routes";
 import {
   crmLabelize,
   formatLeadSourceLabel,
@@ -23,7 +26,7 @@ export const dynamic = "force-dynamic";
 
 export default async function AdminReportsPage() {
   const { session, role, accessLevel, actualAccessLevel, canSwitchAccessViews } =
-    await getAdminAccessContext("/admin/reports");
+    await getAdminAccessContext(appRoutes.reports);
   const showTeamOnly = accessLevel === "lead_sales_rep";
   const showPersonalOnly = accessLevel === "sales_rep";
   const showSourceAndCampaignReports =
@@ -119,6 +122,18 @@ export default async function AdminReportsPage() {
       actions={<AdminSignOutButton />}
     >
       <div className="space-y-6">
+        <SectionHeader
+          eyebrow="Overview"
+          title={showPersonalOnly ? "My performance" : "Reports"}
+          description={
+            showPersonalOnly
+              ? "Your lead progress, follow-up output, and conversion results."
+              : showTeamOnly
+                ? "Team workload, qualification progress, and rep performance."
+                : "Pipeline, demand, source quality, and team performance across the CRM."
+          }
+          className="ld-animate-fade-in-up"
+        />
         {showPersonalOnly ? null : <SalesCommandReports summary={salesReportSummary} />}
         {showPersonalOnly ? (
           <>
@@ -132,7 +147,7 @@ export default async function AdminReportsPage() {
 
             <section className="grid gap-6 xl:grid-cols-12">
               <div className="space-y-6 xl:col-span-7">
-                <section className="admin-surface rounded-[24px] p-5">
+                <GlassSurface as="section" className="rounded-[24px] p-5 ld-animate-fade-in-up">
                   <SectionHeader
                     eyebrow="Pipeline"
                     title="My lead stages"
@@ -142,8 +157,8 @@ export default async function AdminReportsPage() {
                     {reportSummary.statusReport.length > 0 ? (
                       reportSummary.statusReport.map((item) => (
                         <div key={item.label} className="admin-surface-muted flex items-center justify-between rounded-2xl px-4 py-3">
-                          <span className="text-slate-700">{item.label}</span>
-                          <span className="font-semibold text-slate-950">{item.value}</span>
+                          <span className="text-white/80">{item.label}</span>
+                          <span className="font-semibold text-white">{item.value}</span>
                         </div>
                       ))
                     ) : (
@@ -153,11 +168,11 @@ export default async function AdminReportsPage() {
                       />
                     )}
                   </div>
-                </section>
+                </GlassSurface>
               </div>
 
               <div className="space-y-6 xl:col-span-5">
-                <section className="admin-surface rounded-[24px] p-5">
+                <GlassSurface as="section" className="rounded-[24px] p-5 ld-animate-fade-in-up">
                   <SectionHeader
                     eyebrow="Focus"
                     title="My priority signals"
@@ -168,7 +183,7 @@ export default async function AdminReportsPage() {
                     <MetricCard label="Overdue tasks" value={personalRow?.overdueTasks ?? 0} supporting="Follow-ups that need a catch-up." tone="danger" />
                     <MetricCard label="High-priority leads" value={personalRow?.highPriorityLeads ?? 0} supporting="Leads worth moving early." tone="warning" />
                   </div>
-                </section>
+                </GlassSurface>
               </div>
             </section>
           </>
@@ -188,7 +203,7 @@ export default async function AdminReportsPage() {
 
             <section className="grid gap-6 xl:grid-cols-12">
               <div className="space-y-6 xl:col-span-7">
-                <section className="admin-surface rounded-[24px] p-5">
+                <GlassSurface as="section" className="rounded-[24px] p-5 ld-animate-fade-in-up">
                   <SectionHeader
                     eyebrow="Team performance"
                     title="Rep workload and results"
@@ -200,17 +215,17 @@ export default async function AdminReportsPage() {
                         <div key={row.id} className="admin-surface-muted rounded-2xl p-4">
                           <div className="flex flex-wrap items-start justify-between gap-3">
                             <div>
-                              <p className="text-base font-semibold text-slate-950">{row.fullName || row.email}</p>
-                              <p className="mt-1.5 text-sm text-slate-500">{crmLabelize(row.accessLevel)}</p>
+                              <p className="text-base font-semibold text-white">{row.fullName || row.email}</p>
+                              <p className="mt-1.5 text-sm text-white/60">{crmLabelize(row.accessLevel)}</p>
                             </div>
-                            <p className="text-sm font-semibold text-slate-700">{row.assignedLeads} leads</p>
+                            <p className="text-sm font-semibold text-white/80">{row.assignedLeads} leads</p>
                           </div>
-                          <div className="mt-4 grid gap-3 text-sm text-slate-600 md:grid-cols-5">
-                            <p>Open tasks: <span className="text-slate-800">{row.openTasks}</span></p>
-                            <p>Overdue: <span className="text-slate-800">{row.overdueTasks}</span></p>
-                            <p>Contacted: <span className="text-slate-800">{row.contactedLeads}</span></p>
-                            <p>Qualified: <span className="text-slate-800">{row.qualifiedLeads}</span></p>
-                            <p>Converted: <span className="text-slate-800">{row.convertedLeads}</span></p>
+                          <div className="mt-4 grid gap-3 text-sm text-white/70 md:grid-cols-5">
+                            <p>Open tasks: <span className="text-white/90">{row.openTasks}</span></p>
+                            <p>Overdue: <span className="text-white/90">{row.overdueTasks}</span></p>
+                            <p>Contacted: <span className="text-white/90">{row.contactedLeads}</span></p>
+                            <p>Qualified: <span className="text-white/90">{row.qualifiedLeads}</span></p>
+                            <p>Converted: <span className="text-white/90">{row.convertedLeads}</span></p>
                           </div>
                         </div>
                       ))
@@ -221,10 +236,10 @@ export default async function AdminReportsPage() {
                       />
                     )}
                   </div>
-                </section>
+                </GlassSurface>
 
                 {showSourceAndCampaignReports ? (
-                  <section className="admin-surface rounded-[24px] p-5">
+                  <GlassSurface as="section" className="rounded-[24px] p-5 ld-animate-fade-in-up">
                     <SectionHeader
                       eyebrow="Lead sources"
                       title="Source performance"
@@ -236,14 +251,14 @@ export default async function AdminReportsPage() {
                           <div key={item.source} className="admin-surface-muted rounded-2xl p-4">
                             <div className="flex items-start justify-between gap-4">
                               <div>
-                                <p className="text-base font-semibold text-slate-950">
+                                <p className="text-base font-semibold text-white">
                                   {formatLeadSourceLabel(item.source)}
                                 </p>
-                                <p className="mt-1.5 text-sm text-slate-500">
+                                <p className="mt-1.5 text-sm text-white/60">
                                   {item.qualifiedCount} progressing • {item.convertedCount} converted
                                 </p>
                               </div>
-                              <p className="text-xl font-semibold text-slate-950">{item.leadCount}</p>
+                              <p className="text-xl font-semibold text-white">{item.leadCount}</p>
                             </div>
                           </div>
                         ))
@@ -254,13 +269,13 @@ export default async function AdminReportsPage() {
                         />
                       )}
                     </div>
-                  </section>
+                  </GlassSurface>
                 ) : null}
               </div>
 
               <div className="space-y-6 xl:col-span-5">
-                <section className="admin-surface rounded-[24px] p-5">
-                  <SectionHeader
+                <GlassSurface as="section" className="rounded-[24px] p-5 ld-animate-fade-in-up">
+                    <SectionHeader
                     eyebrow="Pipeline status"
                     title="Lead stages"
                     description="Where current lead volume sits in the journey."
@@ -269,8 +284,8 @@ export default async function AdminReportsPage() {
                     {reportSummary.statusReport.length > 0 ? (
                       reportSummary.statusReport.map((item) => (
                         <div key={item.label} className="admin-surface-muted flex items-center justify-between rounded-2xl px-4 py-3">
-                          <span className="text-slate-700">{item.label}</span>
-                          <span className="font-semibold text-slate-950">{item.value}</span>
+                          <span className="text-white/80">{item.label}</span>
+                          <span className="font-semibold text-white">{item.value}</span>
                         </div>
                       ))
                     ) : (
@@ -280,9 +295,9 @@ export default async function AdminReportsPage() {
                       />
                     )}
                   </div>
-                </section>
+                </GlassSurface>
 
-                <section className="admin-surface rounded-[24px] p-5">
+                <GlassSurface as="section" className="rounded-[24px] p-5 ld-animate-fade-in-up">
                   <SectionHeader
                     eyebrow="Demand"
                     title="Top interests and locations"
@@ -290,12 +305,12 @@ export default async function AdminReportsPage() {
                   />
                   <div className="mt-4 grid gap-4 md:grid-cols-2">
                     <div className="space-y-3">
-                      <p className="text-sm font-semibold text-slate-900">Top interests</p>
+                      <p className="text-sm font-semibold text-white">Top interests</p>
                       {reportSummary.interestReport.length > 0 ? (
                         reportSummary.interestReport.slice(0, 5).map((item) => (
                           <div key={item.label} className="admin-surface-muted flex items-center justify-between rounded-2xl px-4 py-3">
-                            <span className="text-sm text-slate-700">{item.label}</span>
-                            <span className="font-semibold text-slate-950">{item.value}</span>
+                            <span className="text-sm text-white/80">{item.label}</span>
+                            <span className="font-semibold text-white">{item.value}</span>
                           </div>
                         ))
                       ) : (
@@ -306,12 +321,12 @@ export default async function AdminReportsPage() {
                       )}
                     </div>
                     <div className="space-y-3">
-                      <p className="text-sm font-semibold text-slate-900">Location interest</p>
-                      {reportSummary.destinationReport.length > 0 ? (
-                        reportSummary.destinationReport.slice(0, 5).map((item) => (
+                      <p className="text-sm font-semibold text-white">Location interest</p>
+                      {reportSummary.locationReport.length > 0 ? (
+                        reportSummary.locationReport.slice(0, 5).map((item) => (
                           <div key={item.label} className="admin-surface-muted flex items-center justify-between rounded-2xl px-4 py-3">
-                            <span className="text-sm text-slate-700">{item.label}</span>
-                            <span className="font-semibold text-slate-950">{item.value}</span>
+                            <span className="text-sm text-white/80">{item.label}</span>
+                            <span className="font-semibold text-white">{item.value}</span>
                           </div>
                         ))
                       ) : (
@@ -322,10 +337,10 @@ export default async function AdminReportsPage() {
                       )}
                     </div>
                   </div>
-                </section>
+                </GlassSurface>
 
                 {showSourceAndCampaignReports ? (
-                  <section className="admin-surface rounded-[24px] p-5">
+                  <GlassSurface as="section" className="rounded-[24px] p-5 ld-animate-fade-in-up">
                     <SectionHeader
                       eyebrow="Campaign performance"
                       title="Stored campaign activity"
@@ -337,19 +352,19 @@ export default async function AdminReportsPage() {
                           <div key={`${campaign.provider}-${campaign.campaignId}`} className="admin-surface-muted rounded-2xl p-4">
                             <div className="flex flex-wrap items-start justify-between gap-3">
                               <div>
-                                <p className="text-base font-semibold text-slate-950">
+                                <p className="text-base font-semibold text-white">
                                   {campaign.campaignName || "Unnamed campaign"}
                                 </p>
-                                <p className="mt-1.5 text-sm text-slate-500">{crmLabelize(campaign.provider)}</p>
+                                <p className="mt-1.5 text-sm text-white/60">{crmLabelize(campaign.provider)}</p>
                               </div>
-                              <p className="text-sm font-semibold text-slate-700">{campaign.costPerLead} CPL</p>
+                              <p className="text-sm font-semibold text-white/80">{campaign.costPerLead} CPL</p>
                             </div>
-                            <div className="mt-4 grid gap-3 text-sm text-slate-600 md:grid-cols-5">
-                              <p>Spend: <span className="text-slate-800">{campaign.spend}</span></p>
-                              <p>Clicks: <span className="text-slate-800">{campaign.clicks}</span></p>
-                              <p>Impressions: <span className="text-slate-800">{campaign.impressions}</span></p>
-                              <p>Leads: <span className="text-slate-800">{campaign.leads}</span></p>
-                              <p>Conversions: <span className="text-slate-800">{campaign.conversions}</span></p>
+                            <div className="mt-4 grid gap-3 text-sm text-white/70 md:grid-cols-5">
+                              <p>Spend: <span className="text-white/90">{campaign.spend}</span></p>
+                              <p>Clicks: <span className="text-white/90">{campaign.clicks}</span></p>
+                              <p>Impressions: <span className="text-white/90">{campaign.impressions}</span></p>
+                              <p>Leads: <span className="text-white/90">{campaign.leads}</span></p>
+                              <p>Conversions: <span className="text-white/90">{campaign.conversions}</span></p>
                             </div>
                           </div>
                         ))
@@ -360,7 +375,7 @@ export default async function AdminReportsPage() {
                         />
                       )}
                     </div>
-                  </section>
+                  </GlassSurface>
                 ) : null}
               </div>
             </section>

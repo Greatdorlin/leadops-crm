@@ -169,7 +169,7 @@ export function LeadOpportunityManager({
             key={label}
             className="rounded-[22px] border border-white/10 bg-white/[0.045] px-4 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]"
           >
-            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/44">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/70">
               {label}
             </p>
             <p className="mt-2 text-lg font-semibold tracking-[-0.04em] text-white">{value}</p>
@@ -177,7 +177,7 @@ export function LeadOpportunityManager({
         ))}
       </div>
 
-      <div className="rounded-[22px] border border-cyan-200/16 bg-cyan-300/8 px-4 py-3 text-sm leading-6 text-white/68">
+      <div className="rounded-[22px] border border-white/16 bg-white/[0.08] px-4 py-3 text-sm leading-6 text-white/70">
         Active, qualified, and on-hold offers stay in pipeline. Lost and unqualified offers keep history
         but stop inflating pipeline value.
       </div>
@@ -201,7 +201,7 @@ export function LeadOpportunityManager({
             >
               <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
                 <div>
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/42">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/70">
                     Offer {index + 1}
                   </p>
                   <p className="mt-1 text-base font-semibold text-white">
@@ -222,8 +222,8 @@ export function LeadOpportunityManager({
                     className={[
                       "rounded-full border px-3 py-1.5 text-xs font-semibold transition",
                       opportunity.isPrimary
-                        ? "border-cyan-200/28 bg-cyan-300/14 text-cyan-100"
-                        : "border-white/10 bg-white/[0.05] text-white/58 hover:bg-white/[0.08]",
+                        ? "border-[var(--ld-color-primary)]/28 bg-[var(--ld-color-primary)]/14 text-white"
+                        : "border-white/10 bg-white/[0.05] text-white/70 hover:bg-white/[0.08]",
                     ].join(" ")}
                   >
                     {opportunity.isPrimary ? "Primary offer" : "Make primary"}
@@ -241,7 +241,7 @@ export function LeadOpportunityManager({
 
               <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
                 <label className="space-y-2 md:col-span-2 xl:col-span-1">
-                  <span className="text-xs font-semibold uppercase tracking-[0.16em] text-white/50">
+                  <span className="text-xs font-semibold uppercase tracking-[0.16em] text-white/70">
                     Offer name
                   </span>
                   <input
@@ -254,7 +254,7 @@ export function LeadOpportunityManager({
                   />
                 </label>
                 <label className="space-y-2">
-                  <span className="text-xs font-semibold uppercase tracking-[0.16em] text-white/50">
+                  <span className="text-xs font-semibold uppercase tracking-[0.16em] text-white/70">
                     Status
                   </span>
                   <AdminSelect
@@ -274,7 +274,7 @@ export function LeadOpportunityManager({
                   </AdminSelect>
                 </label>
                 <label className="space-y-2">
-                  <span className="text-xs font-semibold uppercase tracking-[0.16em] text-white/50">
+                  <span className="text-xs font-semibold uppercase tracking-[0.16em] text-white/70">
                     Potential value
                   </span>
                   <input
@@ -289,7 +289,7 @@ export function LeadOpportunityManager({
                   />
                 </label>
                 <label className="space-y-2">
-                  <span className="text-xs font-semibold uppercase tracking-[0.16em] text-white/50">
+                  <span className="text-xs font-semibold uppercase tracking-[0.16em] text-white/70">
                     Close probability
                   </span>
                   <input
@@ -307,7 +307,7 @@ export function LeadOpportunityManager({
                   />
                 </label>
                 <label className="space-y-2">
-                  <span className="text-xs font-semibold uppercase tracking-[0.16em] text-white/50">
+                  <span className="text-xs font-semibold uppercase tracking-[0.16em] text-white/70">
                     Expected close
                   </span>
                   <input
@@ -322,13 +322,13 @@ export function LeadOpportunityManager({
                   />
                 </label>
                 <div className="rounded-[20px] border border-white/10 bg-black/10 px-4 py-3">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/42">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/70">
                     Expected value
                   </p>
                   <p className="mt-2 text-lg font-semibold text-white">{formatMoney(expectedValue)}</p>
                 </div>
                 <label className="space-y-2 md:col-span-2 xl:col-span-3">
-                  <span className="text-xs font-semibold uppercase tracking-[0.16em] text-white/50">
+                  <span className="text-xs font-semibold uppercase tracking-[0.16em] text-white/70">
                     {requiresReason ? "Why it dropped out" : "Reason or qualification note"}
                   </span>
                   <input
@@ -345,7 +345,7 @@ export function LeadOpportunityManager({
                   />
                 </label>
                 <label className="space-y-2 md:col-span-2 xl:col-span-3">
-                  <span className="text-xs font-semibold uppercase tracking-[0.16em] text-white/50">
+                  <span className="text-xs font-semibold uppercase tracking-[0.16em] text-white/70">
                     Internal notes
                   </span>
                   <textarea
@@ -383,7 +383,7 @@ export function LeadOpportunityManager({
         </button>
       </div>
 
-      {message ? <p className="text-sm text-white/68">{message}</p> : null}
+      {message ? <p className="text-sm text-white/70">{message}</p> : null}
     </div>
   );
 }

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getAdminRequestContext } from "@/lib/admin";
 import {
+  ADMIN_ACCESS_LEVELS,
   canManageTeamMember,
   getGrantableAccessLevels,
   getStoredRoleForAccessLevel,
@@ -29,9 +30,7 @@ const avatarImageSchema = z
 const crmUserUpdateSchema = z.object({
   fullName: z.string().trim().min(1, "Full name is required.").optional(),
   avatarUrl: avatarImageSchema.nullable().optional(),
-  accessLevel: z
-    .enum(["master_admin", "general_admin", "lead_sales_rep", "sales_rep"])
-    .optional(),
+  accessLevel: z.enum(ADMIN_ACCESS_LEVELS).optional(),
   isActive: z.boolean().optional(),
 });
 

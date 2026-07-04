@@ -2,16 +2,18 @@ import { AdminShell } from "@/components/admin/AdminShell";
 import { AdminSignOutButton } from "@/components/admin/AdminSignOutButton";
 import { ErrorState } from "@/components/admin/ErrorState";
 import { GlassCard } from "@/components/admin/GlassCard";
-import { PremiumPageHeader } from "@/components/admin/PremiumPageHeader";
+import { AnimatedCard } from "@/components/admin/ui/AnimatedCard";
+import { SectionHeader } from "@/components/admin/SectionHeader";
 import { TeamMemberProfileForm } from "@/components/admin/TeamMemberProfileForm";
 import { getAdminAccessContext } from "@/lib/admin";
 import { resolveAdminAccessLevel } from "@/lib/admin-permissions";
+import { appRoutes } from "@/lib/app-routes";
 
 export const dynamic = "force-dynamic";
 
 export default async function AdminProfilePage() {
   const { session, crmUser, role, accessLevel, actualAccessLevel, canSwitchAccessViews } =
-    await getAdminAccessContext("/admin/profile");
+    await getAdminAccessContext(appRoutes.profile);
 
   return (
     <AdminShell
@@ -28,23 +30,25 @@ export default async function AdminProfilePage() {
       userAvatarUrl={crmUser?.avatarUrl}
     >
       <div className="mx-auto max-w-4xl space-y-6">
-        <PremiumPageHeader
+        <SectionHeader
           eyebrow="Profile"
           title="My profile"
           description="Keep your sales workspace identity current."
         />
 
         {crmUser ? (
-          <GlassCard glassStyle="vibrant" className="p-5 sm:p-6">
-            <TeamMemberProfileForm
-              userId={crmUser.id}
-              fullName={crmUser.fullName || session.user?.name || session.user?.email || ""}
-              email={crmUser.email || session.user?.email || ""}
-              avatarUrl={crmUser.avatarUrl}
-              accessLevel={resolveAdminAccessLevel({ email: crmUser.email, role: crmUser.role })}
-              isActive={crmUser.isActive}
-            />
-          </GlassCard>
+          <AnimatedCard animation="fadeInUp" variant="elevated" className="ld-animate-fade-in-up">
+            <GlassCard glassStyle="vibrant" className="p-5 sm:p-6">
+              <TeamMemberProfileForm
+                userId={crmUser.id}
+                fullName={crmUser.fullName || session.user?.name || session.user?.email || ""}
+                email={crmUser.email || session.user?.email || ""}
+                avatarUrl={crmUser.avatarUrl}
+                accessLevel={resolveAdminAccessLevel({ email: crmUser.email, role: crmUser.role })}
+                isActive={crmUser.isActive}
+              />
+            </GlassCard>
+          </AnimatedCard>
         ) : (
           <ErrorState
             title="Profile is not ready"

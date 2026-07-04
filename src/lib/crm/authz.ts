@@ -44,6 +44,10 @@ export function getRoleLabel(input: LeadsDeskRole | AdminAuthzSubject | null | u
       return "Manager";
     case "team_lead":
       return "Team Lead";
+    case "finance":
+      return "Finance";
+    case "affiliate":
+      return "Affiliate";
     case "sales_rep":
     default:
       return "Sales Rep";
@@ -124,6 +128,10 @@ export function canManageFormSources(user: AdminAuthzSubject) {
   return role === "owner" || role === "admin";
 }
 
+export function canManageForms(user: AdminAuthzSubject) {
+  return canManageFormSources(user);
+}
+
 export function canManageLeadStages(user: AdminAuthzSubject) {
   const role = resolveRole(user);
   return role === "owner" || role === "admin";
@@ -157,6 +165,29 @@ export function canManageDashboardSettings(user: AdminAuthzSubject) {
 
 export function canManageIndustryPresets(user: AdminAuthzSubject) {
   return canManageSalesTargets(user);
+}
+
+export function canManageCurrencySettings(user: AdminAuthzSubject) {
+  return canManageSalesTargets(user);
+}
+
+export function canManageBranches(user: AdminAuthzSubject) {
+  const role = resolveRole(user);
+  return role === "owner" || role === "admin";
+}
+
+export function canAccessAffiliateDashboard(user: AdminAuthzSubject) {
+  return resolveRole(user) === "affiliate";
+}
+
+export function canReviewApprovalRequests(user: AdminAuthzSubject) {
+  const role = resolveRole(user);
+  return role === "owner" || role === "admin";
+}
+
+export function canVerifyPaymentClaims(user: AdminAuthzSubject) {
+  const role = resolveRole(user);
+  return role === "owner" || role === "admin" || role === "finance";
 }
 
 export function canViewIntakeLogs(user: AdminAuthzSubject) {

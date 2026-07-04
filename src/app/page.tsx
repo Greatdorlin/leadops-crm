@@ -11,6 +11,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { LeadsDeskWordmark } from "@/components/brand/LeadsDeskWordmark";
+import { appRoutes } from "@/lib/app-routes";
 
 const featureCards: Array<{
   description: string;
@@ -63,7 +64,7 @@ export default function HomePage() {
               Learn more
             </Link>
             <Link
-              href="/admin"
+              href={appRoutes.dashboard}
               className="inline-flex items-center justify-center rounded-full bg-[#f5c84c] px-4 py-2 text-sm font-bold text-[#101052] shadow-[0_14px_32px_rgba(245,200,76,0.28)] transition hover:-translate-y-0.5 sm:px-5"
             >
               View dashboard
@@ -86,7 +87,7 @@ export default function HomePage() {
             </p>
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
               <Link
-                href="/admin"
+                href={appRoutes.dashboard}
                 className="inline-flex h-13 items-center justify-center gap-2 rounded-full bg-[#f5c84c] px-7 text-sm font-bold text-[#101052] shadow-[0_18px_40px_rgba(245,200,76,0.26)] transition hover:-translate-y-0.5 sm:text-base"
               >
                 View dashboard

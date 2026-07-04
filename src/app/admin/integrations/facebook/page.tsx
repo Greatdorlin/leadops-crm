@@ -12,14 +12,15 @@ import { getCrmPageErrorCopy, logCrmPageError } from "@/lib/crm/runtime";
 import { normalizeEnvValue } from "@/lib/env-utils";
 import { redirect } from "next/navigation";
 import { leadStore } from "@/lib/storage";
+import { appRoutes } from "@/lib/app-routes";
 
 export const dynamic = "force-dynamic";
 
 export default async function AdminFacebookIntegrationPage() {
   const { role, accessLevel, actualAccessLevel, canSwitchAccessViews } =
-    await getAdminAccessContext("/admin/integrations/facebook");
+    await getAdminAccessContext(appRoutes.integration("facebook"));
   if (!canManageIntegrations(accessLevel, role)) {
-    redirect("/admin");
+    redirect(appRoutes.dashboard);
   }
   let pageData:
     | {
@@ -133,10 +134,10 @@ export default async function AdminFacebookIntegrationPage() {
                     <div key={payload.id} className="admin-surface-muted rounded-2xl p-4">
                       <div className="flex flex-wrap items-start justify-between gap-3">
                         <div>
-                          <p className="text-sm font-semibold text-slate-950">
+                          <p className="text-sm font-semibold text-white">
                             Lead import {payload.externalId || payload.id}
                           </p>
-                          <p className="mt-2 text-sm text-slate-500">{payload.errorMessage || "Unknown error"}</p>
+                          <p className="mt-2 text-sm text-white/60">{payload.errorMessage || "Unknown error"}</p>
                         </div>
                         <AdminActionButton
                           endpoint="/api/integrations/facebook/retry"
@@ -169,7 +170,7 @@ export default async function AdminFacebookIntegrationPage() {
             title="Meta setup"
             description="Use this list when configuring Facebook Lead Ads for the first time."
           />
-          <div className="mt-4 space-y-3 text-sm text-slate-600">
+          <div className="mt-4 space-y-3 text-sm text-white/70">
             {[
               "Set META_APP_ID, META_APP_SECRET, META_VERIFY_TOKEN, META_PAGE_ACCESS_TOKEN, and META_GRAPH_API_VERSION.",
               "Point the Meta webhook subscription to /api/integrations/facebook/webhook.",

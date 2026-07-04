@@ -1,41 +1,21 @@
-import {
-  COMPLETION_STATUSES,
-  CRM_STATUSES,
-  LEAD_PRIORITIES,
-  LEAD_SOURCES,
-  PRIMARY_GOALS,
-} from "@/lib/crm/constants";
-import type {
-  CompletionStatus,
-  CrmStatus,
-  LeadPriority,
-  LeadSource,
-  PrimaryGoal,
-} from "@/lib/crm/types";
+import { CRM_STATUSES, LEAD_PRIORITIES, LEAD_SOURCES } from "@/lib/crm/constants";
+import type { CrmStatus, LeadPriority, LeadSource } from "@/lib/crm/types";
 
 export const leadPriorityRank: Record<LeadPriority, number> = {
-  low: 0,
-  medium: 1,
-  high: 2,
-  urgent: 3,
+  low: 1,
+  medium: 2,
+  high: 3,
+  urgent: 4,
 };
 
-export function isCompletionStatus(value?: string): value is CompletionStatus {
-  return Boolean(value) && COMPLETION_STATUSES.includes(value as CompletionStatus);
+export function isCrmStatus(value: unknown): value is CrmStatus {
+  return typeof value === "string" && CRM_STATUSES.includes(value as CrmStatus);
 }
 
-export function isCrmStatus(value?: string): value is CrmStatus {
-  return Boolean(value) && CRM_STATUSES.includes(value as CrmStatus);
+export function isLeadPriority(value: unknown): value is LeadPriority {
+  return typeof value === "string" && LEAD_PRIORITIES.includes(value as LeadPriority);
 }
 
-export function isLeadSource(value?: string): value is LeadSource {
-  return Boolean(value) && LEAD_SOURCES.includes(value as LeadSource);
-}
-
-export function isLeadPriority(value?: string): value is LeadPriority {
-  return Boolean(value) && LEAD_PRIORITIES.includes(value as LeadPriority);
-}
-
-export function isPrimaryGoal(value?: string): value is PrimaryGoal {
-  return Boolean(value) && PRIMARY_GOALS.includes(value as PrimaryGoal);
+export function isLeadSource(value: unknown): value is LeadSource {
+  return typeof value === "string" && LEAD_SOURCES.includes(value as LeadSource);
 }

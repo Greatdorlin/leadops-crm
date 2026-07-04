@@ -3,6 +3,9 @@
 import { CalendarDays, Clock3 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { AnimatedCard } from "./ui/AnimatedCard";
+import { SmoothButton } from "./ui/SmoothButton";
+import { GradientText } from "./ui/GradientText";
 import { AdminSelect } from "./AdminSelect";
 
 interface TaskOption {
@@ -36,8 +39,8 @@ const minuteOptions = Array.from({ length: 60 }, (_, index) => {
 });
 
 const periodOptions = ["AM", "PM"] as const;
-const labelClass = "text-xs font-semibold uppercase tracking-[0.16em] text-white/54";
-const subtleTextClass = "text-xs text-white/48";
+const labelClass = "text-xs font-semibold uppercase tracking-[0.16em] text-white/70";
+const subtleTextClass = "text-xs text-white/70";
 
 function getDayOptions(year: string, month: string) {
   const maxDays =
@@ -230,7 +233,7 @@ export function LeadTaskForm({
   }
 
   return (
-    <div className="space-y-5">
+    <AnimatedCard animation="fadeInUp" variant="subtle" className="space-y-5">
       <div className="grid gap-3">
         {leadId ? null : (
           <label className="space-y-2">
@@ -256,7 +259,7 @@ export function LeadTaskForm({
             value={title}
             onChange={(event) => setTitle(event.target.value)}
             placeholder="Call back after the demo"
-            className="admin-input h-11 w-full rounded-2xl px-4 text-sm outline-none"
+            className="admin-input ld-focus-ring h-11 w-full rounded-2xl px-4 text-sm outline-none"
           />
         </label>
         <label className="space-y-2">
@@ -266,7 +269,7 @@ export function LeadTaskForm({
             onChange={(event) => setDescription(event.target.value)}
             rows={4}
             placeholder="Add context for the next person touching this lead."
-            className="admin-textarea min-h-[132px] w-full rounded-2xl px-4 py-3 text-sm outline-none"
+            className="admin-textarea ld-focus-ring min-h-[132px] w-full rounded-2xl px-4 py-3 text-sm outline-none"
           />
         </label>
         <div className="grid gap-3">
@@ -297,7 +300,7 @@ export function LeadTaskForm({
                 </button>
               </div>
 
-              <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-white/50">
+              <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-white/70">
                 <CalendarDays className="h-3.5 w-3.5" />
                 Date
               </div>
@@ -337,7 +340,7 @@ export function LeadTaskForm({
                 </AdminSelect>
               </div>
 
-              <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-white/50">
+              <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-white/70">
                 <Clock3 className="h-3.5 w-3.5" />
                 Time
               </div>
@@ -385,7 +388,7 @@ export function LeadTaskForm({
                   <button
                     type="button"
                     onClick={clearDueDate}
-                    className="text-xs font-semibold uppercase tracking-[0.14em] text-cyan-100 transition hover:text-white"
+                    className="text-xs font-semibold uppercase tracking-[0.14em] text-white transition hover:text-white"
                   >
                     Clear
                   </button>
@@ -411,19 +414,19 @@ export function LeadTaskForm({
         </div>
       </div>
       <div className="flex flex-col gap-3 border-t border-white/10 pt-4 sm:flex-row sm:items-end sm:justify-between">
-        <p className="max-w-[18rem] text-sm leading-6 text-white/54">
+        <p className="max-w-[18rem] text-sm leading-6 text-white/70">
           Tasks stay linked to the lead record so handoffs and exports stay consistent.
         </p>
-        <button
-          type="button"
+        <SmoothButton
+          variant="primary"
+          size="md"
           onClick={() => void saveTask()}
-          disabled={isSaving}
-          className="admin-button-primary h-11 self-start rounded-2xl px-5 text-sm"
+          loading={isSaving}
         >
-          {isSaving ? "Saving..." : "Create task"}
-        </button>
+          Create task
+        </SmoothButton>
       </div>
-      {message ? <p className="text-sm text-white/68">{message}</p> : null}
-    </div>
+      {message ? <p className="text-sm text-white/70">{message}</p> : null}
+    </AnimatedCard>
   );
 }

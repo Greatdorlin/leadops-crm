@@ -6,6 +6,7 @@ import { startTransition, useState } from "react";
 import type { AdminAccessLevel } from "@/lib/admin-permissions";
 import { cn } from "@/lib/cn";
 import { formatAdminAccessLevelLabel } from "@/lib/crm/formatters";
+import { SmoothButton } from "./ui/SmoothButton";
 
 export function AdminAccessViewSwitcher({
   actualAccessLevel,
@@ -41,29 +42,29 @@ export function AdminAccessViewSwitcher({
   }
 
   return (
-    <div className="rounded-[20px] border border-slate-200 bg-white px-4 py-3 shadow-[0_8px_20px_rgba(15,23,42,0.04)]">
+    <div className="admin-surface-soft rounded-[20px] px-4 py-3">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="min-w-0">
-          <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[#080b2e]/55">
+          <p className="text-xs font-semibold uppercase tracking-[0.12em] text-white/70">
             View mode
           </p>
-          <p className="mt-1 text-sm leading-5 text-slate-600">
+          <p className="mt-1 text-sm leading-5 text-white/70">
             Signed in as {formatAdminAccessLevelLabel(actualAccessLevel)}. Viewing as{" "}
             {formatAdminAccessLevelLabel(activeAccessLevel)}.
           </p>
         </div>
-        <button
-          type="button"
+        <SmoothButton
+          variant="secondary"
+          size="sm"
           onClick={() => setIsOpen((current) => !current)}
-          className="admin-button-secondary inline-flex h-10 items-center justify-center gap-2 self-start rounded-full px-4 text-sm font-medium"
+          icon={<ChevronDown className={cn("h-4 w-4 transition", isOpen ? "rotate-180" : "")} />}
         >
           {isOpen ? "Hide options" : "Change view"}
-          <ChevronDown className={cn("h-4 w-4 transition", isOpen ? "rotate-180" : "")} />
-        </button>
+        </SmoothButton>
       </div>
 
       {isOpen ? (
-        <div className="mt-3 flex flex-wrap gap-2 border-t border-slate-200 pt-3">
+        <div className="mt-3 flex flex-wrap gap-2 border-t border-white/10 pt-3">
           {(
             ["master_admin", "general_admin", "lead_sales_rep", "sales_rep"] as AdminAccessLevel[]
           ).map((level) => {
@@ -79,12 +80,17 @@ export function AdminAccessViewSwitcher({
                 className={cn(
                   "inline-flex h-10 items-center justify-center rounded-full border px-4 text-sm font-medium transition",
                   isActive
-                    ? "border-[#080b2e] bg-[#080b2e] text-white shadow-[0_12px_24px_rgba(8,11,46,0.16)]"
-                    : "border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:text-slate-950",
+                    ? "border-[color:var(--ld-color-accent)] bg-[linear-gradient(135deg,color-mix(in_srgb,var(--ld-color-primary)_30%,transparent),color-mix(in_srgb,var(--ld-color-accent)_22%,transparent))] text-white shadow-[0_12px_28px_color-mix(in_srgb,var(--ld-color-primary)_18%,transparent),inset_0_1px_0_rgba(255,255,255,0.16)]"
+                    : "border-white/10 bg-white/[0.045] text-white/70 hover:border-white/20 hover:bg-white/[0.08] hover:text-white",
                   isPending && "opacity-70",
                 )}
               >
-                {isPending ? "Switching..." : formatAdminAccessLevelLabel(level)}
+                <span className="relative inline-flex items-center gap-2">
+                  {isActive && !isPending ? (
+                    <span className="h-2 w-2 rounded-full bg-[color:var(--ld-color-accent)] shadow-[0_0_8px_color-mix(in_srgb,var(--ld-color-accent)_60%,transparent)]" />
+                  ) : null}
+                  {isPending ? "Switching..." : formatAdminAccessLevelLabel(level)}
+                </span>
               </button>
             );
           })}

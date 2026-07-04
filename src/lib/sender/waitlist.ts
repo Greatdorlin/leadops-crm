@@ -17,7 +17,6 @@ interface WaitlistSenderResult {
 
 const WAITLIST_GROUP_ENV_BY_GOAL: Partial<Record<GoalWaitlistRecord["goalValue"], string>> = {
   work_and_relocate: "SENDER_WAITLIST_GROUP_ID_WORK_RELOCATE",
-  family_relocation: "SENDER_WAITLIST_GROUP_ID_WORK_RELOCATE",
   visit_or_tour: "SENDER_WAITLIST_GROUP_ID_VISIT_TOURISM",
   business_abroad: "SENDER_WAITLIST_GROUP_ID_BUSINESS_TRAVEL",
 };
@@ -44,8 +43,8 @@ function mapWaitlistToSender(
     groups: [groupId],
     trigger_automation: false,
     fields: {
-      pathway_goal: record.goalValue,
-      pathway_goal_label: record.goalLabel,
+      lead_interest: record.goalValue,
+      lead_interest_label: record.goalLabel,
       source: record.source,
       waitlist_interest: "true",
     },

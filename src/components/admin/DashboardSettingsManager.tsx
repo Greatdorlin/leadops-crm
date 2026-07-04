@@ -8,6 +8,7 @@ import {
   DEFAULT_DASHBOARD_CONFIG,
   type DashboardWidgetKey,
 } from "@/lib/crm/workspace-settings";
+import { GlassSurface, SectionHeader, SmoothButton } from "@/components/admin/ui";
 
 const widgetLabels: Record<DashboardWidgetKey, string> = {
   total_leads: "Total Leads",
@@ -82,29 +83,27 @@ export function DashboardSettingsManager({
   }
 
   return (
-    <section className="admin-surface space-y-5 rounded-[32px] p-5">
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[color:var(--ld-color-accent)]">
-            Dashboard layout
-          </p>
-          <h2 className="mt-2 text-2xl font-semibold tracking-[-0.04em] text-white">Choose what leaders see first</h2>
-        </div>
-        <span className="rounded-full border border-white/10 bg-white/[0.055] px-3 py-1.5 text-xs font-semibold text-white/58">
-          {widgetOrder.length - hiddenWidgets.length} visible
-        </span>
-      </div>
+    <GlassSurface intensity="medium" className="space-y-5 p-5 ld-animate-fade-in-up">
+      <SectionHeader
+        eyebrow="Dashboard layout"
+        title="Choose what leaders see first"
+        actions={
+          <span className="rounded-full border border-white/10 bg-white/[0.055] px-3 py-1.5 text-xs font-semibold text-white/70">
+            {widgetOrder.length - hiddenWidgets.length} visible
+          </span>
+        }
+      />
       <div className="space-y-3">
         {widgetOrder.map((key, index) => (
-          <div key={key} className="admin-surface-soft rounded-[24px] p-4">
+          <div key={key} className="admin-surface-soft rounded-[24px] p-4 ld-animate-fade-in-up" style={{ animationDelay: `${index * 60}ms` }}>
             <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_220px_auto] lg:items-center">
               <div>
                 <p className="text-base font-semibold text-white">{widgetLabels[key]}</p>
-                <p className="mt-1 text-sm text-white/50">Widget order #{index + 1}</p>
+                <p className="mt-1 text-sm text-white/70">Widget order #{index + 1}</p>
               </div>
               <label className="inline-flex items-center justify-between gap-3 rounded-2xl border border-white/10 bg-white/[0.045] px-4 py-3 text-sm font-semibold text-white/70">
                 <span className="inline-flex items-center gap-2">
-                  {hiddenWidgets.includes(key) ? <EyeOff className="h-4 w-4 text-white/42" /> : <Eye className="h-4 w-4 text-cyan-100" />}
+                  {hiddenWidgets.includes(key) ? <EyeOff className="h-4 w-4 text-white/70" /> : <Eye className="h-4 w-4 text-white/70" />}
                   Show widget
                 </span>
                 <input
@@ -138,7 +137,7 @@ export function DashboardSettingsManager({
       </div>
 
       <label className="space-y-2">
-        <span className="text-xs font-semibold uppercase tracking-[0.16em] text-white/50">Default period</span>
+        <span className="text-xs font-semibold uppercase tracking-[0.16em] text-white/70">Default period</span>
         <select
           value={defaultPeriod}
           onChange={(event) => setDefaultPeriod(event.target.value as typeof defaultPeriod)}
@@ -151,28 +150,28 @@ export function DashboardSettingsManager({
       </label>
 
       <div className="flex flex-col gap-3 border-t border-white/10 pt-4 sm:flex-row sm:items-center sm:justify-between">
-        <button
-          type="button"
+        <SmoothButton
+          variant="secondary"
+          size="md"
+          icon={<RotateCcw className="h-4 w-4" />}
           onClick={() => {
             setWidgetOrder([...DEFAULT_DASHBOARD_CONFIG.widgetOrder]);
             setHiddenWidgets([]);
             setDefaultPeriod(DEFAULT_DASHBOARD_CONFIG.defaultPeriod);
           }}
-          className="admin-button-secondary inline-flex h-11 items-center justify-center rounded-2xl px-5 text-sm font-medium"
         >
-          <RotateCcw className="mr-2 h-4 w-4" />
           Reset dashboard
-        </button>
-        <button
-          type="button"
+        </SmoothButton>
+        <SmoothButton
+          variant="primary"
+          size="md"
+          loading={isSaving}
           onClick={() => void saveSettings()}
-          disabled={isSaving}
-          className="admin-button-primary inline-flex h-11 items-center justify-center rounded-2xl px-5 text-sm font-semibold"
         >
           {isSaving ? "Saving..." : "Save dashboard"}
-        </button>
+        </SmoothButton>
       </div>
-      {message ? <p className="text-sm text-white/62">{message}</p> : null}
-    </section>
+      {message ? <p className="text-sm text-white/70">{message}</p> : null}
+    </GlassSurface>
   );
 }

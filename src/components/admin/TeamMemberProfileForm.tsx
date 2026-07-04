@@ -110,8 +110,8 @@ export function TeamMemberProfileForm({
         <TeamAvatar name={fullName} email={email} avatarUrl={avatarUrl} size={compact ? "md" : "lg"} />
         <div className="min-w-0">
           <p className="truncate text-sm font-semibold text-white">{fullName || email}</p>
-          <p className="truncate text-xs text-white/55">{email}</p>
-          <p className="mt-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-cyan-100/70">
+          <p className="truncate text-xs text-white/70">{email}</p>
+          <p className="mt-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-white/70">
             {formatAdminAccessLevelLabel(accessLevel)}
           </p>
         </div>
@@ -119,7 +119,7 @@ export function TeamMemberProfileForm({
 
       <div className={compact ? "grid gap-3" : "grid gap-4 md:grid-cols-2"}>
         <label className="space-y-2">
-          <span className="text-xs font-semibold uppercase tracking-[0.14em] text-white/52">Name</span>
+          <span className="text-xs font-semibold uppercase tracking-[0.14em] text-white/70">Name</span>
           <input
             type="text"
             value={fullName}
@@ -130,7 +130,7 @@ export function TeamMemberProfileForm({
         </label>
 
         <div className="space-y-2">
-          <span className="text-xs font-semibold uppercase tracking-[0.14em] text-white/52">Profile photo</span>
+          <span className="text-xs font-semibold uppercase tracking-[0.14em] text-white/70">Profile photo</span>
           <input
             ref={fileInputRef}
             type="file"
@@ -161,12 +161,12 @@ export function TeamMemberProfileForm({
               </button>
             ) : null}
           </div>
-          <p className="text-xs leading-5 text-white/45">PNG, JPG, WebP, or GIF. Max 2MB.</p>
+          <p className="text-xs leading-5 text-white/70">PNG, JPG, WebP, or GIF. Max 2MB.</p>
         </div>
 
         {canEditAccess && grantableAccessLevels.length > 0 ? (
           <label className="space-y-2">
-            <span className="text-xs font-semibold uppercase tracking-[0.14em] text-white/52">Access</span>
+            <span className="text-xs font-semibold uppercase tracking-[0.14em] text-white/70">Access</span>
             <AdminSelect
               value={accessLevel}
               onChange={(event) => setAccessLevel(event.target.value as AdminAccessLevel)}
@@ -205,7 +205,7 @@ export function TeamMemberProfileForm({
         >
           {isSaving ? "Saving..." : "Save profile"}
         </button>
-        {message ? <p className="text-sm text-white/58">{message}</p> : null}
+        {message ? <p className="text-sm text-white/70">{message}</p> : null}
       </div>
     </div>
   );

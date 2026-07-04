@@ -5,6 +5,8 @@ import { AdminSignOutButton } from "@/components/admin/AdminSignOutButton";
 import { EmptyState } from "@/components/admin/EmptyState";
 import { ErrorState } from "@/components/admin/ErrorState";
 import { MetricCard } from "@/components/admin/MetricCard";
+import { AnimatedCard } from "@/components/admin/ui/AnimatedCard";
+import { GlassSurface } from "@/components/admin/ui/GlassSurface";
 import { SectionHeader } from "@/components/admin/SectionHeader";
 import { TeamAvatar } from "@/components/admin/TeamAvatar";
 import { getAdminAccessContext } from "@/lib/admin";
@@ -110,6 +112,12 @@ export default async function AdminTeamPage() {
       }
     >
       <div className="space-y-6">
+        <SectionHeader
+          eyebrow="Team overview"
+          title="Sales team"
+          description="See workload, ownership, and follow-up pressure."
+          className="ld-animate-fade-in-up"
+        />
         <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
           <MetricCard
             label="Active reps"
@@ -143,7 +151,7 @@ export default async function AdminTeamPage() {
 
         <section className="grid gap-6 xl:grid-cols-[minmax(0,1.45fr)_minmax(320px,0.9fr)]">
           <div>
-            <section className="admin-surface rounded-[28px] p-5 md:p-6">
+            <GlassSurface as="section" className="rounded-[28px] p-5 md:p-6 ld-animate-fade-in-up">
               <SectionHeader
                 eyebrow="Sales rep performance"
                 title="Rep performance"
@@ -152,7 +160,7 @@ export default async function AdminTeamPage() {
               <div className="mt-4 overflow-x-auto">
                 {teamRows.length > 0 ? (
                   <table className="w-full text-left text-sm">
-                    <thead className="border-b border-white/10 text-white/50">
+                    <thead className="border-b border-white/10 text-white/60">
                       <tr>
                         {[
                           "Rep",
@@ -181,7 +189,7 @@ export default async function AdminTeamPage() {
                               />
                               <div className="min-w-0">
                                 <p className="truncate font-semibold text-white">{row.fullName || row.email}</p>
-                                <p className="mt-1 truncate text-xs text-white/52">{row.email}</p>
+                                <p className="mt-1 truncate text-xs text-white/60">{row.email}</p>
                               </div>
                             </div>
                           </td>
@@ -211,11 +219,11 @@ export default async function AdminTeamPage() {
                   />
                 )}
               </div>
-            </section>
+            </GlassSurface>
           </div>
 
           <div className="space-y-6">
-            <section className="admin-surface rounded-[28px] p-5 md:p-6">
+            <GlassSurface as="section" className="rounded-[28px] p-5 md:p-6 ld-animate-fade-in-up">
               <SectionHeader
                 eyebrow="Pressure points"
                 title="Follow-up pressure"
@@ -240,9 +248,9 @@ export default async function AdminTeamPage() {
                   supporting="Priority leads that should be handled before routine work."
                 />
               </div>
-            </section>
+            </GlassSurface>
 
-            <section className="admin-surface rounded-[28px] p-5 md:p-6">
+            <GlassSurface as="section" className="rounded-[28px] p-5 md:p-6 ld-animate-fade-in-up">
               <SectionHeader
                 eyebrow="Task assignment"
                 title="Who needs attention"
@@ -253,26 +261,29 @@ export default async function AdminTeamPage() {
                   teamRows
                     .filter((row) => row.overdueTasks > 0)
                     .slice(0, 5)
-                    .map((row) => (
-                      <div
+                    .map((row, index) => (
+                      <AnimatedCard
                         key={row.id}
-                        className="admin-surface-soft rounded-[24px] px-4 py-4"
+                        variant="subtle"
+                        animation="fadeInUp"
+                        delay={index * 60}
+                        className="rounded-[24px] px-4 py-4"
                       >
                         <div className="flex flex-wrap items-center justify-between gap-3">
                           <div>
                             <p className="text-sm font-semibold text-white">{row.fullName || row.email}</p>
-                            <p className="mt-1 text-sm text-white/58">
+                            <p className="mt-1 text-sm text-white/60">
                               {row.overdueTasks} overdue • {row.openTasks} open tasks
                             </p>
                           </div>
                           <Link
                             href={`${appRoutes.tasks}?assignedTo=${encodeURIComponent(row.email)}&view=all`}
-                            className="rounded-full border border-cyan-200/18 bg-cyan-300/10 px-3 py-1.5 text-sm font-semibold text-cyan-100 transition hover:bg-cyan-300/16"
+                            className="rounded-full border border-white/14 bg-white/[0.07] px-3 py-1.5 text-sm font-semibold text-white/90 transition hover:bg-white/[0.1]"
                           >
                             Open tasks
                           </Link>
                         </div>
-                      </div>
+                      </AnimatedCard>
                     ))
                 ) : (
                   <EmptyState
@@ -289,7 +300,7 @@ export default async function AdminTeamPage() {
                   />
                 )}
               </div>
-            </section>
+            </GlassSurface>
           </div>
         </section>
       </div>

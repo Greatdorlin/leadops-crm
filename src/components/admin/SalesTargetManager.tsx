@@ -10,6 +10,7 @@ import type {
 import { crmLabelize } from "@/lib/crm/formatters";
 import { SALES_TARGET_PERIODS, SALES_TARGET_SCOPES } from "@/lib/crm/domain";
 import { AdminSelect } from "./AdminSelect";
+import { CurrencySelect } from "./CurrencySelect";
 
 type TargetDraft = {
   name: string;
@@ -45,7 +46,7 @@ function createEmptyTargetDraft(): TargetDraft {
     scopeId: "",
     period: "monthly",
     targetValue: "",
-    currency: "NGN",
+    currency: "USD",
     startDate: dates.startDate,
     endDate: dates.endDate,
     isActive: true,
@@ -73,7 +74,7 @@ function buildPayload(draft: TargetDraft) {
     scopeId: draft.scope === "global" ? null : draft.scopeId || null,
     period: draft.period,
     targetValue: Number(draft.targetValue || 0),
-    currency: draft.currency || "NGN",
+    currency: draft.currency || "USD",
     startDate: draft.startDate,
     endDate: draft.endDate,
     isActive: draft.isActive,
@@ -203,16 +204,7 @@ function TargetEditor({
             className="admin-input h-11 w-full rounded-2xl px-4 text-sm outline-none"
           />
         </label>
-        <label className="space-y-2">
-          <span className="text-xs font-semibold uppercase tracking-[0.16em] text-white/52">Currency</span>
-          <input
-            type="text"
-            value={draft.currency}
-            onChange={(event) => onChange({ ...draft, currency: event.target.value.toUpperCase() })}
-            placeholder="NGN"
-            className="admin-input h-11 w-full rounded-2xl px-4 text-sm outline-none"
-          />
-        </label>
+        <CurrencySelect value={draft.currency} onChange={(value) => onChange({ ...draft, currency: value })} label="Currency" />
         <label className="space-y-2">
           <span className="text-xs font-semibold uppercase tracking-[0.16em] text-white/52">Start date</span>
           <input

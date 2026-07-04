@@ -9,7 +9,7 @@ import type { CelebrationMoment } from "@/lib/crm/celebrations";
 const intensityClasses = {
   soft: "from-sky-50 via-white to-emerald-50 border-sky-200/80",
   strong: "from-violet-50 via-white to-sky-50 border-violet-200/80",
-  burst: "from-amber-50 via-white to-emerald-50 border-amber-200/80",
+  burst: "from-amber-500/20 via-white/30 to-emerald-500/20 border-amber-300/20/80",
 } as const;
 
 export function CelebrationPanel({
@@ -88,17 +88,17 @@ export function CelebrationPanel({
           ) : null}
 
           <div className="relative flex items-start gap-3">
-            <span className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-white/70 bg-white/82 text-[color:var(--color-primary)] shadow-[0_12px_28px_rgba(15,23,42,0.08)]">
+            <span className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.08] text-[color:var(--color-primary)] shadow-[0_12px_28px_rgba(0,0,0,0.08)]">
               {celebration.intensity === "burst" ? <Trophy className="h-5 w-5" /> : <Sparkles className="h-5 w-5" />}
             </span>
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-2">
-                <p className="text-base font-semibold text-slate-950">{celebration.title}</p>
-                <span className="rounded-full border border-white/70 bg-white/86 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-700">
+                <p className="text-base font-semibold text-white">{celebration.title}</p>
+                <span className="rounded-full border border-white/10 bg-white/[0.08] px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-white/80">
                   {celebration.badge}
                 </span>
               </div>
-              <p className="mt-1.5 text-sm leading-6 text-slate-600">{celebration.message}</p>
+              <p className="mt-1.5 text-sm leading-6 text-white/70">{celebration.message}</p>
             </div>
             <button
               type="button"
@@ -106,7 +106,7 @@ export function CelebrationPanel({
                 setDismissedKey(celebrationKey);
                 onClose?.();
               }}
-              className="ml-auto rounded-full border border-white/70 bg-white/82 px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.14em] text-slate-500 transition hover:text-slate-900"
+              className="ml-auto rounded-full border border-white/10 bg-white/[0.08] px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.14em] text-white/70 transition hover:text-white"
             >
               Dismiss
             </button>

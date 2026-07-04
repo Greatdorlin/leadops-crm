@@ -97,7 +97,7 @@ export function AdminLeadExportButton() {
               className="flex w-full items-center justify-between rounded-2xl px-3 py-2.5 text-left text-sm font-medium text-white/82 transition hover:bg-white/[0.08] hover:text-white disabled:cursor-wait disabled:opacity-70"
             >
               <span>{option.label}</span>
-              <span className="text-xs uppercase tracking-[0.14em] text-white/42">
+              <span className="text-xs uppercase tracking-[0.14em] text-white/70">
                 {option.format}
               </span>
             </button>
@@ -105,7 +105,7 @@ export function AdminLeadExportButton() {
         </div>
       ) : null}
 
-      {message ? <p className="text-right text-xs text-white/58">{message}</p> : null}
+      {message ? <p className="text-right text-xs text-white/70">{message}</p> : null}
     </div>
   );
 }

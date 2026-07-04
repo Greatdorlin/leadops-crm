@@ -2,14 +2,31 @@ import Link from "next/link";
 import type { LucideIcon } from "lucide-react";
 import { ArrowUpRight } from "lucide-react";
 import { cn } from "@/lib/cn";
+import { AnimatedCard } from "./ui/AnimatedCard";
 
 const toneClasses = {
-  default: "border-slate-200 bg-white text-slate-700",
-  accent: "border-[#d6deff] bg-[#eef2ff] text-[#1f2d78]",
-  warning: "border-amber-200 bg-amber-50 text-amber-800",
-  danger: "border-rose-200 bg-rose-50 text-rose-800",
-  positive: "border-emerald-200 bg-emerald-50 text-emerald-800",
+  default: "border-white/10 bg-white/[0.08] text-white/80",
+  accent: "border-[color:var(--ld-color-accent)]/25 bg-[color:var(--ld-color-accent)]/14 text-[color:var(--ld-color-accent)]",
+  warning: "border-amber-300/20 bg-amber-400/[0.06] text-amber-100",
+  danger: "border-rose-300/20 bg-rose-500/10 text-rose-100",
+  positive: "border-emerald-300/20 bg-emerald-500/10 text-emerald-100",
 } as const;
+
+const contrastLeftBorder = {
+  default: "border-l-white/30",
+  accent: "border-l-[color:var(--ld-color-accent)]",
+  warning: "border-l-amber-400",
+  danger: "border-l-rose-400",
+  positive: "border-l-emerald-400",
+};
+
+const defaultLeftBorder = {
+  default: "border-l-slate-300",
+  accent: "border-l-[#d6deff]",
+  warning: "border-l-amber-300",
+  danger: "border-l-rose-300",
+  positive: "border-l-emerald-300",
+};
 
 export function QueueStatChip({
   label,
@@ -19,6 +36,7 @@ export function QueueStatChip({
   icon: Icon,
   tone = "default",
   surface = "contrast",
+  animationDelay,
 }: {
   label: string;
   value: string | number;
@@ -27,6 +45,7 @@ export function QueueStatChip({
   icon: LucideIcon;
   tone?: keyof typeof toneClasses;
   surface?: "default" | "contrast";
+  animationDelay?: number;
 }) {
   const isContrast = surface === "contrast";
   const iconToneClass = isContrast
@@ -38,29 +57,33 @@ export function QueueStatChip({
         positive: "border-emerald-300/24 bg-emerald-300/14 text-emerald-200",
       }[tone]
     : toneClasses[tone];
+  const leftBorderClass = isContrast
+    ? contrastLeftBorder[tone]
+    : defaultLeftBorder[tone];
+
   const content = (
     <>
-      <div className="flex items-start justify-between gap-4">
+      <div className="flex min-w-0 items-start justify-between gap-4">
         <span
           className={cn(
-            "inline-flex h-10 w-10 items-center justify-center rounded-2xl border",
+            "inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border",
             iconToneClass,
           )}
         >
           <Icon className="h-4 w-4" />
         </span>
         {href ? (
-          <ArrowUpRight className={cn("mt-1 h-4 w-4", isContrast ? "text-white/46" : "text-slate-400")} />
+          <ArrowUpRight className={cn("mt-1 h-4 w-4 shrink-0", isContrast ? "text-white/70" : "text-white/70")} />
         ) : null}
       </div>
-      <div className="mt-4">
-        <p className={cn("text-[11px] font-semibold uppercase tracking-[0.16em]", isContrast ? "text-white/56" : "text-slate-500")}>
+      <div className="mt-4 min-w-0">
+        <p className={cn("min-w-0 text-[11px] font-semibold uppercase tracking-[0.16em]", isContrast ? "text-white/70" : "text-white/70")}>
           {label}
         </p>
-        <p className={cn("mt-2 text-2xl font-semibold tracking-[-0.03em]", isContrast ? "text-white" : "text-slate-950")}>
+        <p className={cn("mt-2 min-w-0 text-2xl font-semibold tracking-[-0.03em]", isContrast ? "text-white" : "text-white")}>
           {value}
         </p>
-        <p className={cn("mt-2 text-sm leading-6", isContrast ? "text-white/68" : "text-slate-500")}>
+        <p className={cn("mt-2 min-w-0 text-sm leading-6", isContrast ? "text-white/70" : "text-white/70")}>
           {hint}
         </p>
       </div>
@@ -72,11 +95,13 @@ export function QueueStatChip({
       <Link
         href={href}
         className={cn(
-          "admin-chip group block rounded-[24px] border p-4 transition hover:-translate-y-[1px]",
+          "ld-glass ld-glass-soft ld-hover-lift ld-animate-fade-in-up group block overflow-hidden rounded-[24px] border-l-4 p-4",
+          leftBorderClass,
           isContrast
             ? "border-white/10 bg-white/[0.08] shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] hover:border-white/16 hover:bg-white/[0.11]"
-            : "border-slate-200 bg-white/94 hover:border-slate-300 hover:shadow-[0_12px_28px_rgba(15,23,42,0.08)]",
+            : "border-white/10 bg-white/[0.08] hover:border-white/15 hover:shadow-[0_12px_28px_rgba(0,0,0,0.08)]",
         )}
+        style={{ animationDelay: animationDelay ? `${animationDelay}ms` : undefined }}
       >
         {content}
       </Link>
@@ -84,13 +109,17 @@ export function QueueStatChip({
   }
 
   return (
-    <div
+    <AnimatedCard
+      variant="subtle"
+      animation="fadeInUp"
+      delay={animationDelay}
       className={cn(
-        "admin-chip rounded-[24px] border p-4",
-        isContrast ? "border-white/10 bg-white/[0.08]" : "border-slate-200 bg-white/94",
+        "rounded-[24px] border-l-4 p-4",
+        leftBorderClass,
+        isContrast ? "border-white/10 bg-white/[0.08]" : "border-white/10 bg-white/[0.08]",
       )}
     >
       {content}
-    </div>
+    </AnimatedCard>
   );
 }

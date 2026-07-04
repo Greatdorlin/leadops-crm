@@ -8,20 +8,20 @@ function getTaskStatus(task: LeadTaskRecord) {
   if (task.completedAt) {
     return {
       label: "Completed",
-      className: "border-emerald-200 bg-emerald-50 text-emerald-700",
+      className: "border-emerald-300/20 bg-emerald-500/10 text-emerald-100",
     };
   }
 
   if (task.dueAt && new Date(task.dueAt).getTime() < Date.now()) {
     return {
       label: "Overdue",
-      className: "border-rose-200 bg-rose-50 text-rose-700",
+      className: "border-rose-300/20 bg-rose-500/10 text-rose-100",
     };
   }
 
   return {
     label: task.dueAt ? "Scheduled" : "Open",
-    className: "border-slate-200 bg-white text-slate-700",
+    className: "border-white/10 bg-white/[0.08] text-white/80",
   };
 }
 
@@ -42,8 +42,8 @@ export function TaskCard({
     <article className="admin-surface-soft rounded-2xl p-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <p className="text-base font-semibold text-slate-950">{task.title}</p>
-          {task.description ? <p className="mt-1.5 text-sm leading-6 text-slate-600">{task.description}</p> : null}
+          <p className="text-base font-semibold text-white">{task.title}</p>
+          {task.description ? <p className="mt-1.5 text-sm leading-6 text-white/70">{task.description}</p> : null}
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <span className={`inline-flex rounded-full border px-3 py-1.5 text-xs font-semibold ${status.className}`}>
@@ -52,10 +52,10 @@ export function TaskCard({
           <PriorityBadge priority={task.completedAt ? "low" : task.dueAt ? "high" : "medium"} />
         </div>
       </div>
-      <div className="mt-4 grid gap-2 text-sm text-slate-500">
-        {leadLabel ? <p>Lead: <span className="text-slate-800">{leadLabel}</span></p> : null}
-        <p>Owner: <span className="text-slate-800">{task.assignedTo || "Unassigned"}</span></p>
-        <p>Due: <span className="text-slate-800">{formatCrmDateTime(task.dueAt)}</span></p>
+      <div className="mt-4 grid gap-2 text-sm text-white/70">
+        {leadLabel ? <p>Lead: <span className="text-white/90">{leadLabel}</span></p> : null}
+        <p>Owner: <span className="text-white/90">{task.assignedTo || "Unassigned"}</span></p>
+        <p>Due: <span className="text-white/90">{formatCrmDateTime(task.dueAt)}</span></p>
       </div>
       {leadHref || actions ? (
         <div className="mt-4 flex flex-wrap gap-2">

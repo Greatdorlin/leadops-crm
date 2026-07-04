@@ -12,14 +12,15 @@ import { getCrmPageErrorCopy, logCrmPageError } from "@/lib/crm/runtime";
 import { normalizeEnvValue } from "@/lib/env-utils";
 import { redirect } from "next/navigation";
 import { leadStore } from "@/lib/storage";
+import { appRoutes } from "@/lib/app-routes";
 
 export const dynamic = "force-dynamic";
 
 export default async function AdminTikTokIntegrationPage() {
   const { role, accessLevel, actualAccessLevel, canSwitchAccessViews } =
-    await getAdminAccessContext("/admin/integrations/tiktok");
+    await getAdminAccessContext(appRoutes.integration("tiktok"));
   if (!canManageIntegrations(accessLevel, role)) {
-    redirect("/admin");
+    redirect(appRoutes.dashboard);
   }
 
   let pageData:
@@ -116,10 +117,10 @@ export default async function AdminTikTokIntegrationPage() {
                     <div key={payload.id} className="admin-surface-muted rounded-2xl p-4">
                       <div className="flex flex-wrap items-start justify-between gap-3">
                         <div>
-                          <p className="text-sm font-semibold text-slate-950">
+                          <p className="text-sm font-semibold text-white">
                             Lead import {payload.externalId || payload.id}
                           </p>
-                          <p className="mt-2 text-sm text-slate-500">{payload.errorMessage || "Unknown error"}</p>
+                          <p className="mt-2 text-sm text-white/60">{payload.errorMessage || "Unknown error"}</p>
                         </div>
                         <AdminActionButton
                           endpoint="/api/integrations/tiktok/retry"
@@ -152,7 +153,7 @@ export default async function AdminTikTokIntegrationPage() {
             title="TikTok setup"
             description="Use this list when configuring TikTok instant form delivery into the CRM."
           />
-          <div className="mt-4 space-y-3 text-sm text-slate-600">
+          <div className="mt-4 space-y-3 text-sm text-white/70">
             {[
               "Set TIKTOK_WEBHOOK_SECRET so the CRM can verify webhook deliveries.",
               "Point TikTok lead delivery to /api/integrations/tiktok/webhook and send the same secret in the configured header or query parameter.",

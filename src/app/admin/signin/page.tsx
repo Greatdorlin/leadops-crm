@@ -10,6 +10,7 @@ import {
   isAdminAuthConfigured,
   isLocalAdminPreviewEnabled,
 } from "@/lib/admin-access";
+import { appRoutes } from "@/lib/app-routes";
 
 export const dynamic = "force-dynamic";
 
@@ -35,7 +36,7 @@ export default async function AdminSignInPage({
   searchParams: Promise<{ callbackUrl?: string; error?: string }>;
 }) {
   const params = await searchParams;
-  const callbackUrl = params.callbackUrl ?? "/admin";
+  const callbackUrl = params.callbackUrl ?? appRoutes.dashboard;
   const errorMessage = getErrorMessage(params.error);
   const authReady = isAdminAuthConfigured();
   const canShowSetupMessage = !authReady && process.env.NODE_ENV !== "production";
@@ -84,27 +85,27 @@ export default async function AdminSignInPage({
           </div>
 
           <div className="mt-8 text-center">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/48">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/60">
               Private workspace
             </p>
             <h1 className="mt-3 font-[family:var(--font-heading)] text-[2.25rem] leading-[1.02] tracking-[-0.06em] text-white sm:text-[2.7rem]">
               {settings.loginHeadline}
             </h1>
-            <p className="mt-3 text-sm leading-7 text-white/66 sm:text-base">
+            <p className="mt-3 text-sm leading-7 text-white/70 sm:text-base">
               {settings.loginSubheadline}
             </p>
           </div>
 
           <div className="mt-8 rounded-[24px] border border-white/10 bg-white/[0.055] p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.09)]">
             {errorMessage ? (
-              <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm leading-6 text-rose-700">
+              <div className="rounded-2xl border border-rose-300/20 bg-rose-500/10 px-4 py-3 text-sm leading-6 text-rose-100">
                 {errorMessage}
               </div>
             ) : null}
 
             {canShowSetupMessage ? (
               <div className="space-y-3">
-                <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm leading-6 text-amber-800">
+                <div className="rounded-2xl border border-amber-300/20 bg-amber-500/10 px-4 py-3 text-sm leading-6 text-amber-100">
                   Google sign-in and initial admin setup need configuration before admin can open.
                 </div>
                 {canUseLocalPreview ? (

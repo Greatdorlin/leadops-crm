@@ -2,6 +2,7 @@ import type { LeadRecord } from "@/lib/crm/types";
 import { formatCustomFieldDisplayValue } from "@/lib/crm/custom-field-values";
 import {
   crmLabelize,
+  formatDisplayLabel,
   formatLeadSourceLabel,
 } from "@/lib/crm/labels";
 import {
@@ -156,7 +157,7 @@ export function resolveLeadSourceDisplay(lead: LeadReadRecord, source?: SourceLi
     return {
       id: source.id,
       key: source.key,
-      label: source.name,
+      label: formatDisplayLabel(source.name, formatLeadSourceLabel(source.key)),
       type: source.type ?? null,
       color: source.color ?? null,
       isNormalized: true,

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { IntakeEventAdminRow } from "@/lib/crm/intake-runtime";
 import { formatCrmDateTime } from "@/lib/crm/formatters";
+import { appRoutes } from "@/lib/app-routes";
 import { EmptyState } from "./EmptyState";
 
 function statusTone(status: IntakeEventAdminRow["status"]) {
@@ -12,10 +13,10 @@ function statusTone(status: IntakeEventAdminRow["status"]) {
     case "mapped":
       return "border-amber-300/24 bg-amber-400/10 text-amber-100";
     case "ignored":
-      return "border-white/10 bg-white/[0.045] text-white/60";
+      return "border-white/10 bg-white/[0.045] text-white/70";
     case "received":
     default:
-      return "border-cyan-300/24 bg-cyan-400/10 text-cyan-100";
+      return "border-[var(--ld-color-primary)]/24 bg-[var(--ld-color-primary)]/10 text-white";
   }
 }
 
@@ -50,9 +51,9 @@ export function IntakeEventTable({
                 >
                   {event.status.replace(/_/g, " ")}
                 </span>
-                <p className="text-sm text-white/54">{event.sourceName || "Unknown source"}</p>
+                <p className="text-sm text-white/70">{event.sourceName || "Unknown source"}</p>
               </div>
-              <p className="text-sm text-white/58">{formatCrmDateTime(event.createdAt)}</p>
+              <p className="text-sm text-white/70">{formatCrmDateTime(event.createdAt)}</p>
               {event.errorMessage ? (
                 <p className="text-sm text-rose-100">{event.errorMessage}</p>
               ) : null}
@@ -60,7 +61,7 @@ export function IntakeEventTable({
             <div className="flex flex-wrap gap-2">
               {event.leadId ? (
                 <Link
-                  href={`/admin/leads/${event.leadId}`}
+                  href={appRoutes.lead(event.leadId)}
                   className="admin-button-secondary inline-flex h-10 items-center justify-center rounded-2xl px-4 text-sm font-medium"
                 >
                   {event.leadName ? `Open ${event.leadName}` : "Open lead"}
@@ -76,7 +77,7 @@ export function IntakeEventTable({
                   key={`${event.id}-${item.label}`}
                   className="rounded-2xl border border-white/10 bg-white/[0.045] px-4 py-3"
                 >
-                  <p className="text-xs font-semibold uppercase tracking-[0.14em] text-white/46">
+                  <p className="text-xs font-semibold uppercase tracking-[0.14em] text-white/70">
                     {item.label}
                   </p>
                   <p className="mt-1.5 text-sm text-white/72 [overflow-wrap:anywhere]">
@@ -92,7 +93,7 @@ export function IntakeEventTable({
               <summary className="cursor-pointer text-sm font-medium text-white/70">
                 Advanced payload
               </summary>
-              <pre className="mt-3 overflow-x-auto rounded-2xl bg-slate-950 p-4 text-xs leading-6 text-slate-100">
+              <pre className="mt-3 overflow-x-auto rounded-2xl bg-black/80 p-4 text-xs leading-6 text-white/90">
                 {JSON.stringify(event.rawPayload, null, 2)}
               </pre>
             </details>

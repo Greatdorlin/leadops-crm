@@ -62,7 +62,7 @@ const metrics = [
     value: "42",
     trend: "+9% vs last 7 days",
     icon: Gauge,
-    glow: "rgba(103,232,249,0.34)",
+    glow: "color-mix(in_srgb,var(--ld-color-primary)_34%,transparent)",
     stroke: "#67e8f9",
   },
   {

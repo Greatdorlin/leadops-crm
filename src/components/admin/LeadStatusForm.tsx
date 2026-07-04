@@ -8,6 +8,8 @@ import { buildLeadStageCelebration, type CelebrationMoment } from "@/lib/crm/cel
 import { crmLabelize } from "@/lib/crm/formatters";
 import type { LeadPriority } from "@/lib/crm/types";
 import { AdminSelect } from "./AdminSelect";
+import { GlassSurface } from "./ui/GlassSurface";
+import { SmoothButton } from "./ui/SmoothButton";
 
 const stageKeys = [
   "new",
@@ -141,16 +143,16 @@ export function LeadStatusForm({
   }
 
   return (
-    <div className="ld-glass-card ld-glass-soft rounded-[24px] p-4">
+    <GlassSurface intensity="medium" className="ld-animate-fade-in-up rounded-[24px] p-4">
       <CelebrationPanel celebration={celebration} onClose={() => setCelebration(null)} className="mb-4" />
-      <div className="mb-4 rounded-[18px] border border-white/10 bg-white/[0.06] px-4 py-3 text-sm leading-6 text-white/58">
+      <div className="mb-4 rounded-[18px] border border-white/10 bg-white/[0.06] px-4 py-3 text-sm leading-6 text-white/70">
         Update routing before the next touch so ownership and status stay clean. Use offer tracking
         below to remove value from offers that go unqualified or lost without losing the rest of the
         lead’s pipeline.
       </div>
       <div className="grid gap-4">
         <label className="space-y-2">
-          <span className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Stage</span>
+          <span className="text-xs font-semibold uppercase tracking-[0.16em] text-white/70">Stage</span>
           <AdminSelect
             value={stage}
             onChange={(event) => setStage(event.target.value)}
@@ -165,7 +167,7 @@ export function LeadStatusForm({
         </label>
 
         <label className="space-y-2">
-          <span className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Priority</span>
+          <span className="text-xs font-semibold uppercase tracking-[0.16em] text-white/70">Priority</span>
           <AdminSelect
             value={priority}
             onChange={(event) => setPriority(event.target.value as LeadPriority)}
@@ -180,7 +182,7 @@ export function LeadStatusForm({
         </label>
 
         <label className="space-y-2">
-          <span className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Assigned owner</span>
+          <span className="text-xs font-semibold uppercase tracking-[0.16em] text-white/70">Assigned owner</span>
           <AdminSelect
             value={assignedTo}
             onChange={(event) => {
@@ -207,18 +209,18 @@ export function LeadStatusForm({
         </label>
 
         <label className="space-y-2">
-          <span className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Next follow-up</span>
+          <span className="text-xs font-semibold uppercase tracking-[0.16em] text-white/70">Next follow-up</span>
           <input
             type="datetime-local"
             value={nextFollowUpAt}
             onChange={(event) => setNextFollowUpAt(event.target.value)}
-            className="admin-input h-12 w-full rounded-2xl px-4 text-sm outline-none"
+            className="admin-input ld-focus-ring h-12 w-full rounded-2xl px-4 text-sm outline-none"
           />
         </label>
 
         {assigneeOptions.length > 1 ? (
           <div className="space-y-2">
-            <span className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
+            <span className="text-xs font-semibold uppercase tracking-[0.16em] text-white/70">
               Also share with
             </span>
             <div className="grid gap-2 rounded-[18px] border border-white/10 bg-white/[0.06] p-3">
@@ -229,13 +231,13 @@ export function LeadStatusForm({
                   return (
                     <label
                       key={option.value}
-                      className="flex items-center gap-3 rounded-2xl border border-white/10 px-3 py-2 text-sm text-white/64"
+                      className="flex items-center gap-3 rounded-2xl border border-white/10 px-3 py-2 text-sm text-white/70"
                     >
                       <input
                         type="checkbox"
                         checked={checked}
                         onChange={() => toggleAdditionalOwner(option.value)}
-                        className="h-4 w-4 rounded border-slate-300 text-slate-900"
+                        className="h-4 w-4 rounded border-white/15 text-white"
                       />
                       <span>{option.label}</span>
                     </label>
@@ -245,18 +247,19 @@ export function LeadStatusForm({
           </div>
         ) : null}
 
-        <div className="flex flex-col gap-3 border-t border-slate-200/80 pt-4">
-          <button
-            type="button"
-            disabled={isSaving}
+        <div className="flex flex-col gap-3 border-t border-white/10/80 pt-4">
+          <SmoothButton
+            variant="primary"
+            size="lg"
             onClick={() => void updateLead()}
-            className="admin-button-primary h-12 w-full rounded-2xl px-5 text-sm"
+            loading={isSaving}
+            className="w-full"
           >
-            {isSaving ? "Saving..." : "Save changes"}
-          </button>
+            Save changes
+          </SmoothButton>
         </div>
       </div>
-      {message ? <p className="mt-3 text-sm text-slate-600">{message}</p> : null}
-    </div>
+      {message ? <p className="mt-3 text-sm text-white/70">{message}</p> : null}
+    </GlassSurface>
   );
 }

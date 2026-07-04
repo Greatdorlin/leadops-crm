@@ -29,8 +29,8 @@ function fieldInputType(type: CustomFieldInputModel["type"]) {
   }
 }
 
-const labelClass = "text-xs font-semibold uppercase tracking-[0.16em] text-white/54";
-const helpClass = "text-xs text-white/46";
+const labelClass = "text-xs font-semibold uppercase tracking-[0.16em] text-white/70";
+const helpClass = "text-xs text-white/70";
 
 export function CustomFieldValueInputs({
   fields,
@@ -134,7 +134,7 @@ export function CustomFieldValueInputs({
               />
               <span className="space-y-1">
                 <span className="block text-sm font-medium text-white">{field.label}</span>
-                {helpText ? <span className="block text-xs text-white/46">{helpText}</span> : null}
+                {helpText ? <span className="block text-xs text-white/70">{helpText}</span> : null}
               </span>
             </label>
           );

@@ -5,6 +5,7 @@ import { AdminSignOutButton } from "@/components/admin/AdminSignOutButton";
 import { DashboardSettingsManager } from "@/components/admin/DashboardSettingsManager";
 import { SectionHeader } from "@/components/admin/SectionHeader";
 import { getAdminAccessContext } from "@/lib/admin";
+import { appRoutes } from "@/lib/app-routes";
 import { canManageDashboardSettings } from "@/lib/crm/authz";
 import { getCompanySettings } from "@/lib/crm/workspace-settings";
 
@@ -12,10 +13,10 @@ export const dynamic = "force-dynamic";
 
 export default async function DashboardSettingsPage() {
   const { role, accessLevel, actualAccessLevel, canSwitchAccessViews } =
-    await getAdminAccessContext("/admin/settings/dashboard");
+    await getAdminAccessContext(appRoutes.settingsDashboard);
 
   if (!canManageDashboardSettings({ accessLevel, role })) {
-    redirect("/admin/settings");
+    redirect(appRoutes.settings);
   }
 
   const settings = await getCompanySettings();
@@ -38,7 +39,7 @@ export default async function DashboardSettingsPage() {
           description="Keep the overview focused on the metrics your team acts on every day."
           actions={
             <Link
-              href="/admin/settings"
+              href={appRoutes.settings}
               className="admin-button-secondary inline-flex h-11 items-center justify-center rounded-2xl px-5 text-sm font-medium"
             >
               Back to settings

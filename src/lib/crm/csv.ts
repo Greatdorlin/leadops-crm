@@ -3,13 +3,11 @@ import {
   CRM_STATUSES,
   LEAD_PRIORITIES,
   LEAD_SOURCES,
-  PRIMARY_GOALS,
 } from "@/lib/crm/constants";
 import type {
   CrmStatus,
   LeadPriority,
   LeadSource,
-  PrimaryGoal,
 } from "@/lib/crm/types";
 
 const headerAliases = {
@@ -19,7 +17,7 @@ const headerAliases = {
   email: ["email", "emailaddress", "email address", "mail"],
   whatsappNumber: ["whatsapp", "whatsappnumber", "whatsapp number", "phone", "mobile", "telephone"],
   state: ["state", "leadstate", "lead state", "locationstate", "location state"],
-  category: ["category", "lead category", "primarygoal", "primary goal", "goal"],
+  category: ["category", "lead category", "lead type", "segment"],
   crmStatus: ["crmstatus", "crm status", "status", "stage", "leadstage", "lead stage"],
   priority: ["priority", "leadpriority", "lead priority"],
   assignedTo: ["assignedto", "assigned to", "owner", "leadowner", "lead owner", "assignee"],
@@ -34,7 +32,7 @@ export interface ParsedLeadImportRow {
   email: string | null;
   whatsappNumber: string | null;
   state: string | null;
-  category: PrimaryGoal | null;
+  category: string | null;
   stage: CrmStatus;
   priority: LeadPriority;
   assignedTo: string | null;
@@ -232,8 +230,7 @@ export function parseLeadImportCsv(
 
     const crmStatus = parseEnumValue(readColumn(headers, row, headerAliases.crmStatus), CRM_STATUSES) ?? "new";
     const priority = parseEnumValue(readColumn(headers, row, headerAliases.priority), LEAD_PRIORITIES) ?? "medium";
-    const category =
-      parseEnumValue(readColumn(headers, row, headerAliases.category), PRIMARY_GOALS) ?? null;
+    const category = readColumn(headers, row, headerAliases.category) || null;
     const source = parseEnumValue(readColumn(headers, row, headerAliases.source), LEAD_SOURCES) ?? "manual_entry";
     const customFieldValues =
       options.customFieldDefinitions && options.customFieldDefinitions.length > 0

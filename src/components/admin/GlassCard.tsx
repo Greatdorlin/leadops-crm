@@ -1,13 +1,13 @@
-import type { ReactNode } from "react";
+import type { ComponentPropsWithoutRef, ReactNode } from "react";
 import { cn } from "@/lib/cn";
 
 export function GlassCard({
   children,
   className,
   glassStyle = "soft",
-}: {
+  ...props
+}: ComponentPropsWithoutRef<"section"> & {
   children: ReactNode;
-  className?: string;
   glassStyle?: "soft" | "vibrant" | "bold";
 }) {
   const styleClass = {
@@ -17,7 +17,10 @@ export function GlassCard({
   }[glassStyle];
 
   return (
-    <section className={cn("ld-glass ld-glass-card ld-inner-highlight", styleClass, className)}>
+    <section
+      {...props}
+      className={cn("ld-glass ld-glass-card ld-inner-highlight", styleClass, className)}
+    >
       {children}
     </section>
   );

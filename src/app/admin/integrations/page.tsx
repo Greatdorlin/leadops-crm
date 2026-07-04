@@ -18,6 +18,7 @@ import type { IntegrationProvider, IntegrationRecord } from "@/lib/crm/types";
 import { hasConfiguredEnvValue } from "@/lib/env-utils";
 import { redirect } from "next/navigation";
 import { leadStore } from "@/lib/storage";
+import { appRoutes } from "@/lib/app-routes";
 
 export const dynamic = "force-dynamic";
 
@@ -31,11 +32,11 @@ const providers: Array<{
 }> = [
   {
     provider: "website",
-    href: "/admin/integrations",
+    href: appRoutes.integrations,
   },
   {
     provider: "facebook",
-    href: "/admin/integrations/facebook",
+    href: appRoutes.integration("facebook"),
     action: {
       endpoint: "/api/integrations/facebook/retry",
       label: "Retry failed lead imports",
@@ -43,7 +44,7 @@ const providers: Array<{
   },
   {
     provider: "google_sheets",
-    href: "/admin/integrations/google-sheets",
+    href: appRoutes.integration("google-sheets"),
     action: {
       endpoint: "/api/google-sheets/export",
       label: "Export leads",
@@ -51,7 +52,7 @@ const providers: Array<{
   },
   {
     provider: "google_ads",
-    href: "/admin/integrations/google-ads",
+    href: appRoutes.integration("google-ads"),
     action: {
       endpoint: "/api/integrations/google-ads/sync-performance",
       label: "Refresh performance",
@@ -59,7 +60,7 @@ const providers: Array<{
   },
   {
     provider: "tiktok",
-    href: "/admin/integrations/tiktok",
+    href: appRoutes.integration("tiktok"),
     action: {
       endpoint: "/api/integrations/tiktok/retry",
       label: "Retry failed lead imports",
@@ -67,7 +68,7 @@ const providers: Array<{
   },
   {
     provider: "linkedin",
-    href: "/admin/integrations/linkedin",
+    href: appRoutes.integration("linkedin"),
     action: {
       endpoint: "/api/integrations/linkedin/retry",
       label: "Retry failed lead imports",
@@ -75,7 +76,7 @@ const providers: Array<{
   },
   {
     provider: "sender",
-    href: "/admin/integrations",
+    href: appRoutes.integrations,
   },
 ];
 
@@ -137,9 +138,9 @@ function inferFallbackStatus(provider: IntegrationProvider): IntegrationRecord["
 
 export default async function AdminIntegrationsPage() {
   const { role, accessLevel, actualAccessLevel, canSwitchAccessViews } =
-    await getAdminAccessContext("/admin/integrations");
+    await getAdminAccessContext(appRoutes.integrations);
   if (!canManageIntegrations(accessLevel, role)) {
-    redirect("/admin");
+    redirect(appRoutes.dashboard);
   }
   let pageData:
     | {
@@ -267,16 +268,16 @@ export default async function AdminIntegrationsPage() {
                     <div key={job.id} className="admin-surface-muted rounded-2xl p-4">
                       <div className="flex flex-wrap items-start justify-between gap-3">
                         <div>
-                          <p className="text-sm text-slate-500">
+                          <p className="text-sm text-white/60">
                             {formatIntegrationProviderLabel(job.provider)}
                           </p>
-                          <p className="mt-1.5 text-base font-semibold text-slate-950">
+                          <p className="mt-1.5 text-base font-semibold text-white">
                             {formatSyncJobTypeLabel(job.jobType)}
                           </p>
                         </div>
-                        <p className="text-sm text-slate-600">{formatSyncJobStatusLabel(job.status)}</p>
+                        <p className="text-sm text-white/70">{formatSyncJobStatusLabel(job.status)}</p>
                       </div>
-                      <p className="mt-3 text-sm leading-6 text-slate-600">
+                      <p className="mt-3 text-sm leading-6 text-white/70">
                         {job.errorMessage || "No issue was recorded for this activity."}
                       </p>
                     </div>

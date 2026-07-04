@@ -3,8 +3,10 @@ import { redirect } from "next/navigation";
 import { AdminShell } from "@/components/admin/AdminShell";
 import { AdminSignOutButton } from "@/components/admin/AdminSignOutButton";
 import { AppearanceSettingsManager } from "@/components/admin/AppearanceSettingsManager";
+import { GlassSurface } from "@/components/admin/ui/GlassSurface";
 import { SectionHeader } from "@/components/admin/SectionHeader";
 import { getAdminAccessContext } from "@/lib/admin";
+import { appRoutes } from "@/lib/app-routes";
 import { canManageAppearanceSettings } from "@/lib/crm/authz";
 import { getCompanySettings } from "@/lib/crm/workspace-settings";
 import { getCrmPageErrorCopy, logCrmPageError } from "@/lib/crm/runtime";
@@ -13,10 +15,10 @@ export const dynamic = "force-dynamic";
 
 export default async function AppearanceSettingsPage() {
   const { role, accessLevel, actualAccessLevel, canSwitchAccessViews } =
-    await getAdminAccessContext("/admin/settings/appearance");
+    await getAdminAccessContext(appRoutes.settingsAppearance);
 
   if (!canManageAppearanceSettings({ accessLevel, role })) {
-    redirect("/admin/settings");
+    redirect(appRoutes.settings);
   }
 
   let settings = null;
@@ -48,17 +50,19 @@ export default async function AppearanceSettingsPage() {
             description="Control the colors, logo, login experience, and visual style your team sees."
             actions={
               <Link
-                href="/admin/settings"
+                href={appRoutes.settings}
                 className="admin-button-secondary inline-flex h-11 items-center justify-center rounded-2xl px-5 text-sm font-medium"
               >
                 Back to settings
               </Link>
             }
           />
-          <AppearanceSettingsManager initialSettings={settings} />
+          <GlassSurface as="section" intensity="medium" className="rounded-[24px] p-5 sm:p-6 ld-animate-fade-in-up">
+            <AppearanceSettingsManager initialSettings={settings} />
+          </GlassSurface>
         </div>
       ) : (
-        <div className="rounded-[24px] border border-rose-200 bg-rose-50 p-5 text-sm text-rose-700">
+        <div className="rounded-[24px] border border-rose-300/20 bg-rose-400/[0.055] p-5 text-sm text-rose-100">
           <p className="font-semibold">{getCrmPageErrorCopy(pageError).title}</p>
           <p className="mt-2">{getCrmPageErrorCopy(pageError).description}</p>
         </div>

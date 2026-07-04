@@ -68,6 +68,7 @@ export const DASHBOARD_WIDGET_KEYS = [
 export const NAVIGATION_ITEM_KEYS = [
   "dashboard",
   "leads",
+  "forms",
   "tasks",
   "team",
   "reports",
@@ -136,6 +137,7 @@ export interface WorkspaceAppearanceSettings {
   loginBackgroundUrl: string | null;
   loginHeadline: string;
   loginSubheadline: string;
+  globalCurrency: string;
 }
 
 export interface ResolvedWorkspaceSettings extends WorkspaceAppearanceSettings {
@@ -243,14 +245,14 @@ export const DEFAULT_WORKSPACE_APPEARANCE: WorkspaceAppearanceSettings = {
   loginLogoUrl: null,
   loginLogoUrlLightMode: null,
   loginLogoUrlDarkMode: null,
-  primaryColor: "#3b82f6",
-  accentColor: "#8b5cf6",
-  backgroundColor: "#0a0a0f",
-  surfaceColor: "#12121a",
-  cardColor: "#111827",
-  sidebarColor: "#080b14",
-  textColor: "#ffffff",
-  borderColor: "#273449",
+  primaryColor: "#f59e0b",
+  accentColor: "#06b6d4",
+  backgroundColor: "#070714",
+  surfaceColor: "#0a0a14",
+  cardColor: "#060812",
+  sidebarColor: "#04060f",
+  textColor: "#f0f4f8",
+  borderColor: "#1a1f35",
   borderRadius: 20,
   fontScale: 1,
   fontPreset: "brand",
@@ -258,8 +260,8 @@ export const DEFAULT_WORKSPACE_APPEARANCE: WorkspaceAppearanceSettings = {
   themeMode: "dark",
   designStyle: "liquid_glass",
   glassEnabled: true,
-  glassOpacity: 60,
-  glassBlur: 20,
+  glassOpacity: 12,
+  glassBlur: 24,
   celebrationsEnabled: true,
   stageCelebrationsEnabled: true,
   targetCelebrationsEnabled: true,
@@ -267,6 +269,7 @@ export const DEFAULT_WORKSPACE_APPEARANCE: WorkspaceAppearanceSettings = {
   loginHeadline: "Welcome back",
   loginSubheadline:
     "Manage leads, follow-ups, and sales performance in one private workspace.",
+  globalCurrency: "USD",
 };
 
 export const VERTICAL_PRESET_DEFINITIONS: Record<IndustryPresetKey, VerticalPresetDefinition> = {
@@ -318,7 +321,7 @@ export const VERTICAL_PRESET_DEFINITIONS: Record<IndustryPresetKey, VerticalPres
   travel_education_agency: {
     key: "travel_education_agency",
     label: "Travel / Education Agency",
-    description: "Keeps this vertical available without exposing old pathway branding.",
+    description: "Preset fields, sources, and stages for travel or education sales teams.",
     stageNames: ["New Inquiry", "Contacted", "Consultation Booked", "Documents Pending", "Application Started", "Won", "Lost"],
     sourceNames: ["Website", "Referral", "Call", "Walk-in", "Manual Entry", "Other"],
     recommendedCustomFields: [
@@ -378,7 +381,7 @@ export const VERTICAL_PRESET_DEFINITIONS: Record<IndustryPresetKey, VerticalPres
   legal_professional_services: {
     key: "legal_professional_services",
     label: "Legal / Professional Services",
-    description: "Intake and consultation defaults for advisory teams.",
+    description: "Intake and consultation defaults for service-led teams.",
     stageNames: ["New Inquiry", "Contacted", "Consultation Booked", "Proposal Sent", "Engaged", "Won", "Lost"],
     sourceNames: ["Website", "Referral", "Call", "Manual Entry", "CSV Import", "Other"],
     recommendedCustomFields: [
@@ -454,6 +457,10 @@ export const industryPresetSchema = z.object({
   applyMissingDefaults: z.boolean().optional().default(false),
 });
 
+export const currencySettingsSchema = z.object({
+  globalCurrency: z.string().trim().length(3, "Currency code must be 3 letters."),
+});
+
 function parseNavigationConfig(raw: unknown): NavigationCustomizationConfig {
   const parsed = navigationSettingsSchema.safeParse(raw);
   if (!parsed.success) {
@@ -507,6 +514,10 @@ function parseLeadPreviewConfig(raw: unknown): LeadPreviewCustomizationConfig {
 function normalizeAppearanceRow(
   row?: typeof companySettings.$inferSelect | null,
 ): ResolvedWorkspaceSettings {
+  const globalCurrency = typeof row?.globalCurrency === "string" && row.globalCurrency.trim().length === 3
+    ? row.globalCurrency.trim().toUpperCase()
+    : DEFAULT_WORKSPACE_APPEARANCE.globalCurrency;
+
   const appearance = {
     companyName: normalizeDisplayString(row?.companyName, DEFAULT_WORKSPACE_APPEARANCE.companyName),
     logoUrl: normalizeOptionalString(row?.logoUrl),
@@ -552,6 +563,7 @@ function normalizeAppearanceRow(
       row?.loginSubheadline,
       DEFAULT_WORKSPACE_APPEARANCE.loginSubheadline,
     ),
+    globalCurrency,
   } satisfies WorkspaceAppearanceSettings;
 
   const industryPreset = INDUSTRY_PRESETS.includes((row?.industryPreset ?? "") as IndustryPresetKey)
@@ -565,6 +577,7 @@ function normalizeAppearanceRow(
     dashboard: parseDashboardConfig(row?.dashboardConfig),
     leadPreview: parseLeadPreviewConfig(row?.leadPreviewConfig),
     industryPreset,
+    globalCurrency,
   };
 }
 
@@ -834,6 +847,7 @@ export async function updateCompanySettings(
     dashboardConfig?: DashboardCustomizationConfig;
     leadPreviewConfig?: LeadPreviewCustomizationConfig;
     industryPreset?: IndustryPresetKey;
+    globalCurrency?: string;
   },
 ) {
   const db = getDb();
@@ -893,6 +907,7 @@ export async function updateCompanySettings(
         ? { leadPreviewConfig: patch.leadPreviewConfig as unknown as Record<string, unknown> }
         : {}),
       ...(patch.industryPreset !== undefined ? { industryPreset: patch.industryPreset } : {}),
+      ...(patch.globalCurrency !== undefined ? { globalCurrency: patch.globalCurrency.toUpperCase() } : {}),
       updatedAt: new Date(),
     })
     .where(eq(companySettings.id, row.id));

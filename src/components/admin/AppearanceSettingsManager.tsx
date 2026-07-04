@@ -3,16 +3,18 @@
 import type { CSSProperties } from "react";
 import { startTransition, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Check, Eye, ImagePlus, Monitor, Sparkles, X } from "lucide-react";
+import { Check, Eye, ImagePlus, Monitor, RotateCcw, Sparkles, X } from "lucide-react";
 import { LeadsDeskWordmark } from "@/components/brand/LeadsDeskWordmark";
 import { cn } from "@/lib/cn";
+import { generateColorHarmony } from "@/lib/design-system";
 import {
   buildThemeCssVariables,
+  DEFAULT_WORKSPACE_APPEARANCE,
   FONT_PRESETS,
   resolveBrandLogo,
   type ResolvedWorkspaceSettings,
 } from "@/lib/crm/workspace-settings";
-import { GlassCard } from "./GlassCard";
+import { AnimatedCard, SectionHeader, SmoothButton, StatusRing } from "@/components/admin/ui";
 
 type AppearanceDraft = Pick<
   ResolvedWorkspaceSettings,
@@ -70,6 +72,64 @@ const QUICK_COLOR_SWATCHES = [
   "#f59e0b",
 ] as const;
 
+const COLOR_PRESETS = [
+  {
+    name: "Ocean",
+    primaryColor: "#0ea5e9",
+    accentColor: "#06b6d4",
+    backgroundColor: "#0a1628",
+    surfaceColor: "#0f1f38",
+    cardColor: "#0d2238",
+    sidebarColor: "#071528",
+    textColor: "#f0f9ff",
+    borderColor: "#1e3a5f",
+  },
+  {
+    name: "Sunset",
+    primaryColor: "#f97316",
+    accentColor: "#f43f5e",
+    backgroundColor: "#1a0a0f",
+    surfaceColor: "#2a1018",
+    cardColor: "#221018",
+    sidebarColor: "#14080c",
+    textColor: "#fff1f2",
+    borderColor: "#4a1a24",
+  },
+  {
+    name: "Forest",
+    primaryColor: "#10b981",
+    accentColor: "#84cc16",
+    backgroundColor: "#0a1a0f",
+    surfaceColor: "#0f2418",
+    cardColor: "#0d2218",
+    sidebarColor: "#07140c",
+    textColor: "#f0fdf4",
+    borderColor: "#1e4a2f",
+  },
+  {
+    name: "Midnight",
+    primaryColor: "#6366f1",
+    accentColor: "#a855f7",
+    backgroundColor: "#0a0a14",
+    surfaceColor: "#121224",
+    cardColor: "#111830",
+    sidebarColor: "#080b18",
+    textColor: "#faf5ff",
+    borderColor: "#2e2a5f",
+  },
+  {
+    name: "Rose",
+    primaryColor: "#e11d48",
+    accentColor: "#fb7185",
+    backgroundColor: "#1a0a10",
+    surfaceColor: "#2a1018",
+    cardColor: "#221018",
+    sidebarColor: "#14080c",
+    textColor: "#fff1f2",
+    borderColor: "#4a1a2f",
+  },
+] as const;
+
 function toOptionalString(value: string | null | undefined) {
   const normalized = (value ?? "").trim();
   return normalized.length > 0 ? normalized : null;
@@ -110,7 +170,7 @@ function applyGlassStyle(style: "off" | "soft" | "vibrant" | "bold") {
 }
 
 function FieldLabel({ children }: { children: string }) {
-  return <span className="text-xs font-semibold uppercase tracking-[0.16em] text-white/52">{children}</span>;
+  return <span className="text-xs font-semibold uppercase tracking-[0.16em] text-white/70">{children}</span>;
 }
 
 function TextControl({
@@ -195,12 +255,12 @@ function ImageUploadControl({
               // eslint-disable-next-line @next/next/no-img-element
               <img src={value} alt="" className="h-full w-full object-cover" />
             ) : (
-              <ImagePlus className="h-5 w-5 text-white/46" />
+              <ImagePlus className="h-5 w-5 text-white/70" />
             )}
           </div>
           <div className="min-w-0 flex-1">
             <p className="text-sm font-semibold text-white">{value ? "Image selected" : "Upload image"}</p>
-            <p className="mt-1 text-xs leading-5 text-white/52">
+            <p className="mt-1 text-xs leading-5 text-white/70">
               {description ?? "PNG, JPG, WebP, SVG, or GIF. Max 2MB."}
             </p>
             <div className="mt-3 flex flex-wrap gap-2">
@@ -217,7 +277,7 @@ function ImageUploadControl({
                 <button
                   type="button"
                   onClick={() => onChange(null)}
-                  className="inline-flex h-9 items-center justify-center gap-1.5 rounded-full border border-white/10 bg-white/[0.045] px-3 text-xs font-semibold text-white/64 transition hover:border-rose-300/35 hover:bg-rose-400/12 hover:text-rose-100"
+                  className="inline-flex h-9 items-center justify-center gap-1.5 rounded-full border border-white/10 bg-white/[0.045] px-3 text-xs font-semibold text-white/70 transition hover:border-rose-300/35 hover:bg-rose-400/12 hover:text-rose-100"
                 >
                   <X className="h-3.5 w-3.5" />
                   Remove
@@ -241,6 +301,14 @@ function ColorControl({
   value: string;
   onChange: (value: string) => void;
 }) {
+  const harmonySwatches = useMemo(() => {
+    try {
+      return generateColorHarmony(value, "analogous").slice(0, 5);
+    } catch {
+      return [];
+    }
+  }, [value]);
+
   return (
     <label className="space-y-2">
       <FieldLabel>{label}</FieldLabel>
@@ -253,8 +321,9 @@ function ColorControl({
             className="h-12 w-14 cursor-pointer overflow-hidden rounded-[18px] border border-white/12 bg-transparent p-0 shadow-[0_10px_24px_rgba(0,0,0,0.2)]"
             aria-label={label}
           />
+          <StatusRing progress={100} size={28} color={value} strokeWidth={4} />
           <div className="min-w-0 flex-1">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/42">{label}</p>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/70">{label}</p>
             <input
               type="text"
               value={value}
@@ -284,6 +353,31 @@ function ColorControl({
             );
           })}
         </div>
+        {harmonySwatches.length > 0 ? (
+          <div className="mt-2">
+            <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-white/70">Harmony</p>
+            <div className="flex flex-wrap gap-2">
+              {harmonySwatches.map((swatch) => {
+                const isActive = value.toLowerCase() === swatch.toLowerCase();
+                return (
+                  <button
+                    key={swatch}
+                    type="button"
+                    onClick={() => onChange(swatch)}
+                    className={cn(
+                      "h-6 w-6 rounded-full border transition",
+                      isActive
+                        ? "scale-105 border-white shadow-[0_0_0_2px_rgba(255,255,255,0.12)]"
+                        : "border-white/10 hover:border-white/30",
+                    )}
+                    style={{ background: swatch }}
+                    aria-label={`${label} harmony swatch ${swatch}`}
+                  />
+                );
+              })}
+            </div>
+          </div>
+        ) : null}
       </div>
     </label>
   );
@@ -310,7 +404,7 @@ function RangeControl({
     <label className="space-y-2">
       <span className="flex items-center justify-between gap-3">
         <FieldLabel>{label}</FieldLabel>
-        <span className="text-xs font-semibold text-white/58">{display ?? value}</span>
+        <span className="text-xs font-semibold text-white/70">{display ?? value}</span>
       </span>
       <input
         type="range"
@@ -332,19 +426,21 @@ function ThemeSection({
   title,
   description,
   children,
+  delay = 0,
 }: {
   title: string;
   description: string;
   children: React.ReactNode;
+  delay?: number;
 }) {
   return (
-    <GlassCard className="p-5">
+    <AnimatedCard variant="default" animation="fadeInUp" delay={delay} className="p-5">
       <div className="mb-4">
         <h2 className="text-lg font-semibold tracking-[-0.04em] text-white">{title}</h2>
-        <p className="mt-1 text-sm leading-6 text-white/56">{description}</p>
+        <p className="mt-1 text-sm leading-6 text-white/70">{description}</p>
       </div>
       <div className="grid gap-4">{children}</div>
-    </GlassCard>
+    </AnimatedCard>
   );
 }
 
@@ -392,7 +488,7 @@ function MiniPreview({
                   "h-9 rounded-2xl border px-3 py-2 text-xs font-semibold",
                   index === 0
                     ? "border-white/12 bg-[color:var(--ld-color-sidebar-active)] text-white"
-                    : "border-white/8 bg-white/[0.035] text-white/58",
+                    : "border-white/8 bg-white/[0.035] text-white/70",
                 )}
               >
                 {item}
@@ -405,7 +501,7 @@ function MiniPreview({
           <div className="ld-glass-topbar rounded-[24px] border border-white/10 px-4 py-3">
             <div className="flex items-center justify-between gap-3">
               <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-white/46">Live preview</p>
+                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-white/70">Live preview</p>
                 <h3 className="mt-1 text-xl font-semibold tracking-[-0.05em] text-white">Sales command center</h3>
               </div>
               <button className="admin-button-primary h-10 rounded-2xl px-4 text-sm">Add lead</button>
@@ -419,7 +515,7 @@ function MiniPreview({
               ["Won Value", "$84k"],
             ].map(([label, value]) => (
               <div key={label} className="ld-glass ld-glass-card ld-glass-soft p-4">
-                <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-white/48">{label}</p>
+                <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-white/70">{label}</p>
                 <p className="mt-4 text-2xl font-semibold tracking-[-0.06em] text-white">{value}</p>
                 <div className="mt-4 h-1.5 rounded-full bg-white/10">
                   <div className="h-full w-2/3 rounded-full bg-[linear-gradient(90deg,var(--ld-color-primary),var(--ld-color-accent))]" />
@@ -432,7 +528,7 @@ function MiniPreview({
             <div className="ld-glass ld-glass-card ld-glass-soft p-4">
               <div className="mb-3 flex items-center justify-between">
                 <p className="text-sm font-semibold text-white">Recent leads</p>
-                <span className="rounded-full border border-white/10 bg-white/[0.06] px-2.5 py-1 text-xs text-white/58">
+                <span className="rounded-full border border-white/10 bg-white/[0.06] px-2.5 py-1 text-xs text-white/70">
                   This week
                 </span>
               </div>
@@ -443,7 +539,7 @@ function MiniPreview({
                     className="grid grid-cols-[1fr_80px_72px] gap-3 border-b border-white/5 px-3 py-3 text-sm last:border-b-0"
                   >
                     <span className="font-medium text-white">{lead}</span>
-                    <span className="text-white/58">{index === 0 ? "Website" : "Referral"}</span>
+                    <span className="text-white/70">{index === 0 ? "Website" : "Referral"}</span>
                     <span className="text-[color:var(--ld-color-accent)]">{index === 0 ? "New" : "Won"}</span>
                   </div>
                 ))}
@@ -453,7 +549,7 @@ function MiniPreview({
             <div
               className="ld-glass ld-glass-card ld-glass-vibrant p-5"
               style={{
-                backgroundImage: `linear-gradient(180deg, rgba(8,12,24,0.42), rgba(8,12,24,0.66)), url(${background})`,
+                backgroundImage: `linear-gradient(180deg, color-mix(in srgb, var(--ld-color-background, ${draft.backgroundColor}) 42%, transparent), color-mix(in srgb, var(--ld-color-background, ${draft.backgroundColor}) 66%, transparent)), url(${background})`,
                 backgroundPosition: "center",
                 backgroundSize: "cover",
               }}
@@ -472,7 +568,7 @@ function MiniPreview({
                 surfaceMode="dark"
               />
               <h4 className="mt-10 text-2xl font-semibold tracking-[-0.05em] text-white">{draft.loginHeadline}</h4>
-              <p className="mt-2 text-sm leading-6 text-white/66">{draft.loginSubheadline}</p>
+              <p className="mt-2 text-sm leading-6 text-white/70">{draft.loginSubheadline}</p>
               <div className="mt-5 space-y-2">
                 <div className="h-10 rounded-2xl border border-white/10 bg-white/[0.08]" />
                 <div className="h-10 rounded-2xl border border-white/10 bg-white/[0.08]" />
@@ -602,46 +698,55 @@ export function AppearanceSettingsManager({
     setDraft((current) => ({ ...current, ...values }));
   }
 
+  function resetToDefaults() {
+    setDraft({ ...DEFAULT_WORKSPACE_APPEARANCE, loginBackgroundUrl: DEFAULT_BACKGROUND });
+  }
+
   const selectedBackground = draft.loginBackgroundUrl || DEFAULT_BACKGROUND;
   const glassStyle = getGlassStyle(draft);
 
   return (
     <>
     <div className="space-y-5">
-        <GlassCard className="p-5 sm:p-6">
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[color:var(--ld-color-accent)]">
-                Theme Studio
-              </p>
-              <h1 className="mt-2 text-3xl font-semibold tracking-[-0.06em] text-white">Make it yours</h1>
-              <p className="mt-2 max-w-2xl text-sm leading-6 text-white/60">
-                Brand the workspace, login screen, colors, glass, and layout.
-              </p>
-            </div>
-            <div className="flex flex-wrap gap-3">
-              <button
-                type="button"
-                onClick={() => setIsPreviewOpen(true)}
-                className="admin-button-secondary inline-flex h-11 items-center justify-center rounded-2xl px-5 text-sm font-semibold"
-              >
-                <Eye className="mr-2 h-4 w-4" />
-                Open preview
-              </button>
-              <button
-                type="button"
-                onClick={() => void saveSettings()}
-                disabled={isSaving}
-                className="admin-button-primary h-11 rounded-2xl px-5 text-sm"
-              >
-                {isSaving ? "Saving..." : "Save theme"}
-              </button>
-            </div>
-          </div>
-          {message ? <p className="mt-4 text-sm text-white/64">{message}</p> : null}
-        </GlassCard>
+        <AnimatedCard variant="elevated" animation="none" className="p-5 sm:p-6">
+          <SectionHeader
+            eyebrow="Theme Studio"
+            title="Make it yours"
+            description="Brand the workspace, login screen, colors, glass, and layout."
+            actions={
+              <div className="flex flex-wrap gap-3">
+                <SmoothButton
+                  variant="secondary"
+                  size="md"
+                  icon={<Eye className="h-4 w-4" />}
+                  onClick={() => setIsPreviewOpen(true)}
+                >
+                  Open preview
+                </SmoothButton>
+                <SmoothButton
+                  variant="primary"
+                  size="md"
+                  loading={isSaving}
+                  onClick={() => void saveSettings()}
+                >
+                  {isSaving ? "Saving..." : "Save theme"}
+                </SmoothButton>
+                <SmoothButton
+                  variant="ghost"
+                  size="md"
+                  icon={<RotateCcw className="h-4 w-4" />}
+                  onClick={resetToDefaults}
+                >
+                  Reset to defaults
+                </SmoothButton>
+              </div>
+            }
+            variant="large"
+          />
+          {message ? <p className="mt-4 text-sm text-white/70">{message}</p> : null}
+        </AnimatedCard>
 
-        <ThemeSection title="Brand" description="Set the names and logos clients see.">
+        <ThemeSection title="Brand" description="Set the names and logos clients see." delay={0}>
           <TextControl label="Company name" value={draft.companyName} onChange={(value) => update("companyName", value)} />
           <div className="grid gap-4 sm:grid-cols-2">
             <ImageUploadControl
@@ -671,7 +776,28 @@ export function AppearanceSettingsManager({
           </div>
         </ThemeSection>
 
-        <ThemeSection title="Colors" description="Tune the workspace without touching CSS.">
+        <ThemeSection title="Quick Presets" description="One-click harmonious color combinations." delay={80}>
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
+            {COLOR_PRESETS.map((preset) => (
+              <button
+                key={preset.name}
+                type="button"
+                onClick={() => updateMany(preset)}
+                className="group rounded-[20px] border border-white/10 bg-white/[0.04] p-3 text-left transition hover:border-white/20 hover:bg-white/[0.08]"
+              >
+                <div className="flex h-7 overflow-hidden rounded-lg border border-white/10">
+                  <div className="flex-1" style={{ background: preset.primaryColor }} />
+                  <div className="flex-1" style={{ background: preset.accentColor }} />
+                  <div className="flex-1" style={{ background: preset.backgroundColor }} />
+                  <div className="flex-1" style={{ background: preset.surfaceColor }} />
+                </div>
+                <p className="mt-2 text-sm font-semibold text-white">{preset.name}</p>
+              </button>
+            ))}
+          </div>
+        </ThemeSection>
+
+        <ThemeSection title="Colors" description="Tune the workspace without touching CSS." delay={160}>
           <div className="grid gap-4 sm:grid-cols-2">
             <ColorControl label="Primary" value={draft.primaryColor} onChange={(value) => update("primaryColor", value)} />
             <ColorControl label="Accent" value={draft.accentColor} onChange={(value) => update("accentColor", value)} />
@@ -682,7 +808,7 @@ export function AppearanceSettingsManager({
           </div>
         </ThemeSection>
 
-        <ThemeSection title="Background" description="Choose the atmosphere for the workspace.">
+        <ThemeSection title="Background" description="Choose the atmosphere for the workspace." delay={240}>
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
             {BACKGROUND_PRESETS.map((preset) => {
               const isSelected = selectedBackground === preset.value;
@@ -727,7 +853,7 @@ export function AppearanceSettingsManager({
           />
         </ThemeSection>
 
-        <ThemeSection title="Glass" description="Control depth, blur, and shine.">
+        <ThemeSection title="Glass" description="Control depth, blur, and shine." delay={320}>
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
             {(["off", "soft", "vibrant", "bold"] as const).map((style) => (
               <button
@@ -738,7 +864,7 @@ export function AppearanceSettingsManager({
                   "rounded-2xl border px-3 py-3 text-sm font-semibold capitalize transition",
                   glassStyle === style
                     ? "border-[color:var(--ld-color-accent)] bg-[color:var(--ld-color-accent)]/18 text-white"
-                    : "border-white/10 bg-white/[0.045] text-white/62 hover:bg-white/[0.08]",
+                    : "border-white/10 bg-white/[0.045] text-white/70 hover:bg-white/[0.08]",
                 )}
               >
                 {style.replace("_", " ")}
@@ -765,7 +891,7 @@ export function AppearanceSettingsManager({
           </div>
         </ThemeSection>
 
-        <ThemeSection title="Layout" description="Adjust density, type, and rhythm.">
+        <ThemeSection title="Layout" description="Adjust density, type, and rhythm." delay={400}>
           <div className="grid gap-4 sm:grid-cols-2">
             <label className="space-y-2">
               <FieldLabel>Density</FieldLabel>
@@ -818,7 +944,7 @@ export function AppearanceSettingsManager({
           </div>
         </ThemeSection>
 
-        <ThemeSection title="Login page" description="Make the first screen feel owned.">
+        <ThemeSection title="Login page" description="Make the first screen feel owned." delay={480}>
           <div className="grid gap-4 sm:grid-cols-2">
             <ImageUploadControl
               label="Login logo"
@@ -838,7 +964,7 @@ export function AppearanceSettingsManager({
           </div>
         </ThemeSection>
 
-        <ThemeSection title="Celebrations" description="Add soul without overwhelming the team.">
+        <ThemeSection title="Celebrations" description="Add soul without overwhelming the team." delay={560}>
           <div className="grid gap-3 sm:grid-cols-3">
             {[
               ["celebrationsEnabled", "All celebrations"],
@@ -860,25 +986,25 @@ export function AppearanceSettingsManager({
             ))}
           </div>
         </ThemeSection>
-        <GlassCard className="p-5">
+        <AnimatedCard variant="default" animation="fadeInUp" delay={640} className="p-5">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[color:var(--ld-color-accent)]">
                 Preview
               </p>
               <h2 className="mt-1 text-xl font-semibold tracking-[-0.04em] text-white">Preview before you save</h2>
-              <p className="mt-2 text-sm leading-6 text-white/58">Open the live workspace mockup in a focused view instead of squeezing it beside the controls.</p>
+              <p className="mt-2 text-sm leading-6 text-white/70">Open the live workspace mockup in a focused view instead of squeezing it beside the controls.</p>
             </div>
-            <button
-              type="button"
+            <SmoothButton
+              variant="secondary"
+              size="md"
+              icon={<Monitor className="h-4 w-4" />}
               onClick={() => setIsPreviewOpen(true)}
-              className="admin-button-secondary inline-flex h-11 items-center justify-center rounded-2xl px-5 text-sm font-semibold"
             >
-              <Monitor className="mr-2 h-4 w-4" />
               Open live preview
-            </button>
+            </SmoothButton>
           </div>
-        </GlassCard>
+        </AnimatedCard>
       </div>
 
       {isPreviewOpen ? (
@@ -891,16 +1017,16 @@ export function AppearanceSettingsManager({
                 </p>
                 <h2 className="mt-1 text-2xl font-semibold tracking-[-0.04em] text-white">Workspace snapshot</h2>
               </div>
-              <button
-                type="button"
+              <SmoothButton
+                variant="secondary"
+                size="md"
                 onClick={() => setIsPreviewOpen(false)}
-                className="admin-button-secondary inline-flex h-11 items-center justify-center rounded-2xl px-5 text-sm font-semibold"
               >
                 Close preview
-              </button>
+              </SmoothButton>
             </div>
             <MiniPreview draft={draft} previewStyle={previewStyle} />
-            <div className="mt-4 flex items-start gap-3 rounded-2xl border border-white/10 bg-white/[0.045] px-4 py-3 text-sm leading-6 text-white/62">
+            <div className="mt-4 flex items-start gap-3 rounded-2xl border border-white/10 bg-white/[0.045] px-4 py-3 text-sm leading-6 text-white/70">
               <Sparkles className="mt-0.5 h-4 w-4 shrink-0 text-[color:var(--ld-color-accent)]" />
               Theme changes update this page instantly and save to company settings.
             </div>

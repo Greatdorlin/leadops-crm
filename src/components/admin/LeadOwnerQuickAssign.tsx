@@ -1,6 +1,6 @@
 "use client";
 
-import { startTransition, useMemo, useState } from "react";
+import { startTransition, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Check, ChevronDown, Search } from "lucide-react";
 import type { LeadPriority } from "@/lib/crm/types";
@@ -23,11 +23,14 @@ export function LeadOwnerQuickAssign({
   variant?: "stacked" | "compact";
 }) {
   const router = useRouter();
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
   const [assignedTo, setAssignedTo] = useState(initialAssignedTo ?? "");
   const [isOpen, setIsOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState("");
+  const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0, width: 0 });
   const selectedOption = assigneeOptions.find((option) => option.value === assignedTo) ?? null;
   const filteredOptions = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
@@ -39,6 +42,49 @@ export function LeadOwnerQuickAssign({
       `${option.label} ${option.value}`.toLowerCase().includes(normalizedQuery),
     );
   }, [assigneeOptions, query]);
+
+  useEffect(() => {
+    if (isOpen && buttonRef.current) {
+      const rect = buttonRef.current.getBoundingClientRect();
+      setDropdownPosition({
+        top: rect.bottom + 8,
+        left: rect.left,
+        width: rect.width,
+      });
+    }
+  }, [isOpen]);
+
+  useEffect(() => {
+    function handleScroll() {
+      if (isOpen) {
+        setIsOpen(false);
+      }
+    }
+    function handleResize() {
+      if (isOpen) {
+        setIsOpen(false);
+      }
+    }
+    function handleClickOutside(event: MouseEvent) {
+      if (
+        isOpen &&
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target as Node) &&
+        buttonRef.current &&
+        !buttonRef.current.contains(event.target as Node)
+      ) {
+        setIsOpen(false);
+      }
+    }
+    window.addEventListener("scroll", handleScroll, true);
+    window.addEventListener("resize", handleResize);
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      window.removeEventListener("scroll", handleScroll, true);
+      window.removeEventListener("resize", handleResize);
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [isOpen]);
 
   async function saveAssignment(nextAssignedTo = assignedTo) {
     setIsSaving(true);
@@ -89,6 +135,7 @@ export function LeadOwnerQuickAssign({
       <div className="grid gap-2">
         <div className="relative">
           <button
+            ref={buttonRef}
             type="button"
             onClick={() => setIsOpen((current) => !current)}
             className={cn(
@@ -111,17 +158,25 @@ export function LeadOwnerQuickAssign({
                   {selectedOption?.label ?? "Unassigned"}
                 </span>
                 {variant === "stacked" ? (
-                  <span className="block truncate text-xs text-white/44">
+                  <span className="block truncate text-xs text-white/70">
                     {selectedOption?.value ?? "Assign later"}
                   </span>
                 ) : null}
               </span>
             </span>
-            <ChevronDown className={cn("h-4 w-4 shrink-0 text-white/58 transition", isOpen && "rotate-180")} />
+            <ChevronDown className={cn("h-4 w-4 shrink-0 text-white/70 transition", isOpen && "rotate-180")} />
           </button>
 
           {isOpen ? (
-            <div className="ld-glass-panel absolute left-0 right-0 top-[calc(100%+0.5rem)] z-40 overflow-hidden rounded-[22px] border border-white/12 bg-[#070b18]/95 p-2 shadow-[0_24px_70px_rgba(0,0,0,0.5)]">
+            <div
+              ref={dropdownRef}
+              className="ld-glass-panel fixed z-[100] overflow-hidden rounded-[22px] border border-white/12 bg-[#070b18]/95 p-2 shadow-[0_24px_70px_rgba(0,0,0,0.5)]"
+              style={{
+                top: dropdownPosition.top,
+                left: dropdownPosition.left,
+                width: dropdownPosition.width,
+              }}
+            >
               <label className="flex h-10 items-center gap-2 rounded-[16px] border border-white/10 bg-white/[0.055] px-3 text-white/70">
                 <Search className="h-4 w-4 shrink-0" />
                 <input
@@ -129,7 +184,7 @@ export function LeadOwnerQuickAssign({
                   value={query}
                   onChange={(event) => setQuery(event.target.value)}
                   placeholder="Search people"
-                  className="min-w-0 flex-1 bg-transparent text-sm text-white outline-none placeholder:text-white/38"
+                  className="min-w-0 flex-1 bg-transparent text-sm text-white outline-none placeholder:text-white/60"
                   autoFocus
                 />
               </label>
@@ -144,9 +199,9 @@ export function LeadOwnerQuickAssign({
                   <TeamAvatar name="Unassigned" size="sm" />
                   <span className="min-w-0 flex-1">
                     <span className="block font-semibold">Unassigned</span>
-                    <span className="block text-xs text-white/42">No owner yet</span>
+                    <span className="block text-xs text-white/70">No owner yet</span>
                   </span>
-                  {!assignedTo ? <Check className="h-4 w-4 text-cyan-200" /> : null}
+                  {!assignedTo ? <Check className="h-4 w-4 text-white" /> : null}
                 </button>
                 {filteredOptions.length > 0 ? (
                   filteredOptions.map((option) => (
@@ -161,13 +216,13 @@ export function LeadOwnerQuickAssign({
                       <TeamAvatar name={option.label} email={option.value} size="sm" />
                       <span className="min-w-0 flex-1">
                         <span className="block truncate font-semibold">{option.label}</span>
-                        <span className="block truncate text-xs text-white/42">{option.value}</span>
+                        <span className="block truncate text-xs text-white/70">{option.value}</span>
                       </span>
-                      {option.value === assignedTo ? <Check className="h-4 w-4 text-cyan-200" /> : null}
+                      {option.value === assignedTo ? <Check className="h-4 w-4 text-white" /> : null}
                     </button>
                   ))
                 ) : (
-                  <p className="px-3 py-4 text-sm text-white/48">No matching team member.</p>
+                  <p className="px-3 py-4 text-sm text-white/70">No matching team member.</p>
                 )}
               </div>
             </div>
@@ -185,11 +240,11 @@ export function LeadOwnerQuickAssign({
         ) : null}
       </div>
       {variant === "compact" ? (
-        <p className="min-h-[1.25rem] text-xs leading-5 text-slate-500">
+        <p className="min-h-[1.25rem] text-xs leading-5 text-white/70">
           {isSaving ? "Saving owner..." : message}
         </p>
       ) : message ? (
-        <p className="text-xs leading-5 text-slate-500">{message}</p>
+        <p className="text-xs leading-5 text-white/70">{message}</p>
       ) : null}
     </div>
   );

@@ -8,6 +8,10 @@ import {
 } from "@/lib/crm/custom-field-values";
 import type { LeadCustomerType } from "@/lib/crm/types";
 import { CustomFieldValueInputs } from "./CustomFieldValueInputs";
+import { GlassSurface } from "./ui/GlassSurface";
+import { SmoothButton } from "./ui/SmoothButton";
+import { GradientText } from "./ui/GradientText";
+import { SectionHeader } from "./ui/SectionHeader";
 
 type ProfileInputProps = {
   label: string;
@@ -18,7 +22,7 @@ type ProfileInputProps = {
   className?: string;
 };
 
-const labelClass = "text-xs font-semibold uppercase tracking-[0.16em] text-white/54";
+const labelClass = "text-xs font-semibold uppercase tracking-[0.16em] text-white/70";
 const panelClass =
   "mt-4 space-y-3 rounded-[24px] border border-white/10 bg-white/[0.045] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]";
 
@@ -35,7 +39,7 @@ function ProfileInput({ label, value, onChange, placeholder, type = "text", clas
         value={value}
         onChange={(event) => onChange(event.target.value)}
         placeholder={placeholder}
-        className="admin-input h-11 w-full rounded-2xl px-4 text-sm outline-none"
+        className="admin-input ld-focus-ring h-11 w-full rounded-2xl px-4 text-sm outline-none"
       />
     </label>
   );
@@ -176,7 +180,12 @@ export function LeadProfileForm({
   }
 
   return (
-    <div className="ld-glass-card ld-glass-soft rounded-[24px] p-4">
+    <GlassSurface intensity="medium" className="ld-animate-fade-in-up rounded-[24px] p-4">
+      <div className="mb-4 flex items-center gap-2">
+        <h3 className="text-sm font-semibold text-white/80">
+          <GradientText>Edit profile</GradientText>
+        </h3>
+      </div>
       <div className="grid gap-3 sm:grid-cols-2">
         <section className="space-y-3 sm:col-span-2">
           <p className={labelClass}>Lead type</p>
@@ -194,13 +203,13 @@ export function LeadProfileForm({
                   className={[
                     "rounded-[22px] border px-4 py-3 text-left transition",
                     selected
-                      ? "border-cyan-200/50 bg-[linear-gradient(135deg,rgba(59,130,246,0.34),rgba(139,92,246,0.28))] text-white shadow-[0_18px_34px_rgba(59,130,246,0.18)]"
+                      ? "border-white/20 bg-[linear-gradient(135deg,color-mix(in_srgb,var(--ld-color-primary)_34%,transparent),rgba(139,92,246,0.28))] text-white shadow-[0_18px_34px_color-mix(in_srgb,var(--ld-color-primary)_18%,transparent)]"
                       : "border-white/10 bg-white/[0.045] text-white/72 hover:border-white/20 hover:bg-white/[0.07]",
                   ].join(" ")}
                   aria-pressed={selected}
                 >
                   <span className="block text-sm font-semibold">{option.label}</span>
-                  <span className="mt-1 block text-xs leading-5 text-white/54">{option.hint}</span>
+                  <span className="mt-1 block text-xs leading-5 text-white/70">{option.hint}</span>
                 </button>
               );
             })}
@@ -221,7 +230,7 @@ export function LeadProfileForm({
 
       <section className={panelClass}>
         <p className={labelClass}>Sales details</p>
-        <p className="text-sm leading-6 text-white/54">
+        <p className="text-sm leading-6 text-white/70">
           Use these top-line fields for the overall lead. For multiple offers with separate
           qualification outcomes, use the offer tracking section on this page.
         </p>
@@ -238,7 +247,7 @@ export function LeadProfileForm({
               onChange={(event) => setLostReason(event.target.value)}
               rows={3}
               placeholder="Why the lead was lost, if known."
-              className="admin-textarea min-h-[104px] w-full rounded-2xl px-4 py-3 text-sm outline-none"
+              className="admin-textarea ld-focus-ring min-h-[104px] w-full rounded-2xl px-4 py-3 text-sm outline-none"
             />
           </label>
         </div>
@@ -258,17 +267,18 @@ export function LeadProfileForm({
       ) : null}
 
       <div className="mt-4 flex flex-col gap-3 border-t border-white/10 pt-4">
-        <button
-          type="button"
-          disabled={isSaving}
+        <SmoothButton
+          variant="primary"
+          size="lg"
           onClick={() => void saveLeadProfile()}
-          className="admin-button-primary h-12 w-full rounded-2xl px-5 text-sm"
+          loading={isSaving}
+          className="w-full"
         >
-          {isSaving ? "Saving..." : "Save profile"}
-        </button>
+          Save profile
+        </SmoothButton>
       </div>
 
-      {message ? <p className="mt-3 text-sm text-white/68">{message}</p> : null}
-    </div>
+      {message ? <p className="mt-3 text-sm text-white/70">{message}</p> : null}
+    </GlassSurface>
   );
 }

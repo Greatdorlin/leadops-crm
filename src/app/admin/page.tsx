@@ -1,13 +1,17 @@
-import { PlugZap } from "lucide-react";
+import { PlugZap, Filter } from "lucide-react";
 import Link from "next/link";
 import { AdminCollapsibleSection } from "@/components/admin/AdminCollapsibleSection";
 import { AdminDashboardWidgetDeck } from "@/components/admin/AdminDashboardWidgetDeck";
+import { AffiliateDashboardPanel } from "@/components/admin/AffiliateDashboardPanel";
+import { DashboardHeroClock } from "@/components/admin/DashboardHeroClock";
 import { SalesCommandOverview } from "@/components/admin/SalesCommandOverview";
-import { AdminWorkspaceComposer } from "@/components/admin/AdminWorkspaceComposer";
 import { AdminShell } from "@/components/admin/AdminShell";
 import { ErrorState } from "@/components/admin/ErrorState";
 import { AdminSignOutButton } from "@/components/admin/AdminSignOutButton";
 import { EmptyState } from "@/components/admin/EmptyState";
+import { GlassSurface } from "@/components/admin/ui/GlassSurface";
+import { SmoothButton } from "@/components/admin/ui/SmoothButton";
+import { SectionHeader } from "@/components/admin/ui/SectionHeader";
 import { IntegrationHealthCard } from "@/components/admin/IntegrationHealthCard";
 import { AdminSelect } from "@/components/admin/AdminSelect";
 import { MetricCard } from "@/components/admin/MetricCard";
@@ -16,7 +20,9 @@ import { SearchInput } from "@/components/admin/SearchInput";
 import { SourceBadge } from "@/components/admin/SourceBadge";
 import { StatusBadge } from "@/components/admin/StatusBadge";
 import { TaskQueueTable } from "@/components/admin/TaskQueueTable";
+import { AdminAccessViewSwitcher } from "@/components/admin/AdminAccessViewSwitcher";
 import { TimelineItem } from "@/components/admin/TimelineItem";
+import { cn } from "@/lib/cn";
 import { getAdminAccessContext } from "@/lib/admin";
 import {
   buildNextFollowUpByLeadId,
@@ -34,18 +40,19 @@ import {
 import { buildLeadDisplayNameMap } from "@/lib/crm/lead-identity";
 import {
   crmLabelize,
+  formatAdminAccessLevelLabel,
   formatCrmDate,
   formatCrmDateTime,
   formatLeadEventLabel,
   formatLeadStateLabel,
   formatLeadSourceLabel,
 } from "@/lib/crm/formatters";
-import { listCustomFields } from "@/lib/crm/custom-fields-admin";
 import { listLeadIntakeEvents } from "@/lib/crm/intake-runtime";
-import { listLeadStages } from "@/lib/crm/lead-stages-admin";
+import { buildAffiliateDashboardSummary } from "@/lib/crm/affiliate-dashboard";
 import { getCrmPageErrorCopy, logCrmPageError } from "@/lib/crm/runtime";
 import { buildSalesDashboardSummary } from "@/lib/crm/sales-metrics";
 import { getActiveGlobalSalesTarget } from "@/lib/crm/sales-targets-admin";
+import { appRoutes } from "@/lib/app-routes";
 import {
   DASHBOARD_WIDGET_KEYS,
   getCompanySettings,
@@ -208,15 +215,23 @@ function buildDashboardHref(
 
   for (const [key, value] of Object.entries(overrides)) {
     if (value) {
-      params.set(key === "stage" ? "crmStatus" : key, value);
+      params.set(key, value);
     }
   }
 
   const query = params.toString();
-  return query ? `/admin?${query}` : "/admin";
+  return query ? `${appRoutes.dashboard}?${query}` : appRoutes.dashboard;
 }
 
 function getDashboardTitle(accessLevel: AdminAccessLevel) {
+  if (accessLevel === "affiliate") {
+    return "Affiliate Dashboard";
+  }
+
+  if (accessLevel === "finance") {
+    return "Finance Dashboard";
+  }
+
   if (accessLevel === "sales_rep") {
     return "My Dashboard";
   }
@@ -229,6 +244,14 @@ function getDashboardTitle(accessLevel: AdminAccessLevel) {
 }
 
 function getDashboardDescription(accessLevel: AdminAccessLevel) {
+  if (accessLevel === "affiliate") {
+    return "Your leads, value, and follow-ups.";
+  }
+
+  if (accessLevel === "finance") {
+    return "Lead value, checks, and approval signals.";
+  }
+
   if (accessLevel === "sales_rep") {
     return "Your priorities and follow-ups.";
   }
@@ -274,14 +297,11 @@ function createDemoLead(
 
   return {
     id: `demo-lead-${index}`,
-    reportToken: null,
     createdAt,
     updatedAt: lastActivityAt,
     lastActivityAt,
-    completedAt: null,
     deletedAt: null,
     deletedBy: null,
-    completionStatus: "complete",
     sourceDetail: null,
     priority: "medium",
     assignedToList: overrides.assignedTo ? [overrides.assignedTo] : [],
@@ -330,23 +350,9 @@ function createDemoLead(
     utmTerm: null,
     landingPage: null,
     sourcePayload: null,
-    primaryGoal: null,
-    currentStepKey: "contact",
-    currentStepIndex: 0,
-    progressPercent: 100,
-    readinessLevel: null,
-    topPathwayTitle: null,
-    answers: {},
-    report: null,
-    publicReport: null,
     sync: {
       googleSheets: { status: "skipped", message: "Use export when needed." },
       sender: { status: "success", message: "Demo lead ready." },
-    },
-    analytics: {
-      whatsappClicked: false,
-      consultationClicked: false,
-      reportViewed: false,
     },
     ...overrides,
   } as LeadRecord;
@@ -494,7 +500,7 @@ function buildDevelopmentDashboardData() {
     newLeadsToday: 2,
     unassignedLeads: leads.filter((lead) => !lead.assignedTo).length,
     followUpsDueToday: 2,
-    completedAssessments: leads.length,
+    capturedLeads: leads.length,
     consultationReadyLeads: 3,
     highPriorityLeads: leads.filter((lead) => lead.priority === "high" || lead.priority === "urgent").length,
     failedIntegrations: 0,
@@ -547,13 +553,17 @@ export default async function AdminPage({
     accessLevel,
     actualAccessLevel,
     canSwitchAccessViews,
-  } = await getAdminAccessContext("/admin");
+  } = await getAdminAccessContext(appRoutes.dashboard);
   const params = await searchParams;
   const filters = parseLeadListFilters(params);
   const selectedStage = readStageFilter(params) ?? (filters.stageId === "all" ? "all" : filters.stageId);
   const scopedFilters = scopeLeadListFilters(filters, accessLevel, session.user?.email);
   const showTeamViews = canViewSalesTeam(accessLevel);
   const showTechnicalSummary = canManageIntegrationsAccess(accessLevel, role);
+  const usePersonalTaskScope =
+    accessLevel === "sales_rep" || accessLevel === "affiliate" || accessLevel === "finance";
+  const showIntakeFeed =
+    accessLevel !== "sales_rep" && accessLevel !== "affiliate" && accessLevel !== "finance";
   let pageError: unknown = null;
   let pageData:
     | {
@@ -580,11 +590,11 @@ export default async function AdminPage({
         stageId: selectedStage,
       }),
       leadStore.listLeadTasks({
-        assignedTo: accessLevel === "sales_rep" ? session.user?.email ?? undefined : undefined,
+        assignedTo: usePersonalTaskScope ? session.user?.email ?? undefined : undefined,
       }),
       showTeamViews ? leadStore.listCrmUsers() : Promise.resolve([]),
       showTechnicalSummary ? leadStore.listIntegrations() : Promise.resolve([]),
-      accessLevel === "sales_rep" ? Promise.resolve([]) : listLeadIntakeEvents({ limit: 8 }),
+      showIntakeFeed ? listLeadIntakeEvents({ limit: 8 }) : Promise.resolve([]),
       getActiveGlobalSalesTarget(),
     ]);
 
@@ -642,26 +652,11 @@ export default async function AdminPage({
     );
   }
 
-  let leadCaptureCustomFields = [] as Awaited<ReturnType<typeof listCustomFields>>;
-  let leadCaptureStageOptions = [] as Array<{ value: CrmStatus; label: string }>;
-  try {
-    leadCaptureCustomFields = (await listCustomFields()).filter(
-      (field) => field.showInForm && !field.archived,
-    );
-    leadCaptureStageOptions = (await listLeadStages())
-      .filter((stage) => !stage.archived && crmOptions.includes(stage.key as (typeof crmOptions)[number]))
-      .map((stage) => ({
-        value: stage.key as CrmStatus,
-        label: stage.name,
-      }));
-  } catch (error) {
-    logCrmPageError("dashboard-custom-fields", error);
-  }
-
   const { leads, stats, tasks, users, integrations, intakeEvents, activeTarget } = pageData;
   const openTasks = tasks.filter((task) => !task.completedAt);
   const nextFollowUpByLeadId = buildNextFollowUpByLeadId(tasks);
-  const includeAssignmentSignals = accessLevel !== "sales_rep";
+  const includeAssignmentSignals =
+    accessLevel !== "sales_rep" && accessLevel !== "affiliate" && accessLevel !== "finance";
   const actionLeads = leads
     .filter((lead) => needsLeadAttention(lead, nextFollowUpByLeadId[lead.id], includeAssignmentSignals))
     .sort((left, right) => {
@@ -732,37 +727,7 @@ export default async function AdminPage({
       (filters.priority && filters.priority !== "all") ||
       filters.assignedTo,
   );
-  const assigneeOptions =
-    accessLevel === "sales_rep"
-      ? [
-          {
-            label: session.user?.name || session.user?.email || "My queue",
-            value: session.user?.email ?? "",
-          },
-        ]
-      : users
-          .filter((user) => user.isActive)
-          .map((user) => ({
-          label: user.fullName || user.email,
-          value: user.email,
-        }));
-  const defaultAssignedTo = accessLevel === "sales_rep" ? session.user?.email ?? "" : "";
-  const taskLeadOptions = leads.map((lead) => ({
-    value: lead.id,
-    label: `${leadNameById[lead.id] || "Lead"} • ${lead.state ? `${formatLeadStateLabel(lead.state)} • ` : ""}${lead.email || lead.whatsappNumber || "No contact yet"}`.trim(),
-  }));
-  const assignmentLeadOptions = [...unassignedLeads, ...actionLeads]
-    .filter((lead, index, collection) => collection.findIndex((item) => item.id === lead.id) === index)
-    .slice(0, 20)
-    .map((lead) => ({
-      value: lead.id,
-      label: `${leadNameById[lead.id] || "Lead"} • ${lead.state ? `${formatLeadStateLabel(lead.state)} • ` : ""}${lead.email || lead.whatsappNumber || formatLeadSourceLabel(lead.source)}`.trim(),
-      assignedTo: lead.assignedTo,
-      stage: lead.stageId ?? "new",
-      priority: lead.priority,
-    }));
   const welcomeName = getFirstNameLabel(crmUser?.fullName || session.user?.name || session.user?.email);
-  const dashboardDateLabel = formatCrmDate(new Date());
   const recentLeads = [...leads]
     .sort((left, right) => new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime())
     .slice(0, 5);
@@ -786,73 +751,106 @@ export default async function AdminPage({
     intakeEvents,
     activeTarget,
   });
+  const affiliateDashboardSummary =
+    accessLevel === "affiliate"
+      ? buildAffiliateDashboardSummary({
+          leads,
+          tasks,
+          affiliateEmail: session.user?.email,
+          commissionRatePercent: usingDevelopmentDemoData ? 5 : 0,
+        })
+      : null;
   const searchSlot = (
-      <form action="/admin" className="flex flex-col gap-2">
-        <div className="flex flex-col gap-2 lg:flex-row lg:items-center">
+      <form action={appRoutes.dashboard} className="flex flex-col gap-2">
+        <GlassSurface as="div" intensity="soft" border={true} className="flex flex-col gap-2 p-3 lg:flex-row lg:items-center">
           <div className="min-w-0 flex-1">
             <SearchInput
               defaultValue={filters.search ?? ""}
               placeholder="Search leads, region, tasks, people, or phone"
             />
           </div>
-          <button
-            type="submit"
-            className="admin-button-primary inline-flex h-11 items-center justify-center rounded-2xl px-5 text-sm font-semibold"
-          >
+          <SmoothButton type="submit" variant="primary" size="sm">
             Search
-          </button>
+          </SmoothButton>
           <Link
-            href="/admin"
-            className="admin-button-secondary inline-flex h-11 items-center justify-center rounded-2xl px-5 text-sm font-medium"
+            href={appRoutes.dashboard}
+            className="admin-button-secondary inline-flex h-8 items-center justify-center rounded-lg px-3 text-sm font-semibold"
           >
             {hasFilters ? "Reset" : "All leads"}
           </Link>
-        </div>
+        </GlassSurface>
 
         {accessLevel !== "sales_rep" && hasFilters ? (
-          <details
-            open
-            className="rounded-[18px] border border-white/10 bg-black/16 px-4 py-2.5"
-          >
-            <summary className="cursor-pointer list-none text-sm font-medium text-white/64">
-              Filters active
-            </summary>
-            <div className="mt-3 grid gap-2 sm:grid-cols-3">
-              <AdminSelect
-                name="stage"
-                defaultValue={selectedStage ?? "all"}
-                className="h-11"
+          <div className="rounded-[18px] border border-white/10 bg-black/16 px-4 py-3">
+            <div className="flex flex-wrap items-center gap-2">
+              <span
+                className="inline-flex items-center justify-center"
+                title="Active filters narrow the dashboard view"
               >
-                {crmOptions.map((option) => (
-                  <option key={option} value={option}>
-                    {crmLabelize(option)}
-                  </option>
-                ))}
-              </AdminSelect>
-              <AdminSelect
-                name="source"
-                defaultValue={filters.source ?? "all"}
-                className="h-11"
-              >
-                {sourceOptions.map((option) => (
-                  <option key={option} value={option}>
-                    {crmLabelize(option)}
-                  </option>
-                ))}
-              </AdminSelect>
-              <AdminSelect
-                name="priority"
-                defaultValue={filters.priority ?? "all"}
-                className="h-11"
-              >
-                {priorityOptions.map((option) => (
-                  <option key={option} value={option}>
-                    {crmLabelize(option)}
-                  </option>
-                ))}
-              </AdminSelect>
+                <Filter
+                  className="h-4 w-4 text-white/50"
+                  aria-label="Active filters narrow the dashboard view"
+                />
+              </span>
+              <span className="text-xs font-semibold uppercase tracking-[0.14em] text-white/70">Filters</span>
+              {selectedStage && selectedStage !== "all" ? (
+                <span className="rounded-full border border-white/10 bg-white/[0.06] px-2.5 py-0.5 text-xs text-white/80">{crmLabelize(selectedStage)}</span>
+              ) : null}
+              {filters.source && filters.source !== "all" ? (
+                <span className="rounded-full border border-white/10 bg-white/[0.06] px-2.5 py-0.5 text-xs text-white/80">{crmLabelize(filters.source)}</span>
+              ) : null}
+              {filters.priority && filters.priority !== "all" ? (
+                <span className="rounded-full border border-white/10 bg-white/[0.06] px-2.5 py-0.5 text-xs text-white/80">{crmLabelize(filters.priority)}</span>
+              ) : null}
+              {filters.assignedTo ? (
+                <span className="rounded-full border border-white/10 bg-white/[0.06] px-2.5 py-0.5 text-xs text-white/80">Owner</span>
+              ) : null}
             </div>
-          </details>
+            <div className="mt-3 grid gap-3 sm:grid-cols-3">
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[11px] font-semibold uppercase tracking-[0.14em] text-white/70">Stage</label>
+                <AdminSelect
+                  name="stage"
+                  defaultValue={selectedStage ?? "all"}
+                  className="h-11"
+                >
+                  {crmOptions.map((option) => (
+                    <option key={option} value={option}>
+                      {crmLabelize(option)}
+                    </option>
+                  ))}
+                </AdminSelect>
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[11px] font-semibold uppercase tracking-[0.14em] text-white/70">Source</label>
+                <AdminSelect
+                  name="source"
+                  defaultValue={filters.source ?? "all"}
+                  className="h-11"
+                >
+                  {sourceOptions.map((option) => (
+                    <option key={option} value={option}>
+                      {crmLabelize(option)}
+                    </option>
+                  ))}
+                </AdminSelect>
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[11px] font-semibold uppercase tracking-[0.14em] text-white/70">Priority</label>
+                <AdminSelect
+                  name="priority"
+                  defaultValue={filters.priority ?? "all"}
+                  className="h-11"
+                >
+                  {priorityOptions.map((option) => (
+                    <option key={option} value={option}>
+                      {crmLabelize(option)}
+                    </option>
+                  ))}
+                </AdminSelect>
+              </div>
+            </div>
+          </div>
         ) : null}
       </form>
   );
@@ -873,43 +871,71 @@ export default async function AdminPage({
       userAvatarUrl={crmUser?.avatarUrl}
     >
       <div className="space-y-6">
-        <section className="px-1 py-4 sm:px-2 sm:py-5">
+        <GlassSurface as="section" intensity="soft" border={true} className="px-4 py-5 sm:px-6 sm:py-6 ld-animate-fade-in-up">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
             <div className="max-w-3xl">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/44">
-                {dashboardDateLabel}
-              </p>
-              <h2 className="mt-2 font-[family:var(--font-heading)] text-[2.5rem] leading-none tracking-[-0.06em] text-white sm:text-[3rem]">
-                Good morning, {welcomeName}.
-              </h2>
-              <p className="mt-2 text-sm leading-6 text-white/68">
+              <DashboardHeroClock name={welcomeName} nameClassName="text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.3)]" />
+              <p className="mt-2 text-sm leading-6 text-white/70">
                 Here&apos;s what needs attention today.
               </p>
             </div>
             <div className="flex flex-wrap gap-3">
               <Link
-                href="/admin/leads"
-                className="ld-floating-control inline-flex h-11 items-center justify-center px-5 text-sm font-semibold"
+                href={appRoutes.leads}
+                className="admin-button-secondary inline-flex h-10 items-center justify-center rounded-xl px-4 text-sm font-semibold"
               >
                 Open leads
               </Link>
               <Link
-                href="#action-center"
-                className="ld-glass-button inline-flex h-11 items-center justify-center px-5 text-sm font-semibold"
+                href={appRoutes.tasks}
+                className="admin-button-primary inline-flex h-10 items-center justify-center rounded-xl px-4 text-sm font-semibold"
               >
-                {accessLevel === "sales_rep" ? "Create task" : "Create task"}
+                Open tasks
               </Link>
             </div>
           </div>
-        </section>
+        </GlassSurface>
 
-        {accessLevel === "sales_rep" ? null : (
-          <SalesCommandOverview
-            summary={salesDashboardSummary}
-            visibleWidgets={visibleDashboardWidgetKeys}
+        {canSwitchAccessViews && actualAccessLevel ? (
+          <AdminCollapsibleSection
+            eyebrow="Access"
+            title="Switch your view"
+            description="Temporarily view the dashboard as a different role to preview what other users see."
+            defaultOpen={false}
+          >
+            <AdminAccessViewSwitcher
+              actualAccessLevel={actualAccessLevel}
+              activeAccessLevel={accessLevel}
+            />
+          </AdminCollapsibleSection>
+        ) : null}
+
+        {affiliateDashboardSummary ? (
+          <AffiliateDashboardPanel
+            summary={affiliateDashboardSummary}
+            currency={salesDashboardSummary.target?.currency ?? "NGN"}
           />
+        ) : accessLevel === "sales_rep" ? null : (
+          <>
+            <SectionHeader
+              eyebrow="Performance"
+              title="Sales overview"
+              description="Key metrics and pipeline health at a glance."
+            />
+            <div className="ld-animate-fade-in-up">
+              <SalesCommandOverview
+                summary={salesDashboardSummary}
+                visibleWidgets={visibleDashboardWidgetKeys}
+              />
+            </div>
+          </>
         )}
 
+        <SectionHeader
+          eyebrow="Workspace"
+          title="Your action center"
+          description="Tasks, leads, and quick actions in one place."
+        />
         <AdminDashboardWidgetDeck
           initialOrder={
             visibleDashboardWidgetSet.has("my_tasks")
@@ -926,7 +952,7 @@ export default async function AdminPage({
               title: accessLevel === "sales_rep" ? "Start with these tasks" : "Tasks that need attention first",
               description: "Urgent items, due-today work, and overdue follow-ups surface first.",
               accent: "warm" as const,
-              ctaHref: "/admin/tasks",
+              ctaHref: appRoutes.tasks,
               ctaLabel: "View all",
               children:
                 focusedTasks.slice(0, 4).length > 0 ? (
@@ -934,14 +960,15 @@ export default async function AdminPage({
                     {focusedTasks.slice(0, 4).map((task, index) => (
                       <article
                         key={task.id}
-                        className={[
+                        className={cn(
                           "flex flex-col gap-4 px-4 py-4 transition hover:bg-white/[0.06] sm:flex-row sm:items-center sm:justify-between",
                           index < focusedTasks.slice(0, 4).length - 1 ? "border-b border-white/10" : "",
-                        ].join(" ")}
+                          isTaskOverdue(task) ? "border-l-2 border-l-rose-400/70" : isDateToday(task.dueAt) ? "border-l-2 border-l-amber-400/70" : "",
+                        )}
                       >
                         <div className="min-w-0">
                             <p className="text-base font-semibold text-white">{task.title}</p>
-                            <p className="mt-1 text-sm text-white/54">
+                            <p className="mt-1 text-sm text-white/70">
                               {leadNameById[task.leadId] || "Lead"}
                               {leadStateById[task.leadId]
                                 ? ` • ${formatLeadStateLabel(leadStateById[task.leadId])}`
@@ -952,8 +979,8 @@ export default async function AdminPage({
                         </div>
                         <div className="flex items-center gap-2">
                           <Link
-                            href={`/admin/leads/${task.leadId}`}
-                            className="inline-flex items-center gap-1.5 text-sm font-semibold text-cyan-100 transition hover:text-white"
+                            href={appRoutes.lead(task.leadId)}
+                            className="admin-button-ghost inline-flex h-8 items-center justify-center gap-2 rounded-lg px-3 text-sm font-semibold text-white/70 transition-all duration-200 hover:bg-white/[0.06] hover:text-white"
                           >
                             Open lead
                           </Link>
@@ -976,7 +1003,7 @@ export default async function AdminPage({
               title: "Newest leads",
               description: "Fresh arrivals, newest activity, and lead context in one quick scan.",
               accent: "cool" as const,
-              ctaHref: "/admin/leads",
+              ctaHref: appRoutes.leads,
               ctaLabel: "View all",
               children:
                 recentLeads.length > 0 ? (
@@ -984,31 +1011,32 @@ export default async function AdminPage({
                     {recentLeads.map((lead, index) => (
                       <Link
                         key={lead.id}
-                        href={`/admin/leads/${lead.id}`}
-                        className={[
-                          "block px-4 py-4 transition hover:bg-white/[0.06]",
+                        href={appRoutes.lead(lead.id)}
+                        className={cn(
+                          "block px-4 py-4 transition hover:bg-white/[0.06] ld-animate-fade-in-up",
                           index < recentLeads.length - 1 ? "border-b border-white/10" : "",
-                        ].join(" ")}
+                        )}
+                        style={{ animationDelay: `${index * 60}ms` }}
                       >
                         <div className="flex items-start gap-3">
                           <div className="min-w-0 flex-1">
                             <p className="text-base font-semibold text-white [overflow-wrap:anywhere]">
                               {recentLeadNameById[lead.id] || `${(lead.firstName || "Lead").trim()} ${lead.lastName}`.trim()}
                             </p>
-                            <p className="mt-1 text-sm leading-6 text-white/54 [overflow-wrap:anywhere]">
+                            <p className="mt-1 text-sm leading-6 text-white/70 [overflow-wrap:anywhere]">
                               {lead.email || lead.whatsappNumber || "No contact details yet"}
                             </p>
-                            <p className="mt-2 text-xs font-medium uppercase tracking-[0.14em] text-white/38">
+                            <p className="mt-2 text-xs font-medium uppercase tracking-[0.14em] text-white/70">
                               {lead.state ? formatLeadStateLabel(lead.state) : "Region not captured yet"}
                             </p>
                           </div>
                           <div className="shrink-0 rounded-full border border-white/10 bg-white/[0.06] px-2.5 py-1">
-                            <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/42">
+                            <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/70">
                               {formatCrmDateTime(lead.createdAt)}
                             </p>
                           </div>
                         </div>
-                        <div className="mt-3 flex flex-wrap gap-2">
+                        <div className="mt-3 flex flex-wrap items-center gap-2">
                           <SourceBadge source={lead.source} />
                           <StatusBadge status={resolveLeadStageBadge(lead.stageId)} />
                           <PriorityBadge priority={lead.priority} />
@@ -1026,23 +1054,40 @@ export default async function AdminPage({
             {
               id: "quick-actions",
               step: "3",
-              stepLabel: "Act fast",
-              eyebrow: "Quick actions",
-              title: "Capture, assign, and move the queue forward",
-              description: "Use the action center to add leads, create follow-ups, assign owners, and import lists without leaving the dashboard.",
+              stepLabel: "Jump in",
+              eyebrow: "Operational lanes",
+              title: "Open the right workspace fast",
+              description: "Open the right place without crowding the dashboard.",
               accent: "navy" as const,
               defaultOpen: false,
               children: (
-                <div id="action-center">
-                  <AdminWorkspaceComposer
-                    accessLevel={accessLevel}
-                    leadOptions={taskLeadOptions}
-                    assignmentLeadOptions={assignmentLeadOptions}
-                    assigneeOptions={assigneeOptions}
-                    defaultAssignedTo={defaultAssignedTo}
-                    leadCaptureCustomFields={leadCaptureCustomFields}
-                    leadCaptureStageOptions={leadCaptureStageOptions.length > 0 ? leadCaptureStageOptions : undefined}
-                  />
+                <div className="grid gap-3 md:grid-cols-3">
+                  {[
+                    {
+                      label: "Leads",
+                      copy: "Create, import, filter, assign, and export lead segments.",
+                      href: appRoutes.leads,
+                    },
+                    {
+                      label: "Tasks",
+                      copy: "Create tasks, clear overdue work, and rebalance follow-up.",
+                      href: appRoutes.tasks,
+                    },
+                    {
+                      label: "Reports",
+                      copy: "Review pipeline, source performance, and revenue progress.",
+                      href: appRoutes.reports,
+                    },
+                  ].map((lane) => (
+                    <Link
+                      key={lane.label}
+                      href={lane.href}
+                      className="admin-surface-muted rounded-[24px] px-4 py-4 transition hover:border-white/20 hover:bg-white/[0.08]"
+                    >
+                      <p className="text-base font-semibold text-white">{lane.label}</p>
+                      <p className="mt-2 text-sm leading-6 text-white/70">{lane.copy}</p>
+                    </Link>
+                  ))}
                 </div>
               ),
             },
@@ -1068,7 +1113,7 @@ export default async function AdminPage({
               }
               actions={
                 <Link
-                  href="/admin/tasks"
+                  href={appRoutes.tasks}
                   className="admin-button-secondary inline-flex h-10 items-center justify-center rounded-full px-4 text-sm font-medium"
                 >
                   Open tasks page
@@ -1092,14 +1137,14 @@ export default async function AdminPage({
               actions={
                 <div className="flex flex-wrap gap-2">
                   <Link
-                    href="/admin/leads"
+                    href={appRoutes.leads}
                     className="admin-button-secondary inline-flex h-10 items-center justify-center rounded-full px-4 text-sm font-medium"
                   >
                     Open leads page
                   </Link>
                   <Link
                     href={buildDashboardHref({ stage: "new" })}
-                    className="rounded-full border border-white/10 bg-white/[0.05] px-3 py-1.5 text-xs font-semibold text-white/64 transition hover:border-cyan-200/22 hover:bg-white/[0.08] hover:text-white"
+                    className="rounded-full border border-white/10 bg-white/[0.05] px-3 py-1.5 text-xs font-semibold text-white/70 transition hover:border-white/20 hover:bg-white/[0.08] hover:text-white"
                   >
                     New
                   </Link>
@@ -1111,18 +1156,18 @@ export default async function AdminPage({
                   previewActionLeads.map((lead) => (
                     <Link
                       key={lead.id}
-                      href={`/admin/leads/${lead.id}`}
-                      className="admin-surface-muted rounded-[24px] px-4 py-4 transition hover:border-cyan-200/22 hover:bg-white/[0.07]"
+                      href={appRoutes.lead(lead.id)}
+                      className="admin-surface-muted rounded-[24px] px-4 py-4 transition hover:border-white/20 hover:bg-white/[0.07]"
                     >
                       <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
                         <div className="min-w-0">
                           <p className="text-base font-semibold text-white">
                             {previewActionLeadNameById[lead.id] || `${(lead.firstName || "Lead").trim()} ${lead.lastName}`.trim()}
                           </p>
-                          <p className="mt-1 text-sm text-white/54 [overflow-wrap:anywhere]">
+                          <p className="mt-1 text-sm text-white/70 [overflow-wrap:anywhere]">
                             {lead.email || lead.whatsappNumber || "No contact yet"}
                           </p>
-                          <p className="mt-2 text-xs font-medium uppercase tracking-[0.14em] text-white/38">
+                          <p className="mt-2 text-xs font-medium uppercase tracking-[0.14em] text-white/70">
                             {lead.state ? formatLeadStateLabel(lead.state) : "Region not captured yet"}
                           </p>
                         </div>
@@ -1244,13 +1289,13 @@ export default async function AdminPage({
                     previewUnassignedLeads.map((lead) => (
                       <Link
                         key={lead.id}
-                        href={`/admin/leads/${lead.id}`}
-                        className="admin-surface-muted rounded-[22px] px-4 py-3 transition hover:border-cyan-200/22 hover:bg-white/[0.07]"
+                        href={appRoutes.lead(lead.id)}
+                        className="admin-surface-muted rounded-[22px] px-4 py-3 transition hover:border-white/20 hover:bg-white/[0.07]"
                       >
                         <p className="text-sm font-semibold text-white">
                           {previewUnassignedLeadNameById[lead.id] || `${(lead.firstName || "Lead").trim()} ${lead.lastName}`.trim()}
                         </p>
-                        <p className="mt-1 text-sm text-white/54">
+                        <p className="mt-1 text-sm text-white/70">
                           {lead.state ? `${formatLeadStateLabel(lead.state)} • ` : ""}{formatLeadSourceLabel(lead.source)} • {lead.email || lead.whatsappNumber || "No contact yet"}
                         </p>
                       </Link>
@@ -1287,7 +1332,7 @@ export default async function AdminPage({
                       <IntegrationHealthCard
                         key={integration.id}
                         integration={integration}
-                        href={`/admin/integrations/${integration.provider.replaceAll("_", "-")}`}
+                        href={appRoutes.integration(integration.provider.replaceAll("_", "-"))}
                       />
                     ))
                   ) : (

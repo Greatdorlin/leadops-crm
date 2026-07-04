@@ -31,12 +31,11 @@ function withEnv(
   }
 }
 
-test("getDatabaseUrl prefers DATABASE_URL over compatibility envs", () => {
+test("getDatabaseUrl prefers DATABASE_URL over platform envs", () => {
   withEnv(
     {
       DATABASE_URL: "postgresql://primary.example.com:5432/leads_desk",
-      POSTGRES_URL: "postgresql://legacy.example.com:5432/legacy",
-      PATHWAYFINDER_DATABASE_URL: "postgresql://pathway.example.com:5432/pathway",
+      POSTGRES_URL: "postgresql://secondary.example.com:5432/leads_desk",
     },
     () => {
       assert.equal(getDatabaseUrl(), "postgresql://primary.example.com:5432/leads_desk");
@@ -44,20 +43,16 @@ test("getDatabaseUrl prefers DATABASE_URL over compatibility envs", () => {
   );
 });
 
-test("getDatabaseUrl falls back to compatibility envs only when DATABASE_URL is missing", () => {
+test("getDatabaseUrl falls back to standard Postgres envs when DATABASE_URL is missing", () => {
   withEnv(
     {
       DATABASE_URL: undefined,
-      POSTGRES_URL: undefined,
+      POSTGRES_URL: "postgresql://secondary.example.com:5432/leads_desk",
       POSTGRES_PRISMA_URL: undefined,
       POSTGRES_URL_NON_POOLING: undefined,
-      PATHWAYFINDER_DATABASE_URL: "postgresql://pathway.example.com:5432/pathway",
-      PATHWAYFINDER_POSTGRES_URL: undefined,
-      PATHWAYFINDER_POSTGRES_PRISMA_URL: undefined,
-      PATHWAYFINDER_POSTGRES_URL_NON_POOLING: undefined,
     },
     () => {
-      assert.equal(getDatabaseUrl(), "postgresql://pathway.example.com:5432/pathway");
+      assert.equal(getDatabaseUrl(), "postgresql://secondary.example.com:5432/leads_desk");
     },
   );
 });

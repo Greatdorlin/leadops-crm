@@ -25,7 +25,7 @@ export function PremiumPageHeader({
         <h1 className="mt-2 text-[2.4rem] font-semibold leading-[0.95] tracking-[-0.06em] text-white sm:text-[3rem]">
           {title}
         </h1>
-        {description ? <p className="mt-3 text-base leading-7 text-white/62">{description}</p> : null}
+        {description ? <p className="mt-3 text-base leading-7 text-white/70">{description}</p> : null}
       </div>
       {actions ? <div className="flex flex-wrap items-center gap-3">{actions}</div> : null}
     </div>

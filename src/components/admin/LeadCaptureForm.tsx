@@ -17,9 +17,12 @@ import {
 } from "@/lib/crm/types";
 import { CustomFieldValueInputs } from "./CustomFieldValueInputs";
 import { AdminSelect } from "./AdminSelect";
+import { GlassSurface } from "./ui/GlassSurface";
+import { SmoothButton } from "./ui/SmoothButton";
+import { GradientText } from "./ui/GradientText";
 
 const manualSourceOptions: LeadSource[] = ["manual_entry", "agent", "referral"];
-const labelClass = "text-xs font-semibold uppercase tracking-[0.16em] text-white/54";
+const labelClass = "text-xs font-semibold uppercase tracking-[0.16em] text-white/70";
 const panelClass =
   "space-y-3 rounded-[24px] border border-white/10 bg-white/[0.045] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]";
 
@@ -152,9 +155,13 @@ export function LeadCaptureForm({
       setIsSaving(false);
     }
   }
-
   return (
-    <div className="space-y-5">
+    <GlassSurface intensity="medium" className="ld-animate-fade-in-up space-y-5 rounded-[24px] p-5">
+      <div className="mb-2 flex items-center gap-2">
+        <h3 className="text-sm font-semibold text-white/80">
+          <GradientText>Capture new lead</GradientText>
+        </h3>
+      </div>
       <div className="grid gap-3 sm:grid-cols-2">
         <label className="space-y-2">
           <span className={labelClass}>First name</span>
@@ -163,7 +170,7 @@ export function LeadCaptureForm({
             value={firstName}
             onChange={(event) => setFirstName(event.target.value)}
             placeholder="Ada"
-            className="admin-input h-11 w-full rounded-2xl px-4 text-sm outline-none"
+            className="admin-input ld-focus-ring h-11 w-full rounded-2xl px-4 text-sm outline-none"
           />
         </label>
         <label className="space-y-2">
@@ -173,7 +180,7 @@ export function LeadCaptureForm({
             value={lastName}
             onChange={(event) => setLastName(event.target.value)}
             placeholder="Okafor"
-            className="admin-input h-11 w-full rounded-2xl px-4 text-sm outline-none"
+            className="admin-input ld-focus-ring h-11 w-full rounded-2xl px-4 text-sm outline-none"
           />
         </label>
       </div>
@@ -195,13 +202,13 @@ export function LeadCaptureForm({
                   className={[
                     "rounded-[22px] border px-4 py-3 text-left transition",
                     selected
-                      ? "border-cyan-200/50 bg-[linear-gradient(135deg,rgba(59,130,246,0.34),rgba(139,92,246,0.28))] text-white shadow-[0_18px_34px_rgba(59,130,246,0.18)]"
+                      ? "border-white/20 bg-[linear-gradient(135deg,color-mix(in_srgb,var(--ld-color-primary)_30%,transparent),color-mix(in_srgb,var(--ld-color-accent)_22%,transparent))] text-white shadow-[0_12px_28px_color-mix(in_srgb,var(--ld-color-primary)_18%,transparent)]"
                       : "border-white/10 bg-white/[0.045] text-white/72 hover:border-white/20 hover:bg-white/[0.07]",
                   ].join(" ")}
                   aria-pressed={selected}
                 >
                   <span className="block text-sm font-semibold">{option.label}</span>
-                  <span className="mt-1 block text-xs leading-5 text-white/54">{option.hint}</span>
+                  <span className="mt-1 block text-xs leading-5 text-white/70">{option.hint}</span>
                 </button>
               );
             })}
@@ -214,7 +221,7 @@ export function LeadCaptureForm({
             value={email}
             onChange={(event) => setEmail(event.target.value)}
             placeholder="lead@example.com"
-            className="admin-input h-11 w-full rounded-2xl px-4 text-sm outline-none"
+            className="admin-input ld-focus-ring h-11 w-full rounded-2xl px-4 text-sm outline-none"
           />
         </label>
         <label className="space-y-2">
@@ -224,7 +231,7 @@ export function LeadCaptureForm({
             value={whatsappNumber}
             onChange={(event) => setWhatsappNumber(event.target.value)}
             placeholder="+234 801 234 5678"
-            className="admin-input h-11 w-full rounded-2xl px-4 text-sm outline-none"
+            className="admin-input ld-focus-ring h-11 w-full rounded-2xl px-4 text-sm outline-none"
           />
         </label>
         <label className="space-y-2">
@@ -234,7 +241,7 @@ export function LeadCaptureForm({
             value={companyName}
             onChange={(event) => setCompanyName(event.target.value)}
             placeholder="Northwind Ventures"
-            className="admin-input h-11 w-full rounded-2xl px-4 text-sm outline-none"
+            className="admin-input ld-focus-ring h-11 w-full rounded-2xl px-4 text-sm outline-none"
           />
         </label>
       </div>
@@ -247,7 +254,7 @@ export function LeadCaptureForm({
             value={country}
             onChange={(event) => setCountry(event.target.value)}
             placeholder="United States"
-            className="admin-input h-11 w-full rounded-2xl px-4 text-sm outline-none"
+            className="admin-input ld-focus-ring h-11 w-full rounded-2xl px-4 text-sm outline-none"
           />
         </label>
         <label className="space-y-2">
@@ -257,7 +264,7 @@ export function LeadCaptureForm({
             value={region}
             onChange={(event) => setRegion(event.target.value)}
             placeholder="California"
-            className="admin-input h-11 w-full rounded-2xl px-4 text-sm outline-none"
+            className="admin-input ld-focus-ring h-11 w-full rounded-2xl px-4 text-sm outline-none"
           />
         </label>
         <label className="space-y-2">
@@ -267,7 +274,7 @@ export function LeadCaptureForm({
             value={city}
             onChange={(event) => setCity(event.target.value)}
             placeholder="San Francisco"
-            className="admin-input h-11 w-full rounded-2xl px-4 text-sm outline-none"
+            className="admin-input ld-focus-ring h-11 w-full rounded-2xl px-4 text-sm outline-none"
           />
         </label>
         <label className="space-y-2">
@@ -277,7 +284,7 @@ export function LeadCaptureForm({
             value={postalCode}
             onChange={(event) => setPostalCode(event.target.value)}
             placeholder="94105"
-            className="admin-input h-11 w-full rounded-2xl px-4 text-sm outline-none"
+            className="admin-input ld-focus-ring h-11 w-full rounded-2xl px-4 text-sm outline-none"
           />
         </label>
         <label className="space-y-2 sm:col-span-2">
@@ -287,13 +294,13 @@ export function LeadCaptureForm({
             value={address}
             onChange={(event) => setAddress(event.target.value)}
             placeholder="Street address"
-            className="admin-input h-11 w-full rounded-2xl px-4 text-sm outline-none"
+            className="admin-input ld-focus-ring h-11 w-full rounded-2xl px-4 text-sm outline-none"
           />
         </label>
       </div>
 
       <div className="grid gap-3">
-        <label className="space-y-2">
+        <label className="relative space-y-2">
           <span className={labelClass}>Lead source</span>
           <AdminSelect
             value={source}
@@ -307,7 +314,7 @@ export function LeadCaptureForm({
             ))}
           </AdminSelect>
         </label>
-        <label className="space-y-2">
+        <label className="relative space-y-2">
           <span className={labelClass}>Stage</span>
           <AdminSelect
             value={stage}
@@ -321,7 +328,7 @@ export function LeadCaptureForm({
             ))}
           </AdminSelect>
         </label>
-        <label className="space-y-2">
+        <label className="relative space-y-2">
           <span className={labelClass}>Priority</span>
           <AdminSelect
             value={priority}
@@ -336,7 +343,7 @@ export function LeadCaptureForm({
           </AdminSelect>
         </label>
         {accessLevel === "sales_rep" ? null : (
-          <label className="space-y-2">
+          <label className="relative space-y-2">
             <span className={labelClass}>Owner</span>
             <AdminSelect
               value={assignedTo}
@@ -367,7 +374,7 @@ export function LeadCaptureForm({
                 ? "Example: Referred by a former client in Ibadan."
                 : "Example: Walk-in lead after an office visit."
           }
-          className="admin-textarea min-h-[104px] w-full rounded-2xl px-4 py-3 text-sm outline-none"
+          className="admin-textarea ld-focus-ring min-h-[104px] w-full rounded-2xl px-4 py-3 text-sm outline-none"
         />
       </label>
 
@@ -376,7 +383,7 @@ export function LeadCaptureForm({
           <p className={labelClass}>
             Sales details
           </p>
-          <p className="mt-1 text-sm text-white/58">Capture the next follow-up and potential value.</p>
+          <p className="mt-1 text-sm text-white/70">Capture the next follow-up and potential value.</p>
         </div>
         <div className="grid gap-3 sm:grid-cols-2">
           <label className="space-y-2">
@@ -385,7 +392,7 @@ export function LeadCaptureForm({
               type="datetime-local"
               value={nextFollowUpAt}
               onChange={(event) => setNextFollowUpAt(event.target.value)}
-              className="admin-input h-11 w-full rounded-2xl px-4 text-sm outline-none"
+              className="admin-input ld-focus-ring h-11 w-full rounded-2xl px-4 text-sm outline-none"
             />
           </label>
           <label className="space-y-2">
@@ -397,7 +404,7 @@ export function LeadCaptureForm({
               value={estimatedValue}
               onChange={(event) => setEstimatedValue(event.target.value)}
               placeholder="250000"
-              className="admin-input h-11 w-full rounded-2xl px-4 text-sm outline-none"
+              className="admin-input ld-focus-ring h-11 w-full rounded-2xl px-4 text-sm outline-none"
             />
           </label>
           <label className="space-y-2">
@@ -410,7 +417,7 @@ export function LeadCaptureForm({
               value={closeProbability}
               onChange={(event) => setCloseProbability(event.target.value)}
               placeholder="60"
-              className="admin-input h-11 w-full rounded-2xl px-4 text-sm outline-none"
+              className="admin-input ld-focus-ring h-11 w-full rounded-2xl px-4 text-sm outline-none"
             />
           </label>
           <label className="space-y-2">
@@ -419,7 +426,7 @@ export function LeadCaptureForm({
               type="datetime-local"
               value={expectedCloseDate}
               onChange={(event) => setExpectedCloseDate(event.target.value)}
-              className="admin-input h-11 w-full rounded-2xl px-4 text-sm outline-none"
+              className="admin-input ld-focus-ring h-11 w-full rounded-2xl px-4 text-sm outline-none"
             />
           </label>
         </div>
@@ -431,7 +438,7 @@ export function LeadCaptureForm({
             <p className={labelClass}>
               Extra lead details
             </p>
-            <p className="mt-1 text-sm text-white/58">Capture business-specific details.</p>
+            <p className="mt-1 text-sm text-white/70">Capture business-specific details.</p>
           </div>
           <CustomFieldValueInputs
             fields={customFieldInputModel}
@@ -447,19 +454,19 @@ export function LeadCaptureForm({
       ) : null}
 
       <div className="flex flex-col gap-3 border-t border-white/10 pt-4 sm:flex-row sm:items-end sm:justify-between">
-        <p className="max-w-[18rem] text-sm leading-6 text-white/54">
+        <p className="max-w-[18rem] text-sm leading-6 text-white/70">
           Saved into your sales pipeline.
         </p>
-        <button
-          type="button"
+        <SmoothButton
+          variant="primary"
+          size="md"
           onClick={() => void saveLead()}
-          disabled={isSaving}
-          className="admin-button-primary h-11 min-w-[136px] self-start rounded-2xl px-5 text-sm"
+          loading={isSaving}
         >
-          {isSaving ? "Saving..." : "Save lead"}
-        </button>
+          Save lead
+        </SmoothButton>
       </div>
-      {message ? <p className="text-sm text-white/68">{message}</p> : null}
-    </div>
+      {message ? <p className="text-sm text-white/70">{message}</p> : null}
+    </GlassSurface>
   );
 }

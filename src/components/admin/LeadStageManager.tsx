@@ -75,7 +75,7 @@ function StageEditor({
 
       <div className="grid gap-3 sm:grid-cols-2">
         <label className="space-y-2">
-          <span className="text-xs font-semibold uppercase tracking-[0.16em] text-white/50">Stage Name</span>
+          <span className="text-xs font-semibold uppercase tracking-[0.16em] text-white/70">Stage Name</span>
           <input
             type="text"
             value={draft.name}
@@ -85,7 +85,7 @@ function StageEditor({
           />
         </label>
         <label className="space-y-2">
-          <span className="text-xs font-semibold uppercase tracking-[0.16em] text-white/50">Stage Key</span>
+          <span className="text-xs font-semibold uppercase tracking-[0.16em] text-white/70">Stage Key</span>
           <input
             type="text"
             value={draft.key}
@@ -95,7 +95,7 @@ function StageEditor({
           />
         </label>
         <label className="space-y-2">
-          <span className="text-xs font-semibold uppercase tracking-[0.16em] text-white/50">Color</span>
+          <span className="text-xs font-semibold uppercase tracking-[0.16em] text-white/70">Color</span>
           <input
             type="text"
             value={draft.color}
@@ -105,7 +105,7 @@ function StageEditor({
           />
         </label>
         <label className="space-y-2">
-          <span className="text-xs font-semibold uppercase tracking-[0.16em] text-white/50">Order</span>
+          <span className="text-xs font-semibold uppercase tracking-[0.16em] text-white/70">Order</span>
           <input
             type="number"
             value={draft.sortOrder}
@@ -157,7 +157,7 @@ function StageEditor({
         >
           {isSaving ? "Saving..." : saveLabel}
         </button>
-        {message ? <p className="text-sm text-white/62">{message}</p> : null}
+        {message ? <p className="text-sm text-white/70">{message}</p> : null}
       </div>
     </div>
   );
@@ -301,7 +301,7 @@ export function LeadStageManager({
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
                   <p className="text-base font-semibold text-white">{stage.name}</p>
-                  <p className="mt-1 text-sm text-white/54">
+                  <p className="mt-1 text-sm text-white/70">
                     {stage.key}
                     {stage.color ? ` • ${stage.color}` : ""}
                   </p>
@@ -338,7 +338,7 @@ export function LeadStageManager({
                 </div>
               </div>
 
-              <div className="mt-4 flex flex-wrap gap-2 text-xs text-white/56">
+              <div className="mt-4 flex flex-wrap gap-2 text-xs text-white/70">
                 <span className="rounded-full border border-white/10 bg-white/[0.035] px-3 py-1">
                   Order {stage.sortOrder}
                 </span>
@@ -368,7 +368,7 @@ export function LeadStageManager({
       <div className="space-y-4">
         <div>
           <p className="text-base font-semibold text-white">Archived stages</p>
-          <p className="mt-1 text-sm text-white/54">
+          <p className="mt-1 text-sm text-white/70">
             Restore archived stages when you want them available again.
           </p>
         </div>
@@ -378,7 +378,7 @@ export function LeadStageManager({
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
                   <p className="text-base font-semibold text-white">{stage.name}</p>
-                  <p className="mt-1 text-sm text-white/54">{stage.key}</p>
+                  <p className="mt-1 text-sm text-white/70">{stage.key}</p>
                 </div>
                 <button
                   type="button"
@@ -393,7 +393,7 @@ export function LeadStageManager({
             </div>
           ))
         ) : (
-          <div className="rounded-[24px] border border-dashed border-white/12 bg-white/[0.035] px-4 py-4 text-sm text-white/52">
+          <div className="rounded-[24px] border border-dashed border-white/12 bg-white/[0.035] px-4 py-4 text-sm text-white/70">
             No archived stages yet.
           </div>
         )}

@@ -12,6 +12,8 @@ import {
   RotateCcw,
 } from "lucide-react";
 import { cn } from "@/lib/cn";
+import { GlassSurface } from "@/components/admin/ui/GlassSurface";
+import { SmoothButton } from "@/components/admin/ui/SmoothButton";
 
 const STORAGE_KEY = "ld-admin-dashboard-widgets-v1";
 
@@ -110,32 +112,33 @@ export function AdminDashboardWidgetDeck({
   } as const;
 
   return (
-    <section className="relative overflow-hidden rounded-[40px]">
-      <div className="pointer-events-none absolute inset-0 hidden xl:block bg-[radial-gradient(circle_at_18%_18%,rgba(139,92,246,0.18),transparent_28%),radial-gradient(circle_at_82%_16%,rgba(34,211,238,0.12),transparent_30%),linear-gradient(180deg,rgba(255,255,255,0.06),rgba(255,255,255,0))]" />
+    <section className="relative overflow-hidden rounded-[40px] ld-animate-fade-in-up">
+      <div className="pointer-events-none absolute inset-0 hidden xl:block bg-[radial-gradient(circle_at_18%_18%,rgba(139,92,246,0.18),transparent_28%),radial-gradient(circle_at_82%_16%,color-mix(in_srgb,var(--ld-color-primary)_12%,transparent),transparent_30%),linear-gradient(180deg,rgba(255,255,255,0.06),rgba(255,255,255,0))]" />
 
       <div className="relative mb-4 flex flex-wrap items-center justify-between gap-3 px-1">
         <div>
-          <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-white/48">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-white/70">
             Workspace layout
           </p>
-          <p className="mt-1 text-sm text-white/58">
+          <p className="mt-1 text-sm text-white/70">
             Collapse or reorder sections to match the day.
           </p>
         </div>
 
-        <button
+        <SmoothButton
           type="button"
-            onClick={() => {
-              setOrder(defaultOrder);
-              if (persistKey) {
-                window.localStorage.removeItem(persistKey);
-              }
-            }}
-          className="ld-floating-control inline-flex h-10 items-center justify-center rounded-full px-4 text-sm font-medium"
+          variant="ghost"
+          size="sm"
+          icon={<RotateCcw className="h-4 w-4" />}
+          onClick={() => {
+            setOrder(defaultOrder);
+            if (persistKey) {
+              window.localStorage.removeItem(persistKey);
+            }
+          }}
         >
-          <RotateCcw className="h-4 w-4" />
           Reset layout
-        </button>
+        </SmoothButton>
       </div>
 
       <div className="grid gap-5 xl:grid-cols-12">
@@ -148,8 +151,11 @@ export function AdminDashboardWidgetDeck({
           const isLast = index === orderedWidgets.length - 1;
 
           return (
-            <article
+            <GlassSurface
+              as="article"
               key={widget.id}
+              intensity="medium"
+              border={true}
               draggable
               onDragStart={() => setDraggingId(widget.id)}
               onDragEnd={() => setDraggingId(null)}
@@ -163,45 +169,49 @@ export function AdminDashboardWidgetDeck({
                 setDraggingId(null);
               }}
               className={cn(
-                "ld-glass-panel relative overflow-hidden rounded-[34px] p-5 shadow-[0_24px_70px_rgba(0,0,0,0.18)] before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:h-32 before:opacity-95",
+                "relative overflow-hidden rounded-[34px] p-5 shadow-[0_24px_70px_rgba(0,0,0,0.18)] before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:h-32 before:opacity-95",
                 accentClass,
                 slotClass,
                 draggingId === widget.id && "cursor-grabbing ring-2 ring-[color:var(--ld-color-accent)]/60",
                 draggingId && draggingId !== widget.id && "transition",
+                "ld-animate-fade-in-up",
               )}
+              style={{
+                animationDelay: `${index * 100}ms`,
+              }}
             >
               <div className="relative flex flex-col gap-5">
                 <div className="flex flex-wrap items-start justify-between gap-4">
                   <div className="min-w-0">
                     <div className="flex items-center gap-3">
-                      <span className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/12 bg-white/10 text-sm font-semibold text-white shadow-[0_10px_24px_rgba(0,0,0,0.16)]">
+                      <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-white/12 bg-gradient-to-br from-white/[0.14] to-white/[0.06] text-sm font-semibold text-white shadow-[0_10px_24px_rgba(0,0,0,0.16)] ring-1 ring-white/10">
                         {widget.step}
                       </span>
-                      <div>
-                        <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-white/52">
+                      <div className="min-w-0">
+                        <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-white/70">
                           {widget.stepLabel}
                         </p>
-                        <p className="mt-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-white/38">
+                        <p className="mt-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-white/70">
                           {widget.eyebrow}
                         </p>
                       </div>
                     </div>
-                    <h2 className="mt-4 max-w-2xl font-[family:var(--font-heading)] text-[1.65rem] leading-[0.98] tracking-[-0.055em] text-white sm:text-[1.9rem]">
+                    <h2 className="mt-4 min-w-0 max-w-2xl font-[family:var(--font-heading)] text-[1.65rem] leading-[0.98] tracking-[-0.055em] text-white sm:text-[1.9rem]">
                       {widget.title}
                     </h2>
-                    <p className="mt-2 max-w-2xl text-sm leading-6 text-white/58">
+                    <p className="mt-2 min-w-0 max-w-2xl text-sm leading-6 text-white/70">
                       {widget.description}
                     </p>
                   </div>
 
-                  <div className="flex flex-wrap items-center justify-end gap-2">
+                  <div className="flex min-w-0 flex-wrap items-center justify-end gap-2">
                     {widget.ctaHref && widget.ctaLabel ? (
                       <Link
                         href={widget.ctaHref}
-                        className="ld-floating-control inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold transition"
+                        className="admin-button-ghost inline-flex h-8 items-center gap-2 rounded-lg px-3 text-sm"
                       >
                         {widget.ctaLabel}
-                        <ArrowRight className="h-4 w-4" />
+                        <ArrowRight className="h-4 w-4 shrink-0" />
                       </Link>
                     ) : null}
 
@@ -240,7 +250,7 @@ export function AdminDashboardWidgetDeck({
                       <MoveDown className="h-4 w-4" />
                     </button>
                     <span
-                      className="ld-floating-control inline-flex h-11 w-11 cursor-grab items-center justify-center rounded-full text-white/54"
+                      className="ld-floating-control inline-flex h-11 w-11 cursor-grab items-center justify-center rounded-full text-white/70"
                       aria-label="Drag widget"
                       title="Drag to reorder"
                     >
@@ -258,18 +268,18 @@ export function AdminDashboardWidgetDeck({
                       aria-expanded={isOpen}
                       aria-label={isOpen ? "Collapse widget" : "Expand widget"}
                     >
-                      <ChevronDown className={cn("h-4 w-4 transition", isOpen ? "rotate-180" : "")} />
+                      <ChevronDown className={cn("h-4 w-4 text-white transition", isOpen ? "rotate-180" : "")} />
                     </button>
                   </div>
                 </div>
 
                 {isOpen ? (
-                  <div className="rounded-[28px] border border-white/10 bg-black/20 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] sm:p-5">
+                  <div className="rounded-[28px] border border-white/10 bg-black/20 p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
                     {widget.children}
                   </div>
                 ) : null}
               </div>
-            </article>
+            </GlassSurface>
           );
         })}
       </div>

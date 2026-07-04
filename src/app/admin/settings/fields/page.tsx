@@ -5,8 +5,9 @@ import { AdminSignOutButton } from "@/components/admin/AdminSignOutButton";
 import { CustomFieldManager } from "@/components/admin/CustomFieldManager";
 import { ErrorState } from "@/components/admin/ErrorState";
 import { MetricCard } from "@/components/admin/MetricCard";
-import { SectionHeader } from "@/components/admin/SectionHeader";
+import { PremiumPageHeader } from "@/components/admin/PremiumPageHeader";
 import { getAdminAccessContext } from "@/lib/admin";
+import { appRoutes } from "@/lib/app-routes";
 import { canManageCustomFields } from "@/lib/crm/authz";
 import { listCustomFields } from "@/lib/crm/custom-fields-admin";
 import { getCrmPageErrorCopy, logCrmPageError } from "@/lib/crm/runtime";
@@ -15,10 +16,10 @@ export const dynamic = "force-dynamic";
 
 export default async function AdminLeadFieldsPage() {
   const { role, accessLevel, actualAccessLevel, canSwitchAccessViews } =
-    await getAdminAccessContext("/admin/settings/fields");
+    await getAdminAccessContext(appRoutes.settingsFields);
 
   if (!canManageCustomFields({ accessLevel, role })) {
-    redirect("/admin/settings");
+    redirect(appRoutes.settings);
   }
 
   let fields = null;
@@ -43,7 +44,7 @@ export default async function AdminLeadFieldsPage() {
       actions={
         <>
           <Link
-            href="/admin/settings"
+            href={appRoutes.settings}
             className="admin-button-secondary inline-flex h-10 items-center justify-center rounded-full px-4 text-sm font-medium"
           >
             Back to settings
@@ -54,31 +55,40 @@ export default async function AdminLeadFieldsPage() {
     >
       {fields ? (
         <div className="space-y-6">
+          <PremiumPageHeader
+            eyebrow="Lead fields"
+            title="Field definitions"
+            description="Create the extra lead details your team actually uses."
+            actions={
+              <Link
+                href={appRoutes.settingsLeadPreview}
+                className="admin-button-secondary inline-flex h-11 items-center justify-center rounded-2xl px-5 text-sm font-medium"
+              >
+                Open lead preview
+              </Link>
+            }
+          />
+
           <section className="grid gap-3 md:grid-cols-3">
             <MetricCard
               label="Active fields"
               value={fields.filter((field) => !field.archived).length}
-              supporting="Fields currently available for future intake and lead views."
+              supporting="Ready for forms, lead detail, and queue views."
               tone="accent"
             />
             <MetricCard
               label="Archived fields"
               value={fields.filter((field) => field.archived).length}
-              supporting="Fields kept for safe recovery instead of deletion."
+              supporting="Kept for safe recovery instead of deletion."
             />
             <MetricCard
               label="Option-based fields"
               value={fields.filter((field) => field.type === "select" || field.type === "multi_select").length}
-              supporting="Fields with managed options for structured answers."
+              supporting="Structured fields with managed answer options."
             />
           </section>
 
           <section className="admin-surface rounded-[24px] p-5">
-            <SectionHeader
-              eyebrow="Lead fields"
-              title="Manage field definitions"
-              description="Keep lead forms and details aligned with your business without changing code."
-            />
             <div className="mt-5">
               <CustomFieldManager initialFields={fields} />
             </div>

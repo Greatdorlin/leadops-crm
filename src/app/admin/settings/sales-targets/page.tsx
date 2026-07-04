@@ -7,6 +7,7 @@ import { MetricCard } from "@/components/admin/MetricCard";
 import { SalesTargetManager } from "@/components/admin/SalesTargetManager";
 import { SectionHeader } from "@/components/admin/SectionHeader";
 import { getAdminAccessContext } from "@/lib/admin";
+import { appRoutes } from "@/lib/app-routes";
 import { canManageSalesTargets } from "@/lib/crm/authz";
 import {
   getSalesTargetReferenceData,
@@ -18,10 +19,10 @@ export const dynamic = "force-dynamic";
 
 export default async function AdminSalesTargetsPage() {
   const { role, accessLevel, actualAccessLevel, canSwitchAccessViews } =
-    await getAdminAccessContext("/admin/settings/sales-targets");
+    await getAdminAccessContext(appRoutes.settingsSalesTargets);
 
   if (!canManageSalesTargets({ accessLevel, role })) {
-    redirect("/admin/settings");
+    redirect(appRoutes.settings);
   }
 
   let targets = null;
@@ -50,7 +51,7 @@ export default async function AdminSalesTargetsPage() {
       actions={
         <>
           <Link
-            href="/admin/settings"
+            href={appRoutes.settings}
             className="admin-button-secondary inline-flex h-10 items-center justify-center rounded-full px-4 text-sm font-medium"
           >
             Back to settings

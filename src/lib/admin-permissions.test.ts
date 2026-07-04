@@ -13,10 +13,12 @@ import {
 } from "@/lib/admin-permissions";
 import {
   canExportLeads,
+  canReviewApprovalRequests,
   canManageBranchScope,
   canManageDepartmentScope,
   canManageTeamScope,
   canManageUsers,
+  canVerifyPaymentClaims,
 } from "@/lib/crm/authz";
 
 test("initial admin email always resolves to master access", () => {
@@ -42,7 +44,8 @@ test("legacy roles map cleanly into the new access experiences", () => {
   assert.equal(resolveAdminAccessLevel({ role: "manager" }), "general_admin");
   assert.equal(resolveAdminAccessLevel({ role: "ad_manager" }), "general_admin");
   assert.equal(resolveAdminAccessLevel({ role: "consultant" }), "lead_sales_rep");
-  assert.equal(resolveAdminAccessLevel({ role: "finance" }), "general_admin");
+  assert.equal(resolveAdminAccessLevel({ role: "finance" }), "finance");
+  assert.equal(resolveAdminAccessLevel({ role: "affiliate" }), "affiliate");
   assert.equal(resolveAdminAccessLevel({ role: "sales_agent" }), "sales_rep");
 });
 
@@ -61,6 +64,14 @@ test("neutral permission helpers keep owner and admin export access", () => {
   );
   assert.equal(
     canExportLeads({ accessLevel: "sales_rep", email: "rep@example.com", role: "sales_agent" }),
+    false,
+  );
+  assert.equal(
+    canExportLeads({ accessLevel: "finance", email: "finance@example.com", role: "finance" }),
+    false,
+  );
+  assert.equal(
+    canExportLeads({ accessLevel: "affiliate", email: "affiliate@example.com", role: "affiliate" }),
     false,
   );
 });
@@ -98,6 +109,22 @@ test("neutral management helpers preserve inherited team-lead compatibility", ()
     }),
     false,
   );
+  assert.equal(
+    canManageUsers({
+      accessLevel: "finance",
+      email: "finance@example.com",
+      role: "finance",
+    }),
+    false,
+  );
+  assert.equal(
+    canManageUsers({
+      accessLevel: "affiliate",
+      email: "affiliate@example.com",
+      role: "affiliate",
+    }),
+    false,
+  );
 });
 
 test("scope helpers prepare future branch, department, and team rules conservatively", () => {
@@ -119,17 +146,36 @@ test("scope helpers prepare future branch, department, and team rules conservati
   );
   assert.equal(
     canManageDepartmentScope({
-      accessLevel: "general_admin",
+      accessLevel: "finance",
       email: "manager@example.com",
       role: "finance",
     }),
-    true,
+    false,
   );
   assert.equal(
     canManageBranchScope({
       accessLevel: "sales_rep",
       email: "rep@example.com",
       role: "sales_agent",
+    }),
+    false,
+  );
+});
+
+test("finance can verify payment claims without broad owner approval powers", () => {
+  assert.equal(
+    canVerifyPaymentClaims({
+      accessLevel: "finance",
+      email: "finance@example.com",
+      role: "finance",
+    }),
+    true,
+  );
+  assert.equal(
+    canReviewApprovalRequests({
+      accessLevel: "finance",
+      email: "finance@example.com",
+      role: "finance",
     }),
     false,
   );
@@ -162,19 +208,49 @@ test("sales rep navigation stays scoped to personal workspaces", () => {
   ]);
 });
 
+test("affiliate navigation stays scoped to owned lead work", () => {
+  assert.deepEqual(getVisibleAdminNavKeys("affiliate"), [
+    "dashboard",
+    "leads",
+    "tasks",
+    "notifications",
+  ]);
+});
+
+test("finance navigation excludes broad reports and settings by default", () => {
+  assert.deepEqual(getVisibleAdminNavKeys("finance"), [
+    "dashboard",
+    "leads",
+    "tasks",
+    "notifications",
+  ]);
+});
+
 test("ad manager keeps integration access without full admin settings", () => {
   assert.equal(canManageIntegrationsAccess("general_admin", "ad_manager"), true);
 });
 
 test("sales manager can open settings but only grant sales rep access", () => {
   assert.equal(canManageSettings("lead_sales_rep"), true);
-  assert.deepEqual(getGrantableAccessLevels("lead_sales_rep"), ["sales_rep"]);
+  assert.deepEqual(getGrantableAccessLevels("lead_sales_rep"), ["sales_rep", "affiliate"]);
 });
 
-test("general admin can grant sales manager and sales rep access", () => {
+test("normal roster management cannot grant owner access", () => {
+  assert.deepEqual(getGrantableAccessLevels("master_admin"), [
+    "general_admin",
+    "lead_sales_rep",
+    "finance",
+    "sales_rep",
+    "affiliate",
+  ]);
+});
+
+test("general admin can grant operational, finance, and affiliate access", () => {
   assert.deepEqual(getGrantableAccessLevels("general_admin"), [
     "lead_sales_rep",
+    "finance",
     "sales_rep",
+    "affiliate",
   ]);
 });
 
@@ -182,14 +258,18 @@ test("trash access is limited to master and general admin", () => {
   assert.equal(canAccessLeadTrash("master_admin"), true);
   assert.equal(canAccessLeadTrash("general_admin"), true);
   assert.equal(canAccessLeadTrash("lead_sales_rep"), false);
+  assert.equal(canAccessLeadTrash("finance"), false);
   assert.equal(canAccessLeadTrash("sales_rep"), false);
+  assert.equal(canAccessLeadTrash("affiliate"), false);
 });
 
 test("master admin, general admin, and sales manager can move leads to trash", () => {
   assert.equal(canSoftDeleteLead("master_admin"), true);
   assert.equal(canSoftDeleteLead("general_admin"), true);
   assert.equal(canSoftDeleteLead("lead_sales_rep"), true);
+  assert.equal(canSoftDeleteLead("finance"), false);
   assert.equal(canSoftDeleteLead("sales_rep"), false);
+  assert.equal(canSoftDeleteLead("affiliate"), false);
 });
 
 test("general admin can only remove non-admin team members", () => {
@@ -235,9 +315,39 @@ test("sales manager can only manage sales reps", () => {
   assert.equal(
     canManageTeamMember(
       "lead_sales_rep",
+      "affiliate",
+      "manager@example.com",
+      "affiliate@example.com",
+    ),
+    true,
+  );
+  assert.equal(
+    canManageTeamMember(
+      "lead_sales_rep",
       "lead_sales_rep",
       "manager@example.com",
       "peer-manager@example.com",
+    ),
+    false,
+  );
+});
+
+test("finance and affiliates cannot manage team access", () => {
+  assert.equal(
+    canManageTeamMember(
+      "finance",
+      "sales_rep",
+      "finance@example.com",
+      "rep@example.com",
+    ),
+    false,
+  );
+  assert.equal(
+    canManageTeamMember(
+      "affiliate",
+      "affiliate",
+      "affiliate@example.com",
+      "peer@example.com",
     ),
     false,
   );

@@ -5,18 +5,13 @@ import { AdminSignOutButton } from "@/components/admin/AdminSignOutButton";
 import { EmptyState } from "@/components/admin/EmptyState";
 import { ErrorState } from "@/components/admin/ErrorState";
 import { GlassCard } from "@/components/admin/GlassCard";
+import { AnimatedCard } from "@/components/admin/ui/AnimatedCard";
 import { MetricCard } from "@/components/admin/MetricCard";
-import { PremiumPageHeader } from "@/components/admin/PremiumPageHeader";
 import { SectionHeader } from "@/components/admin/SectionHeader";
 import { TeamAvatar } from "@/components/admin/TeamAvatar";
-import { TeamMemberAccessButton } from "@/components/admin/TeamMemberAccessButton";
-import { TeamAccessForm } from "@/components/admin/TeamAccessForm";
-import { TeamMemberProfileForm } from "@/components/admin/TeamMemberProfileForm";
 import { getAdminAccessContext } from "@/lib/admin";
 import {
   canEditTeamAccess,
-  canManageTeamMember,
-  canManageTeamRoster,
   canManageSettings,
   getGrantableAccessLevels,
   resolveAdminAccessLevel,
@@ -31,6 +26,8 @@ import {
   canManageLeadPreviewSettings,
   canManageLeadStages,
   canManageNavigationSettings,
+  canManageCurrencySettings,
+  canManageBranches,
   canManageSalesTargets,
   canViewSystemStatus,
 } from "@/lib/crm/authz";
@@ -40,6 +37,7 @@ import {
   formatIntegrationStatusLabel,
 } from "@/lib/crm/formatters";
 import { getCrmPageErrorCopy, logCrmPageError } from "@/lib/crm/runtime";
+import { appRoutes } from "@/lib/app-routes";
 import { leadStore } from "@/lib/storage";
 
 export const dynamic = "force-dynamic";
@@ -102,15 +100,14 @@ function buildDevelopmentSettingsData() {
 
 export default async function AdminSettingsPage() {
   const { session, role, accessLevel, actualAccessLevel, canSwitchAccessViews } =
-    await getAdminAccessContext("/admin/settings");
+    await getAdminAccessContext(appRoutes.settings);
   if (!canManageSettings(accessLevel, role)) {
-    redirect("/admin");
+    redirect(appRoutes.dashboard);
   }
 
   const grantableAccessLevels = getGrantableAccessLevels(accessLevel);
   const canGrantAccess = grantableAccessLevels.length > 0;
   const showFullAdminSettings = canEditTeamAccess(accessLevel);
-  const canEditRoster = canManageTeamRoster(accessLevel);
   const canOpenCustomFields = canManageCustomFields({ accessLevel, role });
   const canOpenFormSources = canManageFormSources({ accessLevel, role });
   const canOpenLeadStages = canManageLeadStages({ accessLevel, role });
@@ -122,6 +119,8 @@ export default async function AdminSettingsPage() {
   const canOpenDashboard = canManageDashboardSettings({ accessLevel, role });
   const canOpenIndustry = canManageIndustryPresets({ accessLevel, role });
   const canOpenSystemStatus = canViewSystemStatus({ accessLevel, role });
+  const canOpenCurrency = canManageCurrencySettings({ accessLevel, role });
+  const canOpenBranches = canManageBranches({ accessLevel, role });
   let pageData:
     | {
         users: Awaited<ReturnType<typeof leadStore.listCrmUsers>>;
@@ -163,10 +162,10 @@ export default async function AdminSettingsPage() {
       title="Settings"
       description={
         showFullAdminSettings
-          ? "Brand, sales setup, team access, and system controls."
+          ? "Brand, sales setup, access, and system controls."
           : canGrantAccess
-            ? "Team access and workspace setup."
-          : "Lead setup and assignment rules."
+            ? "Team setup and workspace controls."
+            : "Lead setup and workspace rules."
       }
       actions={<AdminSignOutButton />}
       userName={currentUser?.fullName || session.user?.name}
@@ -176,13 +175,14 @@ export default async function AdminSettingsPage() {
       <div className="space-y-6">
         {pageData ? (
           <>
-            <PremiumPageHeader
+            <SectionHeader
               eyebrow="Workspace settings"
               title="Shape the way your team works"
-              description="Profile, roles, brand, lead setup, and operational controls in one calm workspace."
+              description="Open the right setup area quickly without crowding one page with everything."
+              className="ld-animate-fade-in-up"
             />
 
-            <section className="grid gap-3 md:grid-cols-3">
+            <section className="grid gap-3 md:grid-cols-3 ld-animate-fade-in-up">
               <MetricCard
                 label="Team members"
                 value={activeUsers.length}
@@ -205,163 +205,89 @@ export default async function AdminSettingsPage() {
               />
             </section>
 
-            {currentUser ? (
-              <GlassCard glassStyle="vibrant" className="p-5 sm:p-6">
-                <div className="grid gap-6 xl:grid-cols-[0.82fr_1.18fr] xl:items-start">
-                  <div>
-                    <SectionHeader
-                      eyebrow="My profile"
-                      title="Your workspace identity"
-                      description="Update your name and profile photo. Sales reps can manage this without admin access."
+            <section className="grid gap-6 xl:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)] ld-animate-fade-in-up">
+              {currentUser ? (
+                <GlassCard glassStyle="vibrant" className="p-5 sm:p-6">
+                  <SectionHeader
+                    eyebrow="My profile"
+                    title="Your workspace identity"
+                    description="Update your own name and profile photo from the dedicated profile page."
+                    actions={
+                      <Link
+                        href={appRoutes.profile}
+                        className="admin-button-secondary inline-flex h-11 items-center justify-center rounded-2xl px-5 text-sm font-medium"
+                      >
+                        Open profile
+                      </Link>
+                    }
+                  />
+                  <div className="mt-5 flex items-center gap-4 rounded-[24px] border border-white/10 bg-white/[0.045] p-4">
+                    <TeamAvatar
+                      name={currentUser.fullName}
+                      email={currentUser.email}
+                      avatarUrl={currentUser.avatarUrl}
+                      size="lg"
                     />
-                    <div className="mt-5 flex items-center gap-4 rounded-[24px] border border-white/10 bg-white/[0.045] p-4">
-                      <TeamAvatar
-                        name={currentUser.fullName}
-                        email={currentUser.email}
-                        avatarUrl={currentUser.avatarUrl}
-                        size="lg"
-                      />
-                      <div className="min-w-0">
-                        <p className="truncate text-lg font-semibold text-white">
-                          {currentUser.fullName || currentUser.email}
-                        </p>
-                        <p className="truncate text-sm text-white/55">{currentUser.email}</p>
-                      </div>
+                    <div className="min-w-0">
+                      <p className="truncate text-lg font-semibold text-white">
+                        {currentUser.fullName || currentUser.email}
+                      </p>
+                      <p className="truncate text-sm text-white/70">{currentUser.email}</p>
+                      <p className="mt-2 text-xs font-semibold uppercase tracking-[0.14em] text-white/70">
+                        {formatAdminAccessLevelLabel(
+                          resolveAdminAccessLevel({
+                            email: currentUser.email,
+                            role: currentUser.role,
+                          }),
+                        )}
+                      </p>
                     </div>
                   </div>
-                  <TeamMemberProfileForm
-                    userId={currentUser.id}
-                    fullName={currentUser.fullName}
-                    email={currentUser.email}
-                    avatarUrl={currentUser.avatarUrl}
-                    accessLevel={resolveAdminAccessLevel({
-                      email: currentUser.email,
-                      role: currentUser.role,
-                    })}
-                    isActive={currentUser.isActive}
-                    compact
-                  />
-                </div>
-              </GlassCard>
-            ) : null}
+                </GlassCard>
+              ) : null}
 
-            {canGrantAccess ? (
-              <GlassCard glassStyle="soft" className="p-5">
+              <GlassCard glassStyle="soft" className="p-5 sm:p-6">
                 <SectionHeader
-                  eyebrow="Team access"
-                  title="Add or update team members"
-                  description={
-                    accessLevel === "lead_sales_rep"
-                      ? "Team leads can grant workspace access to sales reps."
-                      : "Manage who can sign in and which workspace role they should receive."
+                  eyebrow="Team settings"
+                  title="People and access"
+                  description="Manage the roster, photos, and workspace access in a dedicated team settings view."
+                  actions={
+                    <Link
+                      href={appRoutes.settingsTeam}
+                      className="admin-button-primary inline-flex h-11 items-center justify-center rounded-2xl px-5 text-sm font-semibold"
+                    >
+                      Open team settings
+                    </Link>
                   }
                 />
-                <div className="mt-4">
-                  <TeamAccessForm grantableAccessLevels={grantableAccessLevels} />
+                <div className="mt-5 grid gap-3 sm:grid-cols-3">
+                  <div className="rounded-[22px] border border-white/10 bg-white/[0.045] p-4">
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/70">
+                      Active team
+                    </p>
+                    <p className="mt-3 text-2xl font-semibold tracking-[-0.05em] text-white">
+                      {activeUsers.length}
+                    </p>
+                  </div>
+                  <div className="rounded-[22px] border border-white/10 bg-white/[0.045] p-4">
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/70">
+                      Inactive
+                    </p>
+                    <p className="mt-3 text-2xl font-semibold tracking-[-0.05em] text-white">
+                      {inactiveUsers.length}
+                    </p>
+                  </div>
+                  <div className="rounded-[22px] border border-white/10 bg-white/[0.045] p-4">
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/70">
+                      Grantable roles
+                    </p>
+                    <p className="mt-3 text-2xl font-semibold tracking-[-0.05em] text-white">
+                      {grantableAccessLevels.length}
+                    </p>
+                  </div>
                 </div>
               </GlassCard>
-            ) : null}
-
-            <GlassCard glassStyle="soft" className="p-5">
-              <SectionHeader
-                eyebrow="Team roster"
-                title="Current team members"
-                description="These team members can be assigned to leads and tasks."
-              />
-              <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-                {activeUsers.length > 0 ? (
-                  activeUsers.map((user) => {
-                    const targetAccessLevel = resolveAdminAccessLevel({
-                      email: user.email,
-                      role: user.role,
-                    });
-                    const canManageMember = canManageTeamMember(
-                      accessLevel,
-                      targetAccessLevel,
-                      session.user?.email,
-                      user.email,
-                    );
-
-                    return (
-                      <div key={user.id} className="admin-surface-muted rounded-[24px] p-4">
-                        <TeamMemberProfileForm
-                          userId={user.id}
-                          fullName={user.fullName}
-                          email={user.email}
-                          avatarUrl={user.avatarUrl}
-                          accessLevel={targetAccessLevel}
-                          isActive={user.isActive}
-                          grantableAccessLevels={grantableAccessLevels}
-                          canEditAccess={canEditRoster && canManageMember}
-                          canEditActive={canEditRoster && canManageMember}
-                          compact
-                        />
-                        {canEditRoster && canManageMember ? (
-                          <div className="mt-4 border-t border-white/10 pt-4">
-                            <TeamMemberAccessButton
-                              userId={user.id}
-                              isActive={user.isActive}
-                              className="inline-flex h-10 items-center justify-center rounded-full border border-rose-300/24 bg-rose-300/10 px-4 text-sm font-medium text-rose-100 transition hover:bg-rose-300/16"
-                            />
-                          </div>
-                        ) : null}
-                      </div>
-                    );
-                  })
-                ) : (
-                  <EmptyState
-                    title="No team members yet"
-                    description="Add team members to keep assignment options up to date."
-                  />
-                )}
-              </div>
-            </GlassCard>
-
-            {inactiveUsers.length > 0 ? (
-              <GlassCard glassStyle="soft" className="p-5">
-                <SectionHeader
-                  eyebrow="Inactive roster"
-                  title="Removed team members"
-                  description="These people no longer appear in assignment choices or admin access."
-                />
-                <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-                  {inactiveUsers.map((user) => {
-                    const targetAccessLevel = resolveAdminAccessLevel({
-                      email: user.email,
-                      role: user.role,
-                    });
-                    const canManageMember = canManageTeamMember(
-                      accessLevel,
-                      targetAccessLevel,
-                      session.user?.email,
-                      user.email,
-                    );
-
-                    return (
-                      <div key={user.id} className="admin-surface-muted rounded-2xl p-4">
-                        <p className="text-base font-semibold text-white">{user.fullName || user.email}</p>
-                        <p className="mt-1.5 text-sm text-white/52">{user.email}</p>
-                        <p className="mt-3 text-sm text-white/70">
-                          {formatAdminAccessLevelLabel(targetAccessLevel)}
-                        </p>
-                        <p className="mt-2 text-xs font-semibold uppercase tracking-[0.14em] text-white/42">
-                          Inactive
-                        </p>
-                        {canEditRoster && canManageMember ? (
-                          <div className="mt-4">
-                            <TeamMemberAccessButton
-                              userId={user.id}
-                              isActive={user.isActive}
-                              className="inline-flex h-10 items-center justify-center rounded-full border border-emerald-300/24 bg-emerald-300/10 px-4 text-sm font-medium text-emerald-100 transition hover:bg-emerald-300/16"
-                            />
-                          </div>
-                        ) : null}
-                      </div>
-                    );
-                  })}
-                </div>
-              </GlassCard>
-            ) : null}
+            </section>
 
             <section className="grid gap-6 xl:grid-cols-12">
               <div className="space-y-6 xl:col-span-7">
@@ -378,11 +304,11 @@ export default async function AdminSettingsPage() {
                         ["Admin", "Operational admin access, lead oversight, reports, and everyday settings."],
                         ["Team Lead", "Team visibility, task assignment, follow-up coverage, and rep support."],
                         ["Sales Rep", "Assigned leads, personal tasks, and individual performance."],
-                      ].map(([title, copy]) => (
-                        <div key={title} className="admin-surface-muted rounded-2xl p-4">
+                      ].map(([title, copy], index) => (
+                        <AnimatedCard key={title} variant="subtle" animation="fadeInUp" delay={index * 60} className="rounded-2xl p-4">
                           <p className="text-sm font-semibold text-white">{title}</p>
-                          <p className="mt-2 text-sm leading-6 text-white/58">{copy}</p>
-                        </div>
+                          <p className="mt-2 text-sm leading-6 text-white/70">{copy}</p>
+                        </AnimatedCard>
                       ))}
                     </div>
                   </GlassCard>
@@ -396,31 +322,33 @@ export default async function AdminSettingsPage() {
                   />
                   <div className="mt-4 grid gap-3 md:grid-cols-2">
                     {[
-                      { label: "Company Profile", href: "/admin/settings", enabled: true, copy: "Team access, company-level setup, and owner controls." },
-                      { label: "Appearance", href: "/admin/settings/appearance", enabled: canOpenAppearance, copy: "Brand the workspace, login page, and colors." },
-                      { label: "Industry", href: "/admin/settings/industry", enabled: canOpenIndustry, copy: "Apply safer defaults for your business type." },
-                      { label: "Lead Fields", href: "/admin/settings/fields", enabled: canOpenCustomFields, copy: "Define the extra lead details your business tracks." },
-                      { label: "Lead Preview", href: "/admin/settings/lead-preview", enabled: canOpenLeadPreview, copy: "Choose the lead columns and mobile preview fields." },
-                      { label: "Form Sources", href: "/admin/settings/form-sources", enabled: canOpenFormSources, copy: "Map website, webhook, CSV, and manual sources." },
-                      { label: "Lead Stages", href: "/admin/settings/stages", enabled: canOpenLeadStages, copy: "Control the stages used across pipeline reporting." },
-                      { label: "Lead Sources", href: "/admin/settings/sources", enabled: canOpenLeadSources, copy: "Keep source labels clean for reporting and exports." },
-                      { label: "Dashboard", href: "/admin/settings/dashboard", enabled: canOpenDashboard, copy: "Show, hide, and reorder the dashboard widgets." },
-                      { label: "Sales Targets", href: "/admin/settings/sales-targets", enabled: canOpenSalesTargets, copy: "Track monthly goals and progress on the dashboard." },
-                      { label: "Users / Team Access", href: "#team-access", enabled: canGrantAccess, copy: "Create users and control who can work inside the workspace." },
-                      { label: "Export Data", href: "/admin/reports", enabled: true, copy: "Review performance and export current lead data." },
-                      { label: "Navigation", href: "/admin/settings/navigation", enabled: canOpenNavigation, copy: "Show, hide, rename, and reorder sidebar items." },
-                      { label: "System Status", href: "/admin/settings/system-status", enabled: canOpenSystemStatus, copy: "Check deployment readiness without exposing secrets." },
-                      { label: "Intake Logs", href: "/admin/intake", enabled: canOpenFormSources, copy: "Review recent submissions and failed syncs." },
+                      { label: "Company Profile", href: appRoutes.settings, enabled: true, copy: "Team access, company-level setup, and owner controls." },
+                      { label: "Appearance", href: appRoutes.settingsAppearance, enabled: canOpenAppearance, copy: "Brand the workspace, login page, and colors." },
+                      { label: "Industry", href: appRoutes.settingsIndustry, enabled: canOpenIndustry, copy: "Apply safer defaults for your business type." },
+                      { label: "Lead Fields", href: appRoutes.settingsFields, enabled: canOpenCustomFields, copy: "Define the extra lead details your business tracks." },
+                      { label: "Lead Preview", href: appRoutes.settingsLeadPreview, enabled: canOpenLeadPreview, copy: "Choose the lead columns and mobile preview fields." },
+                      { label: "Form Sources", href: appRoutes.settingsFormSources, enabled: canOpenFormSources, copy: "Map website, webhook, CSV, and manual sources." },
+                      { label: "Lead Stages", href: appRoutes.settingsStages, enabled: canOpenLeadStages, copy: "Control the stages used across pipeline reporting." },
+                      { label: "Lead Sources", href: appRoutes.settingsSources, enabled: canOpenLeadSources, copy: "Keep source labels clean for reporting and exports." },
+                      { label: "Dashboard", href: appRoutes.settingsDashboard, enabled: canOpenDashboard, copy: "Show, hide, and reorder the dashboard widgets." },
+                      { label: "Sales Targets", href: appRoutes.settingsSalesTargets, enabled: canOpenSalesTargets, copy: "Track monthly goals and progress on the dashboard." },
+                      { label: "Branches", href: appRoutes.settingsBranches, enabled: canOpenBranches, copy: "Manage branch locations and per-branch currencies." },
+                      { label: "Currency", href: appRoutes.settingsCurrency, enabled: canOpenCurrency, copy: "Set the default currency for targets and lead values." },
+                      { label: "Team Settings", href: appRoutes.settingsTeam, enabled: canGrantAccess || activeUsers.length > 0 || inactiveUsers.length > 0, copy: "Manage members, access, profile photos, and roster coverage." },
+                      { label: "Export Data", href: appRoutes.reports, enabled: true, copy: "Review performance and export current lead data." },
+                      { label: "Navigation", href: appRoutes.settingsNavigation, enabled: canOpenNavigation, copy: "Show, hide, rename, and reorder sidebar items." },
+                      { label: "System Status", href: appRoutes.settingsSystemStatus, enabled: canOpenSystemStatus, copy: "Check deployment readiness without exposing secrets." },
+                      { label: "Intake Logs", href: appRoutes.intake, enabled: canOpenFormSources, copy: "Review recent submissions and failed syncs." },
                     ]
                       .filter((item) => item.enabled)
-                      .map((item) => (
+                      .map((item, index) => (
                         <Link
                           key={item.label}
                           href={item.href}
-                          className="admin-surface-muted group rounded-2xl p-4 transition hover:border-cyan-200/24 hover:bg-white/[0.075]"
+                          className="admin-surface-muted group rounded-2xl p-4 transition hover:border-white/20 hover:bg-white/[0.08]"
                         >
-                          <p className="text-sm font-semibold text-white transition group-hover:text-cyan-50">{item.label}</p>
-                          <p className="mt-2 text-sm leading-6 text-white/56">{item.copy}</p>
+                          <p className="text-sm font-semibold text-white transition group-hover:text-white">{item.label}</p>
+                          <p className="mt-2 text-sm leading-6 text-white/70">{item.copy}</p>
                         </Link>
                       ))}
                   </div>
@@ -435,10 +363,10 @@ export default async function AdminSettingsPage() {
                     />
                     <div className="mt-4 grid gap-3 sm:grid-cols-2">
                       {[
-                        { label: "Appearance", href: "/admin/settings/appearance", enabled: canOpenAppearance },
-                        { label: "Navigation", href: "/admin/settings/navigation", enabled: canOpenNavigation },
-                        { label: "Lead Preview", href: "/admin/settings/lead-preview", enabled: canOpenLeadPreview },
-                        { label: "Dashboard", href: "/admin/settings/dashboard", enabled: canOpenDashboard },
+                        { label: "Appearance", href: appRoutes.settingsAppearance, enabled: canOpenAppearance },
+                        { label: "Navigation", href: appRoutes.settingsNavigation, enabled: canOpenNavigation },
+                        { label: "Lead Preview", href: appRoutes.settingsLeadPreview, enabled: canOpenLeadPreview },
+                        { label: "Dashboard", href: appRoutes.settingsDashboard, enabled: canOpenDashboard },
                       ]
                         .filter((item) => item.enabled)
                         .map((item) => (
@@ -463,7 +391,7 @@ export default async function AdminSettingsPage() {
                     />
                     <div className="mt-4">
                       <Link
-                        href="/admin/settings/form-sources"
+                        href={appRoutes.settingsFormSources}
                         className="admin-button-secondary inline-flex h-11 items-center justify-center rounded-2xl px-5 text-sm font-medium"
                       >
                         Open Form Sources
@@ -478,17 +406,17 @@ export default async function AdminSettingsPage() {
                   <SectionHeader
                     eyebrow="Assignment rules"
                     title="Working rules"
-                    description="The current rules for ownership and follow-up."
+                    description="The current rules for ownership, visibility, and follow-up."
                   />
                   <div className="mt-4 grid gap-3">
                     {[
-                      "Owners come from the saved team roster.",
+                      "Owners come from the saved team roster and profile cards.",
                       "Sales reps work only with their assigned leads and tasks.",
                       "Unassigned leads stay visible until a team member takes ownership.",
-                    ].map((item) => (
-                      <div key={item} className="admin-surface-muted rounded-2xl px-4 py-3 text-sm text-white/68">
+                    ].map((item, index) => (
+                      <AnimatedCard key={item} variant="subtle" animation="fadeInUp" delay={index * 60} className="rounded-2xl px-4 py-3 text-sm text-white/70">
                         {item}
-                      </div>
+                      </AnimatedCard>
                     ))}
                   </div>
                 </GlassCard>
@@ -504,13 +432,13 @@ export default async function AdminSettingsPage() {
                       "Assigned lead alerts appear in the notification inbox.",
                       "Webhook captures can create intake alerts and assignment notifications.",
                       "Follow-up reminders depend on the saved next follow-up date and ownership.",
-                    ].map((item) => (
-                      <div key={item} className="admin-surface-muted rounded-2xl px-4 py-3 text-sm text-white/68">
+                    ].map((item, index) => (
+                      <AnimatedCard key={item} variant="subtle" animation="fadeInUp" delay={index * 60} className="rounded-2xl px-4 py-3 text-sm text-white/70">
                         {item}
-                      </div>
+                      </AnimatedCard>
                     ))}
                     <Link
-                      href="/admin/notifications"
+                      href={appRoutes.notifications}
                       className="admin-button-secondary inline-flex h-11 items-center justify-center rounded-2xl px-5 text-sm font-medium"
                     >
                       Open Notifications
@@ -528,7 +456,7 @@ export default async function AdminSettingsPage() {
                     <div className="mt-4 grid gap-3">
                       {pageData.integrations.length > 0 ? (
                         pageData.integrations.map((integration) => (
-                          <div key={integration.id} className="admin-surface-muted rounded-2xl px-4 py-3 text-sm text-white/68">
+                          <div key={integration.id} className="admin-surface-muted rounded-2xl px-4 py-3 text-sm text-white/70">
                             {formatIntegrationProviderLabel(integration.provider)} • {formatIntegrationStatusLabel(integration.status)}
                           </div>
                         ))

@@ -7,6 +7,7 @@ import { FormSourceManager } from "@/components/admin/FormSourceManager";
 import { MetricCard } from "@/components/admin/MetricCard";
 import { SectionHeader } from "@/components/admin/SectionHeader";
 import { getAdminAccessContext } from "@/lib/admin";
+import { appRoutes } from "@/lib/app-routes";
 import { canManageFormSources } from "@/lib/crm/authz";
 import {
   getFormSourceAdminReferenceData,
@@ -18,10 +19,10 @@ export const dynamic = "force-dynamic";
 
 export default async function AdminFormSourcesPage() {
   const { role, accessLevel, actualAccessLevel, canSwitchAccessViews } =
-    await getAdminAccessContext("/admin/settings/form-sources");
+    await getAdminAccessContext(appRoutes.settingsFormSources);
 
   if (!canManageFormSources({ accessLevel, role })) {
-    redirect("/admin/settings");
+    redirect(appRoutes.settings);
   }
 
   let sources = null;
@@ -50,7 +51,7 @@ export default async function AdminFormSourcesPage() {
       actions={
         <>
           <Link
-            href="/admin/settings"
+            href={appRoutes.settings}
             className="admin-button-secondary inline-flex h-10 items-center justify-center rounded-full px-4 text-sm font-medium"
           >
             Back to settings

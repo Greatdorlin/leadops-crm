@@ -12,14 +12,15 @@ import { getCrmPageErrorCopy, logCrmPageError } from "@/lib/crm/runtime";
 import { normalizeEnvValue } from "@/lib/env-utils";
 import { redirect } from "next/navigation";
 import { leadStore } from "@/lib/storage";
+import { appRoutes } from "@/lib/app-routes";
 
 export const dynamic = "force-dynamic";
 
 export default async function AdminGoogleAdsIntegrationPage() {
   const { role, accessLevel, actualAccessLevel, canSwitchAccessViews } =
-    await getAdminAccessContext("/admin/integrations/google-ads");
+    await getAdminAccessContext(appRoutes.integration("google-ads"));
   if (!canManageIntegrations(accessLevel, role)) {
-    redirect("/admin");
+    redirect(appRoutes.dashboard);
   }
 
   let pageData:
@@ -186,25 +187,25 @@ export default async function AdminGoogleAdsIntegrationPage() {
                     >
                       <div className="flex flex-wrap items-start justify-between gap-3">
                         <div>
-                          <p className="text-base font-semibold text-slate-950">
+                          <p className="text-base font-semibold text-white">
                             {campaign.campaignName || "Unnamed campaign"}
                           </p>
-                          <p className="mt-1.5 text-sm text-slate-500">{campaign.campaignId}</p>
+                          <p className="mt-1.5 text-sm text-white/60">{campaign.campaignId}</p>
                         </div>
-                        <p className="text-sm font-semibold text-slate-700">{campaign.costPerLead} CPL</p>
+                        <p className="text-sm font-semibold text-white/80">{campaign.costPerLead} CPL</p>
                       </div>
-                      <div className="mt-4 grid gap-3 text-sm text-slate-600 md:grid-cols-4">
+                      <div className="mt-4 grid gap-3 text-sm text-white/70 md:grid-cols-4">
                         <p>
-                          Spend: <span className="text-slate-800">{campaign.spend}</span>
+                          Spend: <span className="text-white/90">{campaign.spend}</span>
                         </p>
                         <p>
-                          Clicks: <span className="text-slate-800">{campaign.clicks}</span>
+                          Clicks: <span className="text-white/90">{campaign.clicks}</span>
                         </p>
                         <p>
-                          Impressions: <span className="text-slate-800">{campaign.impressions}</span>
+                          Impressions: <span className="text-white/90">{campaign.impressions}</span>
                         </p>
                         <p>
-                          Leads: <span className="text-slate-800">{campaign.leads}</span>
+                          Leads: <span className="text-white/90">{campaign.leads}</span>
                         </p>
                       </div>
                     </div>
@@ -230,10 +231,10 @@ export default async function AdminGoogleAdsIntegrationPage() {
                     <div key={payload.id} className="admin-surface-muted rounded-2xl p-4">
                       <div className="flex flex-wrap items-start justify-between gap-3">
                         <div>
-                          <p className="text-sm font-semibold text-slate-950">
+                          <p className="text-sm font-semibold text-white">
                             Lead import {payload.externalId || payload.id}
                           </p>
-                          <p className="mt-2 text-sm text-slate-500">
+                          <p className="mt-2 text-sm text-white/60">
                             {payload.errorMessage || "Unknown error"}
                           </p>
                         </div>
@@ -262,7 +263,7 @@ export default async function AdminGoogleAdsIntegrationPage() {
             title="Google Ads setup"
             description="Use this checklist for campaign reporting and lead form delivery."
           />
-          <div className="mt-4 space-y-3 text-sm text-slate-600">
+          <div className="mt-4 space-y-3 text-sm text-white/70">
             {[
               "Set GOOGLE_ADS_WEBHOOK_KEY for new lead delivery into the CRM.",
               "Set GOOGLE_ADS_DEVELOPER_TOKEN, GOOGLE_ADS_CLIENT_ID, GOOGLE_ADS_CLIENT_SECRET, GOOGLE_ADS_REFRESH_TOKEN, and GOOGLE_ADS_CUSTOMER_ID for campaign reporting.",

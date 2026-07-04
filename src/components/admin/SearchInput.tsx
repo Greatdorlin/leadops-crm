@@ -12,8 +12,8 @@ export function SearchInput({
   placeholder?: string;
 }) {
   return (
-    <label className="ld-glass-input flex h-12 items-center gap-3 rounded-[20px] px-4">
-      <span className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-white/10 bg-white/[0.06] text-white/54 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
+    <label className="ld-glass-input ld-animate-fade-in-up group flex h-12 items-center gap-3 rounded-[20px] px-4 transition-all duration-200 hover:border-white/20 hover:bg-white/[0.09]">
+      <span className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-white/10 bg-white/[0.06] text-white/70 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] transition-all duration-200 group-hover:border-white/20 group-hover:bg-white/[0.12]">
         <Search className="h-4 w-4" />
       </span>
       <input
@@ -21,7 +21,7 @@ export function SearchInput({
         name={name}
         defaultValue={defaultValue}
         placeholder={placeholder}
-        className="w-full bg-transparent text-sm text-white outline-none placeholder:text-white/42"
+        className="ld-focus-ring w-full truncate bg-transparent text-sm text-white outline-none placeholder:text-white/60"
       />
     </label>
   );

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { NotificationEventRecord } from "@/lib/crm/notification-events";
 import { formatCrmDateTime } from "@/lib/crm/formatters";
+import { appRoutes } from "@/lib/app-routes";
 import { EmptyState } from "./EmptyState";
 
 export function NotificationInbox({
@@ -67,13 +68,13 @@ export function NotificationInbox({
     <div className="space-y-4">
       <div className="grid gap-3 md:grid-cols-2">
         <div className="admin-surface-soft rounded-[22px] px-4 py-4">
-          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-white/46">Unread</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-white/70">Unread</p>
           <p className="mt-2 text-2xl font-semibold tracking-[-0.04em] text-white">
             {activeUnreadCount}
           </p>
         </div>
         <div className="admin-surface-soft rounded-[22px] px-4 py-4">
-          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-white/46">Loaded</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-white/70">Loaded</p>
           <p className="mt-2 text-2xl font-semibold tracking-[-0.04em] text-white">
             {Math.max(unreadCount, notifications.length)}
           </p>
@@ -91,24 +92,24 @@ export function NotificationInbox({
                 <div className="flex flex-wrap items-center gap-2">
                   <p className="text-base font-semibold text-white">{notification.title}</p>
                   {notification.readAt ? (
-                    <span className="rounded-full border border-white/10 bg-white/[0.045] px-3 py-1 text-xs font-semibold text-white/58">
+                    <span className="rounded-full border border-white/10 bg-white/[0.045] px-3 py-1 text-xs font-semibold text-white/70">
                       Read
                     </span>
                   ) : (
-                    <span className="rounded-full border border-cyan-300/24 bg-cyan-400/10 px-3 py-1 text-xs font-semibold text-cyan-100">
+                    <span className="rounded-full border border-[var(--ld-color-primary)]/24 bg-[var(--ld-color-primary)]/10 px-3 py-1 text-xs font-semibold text-white">
                       Unread
                     </span>
                   )}
                 </div>
-                <p className="text-sm leading-6 text-white/62">{notification.message}</p>
-                <p className="text-xs uppercase tracking-[0.14em] text-white/38">
+                <p className="text-sm leading-6 text-white/70">{notification.message}</p>
+                <p className="text-xs uppercase tracking-[0.14em] text-white/70">
                   {formatCrmDateTime(notification.createdAt)}
                 </p>
               </div>
               <div className="flex flex-wrap gap-2">
                 {notification.leadId ? (
                   <Link
-                    href={`/admin/leads/${notification.leadId}`}
+                    href={appRoutes.lead(notification.leadId)}
                     className="admin-button-secondary inline-flex h-10 items-center justify-center rounded-2xl px-4 text-sm font-medium"
                   >
                     Open lead

@@ -38,7 +38,7 @@ export function PremiumMetricCard({
       <div className="relative flex h-full flex-col">
         <div className="flex items-start justify-between gap-4">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-white/52">{label}</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-white/70">{label}</p>
             <p className="mt-2 text-[1.9rem] font-semibold leading-none tracking-[-0.06em] text-white">
               {value}
             </p>
@@ -64,7 +64,7 @@ export function PremiumMetricCard({
               {trend.label}
             </span>
           ) : null}
-          {subtitle ? <p className="mt-2 text-sm leading-6 text-white/58">{subtitle}</p> : null}
+          {subtitle ? <p className="mt-2 text-sm leading-6 text-white/70">{subtitle}</p> : null}
         </div>
       </div>
     </GlassCard>

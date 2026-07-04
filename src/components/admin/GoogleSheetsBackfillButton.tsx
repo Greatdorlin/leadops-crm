@@ -56,7 +56,7 @@ export function GoogleSheetsBackfillButton() {
       >
         {isRunning ? "Updating Sheets..." : "Update Sheets"}
       </button>
-      {message ? <p className="text-right text-xs text-slate-500">{message}</p> : null}
+      {message ? <p className="text-right text-xs text-white/70">{message}</p> : null}
     </div>
   );
 }

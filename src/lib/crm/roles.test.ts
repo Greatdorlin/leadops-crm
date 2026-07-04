@@ -21,7 +21,8 @@ test("legacy CRM roles map conservatively to neutral Leads Desk roles", () => {
   assert.equal(mapLegacyCrmRoleToRole("admin"), "owner");
   assert.equal(mapLegacyCrmRoleToRole("manager"), "manager");
   assert.equal(mapLegacyCrmRoleToRole("ad_manager"), "manager");
-  assert.equal(mapLegacyCrmRoleToRole("finance"), "manager");
+  assert.equal(mapLegacyCrmRoleToRole("finance"), "finance");
+  assert.equal(mapLegacyCrmRoleToRole("affiliate"), "affiliate");
   assert.equal(mapLegacyCrmRoleToRole("consultant"), "team_lead");
   assert.equal(mapLegacyCrmRoleToRole("sales_agent"), "sales_rep");
 });
@@ -36,8 +37,12 @@ test("normalizeRole accepts neutral and legacy values", () => {
 test("role helpers expose neutral labels and ranks", () => {
   assert.equal(getRoleLabel("owner"), "Owner");
   assert.equal(getRoleLabel("team_lead"), "Team Lead");
+  assert.equal(getRoleLabel("finance"), "Finance");
+  assert.equal(getRoleLabel("affiliate"), "Affiliate");
   assert.equal(hasRoleAtLeast("owner", "admin"), true);
   assert.equal(hasRoleAtLeast("manager", "admin"), false);
+  assert.equal(hasRoleAtLeast("finance", "manager"), false);
+  assert.equal(hasRoleAtLeast("affiliate", "sales_rep"), false);
 });
 
 test("resolved roles expose future scope defaults", () => {
@@ -45,5 +50,7 @@ test("resolved roles expose future scope defaults", () => {
   assert.equal(resolveLeadsDeskRole({ role: "consultant" }), "team_lead");
   assert.equal(getDefaultPermissionScope("owner"), "global");
   assert.equal(getDefaultPermissionScope("team_lead"), "team");
+  assert.equal(getDefaultPermissionScope("finance"), "global");
   assert.equal(getDefaultPermissionScope("sales_rep"), "own");
+  assert.equal(getDefaultPermissionScope("affiliate"), "own");
 });

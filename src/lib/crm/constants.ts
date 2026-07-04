@@ -1,6 +1,3 @@
-export const LEAD_COMPLETION_STATES = ["incomplete", "complete"] as const;
-export const COMPLETION_STATUSES = LEAD_COMPLETION_STATES;
-
 export const LEAD_STATUSES = [
   "new",
   "contacted",
@@ -23,7 +20,6 @@ export const LEAD_PRIORITY_LEVELS = LEAD_PRIORITIES;
 export const LEAD_CUSTOMER_TYPES = ["direct", "business"] as const;
 
 export const LEAD_SOURCES = [
-  "pathway_finder",
   "website_form",
   "facebook_lead_ads",
   "google_ads",
@@ -37,17 +33,6 @@ export const LEAD_SOURCES = [
 ] as const;
 export const LEAD_CHANNELS = LEAD_SOURCES;
 
-export const LEGACY_LEAD_CATEGORIES = [
-  "study_abroad",
-  "work_and_relocate",
-  "business_abroad",
-  "visit_or_tour",
-  "event_travel",
-  "family_relocation",
-  "not_sure_yet",
-] as const;
-export const PRIMARY_GOALS = LEGACY_LEAD_CATEGORIES;
-
 export const CRM_USER_ROLES = [
   "admin",
   "manager",
@@ -55,6 +40,7 @@ export const CRM_USER_ROLES = [
   "ad_manager",
   "consultant",
   "finance",
+  "affiliate",
 ] as const;
 
 export const INTEGRATION_PROVIDERS = [

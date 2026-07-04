@@ -7,7 +7,7 @@ test("parseCsvText keeps quoted commas and line breaks intact", () => {
   const rows = parseCsvText(
     [
       "first_name,email,notes",
-      "\"Ada\",ada@example.com,\"Needs UK route, follows up next week\"",
+      "\"Ada\",ada@example.com,\"Needs pricing review, follows up next week\"",
       "\"Grace\",grace@example.com,\"Line one",
       "line two\"",
     ].join("\n"),
@@ -15,7 +15,7 @@ test("parseCsvText keeps quoted commas and line breaks intact", () => {
 
   assert.deepEqual(rows, [
     ["first_name", "email", "notes"],
-    ["Ada", "ada@example.com", "Needs UK route, follows up next week"],
+    ["Ada", "ada@example.com", "Needs pricing review, follows up next week"],
     ["Grace", "grace@example.com", "Line one\nline two"],
   ]);
 });
@@ -24,7 +24,7 @@ test("parseLeadImportCsv maps common lead headers into CRM rows", () => {
   const rows = parseLeadImportCsv(
     [
       "Full Name,Email Address,Phone,Stage,Priority,Owner,Source,Category,Notes",
-      "Ada Lovelace,ada@example.com,+2348012345678,consultation booked,high,rep@example.com,website form,study abroad,Requested fast callback",
+      "Ada Lovelace,ada@example.com,+2348012345678,consultation booked,high,rep@example.com,website form,enterprise buyer,Requested fast callback",
     ].join("\n"),
   );
 
@@ -36,7 +36,7 @@ test("parseLeadImportCsv maps common lead headers into CRM rows", () => {
     email: "ada@example.com",
     whatsappNumber: "+2348012345678",
     state: null,
-    category: "study_abroad",
+    category: "enterprise buyer",
     stage: "consultation_booked",
     priority: "high",
     assignedTo: "rep@example.com",

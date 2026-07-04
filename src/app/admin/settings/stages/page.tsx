@@ -7,6 +7,7 @@ import { LeadStageManager } from "@/components/admin/LeadStageManager";
 import { MetricCard } from "@/components/admin/MetricCard";
 import { SectionHeader } from "@/components/admin/SectionHeader";
 import { getAdminAccessContext } from "@/lib/admin";
+import { appRoutes } from "@/lib/app-routes";
 import { canManageLeadStages } from "@/lib/crm/authz";
 import { listLeadStages } from "@/lib/crm/lead-stages-admin";
 import { getCrmPageErrorCopy, logCrmPageError } from "@/lib/crm/runtime";
@@ -15,10 +16,10 @@ export const dynamic = "force-dynamic";
 
 export default async function AdminLeadStagesPage() {
   const { role, accessLevel, actualAccessLevel, canSwitchAccessViews } =
-    await getAdminAccessContext("/admin/settings/stages");
+    await getAdminAccessContext(appRoutes.settingsStages);
 
   if (!canManageLeadStages({ accessLevel, role })) {
-    redirect("/admin/settings");
+    redirect(appRoutes.settings);
   }
 
   let stages = null;
@@ -43,7 +44,7 @@ export default async function AdminLeadStagesPage() {
       actions={
         <>
           <Link
-            href="/admin/settings"
+            href={appRoutes.settings}
             className="admin-button-secondary inline-flex h-10 items-center justify-center rounded-full px-4 text-sm font-medium"
           >
             Back to settings

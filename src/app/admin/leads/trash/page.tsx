@@ -7,6 +7,7 @@ import { LeadDataTable } from "@/components/admin/LeadDataTable";
 import { LeadLifecycleButton } from "@/components/admin/LeadLifecycleButton";
 import { getAdminAccessContext } from "@/lib/admin";
 import { canAccessLeadTrash } from "@/lib/admin-permissions";
+import { appRoutes } from "@/lib/app-routes";
 import { loadAdminLeadReadContext } from "@/lib/crm/admin-read-context";
 import { listCustomFields } from "@/lib/crm/custom-fields-admin";
 import { getTableVisibleCustomFields } from "@/lib/crm/custom-field-values";
@@ -30,7 +31,7 @@ function safeNumber(value: number) {
 }
 
 function buildTrashHref(page: number) {
-  return page > 1 ? `/admin/leads/trash?page=${page}` : "/admin/leads/trash";
+  return page > 1 ? `${appRoutes.leadsTrash}?page=${page}` : appRoutes.leadsTrash;
 }
 
 export default async function AdminLeadTrashPage({
@@ -39,7 +40,7 @@ export default async function AdminLeadTrashPage({
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const { role, accessLevel, actualAccessLevel, canSwitchAccessViews } =
-    await getAdminAccessContext("/admin/leads/trash");
+    await getAdminAccessContext(appRoutes.leadsTrash);
 
   if (!canAccessLeadTrash(accessLevel)) {
     return (
@@ -144,7 +145,7 @@ export default async function AdminLeadTrashPage({
       actions={
         <>
           <Link
-            href="/admin/leads"
+            href={appRoutes.leads}
             className="admin-button-secondary inline-flex h-10 items-center justify-center rounded-full px-4 text-sm font-medium"
           >
             Back to leads
@@ -162,7 +163,7 @@ export default async function AdminLeadTrashPage({
           renderActions={(lead) => (
             <>
               <Link
-                href={`/admin/leads/${lead.id}`}
+                href={appRoutes.lead(lead.id)}
                 className="admin-button-secondary inline-flex h-10 items-center justify-center rounded-full px-4 text-sm font-medium"
               >
                 Open
@@ -170,20 +171,20 @@ export default async function AdminLeadTrashPage({
               <LeadLifecycleButton
                 leadId={lead.id}
                 action="restore"
-                className="inline-flex h-10 items-center justify-center rounded-full border border-emerald-200/24 bg-emerald-300/12 px-4 text-sm font-medium text-emerald-100 transition hover:border-emerald-100/40 hover:bg-emerald-300/18"
+                className="inline-flex h-10 items-center justify-center rounded-full border border-emerald-300/20/24 bg-emerald-300/12 px-4 text-sm font-medium text-emerald-100 transition hover:border-emerald-100/40 hover:bg-emerald-300/18"
               />
               <LeadLifecycleButton
                 leadId={lead.id}
                 action="delete"
-                onSuccessHref="/admin/leads/trash"
-                className="inline-flex h-10 items-center justify-center rounded-full border border-rose-200/24 bg-rose-300/12 px-4 text-sm font-medium text-rose-100 transition hover:border-rose-100/40 hover:bg-rose-300/18"
+                onSuccessHref={appRoutes.leadsTrash}
+                className="inline-flex h-10 items-center justify-center rounded-full border border-rose-300/20/24 bg-rose-300/12 px-4 text-sm font-medium text-rose-100 transition hover:border-rose-100/40 hover:bg-rose-300/18"
               />
             </>
           )}
         />
 
         <div className="ld-glass-card ld-glass-soft flex flex-col gap-3 rounded-[26px] border border-white/10 bg-white/[0.045] px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5">
-          <p className="text-sm leading-6 text-white/60">
+          <p className="text-sm leading-6 text-white/70">
             Trash holds {safeNumber(totalLeads)} deleted {totalLeads === 1 ? "lead" : "leads"}.
           </p>
           <div className="flex flex-wrap gap-2">

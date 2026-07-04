@@ -34,6 +34,9 @@ import { SourceBadge } from "@/components/admin/SourceBadge";
 import { StatusBadge } from "@/components/admin/StatusBadge";
 import { TaskCard } from "@/components/admin/TaskCard";
 import { TimelineItem } from "@/components/admin/TimelineItem";
+import { GlassSurface } from "@/components/admin/ui/GlassSurface";
+import { AnimatedCard } from "@/components/admin/ui/AnimatedCard";
+import { SmoothButton } from "@/components/admin/ui/SmoothButton";
 import { getAdminAccessContext } from "@/lib/admin";
 import { appRoutes } from "@/lib/app-routes";
 import {
@@ -182,7 +185,7 @@ export default async function AdminLeadDetailPage({
           <>
             <Link
               href={appRoutes.leads}
-              className="admin-button-secondary inline-flex h-10 items-center justify-center rounded-full px-4 text-sm font-medium"
+              className="admin-button-secondary ld-focus-ring inline-flex h-10 items-center justify-center rounded-full px-4 text-sm font-medium"
             >
               Back to leads
             </Link>
@@ -311,7 +314,7 @@ export default async function AdminLeadDetailPage({
         <>
           <Link
             href={lead.deletedAt ? appRoutes.leadsTrash : appRoutes.leads}
-            className="admin-button-secondary inline-flex h-10 items-center justify-center rounded-full px-4 text-sm font-medium"
+            className="admin-button-secondary ld-focus-ring inline-flex h-10 items-center justify-center rounded-full px-4 text-sm font-medium"
           >
             {lead.deletedAt ? "Back to trash" : "Back to leads"}
           </Link>
@@ -324,16 +327,16 @@ export default async function AdminLeadDetailPage({
     >
       <div className="space-y-6">
         {lead.deletedAt ? (
-          <section className="rounded-[24px] border border-amber-200 bg-amber-50 px-5 py-4 text-sm text-amber-900">
+          <section className="rounded-[24px] border border-amber-300/20 bg-amber-500/10 px-5 py-4 text-sm text-amber-100">
             This lead is in trash. Restore it to return it to the active queue, or delete it permanently.
           </section>
         ) : null}
 
-        <section className="admin-surface overflow-hidden rounded-[30px] p-0">
-          <div className="border-b border-white/10 bg-[radial-gradient(circle_at_top_left,rgba(103,232,249,0.18),transparent_38%),radial-gradient(circle_at_top_right,rgba(139,92,246,0.2),transparent_34%),linear-gradient(180deg,rgba(255,255,255,0.09)_0%,rgba(255,255,255,0.035)_100%)] px-5 py-6 sm:px-6 sm:py-7">
+        <section className="admin-surface overflow-hidden rounded-[30px] p-0 ld-animate-fade-in-up">
+          <div className="border-b border-white/10 bg-[radial-gradient(circle_at_top_left,color-mix(in_srgb,var(--ld-color-primary)_18%,transparent),transparent_38%),radial-gradient(circle_at_top_right,rgba(139,92,246,0.2),transparent_34%),linear-gradient(180deg,rgba(255,255,255,0.09)_0%,rgba(255,255,255,0.035)_100%)] px-5 py-6 sm:px-6 sm:py-7">
             <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(320px,0.92fr)] xl:items-center">
               <div className="flex items-start gap-4 sm:gap-5">
-                <div className="flex h-18 w-18 shrink-0 items-center justify-center rounded-[28px] border border-white/14 bg-[linear-gradient(145deg,rgba(59,130,246,0.34),rgba(139,92,246,0.24))] text-[2rem] font-semibold tracking-[-0.05em] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.12),0_18px_42px_rgba(15,23,42,0.22)] sm:h-24 sm:w-24 sm:text-[2.5rem]">
+                <div className="flex h-18 w-18 shrink-0 items-center justify-center rounded-[28px] border border-white/14 bg-[linear-gradient(145deg,color-mix(in_srgb,var(--ld-color-primary)_34%,transparent),rgba(139,92,246,0.24))] text-[2rem] font-semibold tracking-[-0.05em] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.12),0_18px_42px_rgba(15,23,42,0.22)] sm:h-24 sm:w-24 sm:text-[2.5rem]">
                     {leadView.initials}
                 </div>
 
@@ -341,7 +344,7 @@ export default async function AdminLeadDetailPage({
                   <h2 className="font-[family:var(--font-heading)] text-[2.4rem] leading-[0.94] tracking-[-0.06em] text-white sm:text-[3.3rem]">
                     {leadView.leadName}
                   </h2>
-                  <p className="mt-3 max-w-[24ch] text-base leading-7 text-white/66 sm:max-w-none sm:text-[1.05rem] [overflow-wrap:anywhere]">
+                  <p className="mt-3 max-w-[24ch] text-base leading-7 text-white/70 sm:max-w-none sm:text-[1.05rem] [overflow-wrap:anywhere]">
                     {lead.email || "No email yet"}
                   </p>
                   {leadView.routeLine ? (
@@ -361,28 +364,28 @@ export default async function AdminLeadDetailPage({
                   />
                   <PriorityBadge priority={lead.priority} />
                   {lead.state ? (
-                    <span className="inline-flex items-center gap-1.5 rounded-full border border-cyan-300/24 bg-cyan-300/12 px-3 py-1.5 text-sm font-medium text-cyan-100 shadow-[0_8px_18px_rgba(56,132,255,0.08)]">
+                    <span className="inline-flex items-center gap-1.5 rounded-full border border-[var(--ld-color-primary)]/24 bg-[var(--ld-color-primary)]/12 px-3 py-1.5 text-sm font-medium text-white shadow-[0_8px_18px_color-mix(in_srgb,var(--ld-color-primary)_8%,transparent)]">
                       <MapPin className="h-4 w-4" />
                       {formatLeadStateLabel(lead.state)}
                     </span>
                   ) : null}
                 </div>
 
-                <div className="flex flex-wrap items-center gap-3 text-base text-slate-700 xl:justify-end">
-                  <span className="inline-flex items-center gap-2 font-medium text-slate-800">
+                <div className="flex flex-wrap items-center gap-3 text-base text-white/80 xl:justify-end">
+                  <span className="inline-flex items-center gap-2 font-medium text-white/90">
                     <BadgeCheck className="h-5 w-5 text-[#2252db]" />
                     {leadView.stageLabel}
                   </span>
-                  <span className="text-slate-400">•</span>
+                  <span className="text-white/60">•</span>
                   <span>{leadView.completionLabel}</span>
                 </div>
 
                 <div className="flex flex-wrap items-center gap-2 xl:justify-end">
-                  <span className="rounded-full border border-[#cad8ff] bg-white px-3 py-1.5 text-sm font-medium text-slate-700 shadow-[0_8px_18px_rgba(34,82,219,0.06)]">
+                  <span className="rounded-full border border-white/10 bg-white/[0.08] px-3 py-1.5 text-sm font-medium text-white/80 shadow-[0_8px_18px_rgba(0,0,0,0.06)]">
                     {leadView.completionLabel}
                   </span>
                   {leadView.fitSignalLabel !== "Not provided" ? (
-                    <span className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 shadow-[0_8px_18px_rgba(15,23,42,0.04)]">
+                    <span className="rounded-full border border-white/10 bg-white/[0.08] px-3 py-1.5 text-sm font-medium text-white/80 shadow-[0_8px_18px_rgba(0,0,0,0.04)]">
                       {leadView.fitSignalLabel}
                     </span>
                   ) : null}
@@ -392,7 +395,7 @@ export default async function AdminLeadDetailPage({
           </div>
 
           <div className="grid gap-0 xl:grid-cols-3">
-            <div className="border-b border-slate-200/80 px-5 py-6 sm:px-6 xl:border-b-0 xl:border-r">
+            <div className="border-b border-white/10/80 px-5 py-6 sm:px-6 xl:border-b-0 xl:border-r">
               <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#243f7e]">Contact</p>
               <div className="mt-4 h-px bg-[linear-gradient(90deg,rgba(158,183,255,0.75)_0%,rgba(158,183,255,0.18)_100%)]" />
 
@@ -402,8 +405,8 @@ export default async function AdminLeadDetailPage({
                     <Mail className="h-5 w-5" />
                   </span>
                   <div className="min-w-0">
-                    <p className="text-sm font-medium text-slate-500">Email</p>
-                    <p className="mt-1 text-[1.05rem] leading-8 text-slate-950 [overflow-wrap:anywhere]">
+                    <p className="text-sm font-medium text-white/60">Email</p>
+                    <p className="mt-1 text-[1.05rem] leading-8 text-white [overflow-wrap:anywhere]">
                       {lead.email || "No email yet"}
                     </p>
                   </div>
@@ -414,8 +417,8 @@ export default async function AdminLeadDetailPage({
                     <PhoneCall className="h-5 w-5" />
                   </span>
                   <div className="min-w-0">
-                    <p className="text-sm font-medium text-slate-500">Phone</p>
-                    <p className="mt-1 text-[1.05rem] leading-8 text-slate-950 [overflow-wrap:anywhere]">
+                    <p className="text-sm font-medium text-white/60">Phone</p>
+                    <p className="mt-1 text-[1.05rem] leading-8 text-white [overflow-wrap:anywhere]">
                       {lead.whatsappNumber || "No phone yet"}
                     </p>
                   </div>
@@ -426,8 +429,8 @@ export default async function AdminLeadDetailPage({
                     <MapPin className="h-5 w-5" />
                   </span>
                   <div className="min-w-0">
-                    <p className="text-sm font-medium text-slate-500">Region</p>
-                    <p className="mt-1 text-[1.05rem] leading-8 text-slate-950 [overflow-wrap:anywhere]">
+                    <p className="text-sm font-medium text-white/60">Region</p>
+                    <p className="mt-1 text-[1.05rem] leading-8 text-white [overflow-wrap:anywhere]">
                       {lead.state ? formatLeadStateLabel(lead.state) : "Region not captured yet"}
                     </p>
                   </div>
@@ -435,7 +438,7 @@ export default async function AdminLeadDetailPage({
               </div>
             </div>
 
-            <div className="border-b border-slate-200/80 px-5 py-6 sm:px-6 xl:border-b-0 xl:border-r">
+            <div className="border-b border-white/10/80 px-5 py-6 sm:px-6 xl:border-b-0 xl:border-r">
               <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#243f7e]">Lead details</p>
               <div className="mt-4 h-px bg-[linear-gradient(90deg,rgba(158,183,255,0.75)_0%,rgba(158,183,255,0.18)_100%)]" />
 
@@ -445,8 +448,8 @@ export default async function AdminLeadDetailPage({
                     <FileText className="h-5 w-5" />
                   </span>
                   <div className="min-w-0">
-                    <p className="text-sm font-medium text-slate-500">Lead summary</p>
-                    <p className="mt-1 text-[1.05rem] leading-8 text-slate-950 [overflow-wrap:anywhere]">
+                    <p className="text-sm font-medium text-white/60">Lead summary</p>
+                    <p className="mt-1 text-[1.05rem] leading-8 text-white [overflow-wrap:anywhere]">
                       {leadView.summaryLabel}
                     </p>
                   </div>
@@ -457,8 +460,8 @@ export default async function AdminLeadDetailPage({
                     <UserRound className="h-5 w-5" />
                   </span>
                   <div className="min-w-0">
-                    <p className="text-sm font-medium text-slate-500">Owner</p>
-                    <p className="mt-1 text-[1.05rem] leading-8 text-slate-950 [overflow-wrap:anywhere]">
+                    <p className="text-sm font-medium text-white/60">Owner</p>
+                    <p className="mt-1 text-[1.05rem] leading-8 text-white [overflow-wrap:anywhere]">
                       {leadView.assignedUserName}
                     </p>
                   </div>
@@ -468,13 +471,13 @@ export default async function AdminLeadDetailPage({
                   <span className="inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[linear-gradient(180deg,#fff2d9_0%,#ffebc4_100%)] text-[#9a5a06] shadow-[inset_0_1px_0_rgba(255,255,255,0.88)]">
                     <Clock3 className="h-5 w-5" />
                   </span>
-                  <div className="min-w-0 text-[1.02rem] leading-8 text-slate-700">
-                    <p className="text-sm font-medium text-slate-500">Activity</p>
+                  <div className="min-w-0 text-[1.02rem] leading-8 text-white/80">
+                    <p className="text-sm font-medium text-white/60">Activity</p>
                     <p className="mt-1">
-                      <span className="font-medium text-slate-950">Created:</span> {formatCrmDateTime(lead.createdAt)}
+                      <span className="font-medium text-white">Created:</span> {formatCrmDateTime(lead.createdAt)}
                     </p>
                     <p>
-                      <span className="font-medium text-slate-950">Last activity:</span>{" "}
+                      <span className="font-medium text-white">Last activity:</span>{" "}
                       {formatCrmDateTime(lead.lastActivityAt)}
                     </p>
                   </div>
@@ -486,16 +489,16 @@ export default async function AdminLeadDetailPage({
               <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#243f7e]">Next touch</p>
               <div className="mt-4 h-px bg-[linear-gradient(90deg,rgba(158,183,255,0.75)_0%,rgba(158,183,255,0.18)_100%)]" />
 
-              <div className="mt-6 rounded-[28px] border border-white/10 bg-white/[0.06] p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
+              <div className="mt-6 rounded-[28px] border border-white/10 bg-white/[0.06] p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] ld-animate-fade-in">
                 <div className="flex items-start gap-4">
-                  <span className="inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-full border border-cyan-300/20 bg-cyan-300/12 text-cyan-100 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
+                  <span className="inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-full border border-[var(--ld-color-primary)]/20 bg-[var(--ld-color-primary)]/12 text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
                     <CalendarDays className="h-5 w-5" />
                   </span>
                   <div className="min-w-0">
-                    <p className="text-[1.75rem] font-semibold tracking-[-0.05em] text-slate-950">
+                    <p className="text-[1.75rem] font-semibold tracking-[-0.05em] text-white">
                       {nextTask?.title || "Not scheduled"}
                     </p>
-                    <p className="mt-3 text-[1.05rem] leading-8 text-slate-600">
+                    <p className="mt-3 text-[1.05rem] leading-8 text-white/70">
                       {nextTask?.dueAt
                         ? `Due ${formatCrmDateTime(nextTask.dueAt)}`
                         : "No follow-up has been set for this lead."}
@@ -514,11 +517,11 @@ export default async function AdminLeadDetailPage({
             </div>
           </div>
 
-          <div className="border-t border-slate-200/80 px-5 py-5 sm:px-6">
+          <div className="border-t border-white/10/80 px-5 py-5 sm:px-6">
             <div className="flex flex-wrap gap-3">
               <a
                 href="#lead-tasks"
-                className="inline-flex h-12 items-center justify-center rounded-2xl bg-[linear-gradient(135deg,#09174b_0%,#17348b_100%)] px-6 text-base font-semibold text-white shadow-[0_16px_34px_rgba(14,28,88,0.24)] transition hover:brightness-[1.04]"
+                className="ld-focus-ring inline-flex h-12 items-center justify-center rounded-2xl bg-[linear-gradient(135deg,#09174b_0%,#17348b_100%)] px-6 text-base font-semibold text-white shadow-[0_16px_34px_rgba(14,28,88,0.24)] transition hover:brightness-[1.04]"
               >
                 Add next touch
               </a>
@@ -527,7 +530,7 @@ export default async function AdminLeadDetailPage({
                   href={whatsappHref}
                   target="_blank"
                   rel="noreferrer"
-                  className="admin-button-secondary inline-flex h-12 items-center justify-center rounded-2xl px-5 text-base font-medium"
+                  className="admin-button-secondary ld-focus-ring inline-flex h-12 items-center justify-center rounded-2xl px-5 text-base font-medium"
                 >
                   <MessageCircle className="mr-2 h-5 w-5" />
                   Message
@@ -536,7 +539,7 @@ export default async function AdminLeadDetailPage({
               {lead.email ? (
                 <a
                   href={`mailto:${lead.email}`}
-                  className="admin-button-secondary inline-flex h-12 items-center justify-center rounded-2xl px-5 text-base font-medium"
+                  className="admin-button-secondary ld-focus-ring inline-flex h-12 items-center justify-center rounded-2xl px-5 text-base font-medium"
                 >
                   <Mail className="mr-2 h-5 w-5" />
                   Email
@@ -545,7 +548,7 @@ export default async function AdminLeadDetailPage({
               {lead.whatsappNumber ? (
                 <a
                   href={`tel:${lead.whatsappNumber}`}
-                  className="admin-button-secondary inline-flex h-12 items-center justify-center rounded-2xl px-5 text-base font-medium"
+                  className="admin-button-secondary ld-focus-ring inline-flex h-12 items-center justify-center rounded-2xl px-5 text-base font-medium"
                 >
                   <PhoneCall className="mr-2 h-5 w-5" />
                   Call
@@ -553,7 +556,7 @@ export default async function AdminLeadDetailPage({
               ) : null}
               <a
                 href="#lead-notes"
-                className="admin-button-secondary inline-flex h-12 items-center justify-center rounded-2xl px-5 text-base font-medium"
+                className="admin-button-secondary ld-focus-ring inline-flex h-12 items-center justify-center rounded-2xl px-5 text-base font-medium"
               >
                 <NotebookPen className="mr-2 h-5 w-5" />
                 Add note
@@ -563,7 +566,7 @@ export default async function AdminLeadDetailPage({
                   leadId={lead.id}
                   action="trash"
                   onSuccessHref={appRoutes.leads}
-                  className="inline-flex h-12 items-center justify-center rounded-2xl border border-rose-200 bg-rose-50 px-5 text-base font-medium text-rose-700 transition hover:bg-rose-100"
+                  className="inline-flex h-12 items-center justify-center rounded-2xl border border-rose-300/20 bg-rose-500/10 px-5 text-base font-medium text-rose-100 transition hover:bg-rose-500/15"
                 />
               ) : null}
               {canRestoreDeletedLead ? (
@@ -572,13 +575,13 @@ export default async function AdminLeadDetailPage({
                     leadId={lead.id}
                     action="restore"
                     onSuccessHref={appRoutes.leadsTrash}
-                    className="inline-flex h-12 items-center justify-center rounded-2xl border border-emerald-200 bg-emerald-50 px-5 text-base font-medium text-emerald-700 transition hover:bg-emerald-100"
+                    className="inline-flex h-12 items-center justify-center rounded-2xl border border-emerald-300/20 bg-emerald-500/10 px-5 text-base font-medium text-emerald-100 transition hover:bg-emerald-500/15"
                   />
                   <LeadLifecycleButton
                     leadId={lead.id}
                     action="delete"
                     onSuccessHref={appRoutes.leadsTrash}
-                    className="inline-flex h-12 items-center justify-center rounded-2xl border border-rose-200 bg-rose-50 px-5 text-base font-medium text-rose-700 transition hover:bg-rose-100"
+                    className="inline-flex h-12 items-center justify-center rounded-2xl border border-rose-300/20 bg-rose-500/10 px-5 text-base font-medium text-rose-100 transition hover:bg-rose-500/15"
                   />
                 </>
               ) : null}
@@ -587,14 +590,14 @@ export default async function AdminLeadDetailPage({
         </section>
 
         {duplicateCandidates.length > 0 ? (
-          <section className="rounded-[24px] border border-amber-200 bg-amber-50 p-5">
+          <section className="rounded-[24px] border border-amber-300/20 bg-amber-400/[0.06] p-5 ld-animate-fade-in-up" style={{animationDelay: "80ms"}}>
             <div className="flex gap-3">
-              <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-amber-200 bg-white text-amber-700">
+              <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-amber-300/20 bg-white/[0.08] text-amber-300">
                 <TriangleAlert className="h-5 w-5" />
               </span>
               <div>
-                <p className="text-lg font-semibold text-slate-950">Possible duplicate lead</p>
-                <p className="mt-2 text-sm leading-6 text-slate-600">
+                <p className="text-lg font-semibold text-white">Possible duplicate lead</p>
+                <p className="mt-2 text-sm leading-6 text-white/70">
                   {duplicateCandidates.length} other lead{duplicateCandidates.length === 1 ? "" : "s"} share this
                   contact information. Review before starting a separate follow-up.
                 </p>
@@ -616,9 +619,9 @@ export default async function AdminLeadDetailPage({
           </section>
         ) : null}
 
-        <section className="grid gap-6 xl:grid-cols-[minmax(320px,0.94fr)_minmax(0,1.18fr)]">
+        <section className="grid gap-6 xl:grid-cols-[minmax(320px,0.94fr)_minmax(0,1.18fr)] ld-animate-fade-in-up" style={{animationDelay: "100ms"}}>
           <div className="space-y-6">
-            <section className="admin-surface rounded-[24px] p-5">
+            <section className="admin-surface rounded-[24px] p-5 ld-animate-fade-in-up" style={{animationDelay: "120ms"}}>
               <SectionHeader
                 eyebrow="Ownership"
                 title="Stage, priority, and owner"
@@ -684,7 +687,7 @@ export default async function AdminLeadDetailPage({
                   />
                 )}
 
-                <div className="grid gap-4 text-sm text-slate-600">
+                <div className="grid gap-4 text-sm text-white/70">
                   {[
                     ["Company", leadView.companyName || "Not set"],
                     ["Next follow-up", leadView.nextFollowUpAt ? formatCrmDateTime(leadView.nextFollowUpAt) : "Not scheduled"],
@@ -698,9 +701,9 @@ export default async function AdminLeadDetailPage({
                     ["Top interest", leadView.interestLabel],
                     ["Last updated", formatCrmDateTime(lead.updatedAt)],
                   ].map(([label, value]) => (
-                    <div key={label} className="rounded-2xl border border-slate-200 bg-slate-50/80 px-4 py-3">
-                      <p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">{label}</p>
-                      <p className="mt-1.5 text-sm text-slate-800">{value}</p>
+                    <div key={label} className="rounded-2xl border border-white/10 bg-white/[0.045] px-4 py-3">
+                      <p className="text-xs font-semibold uppercase tracking-[0.12em] text-white/60">{label}</p>
+                      <p className="mt-1.5 text-sm text-white/72">{value}</p>
                     </div>
                   ))}
                 </div>
@@ -714,16 +717,16 @@ export default async function AdminLeadDetailPage({
                 description="Track multiple offers per lead so lost or unqualified options stop inflating pipeline."
               />
               <div className="mt-4 space-y-4">
-                <div className="grid gap-4 text-sm text-slate-600 md:grid-cols-2 xl:grid-cols-4">
+                <div className="grid gap-4 text-sm text-white/70 md:grid-cols-2 xl:grid-cols-4">
                   {[
                     ["Pipeline value", opportunityRollup.expectedValue ? `NGN ${opportunityRollup.expectedValue.toLocaleString()}` : "Not set"],
                     ["Open offers", `${opportunityRollup.activeCount}`],
                     ["Removed from pipeline", `${opportunityRollup.inactiveCount}`],
                     ["Won offers", `${opportunityRollup.wonCount}`],
                   ].map(([label, value]) => (
-                    <div key={label} className="rounded-2xl border border-slate-200 bg-slate-50/80 px-4 py-3">
-                      <p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">{label}</p>
-                      <p className="mt-1.5 text-sm text-slate-800">{value}</p>
+                    <div key={label} className="rounded-2xl border border-white/10 bg-white/[0.045] px-4 py-3">
+                      <p className="text-xs font-semibold uppercase tracking-[0.12em] text-white/60">{label}</p>
+                      <p className="mt-1.5 text-sm text-white/72">{value}</p>
                     </div>
                   ))}
                 </div>
@@ -739,17 +742,17 @@ export default async function AdminLeadDetailPage({
             </section>
 
             {showAttributionDetails ? (
-              <section className="admin-surface rounded-[24px] p-5">
+              <section className="admin-surface rounded-[24px] p-5 ld-animate-fade-in-up" style={{animationDelay: "240ms"}}>
                 <SectionHeader
                   eyebrow="Campaign context"
                   title="Source details"
                   description="Secondary source and campaign context connected to this lead."
                 />
-                <div className="mt-4 grid gap-4 text-sm text-slate-600">
+                <div className="mt-4 grid gap-4 text-sm text-white/70">
                   {leadView.attributionDetails.map(({ label, value }) => (
-                    <div key={label} className="rounded-2xl border border-slate-200 bg-slate-50/80 px-4 py-3">
-                      <p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">{label}</p>
-                      <p className="mt-1.5 text-sm text-slate-800">{value}</p>
+                    <div key={label} className="rounded-2xl border border-white/10 bg-white/[0.045] px-4 py-3">
+                      <p className="text-xs font-semibold uppercase tracking-[0.12em] text-white/60">{label}</p>
+                      <p className="mt-1.5 text-sm text-white/72">{value}</p>
                     </div>
                   ))}
                 </div>
@@ -765,18 +768,18 @@ export default async function AdminLeadDetailPage({
                   title="Extra lead details"
                   description="Additional business-specific details captured for this lead."
                 />
-                <div className="mt-4 grid gap-4 text-sm text-slate-600">
+                <div className="mt-4 grid gap-4 text-sm text-white/70">
                   {leadView.customFieldDisplayValues
                     .filter((field) => field.showInDetails && field.displayValue)
                     .map((field) => (
                       <div
                         key={field.fieldId}
-                        className="rounded-2xl border border-slate-200 bg-slate-50/80 px-4 py-3"
+                        className="rounded-2xl border border-white/10 bg-white/[0.045] px-4 py-3"
                       >
-                        <p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">
+                        <p className="text-xs font-semibold uppercase tracking-[0.12em] text-white/60">
                           {field.label}
                         </p>
-                        <p className="mt-1.5 text-sm text-slate-800">{field.displayValue}</p>
+                        <p className="mt-1.5 text-sm text-white/72">{field.displayValue}</p>
                       </div>
                     ))}
                 </div>
@@ -784,30 +787,30 @@ export default async function AdminLeadDetailPage({
             ) : null}
 
             {showTechnicalLeadContext ? (
-              <section className="admin-surface rounded-[24px] p-5">
+              <section className="admin-surface rounded-[24px] p-5 ld-animate-fade-in-up" style={{animationDelay: "320ms"}}>
                 <SectionHeader
                   eyebrow="Connected tools"
                   title="Tool updates"
                   description="Current sync status for this lead."
                 />
                 <div className="mt-4 grid gap-3">
-                  <div className="admin-surface-muted rounded-2xl p-4">
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">
+                  <div className="admin-surface-muted rounded-2xl p-4 ld-animate-fade-in">
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-white/60">
                       Google Sheets
                     </p>
-                    <p className="mt-2 text-base font-semibold text-slate-950">
+                    <p className="mt-2 text-base font-semibold text-white">
                       {formatSyncStateLabel(lead.sync.googleSheets.status)}
                     </p>
-                    <p className="mt-1.5 text-sm leading-6 text-slate-600">
+                    <p className="mt-1.5 text-sm leading-6 text-white/70">
                       {lead.sync.googleSheets.message || "No recent update yet."}
                     </p>
                   </div>
-                  <div className="admin-surface-muted rounded-2xl p-4">
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">Sender</p>
-                    <p className="mt-2 text-base font-semibold text-slate-950">
+                  <div className="admin-surface-muted rounded-2xl p-4 ld-animate-fade-in">
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-white/60">Sender</p>
+                    <p className="mt-2 text-base font-semibold text-white">
                       {formatSyncStateLabel(lead.sync.sender.status)}
                     </p>
-                    <p className="mt-1.5 text-sm leading-6 text-slate-600">
+                    <p className="mt-1.5 text-sm leading-6 text-white/70">
                       {lead.sync.sender.message || "No recent update yet."}
                     </p>
                   </div>
@@ -820,7 +823,7 @@ export default async function AdminLeadDetailPage({
           </div>
 
           <div className="space-y-6">
-            <section id="lead-notes" className="admin-surface rounded-[24px] p-5">
+            <section id="lead-notes" className="admin-surface rounded-[24px] p-5 ld-animate-fade-in-up" style={{animationDelay: "140ms"}}>
               <SectionHeader
                 eyebrow="Notes"
                 title="Notes"
@@ -838,7 +841,7 @@ export default async function AdminLeadDetailPage({
               </div>
               <div className="mt-4 space-y-4">
                 {notes.length > 0 ? (
-                  notes.map((note) => <NoteCard key={note.id} note={note} />)
+                  notes.map((note, idx) => <NoteCard key={note.id} note={note} index={idx} />)
                 ) : (
                   <EmptyState
                     title="No notes yet"
@@ -848,7 +851,7 @@ export default async function AdminLeadDetailPage({
               </div>
             </section>
 
-            <section id="lead-tasks" className="admin-surface rounded-[24px] p-5">
+            <section id="lead-tasks" className="admin-surface rounded-[24px] p-5 ld-animate-fade-in-up" style={{animationDelay: "180ms"}}>
               <SectionHeader
                 eyebrow="Tasks"
                 title="Follow-up tasks"
@@ -886,7 +889,7 @@ export default async function AdminLeadDetailPage({
               </div>
             </section>
 
-            <section className="admin-surface rounded-[24px] p-5">
+            <section className="admin-surface rounded-[24px] p-5 ld-animate-fade-in-up" style={{animationDelay: "220ms"}}>
               <SectionHeader
                 eyebrow="Activity"
                 title="Activity feed"
@@ -927,40 +930,40 @@ export default async function AdminLeadDetailPage({
               />
               {leadView.reportSummary ? (
                 <div className="mt-4 space-y-4">
-                  <div className="rounded-2xl border border-slate-200 bg-[#0b123f] p-5 text-white">
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-white/56">
+                  <div className="rounded-2xl border border-white/10 bg-[linear-gradient(135deg,#0b123f_0%,#121a3f_100%)] p-5 text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-white/60">
                       Summary
                     </p>
                     <p className="mt-2 text-sm leading-7 text-white/84">{leadView.reportSummary.summaryDiagnosis}</p>
                   </div>
                   <div className="grid gap-3 sm:grid-cols-2">
-                    <div className="admin-surface-muted rounded-2xl p-4">
-                      <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">
+                    <div className="admin-surface-muted rounded-2xl p-4 ld-animate-fade-in">
+                      <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-white/60">
                         Fit signal
                       </p>
-                      <p className="mt-2 text-base font-semibold text-slate-950">
+                      <p className="mt-2 text-base font-semibold text-white">
                         {leadView.reportSummary.fitSignalLabel}
                       </p>
-                      <p className="mt-1.5 text-sm leading-6 text-slate-600">{leadView.reportSummary.fitSignalSummary}</p>
+                      <p className="mt-1.5 text-sm leading-6 text-white/70">{leadView.reportSummary.fitSignalSummary}</p>
                     </div>
-                    <div className="admin-surface-muted rounded-2xl p-4">
-                      <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">
+                    <div className="admin-surface-muted rounded-2xl p-4 ld-animate-fade-in">
+                      <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-white/60">
                         First practical step
                       </p>
-                      <p className="mt-2 text-sm leading-6 text-slate-700">{leadView.reportSummary.firstAction}</p>
+                      <p className="mt-2 text-sm leading-6 text-white/80">{leadView.reportSummary.firstAction}</p>
                     </div>
                   </div>
-                  <div className="admin-surface-muted rounded-2xl p-4">
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">
+                  <div className="admin-surface-muted rounded-2xl p-4 ld-animate-fade-in">
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-white/60">
                       Recommended offer
                     </p>
-                    <p className="mt-2 text-base font-semibold text-slate-950">
+                    <p className="mt-2 text-base font-semibold text-white">
                       {leadView.reportSummary.recommendedOfferTitle}
                     </p>
-                    <p className="mt-1.5 text-sm leading-6 text-slate-600">
+                    <p className="mt-1.5 text-sm leading-6 text-white/70">
                       {leadView.reportSummary.recommendedOfferDescription}
                     </p>
-                    <p className="mt-2 text-sm leading-6 text-slate-600">{leadView.reportSummary.recommendedOfferReason}</p>
+                    <p className="mt-2 text-sm leading-6 text-white/70">{leadView.reportSummary.recommendedOfferReason}</p>
                   </div>
                 </div>
               ) : (
@@ -973,7 +976,7 @@ export default async function AdminLeadDetailPage({
               )}
             </section>
 
-            <section className="admin-surface rounded-[24px] p-5">
+            <section className="admin-surface rounded-[24px] p-5 ld-animate-fade-in-up" style={{animationDelay: "300ms"}}>
               <SectionHeader
                 eyebrow="Key answers"
                 title="What they told us"
@@ -981,9 +984,9 @@ export default async function AdminLeadDetailPage({
               />
               <div className="mt-4 grid gap-3">
                 {leadView.keyFacts.map(({ label, value }) => (
-                  <div key={label} className="admin-surface-muted rounded-2xl px-4 py-3">
-                    <p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">{label}</p>
-                    <p className="mt-1.5 text-sm text-slate-800">{value}</p>
+                  <div key={label} className="admin-surface-muted rounded-2xl px-4 py-3 ld-animate-fade-in">
+                    <p className="text-xs font-semibold uppercase tracking-[0.12em] text-white/60">{label}</p>
+                    <p className="mt-1.5 text-sm text-white/72">{value}</p>
                   </div>
                 ))}
               </div>
@@ -1000,11 +1003,11 @@ export default async function AdminLeadDetailPage({
           <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
             {leadView.intakeAnswers.length > 0 ? (
               leadView.intakeAnswers.map(({ label, value }) => (
-                <div key={label} className="admin-surface-muted rounded-2xl p-4">
-                  <p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">
+                <div key={label} className="admin-surface-muted rounded-2xl p-4 ld-animate-fade-in">
+                  <p className="text-xs font-semibold uppercase tracking-[0.12em] text-white/60">
                     {label}
                   </p>
-                  <p className="mt-2 text-sm leading-6 text-slate-700">{value}</p>
+                  <p className="mt-2 text-sm leading-6 text-white/80">{value}</p>
                 </div>
               ))
             ) : (

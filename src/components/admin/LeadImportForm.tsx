@@ -93,7 +93,7 @@ export function LeadImportForm({
     <div className="space-y-5">
       <div className="grid gap-3">
         <label className="space-y-2">
-          <span className="text-xs font-semibold uppercase tracking-[0.16em] text-white/50">Default owner</span>
+          <span className="text-xs font-semibold uppercase tracking-[0.16em] text-white/70">Default owner</span>
           <AdminSelect
             value={assignedTo}
             onChange={(event) => setAssignedTo(event.target.value)}
@@ -108,7 +108,7 @@ export function LeadImportForm({
           </AdminSelect>
         </label>
         <label className="space-y-2">
-          <span className="text-xs font-semibold uppercase tracking-[0.16em] text-white/50">Import label</span>
+          <span className="text-xs font-semibold uppercase tracking-[0.16em] text-white/70">Import label</span>
           <input
             type="text"
             value={sourceDetail}
@@ -141,7 +141,7 @@ export function LeadImportForm({
       </div>
 
       <label className="space-y-2">
-        <span className="text-xs font-semibold uppercase tracking-[0.16em] text-white/50">CSV rows</span>
+        <span className="text-xs font-semibold uppercase tracking-[0.16em] text-white/70">CSV rows</span>
         <textarea
           value={csvText}
           onChange={(event) => setCsvText(event.target.value)}
@@ -151,12 +151,12 @@ export function LeadImportForm({
         />
       </label>
 
-      <div className="rounded-2xl border border-dashed border-white/12 bg-white/[0.035] px-4 py-3 text-sm leading-6 text-white/54">
+      <div className="rounded-2xl border border-dashed border-white/12 bg-white/[0.035] px-4 py-3 text-sm leading-6 text-white/70">
         Supported headers: <span className="font-medium text-white/78">Full Name, First Name, Last Name, Email Address, Phone, Stage, Priority, Owner, Source, Notes</span>.
       </div>
 
       <div className="flex flex-col gap-3 border-t border-white/10 pt-4 sm:flex-row sm:items-end sm:justify-between">
-        <p className="max-w-[18rem] text-sm leading-6 text-white/54">
+        <p className="max-w-[18rem] text-sm leading-6 text-white/70">
           Imports use the same dedupe flow.
         </p>
         <button
@@ -169,7 +169,7 @@ export function LeadImportForm({
         </button>
       </div>
 
-      {message ? <p className="text-sm text-white/62">{message}</p> : null}
+      {message ? <p className="text-sm text-white/70">{message}</p> : null}
       {result ? (
         <div className="rounded-2xl border border-white/10 bg-white/[0.045] px-4 py-3">
           <p className="text-sm font-semibold text-white">

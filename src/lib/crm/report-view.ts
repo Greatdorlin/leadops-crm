@@ -1,4 +1,3 @@
-import { crmLabelize } from "@/lib/crm/labels";
 import { buildAdminLeadListItem } from "@/lib/crm/lead-view";
 import type { LeadRecord } from "@/lib/crm/types";
 
@@ -9,7 +8,7 @@ export interface AdminReportRow {
 
 export interface AdminReportSummaryView {
   interestReport: AdminReportRow[];
-  destinationReport: AdminReportRow[];
+  locationReport: AdminReportRow[];
   statusReport: AdminReportRow[];
   highIntentLeads: number;
 }
@@ -32,10 +31,10 @@ export function buildAdminReportSummary(leads: LeadRecord[]): AdminReportSummary
 
   return {
     interestReport: groupCount(leadViews.map((lead) => lead.interestLabel)),
-    destinationReport: groupCount(leads.map((lead) => crmLabelize(lead.answers.destinationInterest))),
+    locationReport: groupCount(leads.map((lead) => lead.city ?? lead.region ?? lead.country)),
     statusReport: groupCount(leadViews.map((lead) => lead.stageLabel)),
     highIntentLeads: leads.filter(
-      (lead) => lead.answers.wantsHumanSupport || lead.priority === "high" || lead.priority === "urgent",
+      (lead) => lead.priority === "high" || lead.priority === "urgent",
     ).length,
   };
 }

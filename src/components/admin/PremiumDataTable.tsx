@@ -29,7 +29,13 @@ export function PremiumDataTable<T>({
           <thead>
             <tr>
               {columns.map((column) => (
-                <th key={column.key} className={column.className}>
+                <th
+                  key={column.key}
+                  className={cn(
+                    "sticky top-0 z-10 bg-white/[0.06] backdrop-blur-md border-b border-white/10",
+                    column.className,
+                  )}
+                >
                   {column.header}
                 </th>
               ))}
@@ -37,7 +43,11 @@ export function PremiumDataTable<T>({
           </thead>
           <tbody>
             {data.map((row, index) => (
-              <tr key={getRowKey(row, index)} className="transition hover:bg-white/[0.045]">
+              <tr
+                key={getRowKey(row, index)}
+                className="transition-all duration-200 hover:bg-white/[0.06] ld-animate-fade-in-up"
+                style={{ animationDelay: `${Math.min(index * 50, 400)}ms` }}
+              >
                 {columns.map((column) => (
                   <td key={column.key} className={column.className}>
                     {column.render(row, index)}

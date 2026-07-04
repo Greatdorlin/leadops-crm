@@ -19,9 +19,18 @@ import type { AdminLeadListItem } from "@/lib/crm/view-models";
 import { AdminCollapsibleSection } from "./AdminCollapsibleSection";
 import { EmptyState } from "./EmptyState";
 import { LeadOwnerQuickAssign } from "./LeadOwnerQuickAssign";
+import { LeadStatusQuickChange } from "./LeadStatusQuickChange";
+import { AnimatedCard } from "./ui/AnimatedCard";
 import { PriorityBadge } from "./PriorityBadge";
 import { SourceBadge } from "./SourceBadge";
 import { StatusBadge } from "./StatusBadge";
+
+const priorityBorderMap = {
+  urgent: "border-l-2 border-l-rose-500",
+  high: "border-l-2 border-l-amber-500",
+  medium: "border-l-2 border-l-emerald-500",
+  low: "border-l-2 border-l-white/20",
+} as const;
 
 function resolveLegacyStageBadge(stage?: string | null) {
   return (stage ?? "new") as Parameters<typeof StatusBadge>[0]["status"];
@@ -65,12 +74,14 @@ function formatPotentialValue(lead: AdminLeadListItem) {
 function LeadMetric({
   icon: Icon,
   label,
+  hint,
   tone = "blue",
   className,
   children,
 }: {
   icon: LucideIcon;
   label: string;
+  hint?: string;
   tone?: "blue" | "emerald" | "amber" | "violet";
   className?: string;
   children: ReactNode;
@@ -78,9 +89,9 @@ function LeadMetric({
   const toneClasses = {
     blue: "border-[#d8e5ff] bg-[linear-gradient(180deg,#ffffff_0%,#f7faff_100%)] text-[#23418d]",
     emerald:
-      "border-emerald-200 bg-[linear-gradient(180deg,rgba(255,255,255,0.98)_0%,rgba(236,253,245,0.94)_100%)] text-emerald-700",
+      "border-emerald-300/20 bg-[linear-gradient(180deg,rgba(255,255,255,0.98)_0%,rgba(236,253,245,0.94)_100%)] text-emerald-800",
     amber:
-      "border-amber-200 bg-[linear-gradient(180deg,rgba(255,255,255,0.98)_0%,rgba(255,251,235,0.94)_100%)] text-amber-700",
+      "border-amber-300/20 bg-[linear-gradient(180deg,rgba(255,255,255,0.08)_0%,rgba(255,251,235,0.04)_100%)] text-amber-100",
     violet:
       "border-violet-200 bg-[linear-gradient(180deg,rgba(255,255,255,0.98)_0%,rgba(245,243,255,0.95)_100%)] text-violet-700",
   }[tone];
@@ -94,14 +105,14 @@ function LeadMetric({
       )}
     >
       <div className="flex items-start gap-3">
-        <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-[16px] border border-white/70 bg-white/90 shadow-[inset_0_1px_0_rgba(255,255,255,0.88)]">
+        <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-[16px] border border-white/10 bg-white/[0.08] shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
           <Icon className="h-4.5 w-4.5" />
         </span>
         <div className="min-w-0 flex-1">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.16em]" title={hint}>
             {label}
           </p>
-          <div className="mt-2 min-w-0 text-sm leading-6 text-slate-900">{children}</div>
+          <div className="mt-2 min-w-0 text-sm leading-6">{children}</div>
         </div>
       </div>
     </div>
@@ -124,17 +135,17 @@ function LeadProgressPanel({
   lastActivityAt: string;
 }) {
   return (
-    <div className="rounded-[26px] border border-[#d7e2ff] bg-[linear-gradient(180deg,rgba(255,255,255,0.98)_0%,rgba(243,247,255,0.96)_100%)] p-4 shadow-[0_16px_34px_rgba(15,23,42,0.05)]">
+    <div className="rounded-[26px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.04)_0%,rgba(255,255,255,0.01)_100%)] p-4 shadow-[0_16px_34px_rgba(0,0,0,0.05)]">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/70">
             Lead stage
           </p>
           <div className="mt-3">
             <StatusBadge status={resolveLegacyStageBadge(stage)} label={stageLabel} />
           </div>
         </div>
-        <span className="rounded-full border border-[#cad8ff] bg-white px-3 py-1.5 text-sm font-medium tracking-[-0.02em] text-slate-700 shadow-[0_8px_18px_rgba(34,82,219,0.06)]">
+        <span className="rounded-full border border-white/10 bg-white/[0.08] px-3 py-1.5 text-sm font-medium tracking-[-0.02em] text-white/80 shadow-[0_8px_18px_rgba(0,0,0,0.06)]">
           Profile active
         </span>
       </div>
@@ -144,18 +155,18 @@ function LeadProgressPanel({
         <SourceBadge source={source} label={sourceLabel} />
       </div>
 
-      <div className="mt-4 grid gap-3 text-sm text-slate-600 sm:grid-cols-2 xl:grid-cols-1 2xl:grid-cols-2">
+      <div className="mt-4 grid gap-3 text-sm text-white/70 sm:grid-cols-2 xl:grid-cols-1 2xl:grid-cols-2">
         <div>
-          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-400">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-white/70">
             Profile
           </p>
-          <p className="mt-1 font-medium text-slate-900">Tracked</p>
+          <p className="mt-1 font-medium text-white">Tracked</p>
         </div>
         <div>
-          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-400">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-white/70">
             Last activity
           </p>
-          <p className="mt-1 font-medium text-slate-900">{formatCrmDateTime(lastActivityAt)}</p>
+          <p className="mt-1 font-medium text-white">{formatCrmDateTime(lastActivityAt)}</p>
         </div>
       </div>
     </div>
@@ -226,10 +237,11 @@ function LeadHeader({
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap gap-2">
           <SourceBadge source={lead.source} label={lead.sourceLabel} className={badgeClassName} />
-          <StatusBadge
-            status={resolveLegacyStageBadge(lead.stage)}
-            label={lead.stageLabel}
-            className={badgeClassName}
+          <LeadStatusQuickChange
+            leadId={lead.id}
+            initialStage={lead.stage ?? "new"}
+            priority={lead.priority}
+            assignedTo={lead.assignedTo}
           />
           <PriorityBadge priority={lead.priority} className={badgeClassName} />
         </div>
@@ -237,7 +249,7 @@ function LeadHeader({
         <Link
           href={appRoutes.lead(lead.id)}
           className={cn(
-            "mt-3 block font-semibold leading-[0.98] tracking-[-0.05em] text-slate-950 transition hover:text-[#0b123f]",
+            "mt-3 block font-semibold leading-[0.98] tracking-[-0.05em] text-white transition hover:text-[#0b123f]",
             compact ? "text-[1.45rem]" : "text-[2rem]",
           )}
         >
@@ -253,19 +265,19 @@ function LeadHeader({
         >
           <div className="flex items-start gap-2.5">
             <Mail className="mt-0.5 h-4 w-4 shrink-0 text-[#2252db]" />
-            <p className="min-w-0 leading-6 text-slate-700 [overflow-wrap:anywhere]">
+            <p className="min-w-0 leading-6 text-white/80 [overflow-wrap:anywhere]">
               {lead.email || "No email yet"}
             </p>
           </div>
           <div className="flex items-start gap-2.5">
             <PhoneCall className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" />
-            <p className="min-w-0 leading-6 text-slate-600 [overflow-wrap:anywhere]">
+            <p className="min-w-0 leading-6 text-white/70 [overflow-wrap:anywhere]">
               {lead.phone || "No phone yet"}
             </p>
           </div>
           <div className="flex items-start gap-2.5">
             <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-sky-600" />
-            <p className="min-w-0 leading-6 text-slate-600 [overflow-wrap:anywhere]">
+            <p className="min-w-0 leading-6 text-white/70 [overflow-wrap:anywhere]">
               {lead.stateLabel}
             </p>
           </div>
@@ -303,7 +315,7 @@ export function LeadTable({
       actions={
         <div className="flex flex-wrap items-center gap-2">
           {actions}
-          <div className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-500">
+          <div className="rounded-full border border-white/10 bg-white/[0.08] px-3 py-1.5 text-xs font-medium text-white/70">
             {leads.length} visible
           </div>
         </div>
@@ -312,7 +324,7 @@ export function LeadTable({
       {leads.length === 0 ? <EmptyState title={emptyTitle} description={emptyDescription} /> : null}
 
       <div id="lead-pipeline" className={cn("grid gap-3 md:hidden", leads.length === 0 && "hidden")}>
-        {leads.map((lead) => {
+        {leads.map((lead, index) => {
           const whatsappHref = buildWhatsAppHref(lead.phone);
           const leadSummary = formatLeadSummary(lead);
           const websiteContext = getWebsiteLeadContext(lead);
@@ -321,13 +333,19 @@ export function LeadTable({
             .join(" • ");
 
           return (
-            <article
+            <AnimatedCard
               key={lead.id}
-              className="admin-surface-muted relative overflow-hidden rounded-[30px] p-0"
+              variant="default"
+              animation="fadeInUp"
+              delay={index * 50}
+              className={cn(
+                "admin-surface-muted relative overflow-hidden rounded-[30px] p-0",
+                priorityBorderMap[lead.priority],
+              )}
             >
               <div className="pointer-events-none absolute inset-x-0 top-0 h-28 bg-[radial-gradient(circle_at_top,rgba(111,140,255,0.18),transparent_72%)]" />
 
-              <div className="relative border-b border-slate-200/80 bg-[linear-gradient(180deg,rgba(255,255,255,0.98)_0%,rgba(247,250,255,0.94)_100%)] px-4 py-4">
+              <div className="relative border-b border-white/10/80 px-4 py-4">
                 <div className="flex items-start justify-between gap-3">
                   <LeadHeader
                     lead={lead}
@@ -335,11 +353,11 @@ export function LeadTable({
                     badgeClassName="px-2.5 py-1 text-[11px] shadow-[0_6px_14px_rgba(15,23,42,0.04)]"
                   />
 
-                  <div className="shrink-0 rounded-[20px] border border-[#d8e2fb] bg-white/90 px-3 py-2 text-right shadow-[0_10px_24px_rgba(15,23,42,0.04)]">
-                    <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-400">
+                  <div className="shrink-0 rounded-[20px] border border-white/10 bg-white/[0.08] px-3 py-2 text-right shadow-[0_10px_24px_rgba(0,0,0,0.04)]">
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/70">
                       Last active
                     </p>
-                    <p className="mt-1 text-sm font-medium leading-5 text-slate-700">
+                    <p className="mt-1 text-sm font-medium leading-5 text-white/80">
                       {formatCrmDateTime(lead.lastActivityAt)}
                     </p>
                   </div>
@@ -358,71 +376,58 @@ export function LeadTable({
               </div>
 
               <div className="grid gap-3 px-4 py-4">
-                <LeadMetric icon={FileText} label="Lead summary" tone="blue">
-                  <p className="font-medium text-slate-900 [overflow-wrap:anywhere]">{leadSummary}</p>
+                <LeadMetric icon={FileText} label="Lead summary" tone="blue" hint="Primary interest and current summary for this lead.">
+                  <p className="font-medium [overflow-wrap:anywhere]">{leadSummary}</p>
                   {websiteContextLine ? (
-                    <p className="mt-2 text-xs font-semibold uppercase tracking-[0.12em] text-amber-700">
+                    <p className="mt-2 text-xs font-semibold uppercase tracking-[0.12em] text-amber-200">
                       {websiteContextLine}
                     </p>
                   ) : null}
-                  <p className="mt-2 text-sm font-medium text-slate-700">{formatPotentialValue(lead)}</p>
-                  <p className="mt-2 text-sm leading-6 text-slate-500">
-                    Primary interest and current summary for this lead.
-                  </p>
+                  <p className="mt-2 text-sm font-medium">{formatPotentialValue(lead)}</p>
                 </LeadMetric>
 
                 <div className="grid gap-3 sm:grid-cols-2">
-                  <LeadMetric icon={UserRound} label="Owner" tone="violet">
-                    <p className="font-medium text-slate-900 [overflow-wrap:anywhere]">
+                  <LeadMetric icon={UserRound} label="Owner" tone="violet" hint="Keep ownership clear before the next follow-up.">
+                    <p className="font-medium [overflow-wrap:anywhere]">
                       {lead.assignedUserName}
                     </p>
                     {assigneeOptions.length > 0 ? (
                       <div className="mt-3">
                         <LeadOwnerQuickAssign
                           leadId={lead.id}
-                    initialAssignedTo={lead.assignedTo}
-                    stage={lead.stage ?? "new"}
-                    priority={lead.priority}
-                    assigneeOptions={assigneeOptions}
-                  />
+                          initialAssignedTo={lead.assignedTo}
+                          stage={lead.stage ?? "new"}
+                          priority={lead.priority}
+                          assigneeOptions={assigneeOptions}
+                        />
                       </div>
-                    ) : (
-                      <p className="mt-2 text-sm leading-6 text-slate-500">
-                        Keep ownership clear before the next follow-up.
-                      </p>
-                    )}
+                    ) : null}
                   </LeadMetric>
 
-                  <LeadMetric icon={MapPin} label="State" tone="blue">
-                    <p className="font-medium text-slate-900 [overflow-wrap:anywhere]">
+                  <LeadMetric icon={MapPin} label="State" tone="blue" hint="Use this to route follow-up to the right branch team.">
+                    <p className="font-medium [overflow-wrap:anywhere]">
                       {lead.stateLabel}
-                    </p>
-                    <p className="mt-2 text-sm leading-6 text-slate-500">
-                      Use this to route follow-up to the right branch team.
                     </p>
                   </LeadMetric>
 
                   <LeadMetric icon={Clock3} label="Activity" tone="amber">
-                    <p className="font-medium text-slate-900">
+                    <p className="font-medium">
                       Created {formatCrmDateTime(lead.createdAt)}
                     </p>
-                    <p className="mt-2 text-sm leading-6 text-slate-500">
+                    <p className="mt-2 text-sm leading-6">
                       Updated {formatCrmDateTime(lead.lastActivityAt)}
                     </p>
                   </LeadMetric>
                 </div>
 
-                <LeadMetric icon={CalendarDays} label="Next touch" tone="emerald">
-                  <p className="font-medium text-slate-900">
+                <LeadMetric icon={CalendarDays} label="Next touch" tone="emerald" hint={lead.nextFollowUpAt ? "Already queued in the task list." : "Add a follow-up when ready."}>
+                  <p className="font-medium">
                     {lead.nextFollowUpAt ? formatCrmDateTime(lead.nextFollowUpAt) : "Not scheduled"}
-                  </p>
-                  <p className="mt-2 text-sm leading-6 text-slate-500">
-                    {lead.nextFollowUpAt ? "Already queued in the task list." : "Add a follow-up when ready."}
                   </p>
                 </LeadMetric>
               </div>
 
-              <div className="border-t border-slate-200/80 px-4 py-4">
+              <div className="border-t border-white/10/80 px-4 py-4">
                 <LeadActions
                   leadId={lead.id}
                   email={lead.email}
@@ -430,13 +435,13 @@ export function LeadTable({
                   whatsappHref={whatsappHref}
                 />
               </div>
-            </article>
+            </AnimatedCard>
           );
         })}
       </div>
 
       <div className={cn("hidden gap-3 md:grid", leads.length === 0 && "hidden")}>
-        {leads.map((lead) => {
+        {leads.map((lead, index) => {
           const whatsappHref = buildWhatsAppHref(lead.phone);
           const leadSummary = formatLeadSummary(lead);
           const websiteContext = getWebsiteLeadContext(lead);
@@ -445,13 +450,19 @@ export function LeadTable({
             .join(" • ");
 
           return (
-            <article
+            <AnimatedCard
               key={lead.id}
-              className="admin-surface-muted relative overflow-hidden rounded-[32px] p-0 transition hover:-translate-y-[1px] hover:border-slate-300 hover:shadow-[0_22px_44px_rgba(15,23,42,0.07)]"
+              variant="default"
+              animation="fadeInUp"
+              delay={index * 50}
+              className={cn(
+                "admin-surface-muted relative overflow-hidden rounded-[32px] p-0 transition hover:-translate-y-[1px] hover:border-white/15 hover:shadow-[0_22px_44px_rgba(0,0,0,0.07)]",
+                priorityBorderMap[lead.priority],
+              )}
             >
               <div className="pointer-events-none absolute inset-x-0 top-0 h-36 bg-[radial-gradient(circle_at_top,rgba(111,140,255,0.18),transparent_72%)]" />
 
-              <div className="relative bg-[linear-gradient(180deg,rgba(255,255,255,0.98)_0%,rgba(247,250,255,0.94)_100%)] px-5 py-5 sm:px-6">
+              <div className="relative px-5 py-5 sm:px-6">
                 <div className="grid gap-5">
                   <LeadHeader
                     lead={lead}
@@ -459,41 +470,41 @@ export function LeadTable({
                   />
 
                   <div className="grid gap-3 xl:items-start xl:grid-cols-[minmax(0,1.22fr)_minmax(320px,0.9fr)]">
-                    <LeadMetric icon={FileText} label="Lead summary" tone="blue" className="self-start">
-                      <p className="font-medium text-slate-900 [overflow-wrap:anywhere]">{leadSummary}</p>
+                    <LeadMetric icon={FileText} label="Lead summary" tone="blue" className="self-start" hint="Primary interest and current summary for this lead.">
+                      <p className="font-medium [overflow-wrap:anywhere]">{leadSummary}</p>
                       {websiteContextLine ? (
-                        <p className="mt-2 text-xs font-semibold uppercase tracking-[0.12em] text-amber-700">
+                        <p className="mt-2 text-xs font-semibold uppercase tracking-[0.12em] text-amber-200">
                           {websiteContextLine}
                         </p>
                       ) : null}
-                      <p className="mt-2 text-sm font-medium text-slate-700">{formatPotentialValue(lead)}</p>
-                      <p className="mt-2 text-sm leading-6 text-slate-500">
+                      <p className="mt-2 text-sm font-medium">{formatPotentialValue(lead)}</p>
+                      <p className="mt-2 text-sm leading-6">
                         {lead.fitSignalLabel !== "Not provided"
                           ? `Fit: ${lead.fitSignalLabel}`
                           : "Fit will appear after more details are captured."}
                       </p>
                       <div className="mt-4 grid gap-3 sm:grid-cols-2">
                         <div>
-                          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-400">
+                          <p className="text-[11px] font-semibold uppercase tracking-[0.14em]">
                             Category
                           </p>
-                          <p className="mt-1 text-sm font-medium text-slate-700 [overflow-wrap:anywhere]">
+                          <p className="mt-1 text-sm font-medium [overflow-wrap:anywhere]">
                             {lead.categoryLabel}
                           </p>
                         </div>
                         <div>
-                          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-400">
+                          <p className="text-[11px] font-semibold uppercase tracking-[0.14em]">
                             Created
                           </p>
-                          <p className="mt-1 text-sm font-medium text-slate-700">
+                          <p className="mt-1 text-sm font-medium">
                             {formatCrmDateTime(lead.createdAt)}
                           </p>
                         </div>
                         <div>
-                          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-400">
+                          <p className="text-[11px] font-semibold uppercase tracking-[0.14em]">
                             State
                           </p>
-                          <p className="mt-1 text-sm font-medium text-slate-700 [overflow-wrap:anywhere]">
+                          <p className="mt-1 text-sm font-medium [overflow-wrap:anywhere]">
                             {lead.stateLabel}
                           </p>
                         </div>
@@ -501,18 +512,18 @@ export function LeadTable({
                     </LeadMetric>
 
                     <div className="grid gap-3">
-                  <LeadProgressPanel
-                    stage={lead.stage ?? "new"}
-                    stageLabel={lead.stageLabel}
-                    priority={lead.priority}
-                    source={lead.source}
-                    sourceLabel={lead.sourceLabel}
-                    lastActivityAt={lead.lastActivityAt}
-                  />
+                      <LeadProgressPanel
+                        stage={lead.stage ?? "new"}
+                        stageLabel={lead.stageLabel}
+                        priority={lead.priority}
+                        source={lead.source}
+                        sourceLabel={lead.sourceLabel}
+                        lastActivityAt={lead.lastActivityAt}
+                      />
 
                       <div className="grid gap-3">
-                        <LeadMetric icon={UserRound} label="Owner" tone="violet">
-                          <p className="font-medium text-slate-900 [overflow-wrap:anywhere]">
+                        <LeadMetric icon={UserRound} label="Owner" tone="violet" hint="Clear ownership keeps follow-ups moving.">
+                          <p className="font-medium [overflow-wrap:anywhere]">
                             {lead.assignedUserName}
                           </p>
                           {assigneeOptions.length > 0 ? (
@@ -525,26 +536,15 @@ export function LeadTable({
                                 assigneeOptions={assigneeOptions}
                               />
                             </div>
-                          ) : (
-                            <p className="mt-2 text-sm leading-6 text-slate-500">
-                              Clear ownership keeps follow-ups moving.
-                            </p>
-                          )}
+                          ) : null}
                         </LeadMetric>
 
-                        <LeadMetric icon={CalendarDays} label="Next touch" tone="emerald">
-                          <p className="font-medium text-slate-900">
+                        <LeadMetric icon={CalendarDays} label="Next touch" tone="emerald" hint={lead.nextFollowUpAt ? "Already queued in the task list." : "Add a follow-up when ready."}>
+                          <p className="font-medium">
                             {lead.nextFollowUpAt ? formatCrmDateTime(lead.nextFollowUpAt) : "Not scheduled"}
                           </p>
-                          {lead.nextFollowUpAt ? (
-                            <p className="mt-2 text-sm leading-6 text-slate-500">
-                              Already queued in the task list.
-                            </p>
-                          ) : (
+                          {!lead.nextFollowUpAt ? (
                             <div className="mt-3 space-y-3">
-                              <p className="text-sm leading-6 text-slate-500">
-                                Add the next follow-up now so this lead does not go quiet.
-                              </p>
                               <Link
                                 href={buildFollowUpHref(lead.id)}
                                 className="admin-button-secondary inline-flex h-10 items-center justify-center rounded-2xl px-4 text-sm font-medium"
@@ -552,7 +552,7 @@ export function LeadTable({
                                 Add follow-up
                               </Link>
                             </div>
-                          )}
+                          ) : null}
                         </LeadMetric>
                       </div>
                     </div>
@@ -562,10 +562,10 @@ export function LeadTable({
                     <LeadMetric icon={Mail} label="Contact" tone="amber">
                       <div className="space-y-3">
                         <div>
-                          <p className="font-medium text-slate-900 [overflow-wrap:anywhere]">
+                          <p className="font-medium [overflow-wrap:anywhere]">
                             {lead.email || "No email yet"}
                           </p>
-                          <p className="mt-1 text-sm text-slate-500 [overflow-wrap:anywhere]">
+                          <p className="mt-1 text-sm [overflow-wrap:anywhere]">
                             {lead.phone || "No phone yet"}
                           </p>
                         </div>
@@ -582,7 +582,7 @@ export function LeadTable({
                   </div>
                 </div>
               </div>
-            </article>
+            </AnimatedCard>
           );
         })}
       </div>

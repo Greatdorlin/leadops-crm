@@ -10,6 +10,7 @@ import {
 import type { SalesDashboardSummary } from "@/lib/crm/sales-metrics";
 import { formatCrmDateTime } from "@/lib/crm/formatters";
 import type { DashboardWidgetKey } from "@/lib/crm/workspace-settings";
+import { appRoutes } from "@/lib/app-routes";
 import { AdminCollapsibleSection } from "./AdminCollapsibleSection";
 import { DashboardTargetCelebration } from "./DashboardTargetCelebration";
 import { EmptyState } from "./EmptyState";
@@ -47,13 +48,20 @@ function Sparkline({ tone = "accent" }: { tone?: "accent" | "success" | "warning
     danger: "url(#spark-danger)",
     info: "url(#spark-info)",
   }[tone];
+  const fill = {
+    accent: "url(#fill-accent)",
+    success: "url(#fill-success)",
+    warning: "url(#fill-warning)",
+    danger: "url(#fill-danger)",
+    info: "url(#fill-info)",
+  }[tone];
 
   return (
-    <svg className="mt-3 h-8 w-full" viewBox="0 0 180 42" role="presentation" aria-hidden="true">
+    <svg className="mt-3 h-12 w-full" style={{ filter: "drop-shadow(0 0 5px rgba(255,255,255,0.15))" }} viewBox="0 0 180 42" role="presentation" aria-hidden="true">
       <defs>
         <linearGradient id="spark-accent" x1="0" x2="1">
-          <stop stopColor="#67e8f9" />
-          <stop offset="1" stopColor="#c084fc" />
+          <stop stopColor="var(--ld-color-primary)" />
+          <stop offset="1" stopColor="var(--ld-color-accent)" />
         </linearGradient>
         <linearGradient id="spark-success" x1="0" x2="1">
           <stop stopColor="#6ee7b7" />
@@ -71,20 +79,50 @@ function Sparkline({ tone = "accent" }: { tone?: "accent" | "success" | "warning
           <stop stopColor="#60a5fa" />
           <stop offset="1" stopColor="#67e8f9" />
         </linearGradient>
+        <linearGradient id="fill-accent" x1="0" y1="0" x2="0" y2="1">
+          <stop stopColor="var(--ld-color-primary)" stopOpacity="0.22" offset="0" />
+          <stop stopColor="var(--ld-color-accent)" stopOpacity="0" offset="1" />
+        </linearGradient>
+        <linearGradient id="fill-success" x1="0" y1="0" x2="0" y2="1">
+          <stop stopColor="#6ee7b7" stopOpacity="0.22" offset="0" />
+          <stop stopColor="#a7f3d0" stopOpacity="0" offset="1" />
+        </linearGradient>
+        <linearGradient id="fill-warning" x1="0" y1="0" x2="0" y2="1">
+          <stop stopColor="#fbbf24" stopOpacity="0.22" offset="0" />
+          <stop stopColor="#fb7185" stopOpacity="0" offset="1" />
+        </linearGradient>
+        <linearGradient id="fill-danger" x1="0" y1="0" x2="0" y2="1">
+          <stop stopColor="#fb7185" stopOpacity="0.22" offset="0" />
+          <stop stopColor="#c084fc" stopOpacity="0" offset="1" />
+        </linearGradient>
+        <linearGradient id="fill-info" x1="0" y1="0" x2="0" y2="1">
+          <stop stopColor="#60a5fa" stopOpacity="0.22" offset="0" />
+          <stop stopColor="#67e8f9" stopOpacity="0" offset="1" />
+        </linearGradient>
+        <filter id="spark-glow" x="-20%" y="-20%" width="140%" height="140%">
+          <feGaussianBlur stdDeviation="2.5" result="blur" />
+          <feComposite in="SourceGraphic" in2="blur" operator="over" />
+        </filter>
       </defs>
+      <path
+        d="M4 28 C 18 18, 28 31, 42 22 S 68 18, 82 25 S 108 35, 122 18 S 150 18, 176 10 L 176 42 L 4 42 Z"
+        fill={fill}
+        opacity="0.35"
+      />
       <path
         d="M4 28 C 18 18, 28 31, 42 22 S 68 18, 82 25 S 108 35, 122 18 S 150 18, 176 10"
         fill="none"
-        stroke="rgba(255,255,255,0.18)"
+        stroke="rgba(255,255,255,0.22)"
         strokeLinecap="round"
-        strokeWidth="7"
+        strokeWidth="9"
       />
       <path
         d="M4 28 C 18 18, 28 31, 42 22 S 68 18, 82 25 S 108 35, 122 18 S 150 18, 176 10"
         fill="none"
         stroke={stroke}
         strokeLinecap="round"
-        strokeWidth="3"
+        strokeWidth="5"
+        filter="url(#spark-glow)"
       />
     </svg>
   );
@@ -104,11 +142,11 @@ function CompactProgressRow({
   tone?: "accent" | "success" | "warning" | "danger" | "info";
 }) {
   const fill = {
-    accent: "from-violet-400 to-fuchsia-300",
-    success: "from-emerald-300 to-cyan-300",
-    warning: "from-amber-300 to-orange-300",
-    danger: "from-rose-300 to-fuchsia-300",
-    info: "from-sky-300 to-cyan-300",
+    accent: { from: "var(--ld-color-primary)", to: "var(--ld-color-accent)" },
+    success: { from: "#6ee7b7", to: "#10b981" },
+    warning: { from: "#fbbf24", to: "#f59e0b" },
+    danger: { from: "#fb7185", to: "#ef4444" },
+    info: { from: "#60a5fa", to: "#3b82f6" },
   }[tone];
 
   return (
@@ -116,14 +154,17 @@ function CompactProgressRow({
       <div className="flex items-center justify-between gap-4">
         <div className="min-w-0">
           <p className="truncate text-sm font-semibold text-white">{label}</p>
-          {meta ? <p className="mt-1 truncate text-xs text-white/46">{meta}</p> : null}
+          {meta ? <p className="mt-1 truncate text-xs text-white/70">{meta}</p> : null}
         </div>
         <p className="shrink-0 text-sm font-semibold text-white">{value}</p>
       </div>
       <div className="h-2 overflow-hidden rounded-full bg-white/10">
         <div
-          className={`h-full rounded-full bg-gradient-to-r ${fill}`}
-          style={{ width: `${percent}%` }}
+          className="h-full rounded-full"
+          style={{
+            width: `${percent}%`,
+            background: `linear-gradient(90deg, ${fill.from}, ${fill.to})`,
+          }}
         />
       </div>
     </div>
@@ -248,7 +289,7 @@ export function SalesCommandOverview({
         description="Track value, stage movement, and the gap to goal."
         actions={
           <Link
-            href="/admin/settings/sales-targets"
+            href={appRoutes.settingsSalesTargets}
             className="ld-floating-control inline-flex h-10 items-center justify-center px-4 text-sm font-semibold"
           >
             Set target
@@ -261,10 +302,10 @@ export function SalesCommandOverview({
           <div className="ld-solid-panel grid content-between rounded-[24px] p-5">
             <div>
               <div className="flex items-center justify-between gap-3">
-                <span className="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-cyan-100/14 bg-cyan-300/10 text-cyan-100 shadow-[0_12px_28px_rgba(34,211,238,0.12)]">
+                <span className="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-white/14 bg-[var(--ld-color-primary)]/10 text-white shadow-[0_12px_28px_color-mix(in_srgb,var(--ld-color-primary)_12%,transparent)]">
                   <Target className="h-5 w-5" />
                 </span>
-                <span className="rounded-full border border-white/10 bg-white/[0.075] px-3 py-1 text-xs font-semibold text-white/64">
+                <span className="rounded-full border border-white/10 bg-white/[0.075] px-3 py-1 text-xs font-semibold text-white/70">
                   {summary.target?.periodLabel ?? "No active target"}
                 </span>
               </div>
@@ -280,7 +321,7 @@ export function SalesCommandOverview({
                       <p className="text-[2rem] font-semibold tracking-[-0.06em] text-white 2xl:text-4xl">
                         {targetProgress}%
                       </p>
-                      <p className="mt-1 text-xs text-white/48">of target</p>
+                      <p className="mt-1 text-xs text-white/70">of target</p>
                     </div>
                   </div>
                 </div>
@@ -288,15 +329,15 @@ export function SalesCommandOverview({
             </div>
             <div className="mt-5 grid gap-3 text-sm">
               <div className="flex items-center justify-between gap-4">
-                <span className="text-white/54">Won value</span>
+                <span className="text-white/70">Won value</span>
                 <span className="font-semibold text-white">{formatShortMoney(summary.wonValue, currency)}</span>
               </div>
               <div className="flex items-center justify-between gap-4">
-                <span className="text-white/54">Pipeline</span>
+                <span className="text-white/70">Pipeline</span>
                 <span className="font-semibold text-white">{formatShortMoney(summary.pipelineValue, currency)}</span>
               </div>
               <div className="flex items-center justify-between gap-4">
-                <span className="text-white/54">Remaining</span>
+                <span className="text-white/70">Remaining</span>
                 <span className="font-semibold text-white">
                   {summary.target ? formatShortMoney(summary.target.remainingValue, currency) : "Set a target"}
                 </span>
@@ -308,9 +349,9 @@ export function SalesCommandOverview({
             <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
               <div>
                 <h3 className="text-lg font-semibold tracking-[-0.04em] text-white">Stage movement</h3>
-                <p className="mt-1 text-sm text-white/54">Live stage volume and value at a glance.</p>
+                <p className="mt-1 text-sm text-white/70">Live stage volume and value at a glance.</p>
               </div>
-              <span className="rounded-full border border-white/10 bg-white/[0.075] px-3 py-1 text-xs font-semibold text-white/60">
+              <span className="rounded-full border border-white/10 bg-white/[0.075] px-3 py-1 text-xs font-semibold text-white/70">
                 {summary.conversionRate}% conversion
               </span>
             </div>
@@ -319,20 +360,24 @@ export function SalesCommandOverview({
               {summary.stagePerformance.slice(0, 5).map((stage, index) => {
                 const percent = getPercent(stage.totalLeads, stageMax);
                 const barHeight = 42 + Math.round((percent / 100) * 118);
-                const gradients = [
-                  "from-blue-400 to-indigo-500",
-                  "from-violet-400 to-fuchsia-500",
-                  "from-pink-400 to-rose-500",
-                  "from-amber-300 to-orange-500",
-                  "from-emerald-300 to-teal-500",
+                const barGradients = [
+                  { from: "var(--ld-color-primary)", to: "var(--ld-color-accent)" },
+                  { from: "var(--ld-color-accent)", to: "var(--ld-color-primary)" },
+                  { from: "color-mix(in srgb, var(--ld-color-primary) 60%, var(--ld-color-accent))", to: "color-mix(in srgb, var(--ld-color-accent) 60%, var(--ld-color-primary))" },
+                  { from: "color-mix(in srgb, var(--ld-color-primary) 40%, var(--ld-color-accent))", to: "color-mix(in srgb, var(--ld-color-accent) 80%, var(--ld-color-primary))" },
+                  { from: "color-mix(in srgb, var(--ld-color-accent) 40%, var(--ld-color-primary))", to: "color-mix(in srgb, var(--ld-color-primary) 80%, var(--ld-color-accent))" },
                 ];
+                const gradient = barGradients[index % barGradients.length];
 
                 return (
                   <div key={stage.label} className="grid h-full min-h-[204px] grid-rows-[1fr_auto] gap-3">
                     <div className="flex items-end rounded-[18px] border border-white/[0.06] bg-white/[0.035] p-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
                       <div
-                        className={`w-full min-h-12 rounded-[14px] bg-gradient-to-b ${gradients[index % gradients.length]} shadow-[0_18px_42px_rgba(0,0,0,0.25),inset_0_1px_0_rgba(255,255,255,0.2)]`}
-                        style={{ height: `${barHeight}px` }}
+                        className="w-full min-h-12 rounded-[14px] shadow-[0_18px_42px_rgba(0,0,0,0.25),inset_0_1px_0_rgba(255,255,255,0.2)]"
+                        style={{
+                          height: `${barHeight}px`,
+                          background: `linear-gradient(180deg, ${gradient.from}, ${gradient.to})`,
+                        }}
                       />
                     </div>
                     <div className="min-w-0">
@@ -340,7 +385,7 @@ export function SalesCommandOverview({
                       <p className="mt-1 text-[1.65rem] font-semibold leading-none tracking-[-0.05em] text-white">
                         {stage.totalLeads}
                       </p>
-                      <p className="mt-1 text-xs text-white/46">
+                      <p className="mt-1 text-xs text-white/70">
                         {formatShortMoney(stage.pipelineValue, currency)}
                       </p>
                     </div>
@@ -369,7 +414,7 @@ export function SalesCommandOverview({
               description="See where leads come from and which sources convert."
               actions={
                 <Link
-                  href="/admin/reports"
+                  href={appRoutes.reports}
                   className="ld-floating-control inline-flex h-10 items-center justify-center px-4 text-sm font-semibold"
                 >
                   Full report
@@ -405,7 +450,7 @@ export function SalesCommandOverview({
               description="Successful and failed submissions stay visible."
               actions={
                 <Link
-                  href="/admin/intake"
+                  href={appRoutes.intake}
                   className="ld-floating-control inline-flex h-10 items-center justify-center px-4 text-sm font-semibold"
                 >
                   Intake log
@@ -420,17 +465,17 @@ export function SalesCommandOverview({
                       className="ld-solid-panel grid gap-3 rounded-[20px] p-4 sm:grid-cols-[minmax(0,1fr)_auto]"
                     >
                       <div className="min-w-0">
-                        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-white/42">
+                        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-white/70">
                           {event.status.replace(/_/g, " ")}
                         </p>
                         <p className="mt-1 truncate text-sm font-semibold text-white">
                           {event.sourceName || "Unknown source"}
                         </p>
-                        <p className="mt-1 text-sm text-white/54">
+                        <p className="mt-1 text-sm text-white/70">
                           {event.errorMessage || (event.leadName ? `Lead: ${event.leadName}` : "Processing update")}
                         </p>
                       </div>
-                      <p className="text-sm text-white/48">{formatCrmDateTime(event.createdAt)}</p>
+                      <p className="text-sm text-white/70">{formatCrmDateTime(event.createdAt)}</p>
                     </div>
                   ))
                 ) : (
@@ -492,7 +537,7 @@ export function SalesCommandOverview({
                     >
                       <div className="min-w-0">
                         <p className="truncate text-sm font-semibold text-white">{row.label}</p>
-                        <p className="mt-1 text-sm text-white/52">
+                        <p className="mt-1 text-sm text-white/70">
                           {row.assignedLeads} leads • {row.overdueFollowUps} overdue
                         </p>
                       </div>
@@ -500,7 +545,7 @@ export function SalesCommandOverview({
                         <p className="text-sm font-semibold text-white">
                           {formatShortMoney(row.wonValue, currency)}
                         </p>
-                        <p className="mt-1 text-xs text-white/48">{row.conversionRate}% conversion</p>
+                        <p className="mt-1 text-xs text-white/70">{row.conversionRate}% conversion</p>
                       </div>
                     </div>
                   ))

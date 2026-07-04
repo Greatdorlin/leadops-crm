@@ -25,7 +25,6 @@ import {
   leadStages,
   teams,
 } from "@/lib/db/schema";
-import type { LeadPriority as LegacyLeadPriority } from "@/lib/pathway-engine/types";
 
 export class FormSourceAdminError extends Error {
   constructor(
@@ -103,7 +102,9 @@ function normalizeFieldName(value: unknown) {
   return normalized;
 }
 
-function toDomainPriority(value: LegacyLeadPriority | null): LeadPriority | null {
+type StoredLeadPriority = "low" | "medium" | "high" | "urgent";
+
+function toDomainPriority(value: StoredLeadPriority | null): LeadPriority | null {
   if (!value) {
     return null;
   }
@@ -115,7 +116,7 @@ function toDomainPriority(value: LegacyLeadPriority | null): LeadPriority | null
   return value;
 }
 
-function toStoragePriority(value: LeadPriority | null | undefined): LegacyLeadPriority | null {
+function toStoragePriority(value: LeadPriority | null | undefined): StoredLeadPriority | null {
   if (!value) {
     return null;
   }

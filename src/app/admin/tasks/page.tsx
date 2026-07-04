@@ -7,6 +7,8 @@ import { AdminSignOutButton } from "@/components/admin/AdminSignOutButton";
 import { AdminSelect } from "@/components/admin/AdminSelect";
 import { FilterBar } from "@/components/admin/FilterBar";
 import { MetricCard } from "@/components/admin/MetricCard";
+import { GlassSurface } from "@/components/admin/ui/GlassSurface";
+import { SmoothButton } from "@/components/admin/ui/SmoothButton";
 import { QueueStatChip } from "@/components/admin/QueueStatChip";
 import { SectionHeader } from "@/components/admin/SectionHeader";
 import { TaskQueueTable } from "@/components/admin/TaskQueueTable";
@@ -17,6 +19,7 @@ import { listCustomFields } from "@/lib/crm/custom-fields-admin";
 import { buildLeadDisplayNameMap } from "@/lib/crm/lead-identity";
 import { formatLeadStateLabel } from "@/lib/crm/formatters";
 import { getCrmPageErrorCopy, logCrmPageError } from "@/lib/crm/runtime";
+import { appRoutes } from "@/lib/app-routes";
 import { leadStore } from "@/lib/storage";
 
 export const dynamic = "force-dynamic";
@@ -100,7 +103,7 @@ function buildTaskViewHref(view: (typeof views)[number], assignedTo?: string) {
   if (assignedTo) {
     params.set("assignedTo", assignedTo);
   }
-  return `/admin/tasks?${params.toString()}`;
+  return `${appRoutes.tasks}?${params.toString()}`;
 }
 
 export default async function AdminTasksPage({
@@ -114,7 +117,7 @@ export default async function AdminTasksPage({
     accessLevel,
     actualAccessLevel,
     canSwitchAccessViews,
-  } = await getAdminAccessContext("/admin/tasks");
+  } = await getAdminAccessContext(appRoutes.tasks);
   const params = await searchParams;
   const availableViews: readonly (typeof views)[number][] =
     accessLevel === "sales_rep" ? ["today", "overdue", "my", "completed"] : views;
@@ -264,6 +267,16 @@ export default async function AdminTasksPage({
       }
     >
       <div className="space-y-6">
+        <SectionHeader
+          eyebrow="Task queue"
+          title={accessLevel === "sales_rep" ? "My Tasks" : "Tasks"}
+          description={
+            accessLevel === "sales_rep"
+              ? "Your follow-up queue, due dates, and completed work in one compact view."
+              : "A table-first task queue for assigning, scanning, and clearing follow-up work quickly."
+          }
+          className="ld-animate-fade-in-up"
+        />
         <FilterBar>
           <div className="flex flex-col gap-3">
             <nav className="flex gap-2 overflow-x-auto pb-1" aria-label="Task views">
@@ -287,7 +300,7 @@ export default async function AdminTasksPage({
             </nav>
 
             {accessLevel === "sales_rep" ? null : (
-              <form action="/admin/tasks" className="grid max-w-[640px] gap-2 sm:grid-cols-[minmax(0,240px)_150px_150px]">
+              <form action={appRoutes.tasks} className="grid max-w-[640px] gap-2 sm:grid-cols-[minmax(0,240px)_150px_150px]">
                 <input type="hidden" name="view" value={view} />
                 <AdminSelect
                   name="assignedTo"
@@ -301,14 +314,15 @@ export default async function AdminTasksPage({
                     </option>
                   ))}
                 </AdminSelect>
-                <button
+                <SmoothButton
                   type="submit"
-                  className="admin-button-primary inline-flex h-11 items-center justify-center rounded-2xl px-5 text-sm font-semibold"
+                  variant="primary"
+                  className="h-11 rounded-2xl"
                 >
                   Apply
-                </button>
+                </SmoothButton>
                 <Link
-                  href={`/admin/tasks?view=${view}`}
+                  href={`${appRoutes.tasks}?view=${view}`}
                   className="admin-button-secondary inline-flex h-11 items-center justify-center rounded-2xl px-5 text-sm font-medium"
                 >
                   Clear
@@ -318,8 +332,8 @@ export default async function AdminTasksPage({
           </div>
         </FilterBar>
 
-        <section className="space-y-6">
-          <section className="admin-surface rounded-[28px] p-5 sm:p-6">
+        <section className="space-y-6 ld-animate-fade-in-up">
+          <GlassSurface as="section" className="rounded-[28px] p-5 sm:p-6">
             <div className="grid gap-3 sm:grid-cols-2 2xl:grid-cols-4">
               <QueueStatChip
                 label="Visible tasks"
@@ -349,7 +363,7 @@ export default async function AdminTasksPage({
                 icon={Users2}
               />
             </div>
-          </section>
+          </GlassSurface>
 
           <div id="task-action-center">
             <AdminWorkspaceComposer
@@ -361,13 +375,14 @@ export default async function AdminTasksPage({
               defaultLeadId={defaultLeadId}
               variant="compact"
               leadCaptureCustomFields={leadCaptureCustomFields}
+              allowedModes={["task"]}
             />
           </div>
         </section>
 
         <section className="grid gap-6 xl:grid-cols-12">
           <div className="space-y-6 xl:col-span-8">
-            <section className="admin-surface rounded-[28px] p-5 sm:p-6">
+            <GlassSurface as="section" className="rounded-[28px] p-5 sm:p-6 ld-animate-fade-in-up">
               <SectionHeader
                 eyebrow="Work queue"
                 title={formatTaskView(view)}
@@ -382,11 +397,11 @@ export default async function AdminTasksPage({
                   emptyDescription="Create a task from the action center to keep follow-up work visible."
                 />
               </div>
-            </section>
+            </GlassSurface>
           </div>
 
           <div className="space-y-6 xl:col-span-4">
-            <section className="admin-surface rounded-[28px] p-5">
+            <GlassSurface as="section" className="rounded-[28px] p-5 ld-animate-fade-in-up">
               <SectionHeader
                 eyebrow={accessLevel === "sales_rep" ? "My task health" : "Queue health"}
                 title={accessLevel === "sales_rep" ? "Today at a glance" : "Task coverage"}
@@ -426,20 +441,20 @@ export default async function AdminTasksPage({
                   tone="danger"
                 />
               </div>
-            </section>
+            </GlassSurface>
 
-            <section className="admin-surface rounded-[28px] p-5">
+            <GlassSurface as="section" className="rounded-[28px] p-5 ld-animate-fade-in-up">
               <SectionHeader
                 eyebrow="Completed work"
                 title="Recently closed"
                 description="A quick count so the queue doesn't feel endless."
               />
-              <div className="mt-4 rounded-[22px] border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
+              <div className="mt-4 rounded-[22px] border border-white/10 bg-white/[0.05] px-4 py-3 text-sm text-white/70">
                 {completedCount > 0
                   ? `${completedCount} task${completedCount === 1 ? "" : "s"} already completed in this view.`
                   : "No completed tasks in this view yet."}
               </div>
-            </section>
+            </GlassSurface>
           </div>
         </section>
       </div>

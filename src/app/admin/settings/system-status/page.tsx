@@ -6,6 +6,7 @@ import { AdminSignOutButton } from "@/components/admin/AdminSignOutButton";
 import { MetricCard } from "@/components/admin/MetricCard";
 import { SectionHeader } from "@/components/admin/SectionHeader";
 import { getAdminAccessContext } from "@/lib/admin";
+import { appRoutes } from "@/lib/app-routes";
 import { isAdminAuthConfigured, isLocalAdminPreviewEnabled } from "@/lib/admin-access";
 import { canViewSystemStatus } from "@/lib/crm/authz";
 import { getCompanySettings } from "@/lib/crm/workspace-settings";
@@ -19,10 +20,10 @@ function yesNo(value: boolean) {
 
 export default async function SystemStatusPage() {
   const { role, accessLevel, actualAccessLevel, canSwitchAccessViews } =
-    await getAdminAccessContext("/admin/settings/system-status");
+    await getAdminAccessContext(appRoutes.settingsSystemStatus);
 
   if (!canViewSystemStatus({ accessLevel, role })) {
-    redirect("/admin/settings");
+    redirect(appRoutes.settings);
   }
 
   const settings = await getCompanySettings();
@@ -46,7 +47,7 @@ export default async function SystemStatusPage() {
           description="Database connection is configured during deployment. Secrets stay outside the app."
           actions={
             <Link
-              href="/admin/settings"
+              href={appRoutes.settings}
               className="admin-button-secondary inline-flex h-11 items-center justify-center rounded-2xl px-5 text-sm font-medium"
             >
               Back to settings
@@ -77,8 +78,8 @@ export default async function SystemStatusPage() {
                 ["Webhook base URL", `${appUrl}/api/intake/webhook/{webhookKey}`],
               ].map(([label, value]) => (
                 <div key={label} className="admin-surface-muted rounded-[22px] px-4 py-3">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">{label}</p>
-                  <p className="mt-2 text-sm font-medium text-slate-900 [overflow-wrap:anywhere]">{value}</p>
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/70">{label}</p>
+                  <p className="mt-2 text-sm font-medium text-white [overflow-wrap:anywhere]">{value}</p>
                 </div>
               ))}
             </div>
@@ -100,7 +101,7 @@ export default async function SystemStatusPage() {
                 <a
                   key={label}
                   href={href}
-                  className="admin-surface-muted rounded-[22px] px-4 py-3 text-sm font-medium text-slate-800 transition hover:border-slate-300 hover:bg-white"
+                  className="admin-surface-muted rounded-[22px] px-4 py-3 text-sm font-medium text-white transition hover:border-white/20 hover:bg-white/[0.08]"
                 >
                   {label}
                 </a>

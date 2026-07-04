@@ -1,4 +1,4 @@
-import type { CrmStatus, LeadSource } from "@/lib/pathway-engine/types";
+import type { CrmStatus, LeadSource } from "@/lib/crm/types";
 
 export const DEFAULT_LEADS_DESK_STAGE_ROWS = [
   { key: "new", name: "New", color: "#2563eb", sortOrder: 0, isWon: false, isLost: false },
@@ -41,7 +41,6 @@ export const LEADS_DESK_STAGE_BACKFILL_PLAN: Record<CrmStatus, string> = {
 };
 
 export const LEADS_DESK_SOURCE_BACKFILL_PLAN: Record<LeadSource, string> = {
-  pathway_finder: "other",
   website_form: "website",
   facebook_lead_ads: "facebook_ads",
   google_ads: "google_ads",

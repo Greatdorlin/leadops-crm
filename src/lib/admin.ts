@@ -60,13 +60,13 @@ export async function getAdminSession() {
   return session;
 }
 
-export async function requireAdminSession(callbackPath = "/admin") {
+export async function requireAdminSession(callbackPath = "/dashboard") {
   if (!isAdminAuthConfigured()) {
     if (isLocalAdminPreviewEnabled()) {
       return buildLocalPreviewSession();
     }
 
-    redirect(`/admin/signin?callbackUrl=${encodeURIComponent(callbackPath)}&error=Configuration`);
+    redirect(`/login?callbackUrl=${encodeURIComponent(callbackPath)}&error=Configuration`);
   }
 
   let session = null;
@@ -74,21 +74,21 @@ export async function requireAdminSession(callbackPath = "/admin") {
   try {
     session = await getServerSession(authOptions);
   } catch {
-    redirect(`/admin/signin?callbackUrl=${encodeURIComponent(callbackPath)}&error=Configuration`);
+    redirect(`/login?callbackUrl=${encodeURIComponent(callbackPath)}&error=Configuration`);
   }
 
   if (!session?.user?.email) {
-    redirect(`/admin/signin?callbackUrl=${encodeURIComponent(callbackPath)}`);
+    redirect(`/login?callbackUrl=${encodeURIComponent(callbackPath)}`);
   }
 
   if (!(await hasAdminWorkspaceAccess(session.user.email))) {
-    redirect(`/admin/signin?callbackUrl=${encodeURIComponent(callbackPath)}&error=AccessDenied`);
+    redirect(`/login?callbackUrl=${encodeURIComponent(callbackPath)}&error=AccessDenied`);
   }
 
   return session;
 }
 
-export async function getAdminAccessContext(callbackPath = "/admin") {
+export async function getAdminAccessContext(callbackPath = "/dashboard") {
   const session = await requireAdminSession(callbackPath);
   const crmUser = await getCrmUserByEmail(session.user?.email);
   const role = crmUser?.role ?? ("admin" satisfies CrmUserRecord["role"]);

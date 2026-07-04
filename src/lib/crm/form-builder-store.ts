@@ -79,6 +79,52 @@ export async function deleteForm(id: string): Promise<boolean> {
 
 export async function listFormFields(formId: string): Promise<FormFieldRow[]> {
   const db = getDb();
+  try {
+    return db
+      .select()
+      .from(formFields)
+      .where(eq(formFields.formId, formId))
+      .orderBy(asc(formFields.order));
+  } catch (error) {
+    if (error instanceof Error && /relation "form_fields" does not exist/i.test(error.message)) {
+      return [];
+    }
+    throw error;
+  }
+}
+
+export async function listFormRules(formId: string): Promise<FormRuleRow[]> {
+  const db = getDb();
+  try {
+    return db
+      .select()
+      .from(formRules)
+      .where(eq(formRules.formId, formId))
+      .orderBy(asc(formRules.order));
+  } catch (error) {
+    if (error instanceof Error && /relation "form_rules" does not exist/i.test(error.message)) {
+      return [];
+    }
+    throw error;
+  }
+}
+
+export async function listFormSubmissions(formId: string): Promise<FormSubmissionRow[]> {
+  const db = getDb();
+  try {
+    return db
+      .select()
+      .from(formSubmissions)
+      .where(eq(formSubmissions.formId, formId))
+      .orderBy(desc(formSubmissions.createdAt));
+  } catch (error) {
+    if (error instanceof Error && /relation "form_submissions" does not exist/i.test(error.message)) {
+      return [];
+    }
+    throw error;
+  }
+}
+  const db = getDb();
   return db
     .select()
     .from(formFields)

@@ -34,9 +34,6 @@ import { SourceBadge } from "@/components/admin/SourceBadge";
 import { StatusBadge } from "@/components/admin/StatusBadge";
 import { TaskCard } from "@/components/admin/TaskCard";
 import { TimelineItem } from "@/components/admin/TimelineItem";
-import { GlassSurface } from "@/components/admin/ui/GlassSurface";
-import { AnimatedCard } from "@/components/admin/ui/AnimatedCard";
-import { SmoothButton } from "@/components/admin/ui/SmoothButton";
 import { getAdminAccessContext } from "@/lib/admin";
 import { appRoutes } from "@/lib/app-routes";
 import {

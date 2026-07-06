@@ -7,7 +7,12 @@ import {
   createLeadFromFormSubmission,
   listFormRules,
 } from "@/lib/crm/form-builder-store";
-import type { FormFieldRow } from "@/lib/db/schema";
+import { listLeadStages } from "@/lib/crm/lead-stages-admin";
+import {
+  applySubmissionRules,
+  normalizeAutoQualifyRules,
+  normalizeStageLookupValue,
+} from "@/lib/crm/form-submission-routing";
 
 function getClientIp(request: Request): string | null {
   const forwarded = request.headers.get("x-forwarded-for");
@@ -17,87 +22,32 @@ function getClientIp(request: Request): string | null {
   return null;
 }
 
-function evaluateCondition(
-  fieldValue: unknown,
-  operator: string,
-  expectedValue: string | null,
-): boolean {
-  switch (operator) {
-    case "equals":
-      return String(fieldValue) === (expectedValue ?? "");
-    case "not_equals":
-      return String(fieldValue) !== (expectedValue ?? "");
-    case "contains":
-      return String(fieldValue).includes(expectedValue ?? "");
-    case "greater_than":
-      return Number(fieldValue) > Number(expectedValue);
-    case "less_than":
-      return Number(fieldValue) < Number(expectedValue);
-    case "checked":
-      return Boolean(fieldValue) === true;
-    case "unchecked":
-      return Boolean(fieldValue) === false;
-    default:
-      return false;
-  }
-}
-
-function applyRuleActions(
-  rules: Array<{
-    id: string;
-    isActive: boolean;
-    conditionFieldId: string;
-    conditionOperator: string;
-    conditionValue: string | null;
-    actionType: string;
-    actionTarget: string | null;
-    actionValue: string | null;
-  }>,
-  submissionData: Record<string, unknown>,
-  fieldMap: Map<string, FormFieldRow>,
-): {
-  appliedRules: Array<{ ruleId: string; action: string; result: string }>;
-  leadOverrides: Record<string, string | null>;
-} {
-  const appliedRules: Array<{ ruleId: string; action: string; result: string }> = [];
-  const leadOverrides: Record<string, string | null> = {};
-
-  for (const rule of rules) {
-    if (!rule.isActive) continue;
-    const conditionField = fieldMap.get(rule.conditionFieldId);
-    if (!conditionField) continue;
-
-    const fieldValue = submissionData[conditionField.id];
-    const matched = evaluateCondition(fieldValue, rule.conditionOperator, rule.conditionValue);
-
-    if (!matched) continue;
-
-    appliedRules.push({
-      ruleId: rule.id,
-      action: rule.actionType,
-      result: `matched: ${rule.actionType}`,
-    });
-
-    switch (rule.actionType) {
-      case "set_status":
-        leadOverrides.status = rule.actionValue;
-        break;
-      case "set_priority":
-        leadOverrides.priority = rule.actionValue;
-        break;
-      case "set_owner":
-        leadOverrides.assignedTo = rule.actionValue;
-        break;
-      case "set_source":
-        leadOverrides.source = rule.actionValue;
-        break;
-      case "set_stage":
-        leadOverrides.stageId = rule.actionValue;
-        break;
-    }
+async function resolveStageId(
+  stageValue: string | null | undefined,
+  stages: Awaited<ReturnType<typeof listLeadStages>>,
+) {
+  if (!stageValue) {
+    return null;
   }
 
-  return { appliedRules, leadOverrides };
+  const normalizedLookupValue = normalizeStageLookupValue(stageValue);
+  if (!normalizedLookupValue) {
+    return null;
+  }
+
+  const exactMatch = stages.find(
+    (stage) => stage.id === stageValue || stage.key === stageValue,
+  );
+  if (exactMatch) {
+    return exactMatch.id;
+  }
+
+  const normalizedMatch = stages.find(
+    (stage) =>
+      stage.id === normalizedLookupValue || stage.key === normalizedLookupValue,
+  );
+
+  return normalizedMatch?.id ?? null;
 }
 
 export async function POST(
@@ -111,8 +61,7 @@ export async function POST(
     return NextResponse.json({ error: "Form not found or not active." }, { status: 404 });
   }
 
-  const fields = await listFormFields(id);
-  const rules = await listFormRules(id);
+  const [fields, rules] = await Promise.all([listFormFields(id), listFormRules(id)]);
 
   const payload = (await request.json().catch(() => null)) as Record<string, unknown> | null;
   if (!payload || typeof payload.data !== "object" || payload.data === null || Array.isArray(payload.data)) {
@@ -138,9 +87,28 @@ export async function POST(
     );
   }
 
-  // Apply rules
-  const fieldMap = new Map(fields.map((f) => [f.id, f]));
-  const { appliedRules, leadOverrides } = applyRuleActions(rules, data, fieldMap);
+  const availableFieldIds = new Set(fields.map((field) => field.id));
+  const autoQualifyRules = form.enableAutoQualify
+    ? normalizeAutoQualifyRules(form.autoQualifyRules)
+    : [];
+  const autoQualifyEvaluation = applySubmissionRules(
+    autoQualifyRules,
+    data,
+    availableFieldIds,
+  );
+  const ruleEvaluation = applySubmissionRules(rules, data, availableFieldIds);
+  const appliedRules = [
+    ...autoQualifyEvaluation.appliedRules,
+    ...ruleEvaluation.appliedRules,
+  ];
+  const leadOverrides = {
+    ...autoQualifyEvaluation.leadOverrides,
+    ...ruleEvaluation.leadOverrides,
+  };
+  const stages = await listLeadStages();
+  const resolvedStageId =
+    (await resolveStageId(leadOverrides.stageValue, stages)) ??
+    (await resolveStageId(form.defaultStatus, stages));
 
   // Create submission record
   const submission = await createFormSubmission({
@@ -231,7 +199,7 @@ export async function POST(
     sourceDetail: `form:${form.slug}`,
     priority: (leadOverrides.priority as string) ?? form.defaultPriority ?? "medium",
     assignedTo: leadOverrides.assignedTo ?? form.defaultOwnerId ?? null,
-    stageId: leadOverrides.stageId ?? null,
+    stageId: resolvedStageId,
     customFields: Object.keys(customFields).length > 0 ? customFields : undefined,
   });
 
@@ -240,6 +208,10 @@ export async function POST(
       status: "processed",
       leadId: leadResult.leadId,
       createdLeadId: leadResult.leadId,
+    });
+  } else {
+    await updateFormSubmission(submission.id, {
+      status: "failed",
     });
   }
 

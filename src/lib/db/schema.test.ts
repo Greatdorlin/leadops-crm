@@ -39,6 +39,7 @@ test("phase 2C additive schema exports the first neutral tables", () => {
     "name",
     "location",
     "managerUserId",
+    "currency",
     "archived",
     "createdAt",
     "updatedAt",
@@ -311,6 +312,7 @@ test("premium UI pass adds additive company settings storage for runtime customi
     "dashboardConfig",
     "leadPreviewConfig",
     "industryPreset",
+    "globalCurrency",
     "createdAt",
     "updatedAt",
   ]);

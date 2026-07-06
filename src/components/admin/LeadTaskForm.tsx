@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { AnimatedCard } from "./ui/AnimatedCard";
 import { SmoothButton } from "./ui/SmoothButton";
-import { GradientText } from "./ui/GradientText";
 import { AdminSelect } from "./AdminSelect";
 
 interface TaskOption {

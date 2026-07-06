@@ -47,7 +47,7 @@ export default async function AdminSalesTargetsPage() {
       actualAccessLevel={actualAccessLevel}
       canSwitchAccessViews={canSwitchAccessViews}
       title="Sales Targets"
-      description="Set clear targets so the dashboard can show progress against revenue goals."
+      description="Create and adjust the goals shown on the dashboard."
       actions={
         <>
           <Link
@@ -66,18 +66,18 @@ export default async function AdminSalesTargetsPage() {
             <MetricCard
               label="Active targets"
               value={targets.filter((target) => !target.archived && target.isActive).length}
-              supporting="Targets currently tracking progress."
+              supporting="Tracking live progress."
               tone="accent"
             />
             <MetricCard
               label="Global targets"
               value={targets.filter((target) => target.scope === "global" && !target.archived).length}
-              supporting="Company-wide targets ready for the dashboard."
+              supporting="Visible across the dashboard."
             />
             <MetricCard
               label="Archived targets"
               value={targets.filter((target) => target.archived).length}
-              supporting="Targets hidden from current tracking."
+              supporting="Hidden from active tracking."
             />
           </section>
 
@@ -85,7 +85,7 @@ export default async function AdminSalesTargetsPage() {
             <SectionHeader
               eyebrow="Sales targets"
               title="Manage targets"
-              description="Track the target value, timing, and scope that matter most for client reporting."
+              description="Choose the goal the dashboard should track."
             />
             <div className="mt-5">
               <SalesTargetManager initialTargets={targets} referenceData={referenceData} />

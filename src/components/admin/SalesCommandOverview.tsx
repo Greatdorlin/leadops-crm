@@ -3,6 +3,7 @@ import {
   AlertTriangle,
   CircleDollarSign,
   Inbox,
+  Info,
   Target,
   Trophy,
   Users2,
@@ -128,6 +129,23 @@ function Sparkline({ tone = "accent" }: { tone?: "accent" | "success" | "warning
   );
 }
 
+function HoverInfoButton({ label }: { label: string }) {
+  return (
+    <span className="group relative inline-flex">
+      <button
+        type="button"
+        className="inline-flex h-6 w-6 items-center justify-center rounded-full border border-white/10 bg-white/[0.06] text-white/55 transition hover:bg-white/[0.1] hover:text-white"
+        aria-label={label}
+      >
+        <Info className="h-3.5 w-3.5" />
+      </button>
+      <span className="pointer-events-none absolute left-1/2 top-full z-20 mt-2 hidden w-52 -translate-x-1/2 rounded-2xl border border-white/12 bg-[#091326]/95 px-3 py-2 text-left text-xs leading-5 text-white/72 shadow-[0_18px_42px_rgba(0,0,0,0.32)] group-hover:block group-focus-within:block">
+        {label}
+      </span>
+    </span>
+  );
+}
+
 function CompactProgressRow({
   label,
   value,
@@ -250,6 +268,7 @@ export function SalesCommandOverview({
   const showTargetProgress = showWidget("target_progress");
   const showTeamPerformance = showWidget("team_performance");
   const showAttentionSummary = showWidget("overdue_follow_ups") || showWidget("conversion_rate");
+  const salesTargetHref = `${appRoutes.settingsSalesTargets}#create-target`;
 
   return (
     <div className="space-y-6">
@@ -286,13 +305,12 @@ export function SalesCommandOverview({
       <AdminCollapsibleSection
         eyebrow="Pipeline objective"
         title="Pipeline health and target progress"
-        description="Track value, stage movement, and the gap to goal."
         actions={
           <Link
-            href={appRoutes.settingsSalesTargets}
+            href={salesTargetHref}
             className="ld-floating-control inline-flex h-10 items-center justify-center px-4 text-sm font-semibold"
           >
-            Set target
+            {summary.target ? "Manage target" : "Set target"}
           </Link>
         }
         className="p-0"
@@ -305,9 +323,12 @@ export function SalesCommandOverview({
                 <span className="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-white/14 bg-[var(--ld-color-primary)]/10 text-white shadow-[0_12px_28px_color-mix(in_srgb,var(--ld-color-primary)_12%,transparent)]">
                   <Target className="h-5 w-5" />
                 </span>
-                <span className="rounded-full border border-white/10 bg-white/[0.075] px-3 py-1 text-xs font-semibold text-white/70">
-                  {summary.target?.periodLabel ?? "No active target"}
-                </span>
+                <div className="flex items-center gap-2">
+                  <HoverInfoButton label="Targets compare closed value against a saved goal and show the remaining gap on the dashboard." />
+                  <span className="rounded-full border border-white/10 bg-white/[0.075] px-3 py-1 text-xs font-semibold text-white/70">
+                    {summary.target?.periodLabel ?? "No active target"}
+                  </span>
+                </div>
               </div>
               <div className="mx-auto mt-6 grid h-40 w-40 place-items-center rounded-full border border-white/10 bg-white/[0.035] shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] 2xl:h-44 2xl:w-44">
                 <div
@@ -339,7 +360,13 @@ export function SalesCommandOverview({
               <div className="flex items-center justify-between gap-4">
                 <span className="text-white/70">Remaining</span>
                 <span className="font-semibold text-white">
-                  {summary.target ? formatShortMoney(summary.target.remainingValue, currency) : "Set a target"}
+                  {summary.target ? (
+                    formatShortMoney(summary.target.remainingValue, currency)
+                  ) : (
+                    <Link href={salesTargetHref} className="text-white hover:text-[var(--ld-color-accent)]">
+                      Set a target
+                    </Link>
+                  )}
                 </span>
               </div>
             </div>
@@ -347,9 +374,11 @@ export function SalesCommandOverview({
 
           <div className="ld-solid-panel rounded-[24px] p-5">
             <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-              <div>
+              <div className="flex items-start gap-2">
                 <h3 className="text-lg font-semibold tracking-[-0.04em] text-white">Stage movement</h3>
-                <p className="mt-1 text-sm text-white/70">Live stage volume and value at a glance.</p>
+                <div className="pt-0.5">
+                  <HoverInfoButton label="Stage movement shows where open leads are sitting right now and how much open value each stage carries." />
+                </div>
               </div>
               <span className="rounded-full border border-white/10 bg-white/[0.075] px-3 py-1 text-xs font-semibold text-white/70">
                 {summary.conversionRate}% conversion

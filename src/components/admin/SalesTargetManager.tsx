@@ -101,6 +101,7 @@ function getScopeOptions(
 }
 
 function TargetEditor({
+  panelId,
   title,
   draft,
   onChange,
@@ -111,6 +112,7 @@ function TargetEditor({
   referenceData,
   extraAction,
 }: {
+  panelId?: string;
   title: string;
   draft: TargetDraft;
   onChange: (next: TargetDraft) => void;
@@ -124,7 +126,7 @@ function TargetEditor({
   const scopeOptions = getScopeOptions(draft.scope, referenceData);
 
   return (
-    <div className="admin-surface space-y-4 rounded-[24px] p-5">
+    <div id={panelId} className="admin-surface space-y-4 rounded-[24px] p-5 scroll-mt-28">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <p className="text-base font-semibold text-white">{title}</p>
         {extraAction}
@@ -371,6 +373,7 @@ export function SalesTargetManager({
   return (
     <div className="space-y-6">
       <TargetEditor
+        panelId="create-target"
         title="Add Sales Target"
         draft={newDraft}
         onChange={setNewDraft}

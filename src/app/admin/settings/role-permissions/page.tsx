@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { Shield, RotateCcw, Save, Check, X } from "lucide-react";
+import { RotateCcw, Save, Check, X } from "lucide-react";
 import { AdminShell } from "@/components/admin/AdminShell";
 import { GlassCard } from "@/components/admin/GlassCard";
 import { SmoothButton } from "@/components/admin/ui/SmoothButton";
@@ -41,7 +41,7 @@ export default function RolePermissionsPage() {
     setTimeout(() => setToast(null), 3000);
   }, []);
 
-  async function loadPermissions() {
+  const loadPermissions = useCallback(async () => {
     try {
       const res = await fetch("/api/admin/role-permissions");
       const data = await res.json();
@@ -55,11 +55,15 @@ export default function RolePermissionsPage() {
     } finally {
       setLoading(false);
     }
-  }
+  }, [showToast]);
 
   useEffect(() => {
-    loadPermissions();
-  }, []);
+    const timer = window.setTimeout(() => {
+      void loadPermissions();
+    }, 0);
+
+    return () => window.clearTimeout(timer);
+  }, [loadPermissions]);
 
   async function togglePermission(role: CrmUserRole, permission: PermissionKey, current: boolean) {
     const key = `${role}-${permission}`;

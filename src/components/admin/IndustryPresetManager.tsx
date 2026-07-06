@@ -3,7 +3,6 @@
 import { useState, useRef } from "react";
 import { Check, Building2, Plane, Briefcase, Stethoscope, GraduationCap, Shield, ShoppingCart, Car, Code, Scale, Dumbbell, X, ChevronRight, Eye, Sparkles } from "lucide-react";
 import type { IndustryPreset } from "@/lib/crm/industry-presets";
-import { GlassSurface } from "./ui/GlassSurface";
 import { SmoothButton } from "./ui/SmoothButton";
 
 const presetIcons: Record<string, React.ReactNode> = {

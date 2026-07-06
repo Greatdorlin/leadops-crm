@@ -9,7 +9,7 @@ import { appRoutes } from "@/lib/app-routes";
 export const dynamic = "force-dynamic";
 
 export default async function BranchesSettingsPage() {
-  const { session, role, accessLevel, actualAccessLevel, canSwitchAccessViews } =
+  const { role, accessLevel, actualAccessLevel, canSwitchAccessViews } =
     await getAdminAccessContext(appRoutes.settingsBranches);
 
   if (!canManageSettings(accessLevel, role)) {

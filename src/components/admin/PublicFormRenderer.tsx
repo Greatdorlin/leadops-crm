@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useCallback, useMemo, useEffect } from "react";
+import type { CSSProperties, FormEvent } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { cn } from "@/lib/cn";
 import { PublicFormField } from "./PublicFormField";
 import type { PublicFormFieldData } from "./PublicFormField";
@@ -24,6 +25,15 @@ export interface PublicFormRendererProps {
 
 interface FormErrors {
   [fieldId: string]: string | null;
+}
+
+function buildDefaultFieldValues(fields: PublicFormFieldData[]) {
+  return fields.reduce<Record<string, unknown>>((defaults, field) => {
+    if (field.defaultValue !== undefined && field.defaultValue !== null) {
+      defaults[field.id] = field.defaultValue;
+    }
+    return defaults;
+  }, {});
 }
 
 function evaluateShowWhen(
@@ -127,7 +137,7 @@ function validateField(
 }
 
 export function PublicFormRenderer({ form, fields }: PublicFormRendererProps) {
-  const [values, setValues] = useState<Record<string, unknown>>({});
+  const [values, setValues] = useState<Record<string, unknown>>(() => buildDefaultFieldValues(fields));
   const [errors, setErrors] = useState<FormErrors>({});
   const [touched, setTouched] = useState<Set<string>>(new Set());
   const [submitting, setSubmitting] = useState(false);
@@ -137,16 +147,6 @@ export function PublicFormRenderer({ form, fields }: PublicFormRendererProps) {
     submissionId: string;
     leadId: string | null;
   } | null>(null);
-
-  useEffect(() => {
-    const defaults: Record<string, unknown> = {};
-    for (const field of fields) {
-      if (field.defaultValue !== undefined && field.defaultValue !== null) {
-        defaults[field.id] = field.defaultValue;
-      }
-    }
-    setValues((prev) => ({ ...defaults, ...prev }));
-  }, [fields]);
 
   const handleChange = useCallback(
     (fieldId: string, value: unknown) => {
@@ -181,7 +181,7 @@ export function PublicFormRenderer({ form, fields }: PublicFormRendererProps) {
   }, [visibleFields, values]);
 
   const handleSubmit = useCallback(
-    async (e: React.FormEvent) => {
+    async (e: FormEvent) => {
       e.preventDefault();
       setSubmitError(null);
 
@@ -232,11 +232,11 @@ export function PublicFormRenderer({ form, fields }: PublicFormRendererProps) {
     [form.id, form.redirectUrl, values, validateAll, visibleFields]
   );
 
-  const brandStyle = useMemo<React.CSSProperties>(() => {
+  const brandStyle = useMemo<CSSProperties>(() => {
     return {
       "--form-primary": form.primaryColor ?? "#0f172a",
       "--form-accent": form.accentColor ?? "#3b82f6",
-    } as React.CSSProperties;
+    } as CSSProperties;
   }, [form.primaryColor, form.accentColor]);
 
   const primaryColor = form.primaryColor ?? "#0f172a";
@@ -303,6 +303,7 @@ export function PublicFormRenderer({ form, fields }: PublicFormRendererProps) {
       <div className="mb-8">
         {form.logoUrl ? (
           <div className="mb-5">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={form.logoUrl}
               alt=""

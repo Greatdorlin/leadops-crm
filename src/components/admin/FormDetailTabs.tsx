@@ -1,6 +1,3 @@
-
-import type { ReactNode } from "react";
-import { useState } from "react";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
 import { cn } from "@/lib/cn";

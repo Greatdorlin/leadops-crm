@@ -11,7 +11,6 @@ import { CustomFieldValueInputs } from "./CustomFieldValueInputs";
 import { GlassSurface } from "./ui/GlassSurface";
 import { SmoothButton } from "./ui/SmoothButton";
 import { GradientText } from "./ui/GradientText";
-import { SectionHeader } from "./ui/SectionHeader";
 
 type ProfileInputProps = {
   label: string;

@@ -119,6 +119,17 @@ export function canManageSettings(
   );
 }
 
+export function canAccessFormsWorkspace(
+  accessLevel: AdminAccessLevel,
+  role?: CrmUserRole | null,
+) {
+  if (role === "ad_manager") {
+    return false;
+  }
+
+  return accessLevel === "master_admin" || accessLevel === "general_admin";
+}
+
 export function canEditTeamAccess(accessLevel: AdminAccessLevel) {
   return accessLevel === "master_admin" || accessLevel === "general_admin";
 }
@@ -293,7 +304,11 @@ export function getVisibleAdminNavKeys(
   accessLevel: AdminAccessLevel,
   role?: CrmUserRole | null,
 ) {
-  const keys: AdminNavKey[] = ["dashboard", "leads", "forms", "tasks"];
+  const keys: AdminNavKey[] = ["dashboard", "leads", "tasks"];
+
+  if (canAccessFormsWorkspace(accessLevel, role)) {
+    keys.push("forms");
+  }
 
   keys.push("notifications");
 

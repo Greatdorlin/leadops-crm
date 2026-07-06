@@ -1,11 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import { cn } from "@/lib/cn";
 import { GlassSurface } from "@/components/admin/ui/GlassSurface";
 import { SmoothButton } from "@/components/admin/ui/SmoothButton";
 import { SectionHeader } from "@/components/admin/ui/SectionHeader";
 import { AdminSelect } from "@/components/admin/AdminSelect";
+import { useFormDetail } from "@/components/admin/FormDetailProvider";
 import {
   Save,
   AlertCircle,
@@ -13,7 +13,6 @@ import {
   Settings,
   UserCheck,
   Sparkles,
-  ImagePlus,
   Check,
 } from "lucide-react";
 
@@ -68,6 +67,28 @@ const DEFAULT_SOURCE_OPTIONS = [
   { value: "manual_entry", label: "Manual Entry" },
 ];
 
+const AUTO_QUALIFY_OPERATOR_OPTIONS = [
+  { value: "equals", label: "Equals" },
+  { value: "not_equals", label: "Does not equal" },
+  { value: "contains", label: "Contains" },
+  { value: "greater_than", label: "Greater than" },
+  { value: "less_than", label: "Less than" },
+  { value: "checked", label: "Is checked" },
+  { value: "unchecked", label: "Is unchecked" },
+  { value: "empty", label: "Is empty" },
+  { value: "not_empty", label: "Is filled" },
+] as const;
+
+const AUTO_QUALIFY_STAGE_OPTIONS = [
+  { value: "new", label: "New" },
+  { value: "contacted", label: "Contacted" },
+  { value: "follow_up", label: "Follow-up" },
+  { value: "qualified", label: "Qualified" },
+  { value: "proposal", label: "Proposal" },
+  { value: "won", label: "Won" },
+  { value: "lost", label: "Lost" },
+] as const;
+
 function normalizeForm(data: Record<string, unknown> | null): FormSettingsData {
   if (!data) {
     return {
@@ -115,10 +136,13 @@ function normalizeForm(data: Record<string, unknown> | null): FormSettingsData {
 }
 
 export function FormSettingsPanel({ formId, initialForm }: FormSettingsPanelProps) {
+  const { fields } = useFormDetail();
   const [draft, setDraft] = useState<FormSettingsData>(normalizeForm(initialForm));
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+  const brandPrimaryColor = draft.primaryColor ?? "#1f4ed8";
+  const brandAccentColor = draft.accentColor ?? "#f4b400";
 
   const updateDraft = (updates: Partial<FormSettingsData>) => {
     setDraft((prev) => ({ ...prev, ...updates }));
@@ -167,7 +191,13 @@ export function FormSettingsPanel({ formId, initialForm }: FormSettingsPanelProp
     updateDraft({
       autoQualifyRules: [
         ...current,
-        { fieldId: "", operator: "equals", value: "", markAsQualified: true },
+        {
+          fieldId: fields[0]?.id ?? "",
+          operator: "equals",
+          value: "",
+          stageKey: "qualified",
+          markAsQualified: true,
+        },
       ],
     });
   };
@@ -188,7 +218,7 @@ export function FormSettingsPanel({ formId, initialForm }: FormSettingsPanelProp
     <div className="space-y-5">
       <SectionHeader
         title="Form Settings"
-        description="Configure how this form behaves, looks, and creates leads."
+        description="Configure behavior, branding, and lead routing."
         variant="compact"
         actions={
           <SmoothButton
@@ -317,13 +347,13 @@ export function FormSettingsPanel({ formId, initialForm }: FormSettingsPanelProp
             <div className="flex items-center gap-3">
               <input
                 type="color"
-                value={draft.primaryColor ?? "#1f4ed8"}
+                value={brandPrimaryColor}
                 onChange={(e) => updateDraft({ primaryColor: e.target.value })}
                 className="h-10 w-10 cursor-pointer overflow-hidden rounded-[10px] border border-white/20 bg-transparent p-0"
               />
               <input
                 type="text"
-                value={draft.primaryColor ?? "#1f4ed8"}
+                value={brandPrimaryColor}
                 onChange={(e) => updateDraft({ primaryColor: e.target.value })}
                 className="admin-input flex-1 text-sm"
               />
@@ -334,13 +364,13 @@ export function FormSettingsPanel({ formId, initialForm }: FormSettingsPanelProp
             <div className="flex items-center gap-3">
               <input
                 type="color"
-                value={draft.accentColor ?? "#f4b400"}
+                value={brandAccentColor}
                 onChange={(e) => updateDraft({ accentColor: e.target.value })}
                 className="h-10 w-10 cursor-pointer overflow-hidden rounded-[10px] border border-white/20 bg-transparent p-0"
               />
               <input
                 type="text"
-                value={draft.accentColor ?? "#f4b400"}
+                value={brandAccentColor}
                 onChange={(e) => updateDraft({ accentColor: e.target.value })}
                 className="admin-input flex-1 text-sm"
               />
@@ -358,6 +388,7 @@ export function FormSettingsPanel({ formId, initialForm }: FormSettingsPanelProp
               />
               {draft.logoUrl && (
                 <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-[10px] border border-white/10 bg-white/[0.06]">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src={draft.logoUrl}
                     alt="Logo preview"
@@ -366,9 +397,75 @@ export function FormSettingsPanel({ formId, initialForm }: FormSettingsPanelProp
                       (e.target as HTMLImageElement).style.display = "none";
                     }}
                   />
-                  <ImagePlus className="h-4 w-4 text-white/30" />
                 </div>
               )}
+            </div>
+          </div>
+          <div className="sm:col-span-2">
+            <div
+              className="overflow-hidden rounded-[24px] border border-white/10"
+              style={{
+                background: `linear-gradient(145deg, ${brandPrimaryColor}22, rgba(5,10,20,0.92) 55%, ${brandAccentColor}26)`,
+              }}
+            >
+              <div className="border-b border-white/10 px-4 py-3">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/65">
+                  Live preview
+                </p>
+              </div>
+              <div className="grid gap-4 px-4 py-4 sm:grid-cols-[minmax(0,1fr)_220px]">
+                <div>
+                  <div className="flex items-center gap-3">
+                    <div
+                      className="flex h-11 w-11 items-center justify-center overflow-hidden rounded-2xl border border-white/12 bg-white/[0.08]"
+                      style={{ boxShadow: `0 18px 36px ${brandPrimaryColor}22` }}
+                    >
+                      {draft.logoUrl ? (
+                        <>
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
+                            src={draft.logoUrl}
+                            alt="Workspace logo preview"
+                            className="h-full w-full object-contain p-2"
+                          />
+                        </>
+                      ) : (
+                        <span className="text-sm font-semibold text-white/90">LD</span>
+                      )}
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold text-white">
+                        {draft.name.trim() || "Leads Desk intake form"}
+                      </p>
+                      <p className="text-xs text-white/60">/{draft.slug || "your-form-slug"}</p>
+                    </div>
+                  </div>
+                  <div className="mt-4 rounded-[20px] border border-white/10 bg-black/15 p-4">
+                    <p className="text-sm font-semibold text-white">Thank you screen</p>
+                    <p className="mt-2 text-sm leading-6 text-white/70">
+                      {draft.successMessage || "Thank you for your submission."}
+                    </p>
+                  </div>
+                </div>
+                <div className="rounded-[22px] border border-white/10 bg-white/[0.045] p-4">
+                  <div
+                    className="rounded-[18px] px-4 py-3 text-sm font-semibold text-white"
+                    style={{
+                      background: `linear-gradient(135deg, ${brandPrimaryColor}, ${brandAccentColor})`,
+                    }}
+                  >
+                    Submit form
+                  </div>
+                  <div className="mt-4 grid gap-2">
+                    <div className="rounded-[16px] border border-white/10 bg-white/[0.06] px-3 py-2.5 text-xs text-white/65">
+                      Button and header colors update here immediately.
+                    </div>
+                    <div className="rounded-[16px] border border-white/10 bg-black/15 px-3 py-2.5 text-xs text-white/65">
+                      Logo preview mirrors the current URL when a valid image loads.
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -449,43 +546,132 @@ export function FormSettingsPanel({ formId, initialForm }: FormSettingsPanelProp
 
           {draft.enableAutoQualify && (
             <div className="rounded-[18px] border border-white/10 bg-white/[0.03] p-4">
-              <div className="mb-3 flex items-center justify-between">
-                <span className="text-sm font-semibold text-white/90">Rules</span>
+              <div className="mb-3 flex items-center justify-between gap-3">
+                <div>
+                  <span className="text-sm font-semibold text-white/90">Routing rules</span>
+                  <p className="mt-1 text-xs text-white/50">
+                    Match form answers and move the lead straight into the right stage.
+                  </p>
+                </div>
                 <SmoothButton size="sm" variant="ghost" onClick={addAutoQualifyRule}>
                   Add Rule
                 </SmoothButton>
               </div>
               <div className="space-y-2">
                 {(draft.autoQualifyRules ?? []).length === 0 ? (
-                  <p className="text-xs text-white/40">No auto-qualify rules yet.</p>
+                  <p className="text-xs text-white/40">No routing rules yet.</p>
                 ) : (
                   (draft.autoQualifyRules ?? []).map((rule, idx) => (
-                    <div key={idx} className="flex items-center gap-2 rounded-[12px] border border-white/10 bg-white/[0.04] px-3 py-2">
-                      <span className="text-xs text-white/70">If</span>
-                      <input
-                        type="text"
-                        value={String(rule.fieldId ?? "")}
-                        onChange={(e) => updateAutoQualifyRule(idx, { fieldId: e.target.value })}
-                        placeholder="field ID"
-                        className="admin-input w-24 text-xs"
-                      />
-                      <span className="text-xs text-white/70">equals</span>
-                      <input
-                        type="text"
-                        value={String(rule.value ?? "")}
-                        onChange={(e) => updateAutoQualifyRule(idx, { value: e.target.value })}
-                        placeholder="value"
-                        className="admin-input flex-1 text-xs"
-                      />
-                      <span className="text-xs text-white/70">→ mark as qualified</span>
-                      <SmoothButton
-                        variant="ghost"
-                        size="sm"
-                        className="h-7 w-7 px-0 text-red-400 hover:text-red-300"
-                        onClick={() => removeAutoQualifyRule(idx)}
-                      >
-                        ×
-                      </SmoothButton>
+                    <div
+                      key={idx}
+                      className="rounded-[16px] border border-white/10 bg-white/[0.04] p-3"
+                    >
+                      <div className="grid gap-3 xl:grid-cols-[minmax(0,1.1fr)_190px_minmax(0,1fr)_190px_auto]">
+                        <label className="space-y-1">
+                          <span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/55">
+                            Field
+                          </span>
+                          <AdminSelect
+                            value={String(rule.fieldId ?? "")}
+                            onChange={(e) => updateAutoQualifyRule(idx, { fieldId: e.target.value })}
+                            className="h-10"
+                          >
+                            <option value="">Select field</option>
+                            {fields.map((field) => (
+                              <option key={field.id} value={field.id}>
+                                {field.label}
+                              </option>
+                            ))}
+                          </AdminSelect>
+                        </label>
+                        <label className="space-y-1">
+                          <span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/55">
+                            Operator
+                          </span>
+                          <AdminSelect
+                            value={String(rule.operator ?? "equals")}
+                            onChange={(e) => updateAutoQualifyRule(idx, { operator: e.target.value })}
+                            className="h-10"
+                          >
+                            {AUTO_QUALIFY_OPERATOR_OPTIONS.map((option) => (
+                              <option key={option.value} value={option.value}>
+                                {option.label}
+                              </option>
+                            ))}
+                          </AdminSelect>
+                        </label>
+                        {!["checked", "unchecked", "empty", "not_empty"].includes(
+                          String(rule.operator ?? "equals"),
+                        ) ? (
+                          <label className="space-y-1">
+                            <span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/55">
+                              Value
+                            </span>
+                            <input
+                              type="text"
+                              value={String(rule.value ?? "")}
+                              onChange={(e) => updateAutoQualifyRule(idx, { value: e.target.value })}
+                              placeholder="Enter match value"
+                              className="admin-input h-10 w-full text-sm"
+                            />
+                          </label>
+                        ) : (
+                          <div className="rounded-[14px] border border-dashed border-white/10 bg-black/10 px-3 py-2 text-xs text-white/45">
+                            No comparison value needed.
+                          </div>
+                        )}
+                        <label className="space-y-1">
+                          <span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/55">
+                            Send to stage
+                          </span>
+                          <AdminSelect
+                            value={String(rule.stageKey ?? "qualified")}
+                            onChange={(e) =>
+                              updateAutoQualifyRule(idx, {
+                                stageKey: e.target.value,
+                                markAsQualified: e.target.value === "qualified",
+                              })
+                            }
+                            className="h-10"
+                          >
+                            {AUTO_QUALIFY_STAGE_OPTIONS.map((option) => (
+                              <option key={option.value} value={option.value}>
+                                {option.label}
+                              </option>
+                            ))}
+                          </AdminSelect>
+                        </label>
+                        <div className="flex items-end justify-end">
+                          <SmoothButton
+                            variant="ghost"
+                            size="sm"
+                            className="h-10 w-10 px-0 text-red-400 hover:text-red-300"
+                            onClick={() => removeAutoQualifyRule(idx)}
+                          >
+                            ×
+                          </SmoothButton>
+                        </div>
+                      </div>
+                      <div className="mt-3 rounded-[14px] border border-white/10 bg-black/10 px-3 py-2 text-xs text-white/58">
+                        If{" "}
+                        <span className="font-semibold text-white/78">
+                          {fields.find((field) => field.id === String(rule.fieldId ?? ""))?.label ||
+                            "this field"}
+                        </span>{" "}
+                        {String(rule.operator ?? "equals").replace(/_/g, " ")}
+                        {!["checked", "unchecked", "empty", "not_empty"].includes(
+                          String(rule.operator ?? "equals"),
+                        ) && rule.value
+                          ? ` "${String(rule.value)}"`
+                          : ""}{" "}
+                        the lead moves to{" "}
+                        <span className="font-semibold text-white/78">
+                          {AUTO_QUALIFY_STAGE_OPTIONS.find(
+                            (option) => option.value === String(rule.stageKey ?? "qualified"),
+                          )?.label ?? "Qualified"}
+                        </span>
+                        .
+                      </div>
                     </div>
                   ))
                 )}

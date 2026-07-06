@@ -344,7 +344,7 @@ export default async function AdminSettingsPage() {
                       { label: "Intake Logs", href: appRoutes.intake, enabled: canOpenFormSources, copy: "Review recent submissions and failed syncs." },
                     ]
                       .filter((item) => item.enabled)
-                      .map((item, index) => (
+                      .map((item) => (
                         <Link
                           key={item.label}
                           href={item.href}

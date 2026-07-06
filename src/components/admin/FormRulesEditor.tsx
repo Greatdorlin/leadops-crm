@@ -110,6 +110,13 @@ interface RuleField {
   fieldType: string;
 }
 
+let tempRuleCounter = 0;
+
+function createTempRuleId() {
+  tempRuleCounter += 1;
+  return `temp-${tempRuleCounter}`;
+}
+
 function buildRuleSummary(rule: FormRuleData, fields: RuleField[]): string {
   const field = fields.find((f) => f.id === rule.conditionFieldId);
   const fieldName = field?.label || "Unknown field";
@@ -141,7 +148,7 @@ export function FormRulesEditor({ formId, initialFields, initialRules }: FormRul
   const createDraft = (): FormRuleData => {
     const maxOrder = rules.length > 0 ? Math.max(...rules.map((r) => r.order)) : -1;
     return {
-      id: `temp-${Date.now()}`,
+      id: createTempRuleId(),
       formId,
       name: "",
       conditionFieldId: fields[0]?.id ?? "",
@@ -293,7 +300,7 @@ export function FormRulesEditor({ formId, initialFields, initialRules }: FormRul
       <div className="space-y-3">
         {rules.length === 0 ? (
           <GlassSurface intensity="soft" className="py-12 text-center">
-            <p className="text-sm text-white/70">No rules yet. Click "Add Rule" to automate lead qualification.</p>
+            <p className="text-sm text-white/70">No rules yet. Click Add Rule to automate lead qualification.</p>
           </GlassSurface>
         ) : (
           rules.map((rule, idx) => (

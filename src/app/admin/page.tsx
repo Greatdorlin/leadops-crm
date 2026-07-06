@@ -40,8 +40,6 @@ import {
 import { buildLeadDisplayNameMap } from "@/lib/crm/lead-identity";
 import {
   crmLabelize,
-  formatAdminAccessLevelLabel,
-  formatCrmDate,
   formatCrmDateTime,
   formatLeadEventLabel,
   formatLeadStateLabel,

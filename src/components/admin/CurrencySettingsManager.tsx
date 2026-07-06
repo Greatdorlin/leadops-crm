@@ -7,8 +7,6 @@ import { SectionHeader } from "@/components/admin/SectionHeader";
 import { CurrencySelect } from "./CurrencySelect";
 import { isSupportedCurrency } from "@/lib/currency";
 
-type CurrencyCode = import("@/lib/currency").CurrencyCode;
-
 export function CurrencySettingsManager({
   initialGlobalCurrency,
 }: {

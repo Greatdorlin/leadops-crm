@@ -42,8 +42,11 @@ export function DonutChart({
     "#ec4899",
     "#14b8a6",
   ];
-
-  let accumulated = 0;
+  const segmentStarts = data.map((_, index) =>
+    data
+      .slice(0, index)
+      .reduce((sum, item) => sum + Math.max(0, item.value), 0),
+  );
 
   return (
     <div className={cn("relative inline-flex items-center justify-center", className)}>
@@ -57,7 +60,6 @@ export function DonutChart({
       >
         <defs>
           {data.map((datum, index) => {
-            const color = datum.color ?? defaultColors[index % defaultColors.length];
             return (
               <filter key={`glow-${index}`} id={`donut-glow-${index}`}>
                 <feGaussianBlur stdDeviation="2" result="blur" />
@@ -80,8 +82,7 @@ export function DonutChart({
           const segmentValue = Math.max(0, datum.value);
           const segmentPercent = segmentValue / total;
           const segmentLength = circumference * segmentPercent;
-          const segmentOffset = circumference * (accumulated / total);
-          accumulated += segmentValue;
+          const segmentOffset = circumference * (segmentStarts[index] / total);
 
           return (
             <circle

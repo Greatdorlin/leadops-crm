@@ -130,6 +130,7 @@ export function VerticalBarChart({
           <div
             key={datum.label}
             className="flex flex-1 flex-col items-center gap-2"
+            style={{ maxWidth: barWidth }}
           >
             {showValues && (
               <span className="text-xs font-semibold text-white/80">

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { GlassSurface } from "@/components/admin/ui";
 import { SectionHeader } from "@/components/admin/SectionHeader";
 import { CurrencySelect } from "@/components/admin/CurrencySelect";
@@ -72,7 +72,7 @@ export function BranchSettingsManager() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  async function fetchBranches() {
+  const fetchBranches = useCallback(async () => {
     setLoading(true);
     try {
       const response = await fetch("/api/admin/branches");
@@ -89,11 +89,15 @@ export function BranchSettingsManager() {
       setError("Could not load branches.");
       setLoading(false);
     }
-  }
+  }, []);
 
   useEffect(() => {
-    fetchBranches();
-  }, []);
+    const timer = window.setTimeout(() => {
+      void fetchBranches();
+    }, 0);
+
+    return () => window.clearTimeout(timer);
+  }, [fetchBranches]);
 
   return (
     <div className="space-y-5">

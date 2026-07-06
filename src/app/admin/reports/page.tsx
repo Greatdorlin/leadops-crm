@@ -3,7 +3,6 @@ import { AdminSignOutButton } from "@/components/admin/AdminSignOutButton";
 import { EmptyState } from "@/components/admin/EmptyState";
 import { ErrorState } from "@/components/admin/ErrorState";
 import { MetricCard } from "@/components/admin/MetricCard";
-import { AnimatedCard } from "@/components/admin/ui/AnimatedCard";
 import { GlassSurface } from "@/components/admin/ui/GlassSurface";
 import { SalesCommandReports } from "@/components/admin/SalesCommandReports";
 import { SectionHeader } from "@/components/admin/SectionHeader";

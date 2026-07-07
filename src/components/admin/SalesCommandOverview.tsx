@@ -3,7 +3,6 @@ import {
   AlertTriangle,
   CircleDollarSign,
   Inbox,
-  Info,
   Target,
   Trophy,
   Users2,
@@ -16,6 +15,7 @@ import { AdminCollapsibleSection } from "./AdminCollapsibleSection";
 import { DashboardTargetCelebration } from "./DashboardTargetCelebration";
 import { EmptyState } from "./EmptyState";
 import { PremiumMetricCard } from "./PremiumMetricCard";
+import { InfoTip } from "./ui/InfoTip";
 
 function formatMoney(value: number, currency = "NGN") {
   return `${currency} ${value.toLocaleString()}`;
@@ -126,23 +126,6 @@ function Sparkline({ tone = "accent" }: { tone?: "accent" | "success" | "warning
         filter="url(#spark-glow)"
       />
     </svg>
-  );
-}
-
-function HoverInfoButton({ label }: { label: string }) {
-  return (
-    <span className="group relative inline-flex">
-      <button
-        type="button"
-        className="inline-flex h-6 w-6 items-center justify-center rounded-full border border-white/10 bg-white/[0.06] text-white/55 transition hover:bg-white/[0.1] hover:text-white"
-        aria-label={label}
-      >
-        <Info className="h-3.5 w-3.5" />
-      </button>
-      <span className="pointer-events-none absolute left-1/2 top-full z-20 mt-2 hidden w-52 -translate-x-1/2 rounded-2xl border border-white/12 bg-[#091326]/95 px-3 py-2 text-left text-xs leading-5 text-white/72 shadow-[0_18px_42px_rgba(0,0,0,0.32)] group-hover:block group-focus-within:block">
-        {label}
-      </span>
-    </span>
   );
 }
 
@@ -303,31 +286,34 @@ export function SalesCommandOverview({
       ) : null}
 
       <AdminCollapsibleSection
-        eyebrow="Pipeline objective"
-        title="Pipeline health and target progress"
+        eyebrow="Pipeline"
+        title="Live pipeline"
         actions={
           <Link
             href={salesTargetHref}
             className="ld-floating-control inline-flex h-10 items-center justify-center px-4 text-sm font-semibold"
           >
-            {summary.target ? "Manage target" : "Set target"}
+            {summary.target ? "Edit target" : "Set target"}
           </Link>
         }
         className="p-0"
         bodyClassName="mt-5"
       >
         <div className="grid gap-5 xl:grid-cols-[300px_minmax(0,1fr)] 2xl:grid-cols-[320px_minmax(0,1fr)]">
-          <div className="ld-solid-panel grid content-between rounded-[24px] p-5">
+          <div className="ld-solid-panel grid content-between rounded-[26px] border border-white/10 bg-[radial-gradient(circle_at_top_left,color-mix(in_srgb,var(--ld-color-primary)_18%,transparent),transparent_38%),linear-gradient(180deg,rgba(255,255,255,0.06),rgba(255,255,255,0.03))] p-5">
             <div>
               <div className="flex items-center justify-between gap-3">
                 <span className="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-white/14 bg-[var(--ld-color-primary)]/10 text-white shadow-[0_12px_28px_color-mix(in_srgb,var(--ld-color-primary)_12%,transparent)]">
                   <Target className="h-5 w-5" />
                 </span>
                 <div className="flex items-center gap-2">
-                  <HoverInfoButton label="Targets compare closed value against a saved goal and show the remaining gap on the dashboard." />
                   <span className="rounded-full border border-white/10 bg-white/[0.075] px-3 py-1 text-xs font-semibold text-white/70">
-                    {summary.target?.periodLabel ?? "No active target"}
+                    {summary.target?.periodLabel ?? "Target not set"}
                   </span>
+                  <InfoTip
+                    label="Targets compare closed value against the saved goal and keep the remaining gap visible on the dashboard."
+                    align="right"
+                  />
                 </div>
               </div>
               <div className="mx-auto mt-6 grid h-40 w-40 place-items-center rounded-full border border-white/10 bg-white/[0.035] shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] 2xl:h-44 2xl:w-44">
@@ -372,17 +358,25 @@ export function SalesCommandOverview({
             </div>
           </div>
 
-          <div className="ld-solid-panel rounded-[24px] p-5">
+          <div className="ld-solid-panel rounded-[26px] border border-white/10 bg-[radial-gradient(circle_at_top_right,color-mix(in_srgb,var(--ld-color-accent)_16%,transparent),transparent_34%),linear-gradient(180deg,rgba(255,255,255,0.05),rgba(255,255,255,0.03))] p-5">
             <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
               <div className="flex items-start gap-2">
                 <h3 className="text-lg font-semibold tracking-[-0.04em] text-white">Stage movement</h3>
                 <div className="pt-0.5">
-                  <HoverInfoButton label="Stage movement shows where open leads are sitting right now and how much open value each stage carries." />
+                  <InfoTip
+                    label="Stage movement shows where open leads sit right now and how much live pipeline value each stage is holding."
+                    align="left"
+                  />
                 </div>
               </div>
-              <span className="rounded-full border border-white/10 bg-white/[0.075] px-3 py-1 text-xs font-semibold text-white/70">
-                {summary.conversionRate}% conversion
-              </span>
+              <div className="flex flex-wrap gap-2">
+                <span className="rounded-full border border-white/10 bg-white/[0.075] px-3 py-1 text-xs font-semibold text-white/70">
+                  {summary.conversionRate}% conversion
+                </span>
+                <span className="rounded-full border border-white/10 bg-white/[0.075] px-3 py-1 text-xs font-semibold text-white/70">
+                  {summary.stagePerformance.length} live stages
+                </span>
+              </div>
             </div>
 
             <div className="mt-6 grid min-h-[230px] items-end gap-3 sm:grid-cols-3 lg:grid-cols-5">
@@ -440,7 +434,6 @@ export function SalesCommandOverview({
             <AdminCollapsibleSection
               eyebrow="Source performance"
               title="Which channels are working"
-              description="See where leads come from and which sources convert."
               actions={
                 <Link
                   href={appRoutes.reports}
@@ -476,7 +469,6 @@ export function SalesCommandOverview({
             <AdminCollapsibleSection
               eyebrow="Recent intake"
               title="Latest form activity"
-              description="Successful and failed submissions stay visible."
               actions={
                 <Link
                   href={appRoutes.intake}
@@ -522,8 +514,7 @@ export function SalesCommandOverview({
           {showTargetProgress ? (
             <AdminCollapsibleSection
               eyebrow="Target progress"
-              title="Sales objective"
-              description="Keep the team focused on the remaining value."
+              title="Target focus"
             >
               {summary.target ? (
                 <div className="grid gap-4">
@@ -545,7 +536,7 @@ export function SalesCommandOverview({
               ) : (
                 <EmptyState
                   title="No active sales target"
-                  description="Set a monthly target in Settings."
+                  description="Set a target in Settings."
                 />
               )}
             </AdminCollapsibleSection>
@@ -555,7 +546,6 @@ export function SalesCommandOverview({
             <AdminCollapsibleSection
               eyebrow="Rep performance"
               title="Team scoreboard"
-              description="Ownership, overdue work, and closed value."
             >
               <div className="grid gap-3">
                 {summary.repPerformance.length > 0 ? (
@@ -592,7 +582,6 @@ export function SalesCommandOverview({
             <AdminCollapsibleSection
               eyebrow="Attention"
               title="What needs action"
-              description="Follow-ups and stuck leads in one scan."
             >
               <div className="grid gap-3">
                 <CompactProgressRow

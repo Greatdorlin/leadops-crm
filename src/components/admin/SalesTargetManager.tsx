@@ -1,6 +1,6 @@
 "use client";
 
-import { startTransition, useMemo, useState } from "react";
+import { startTransition, useMemo, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { RotateCcw } from "lucide-react";
 import type {
@@ -11,6 +11,7 @@ import { crmLabelize } from "@/lib/crm/formatters";
 import { SALES_TARGET_PERIODS, SALES_TARGET_SCOPES } from "@/lib/crm/domain";
 import { AdminSelect } from "./AdminSelect";
 import { CurrencySelect } from "./CurrencySelect";
+import { InfoTip } from "./ui/InfoTip";
 
 type TargetDraft = {
   name: string;
@@ -38,7 +39,17 @@ function getCurrentMonthDraftDates() {
   };
 }
 
-function createEmptyTargetDraft(): TargetDraft {
+function getMonthDraftDates(offset = 0) {
+  const now = new Date();
+  const start = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + offset, 1));
+  const end = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + offset + 1, 0));
+  return {
+    startDate: start.toISOString().slice(0, 10),
+    endDate: end.toISOString().slice(0, 10),
+  };
+}
+
+function createEmptyTargetDraft(defaultCurrency = "NGN"): TargetDraft {
   const dates = getCurrentMonthDraftDates();
   return {
     name: "Monthly sales target",
@@ -46,7 +57,7 @@ function createEmptyTargetDraft(): TargetDraft {
     scopeId: "",
     period: "monthly",
     targetValue: "",
-    currency: "USD",
+    currency: defaultCurrency,
     startDate: dates.startDate,
     endDate: dates.endDate,
     isActive: true,
@@ -74,7 +85,7 @@ function buildPayload(draft: TargetDraft) {
     scopeId: draft.scope === "global" ? null : draft.scopeId || null,
     period: draft.period,
     targetValue: Number(draft.targetValue || 0),
-    currency: draft.currency || "USD",
+    currency: draft.currency || "NGN",
     startDate: draft.startDate,
     endDate: draft.endDate,
     isActive: draft.isActive,
@@ -100,6 +111,15 @@ function getScopeOptions(
   }
 }
 
+function formatTargetValue(value: string, currency: string) {
+  const amount = Number(value || 0);
+  if (!Number.isFinite(amount) || amount <= 0) {
+    return `${currency} 0`;
+  }
+
+  return `${currency} ${amount.toLocaleString()}`;
+}
+
 function TargetEditor({
   panelId,
   title,
@@ -110,6 +130,10 @@ function TargetEditor({
   message,
   saveLabel,
   referenceData,
+  defaultCurrency,
+  onApplyCurrentMonth,
+  onApplyNextMonth,
+  onReset,
   extraAction,
 }: {
   panelId?: string;
@@ -121,15 +145,79 @@ function TargetEditor({
   message: string;
   saveLabel: string;
   referenceData: SalesTargetReferenceData;
-  extraAction?: React.ReactNode;
+  defaultCurrency: string;
+  onApplyCurrentMonth: () => void;
+  onApplyNextMonth: () => void;
+  onReset: () => void;
+  extraAction?: ReactNode;
 }) {
   const scopeOptions = getScopeOptions(draft.scope, referenceData);
 
   return (
-    <div id={panelId} className="admin-surface space-y-4 rounded-[24px] p-5 scroll-mt-28">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <p className="text-base font-semibold text-white">{title}</p>
-        {extraAction}
+    <div
+      id={panelId}
+      className="admin-surface space-y-5 rounded-[28px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.05),rgba(255,255,255,0.02))] p-5 scroll-mt-28 sm:p-6"
+    >
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="flex items-start gap-2">
+          <div>
+            <p className="text-base font-semibold text-white">{title}</p>
+            <p className="mt-1 text-sm text-white/62">
+              Set the goal the dashboard should track and the period it belongs to.
+            </p>
+          </div>
+          <InfoTip
+            label="Keep one active target per scope when possible so the dashboard reads cleanly and the remaining gap stays obvious."
+            align="left"
+          />
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            onClick={onApplyCurrentMonth}
+            className="rounded-full border border-white/10 bg-white/[0.05] px-3 py-1.5 text-xs font-semibold text-white/70 transition hover:bg-white/[0.08] hover:text-white"
+          >
+            This month
+          </button>
+          <button
+            type="button"
+            onClick={onApplyNextMonth}
+            className="rounded-full border border-white/10 bg-white/[0.05] px-3 py-1.5 text-xs font-semibold text-white/70 transition hover:bg-white/[0.08] hover:text-white"
+          >
+            Next month
+          </button>
+          <button
+            type="button"
+            onClick={onReset}
+            className="rounded-full border border-white/10 bg-white/[0.05] px-3 py-1.5 text-xs font-semibold text-white/70 transition hover:bg-white/[0.08] hover:text-white"
+          >
+            Reset
+          </button>
+          {extraAction}
+        </div>
+      </div>
+
+      <div className="grid gap-3 md:grid-cols-3">
+        <div className="rounded-[20px] border border-white/10 bg-white/[0.04] px-4 py-3">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/55">
+            Target value
+          </p>
+          <p className="mt-2 text-lg font-semibold text-white">
+            {formatTargetValue(draft.targetValue, draft.currency || defaultCurrency)}
+          </p>
+        </div>
+        <div className="rounded-[20px] border border-white/10 bg-white/[0.04] px-4 py-3">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/55">
+            Scope
+          </p>
+          <p className="mt-2 text-lg font-semibold text-white">{crmLabelize(draft.scope)}</p>
+        </div>
+        <div className="rounded-[20px] border border-white/10 bg-white/[0.04] px-4 py-3">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/55">
+            Period
+          </p>
+          <p className="mt-2 text-lg font-semibold text-white">{crmLabelize(draft.period)}</p>
+        </div>
       </div>
 
       <div className="grid gap-3 sm:grid-cols-2">
@@ -254,12 +342,14 @@ function TargetEditor({
 export function SalesTargetManager({
   initialTargets,
   referenceData,
+  defaultCurrency = "NGN",
 }: {
   initialTargets: AdminSalesTargetRecord[];
   referenceData: SalesTargetReferenceData;
+  defaultCurrency?: string;
 }) {
   const router = useRouter();
-  const [newDraft, setNewDraft] = useState<TargetDraft>(createEmptyTargetDraft());
+  const [newDraft, setNewDraft] = useState<TargetDraft>(createEmptyTargetDraft(defaultCurrency));
   const [newMessage, setNewMessage] = useState("");
   const [newSaving, setNewSaving] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -275,6 +365,16 @@ export function SalesTargetManager({
     () => initialTargets.filter((target) => target.archived),
     [initialTargets],
   );
+
+  function applyCurrentMonthToDraft(draft: TargetDraft) {
+    const dates = getMonthDraftDates(0);
+    return { ...draft, startDate: dates.startDate, endDate: dates.endDate };
+  }
+
+  function applyNextMonthToDraft(draft: TargetDraft) {
+    const dates = getMonthDraftDates(1);
+    return { ...draft, startDate: dates.startDate, endDate: dates.endDate };
+  }
 
   async function createTarget() {
     setNewSaving(true);
@@ -292,7 +392,7 @@ export function SalesTargetManager({
         return;
       }
 
-      setNewDraft(createEmptyTargetDraft());
+      setNewDraft(createEmptyTargetDraft(defaultCurrency));
       setNewMessage("Sales target saved.");
       setNewSaving(false);
       startTransition(() => router.refresh());
@@ -382,6 +482,13 @@ export function SalesTargetManager({
         message={newMessage}
         saveLabel="Save target"
         referenceData={referenceData}
+        defaultCurrency={defaultCurrency}
+        onApplyCurrentMonth={() => setNewDraft((current) => applyCurrentMonthToDraft(current))}
+        onApplyNextMonth={() => setNewDraft((current) => applyNextMonthToDraft(current))}
+        onReset={() => {
+          setNewDraft(createEmptyTargetDraft(defaultCurrency));
+          setNewMessage("");
+        }}
       />
 
       <div className="space-y-4">
@@ -389,7 +496,10 @@ export function SalesTargetManager({
           const isEditing = editingId === target.id;
           const draft = drafts[target.id] ?? buildTargetDraft(target);
           return (
-            <div key={target.id} className="admin-surface-soft rounded-[24px] p-5">
+            <div
+              key={target.id}
+              className="admin-surface-soft rounded-[24px] border border-white/10 bg-white/[0.035] p-5"
+            >
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
                   <p className="text-base font-semibold text-white">{target.name}</p>
@@ -432,6 +542,9 @@ export function SalesTargetManager({
                 <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1">
                   {target.startDate.slice(0, 10)} to {target.endDate.slice(0, 10)}
                 </span>
+                <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1">
+                  {target.currency} {target.targetValue.toLocaleString()}
+                </span>
               </div>
 
               {isEditing ? (
@@ -445,6 +558,25 @@ export function SalesTargetManager({
                     message={messages[target.id] ?? ""}
                     saveLabel="Save changes"
                     referenceData={referenceData}
+                    defaultCurrency={defaultCurrency}
+                    onApplyCurrentMonth={() =>
+                      setDrafts((current) => ({
+                        ...current,
+                        [target.id]: applyCurrentMonthToDraft(current[target.id] ?? buildTargetDraft(target)),
+                      }))
+                    }
+                    onApplyNextMonth={() =>
+                      setDrafts((current) => ({
+                        ...current,
+                        [target.id]: applyNextMonthToDraft(current[target.id] ?? buildTargetDraft(target)),
+                      }))
+                    }
+                    onReset={() =>
+                      setDrafts((current) => ({
+                        ...current,
+                        [target.id]: buildTargetDraft(target),
+                      }))
+                    }
                   />
                 </div>
               ) : null}
@@ -460,7 +592,10 @@ export function SalesTargetManager({
         </div>
         {archivedTargets.length > 0 ? (
           archivedTargets.map((target) => (
-            <div key={target.id} className="admin-surface-soft rounded-[24px] p-5 opacity-85">
+            <div
+              key={target.id}
+              className="admin-surface-soft rounded-[24px] border border-white/10 p-5 opacity-85"
+            >
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
                   <p className="text-base font-semibold text-white">{target.name}</p>

@@ -19,14 +19,11 @@ import { PriorityBadge } from "@/components/admin/PriorityBadge";
 import { SearchInput } from "@/components/admin/SearchInput";
 import { SourceBadge } from "@/components/admin/SourceBadge";
 import { StatusBadge } from "@/components/admin/StatusBadge";
-import { TaskQueueTable } from "@/components/admin/TaskQueueTable";
 import { AdminAccessViewSwitcher } from "@/components/admin/AdminAccessViewSwitcher";
 import { TimelineItem } from "@/components/admin/TimelineItem";
 import { cn } from "@/lib/cn";
 import { getAdminAccessContext } from "@/lib/admin";
 import {
-  buildNextFollowUpByLeadId,
-  buildTeamPerformance,
   isDateToday,
   isTaskOverdue,
 } from "@/lib/admin-insights";
@@ -136,56 +133,6 @@ function safeNumber(value: number) {
   return new Intl.NumberFormat().format(value);
 }
 
-function needsLeadAttention(
-  lead: LeadRecord,
-  nextFollowUpAt: string | null | undefined,
-  includeAssignmentSignals: boolean,
-) {
-  return (
-    !lead.stageId ||
-    (includeAssignmentSignals && !lead.assignedTo) ||
-    lead.priority === "high" ||
-    lead.priority === "urgent" ||
-    Boolean(nextFollowUpAt && new Date(nextFollowUpAt).getTime() <= Date.now()) ||
-    isDateToday(nextFollowUpAt)
-  );
-}
-
-function scoreLeadForAction(
-  lead: LeadRecord,
-  nextFollowUpAt: string | null | undefined,
-  includeAssignmentSignals: boolean,
-) {
-  let score = 0;
-
-  if (!lead.stageId) {
-    score += 90;
-  }
-
-  if (includeAssignmentSignals && !lead.assignedTo) {
-    score += 80;
-  }
-
-  if (lead.priority === "urgent") {
-    score += 75;
-  } else if (lead.priority === "high") {
-    score += 60;
-  }
-
-  if (nextFollowUpAt) {
-    const dueTime = new Date(nextFollowUpAt).getTime();
-    if (dueTime <= Date.now()) {
-      score += 95;
-    } else if (isDateToday(nextFollowUpAt)) {
-      score += 70;
-    } else {
-      score += 15;
-    }
-  }
-
-  return score;
-}
-
 function scoreTaskForQueue(task: Awaited<ReturnType<typeof leadStore.listLeadTasks>>[number]) {
   if (task.completedAt) {
     return 999;
@@ -204,21 +151,6 @@ function scoreTaskForQueue(task: Awaited<ReturnType<typeof leadStore.listLeadTas
   }
 
   return 2;
-}
-
-function buildDashboardHref(
-  overrides: Partial<Record<"stage" | "priority" | "source" | "search", string>>,
-) {
-  const params = new URLSearchParams();
-
-  for (const [key, value] of Object.entries(overrides)) {
-    if (value) {
-      params.set(key, value);
-    }
-  }
-
-  const query = params.toString();
-  return query ? `${appRoutes.dashboard}?${query}` : appRoutes.dashboard;
 }
 
 function getDashboardTitle(accessLevel: AdminAccessLevel) {
@@ -652,26 +584,6 @@ export default async function AdminPage({
 
   const { leads, stats, tasks, users, integrations, intakeEvents, activeTarget } = pageData;
   const openTasks = tasks.filter((task) => !task.completedAt);
-  const nextFollowUpByLeadId = buildNextFollowUpByLeadId(tasks);
-  const includeAssignmentSignals =
-    accessLevel !== "sales_rep" && accessLevel !== "affiliate" && accessLevel !== "finance";
-  const actionLeads = leads
-    .filter((lead) => needsLeadAttention(lead, nextFollowUpByLeadId[lead.id], includeAssignmentSignals))
-    .sort((left, right) => {
-      const leftScore = scoreLeadForAction(left, nextFollowUpByLeadId[left.id], includeAssignmentSignals);
-      const rightScore = scoreLeadForAction(right, nextFollowUpByLeadId[right.id], includeAssignmentSignals);
-
-      if (leftScore !== rightScore) {
-        return rightScore - leftScore;
-      }
-
-      return new Date(right.lastActivityAt).getTime() - new Date(left.lastActivityAt).getTime();
-    })
-    .slice(0, 10);
-  const teamRows = buildTeamPerformance(users, leads, tasks);
-  const repsWithOverdueWork = teamRows.filter((row) => row.overdueTasks > 0);
-  const personalRow =
-    teamRows.find((row) => row.email.toLowerCase() === session.user?.email?.toLowerCase()) ?? null;
   const unassignedLeads = leads.filter((lead) => !lead.assignedTo);
   const leadNameById = buildLeadDisplayNameMap(leads);
   const focusedTasks = openTasks
@@ -730,8 +642,6 @@ export default async function AdminPage({
     .sort((left, right) => new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime())
     .slice(0, 5);
   const recentLeadNameById = buildLeadDisplayNameMap(recentLeads);
-  const previewActionLeads = actionLeads.slice(0, 5);
-  const previewActionLeadNameById = buildLeadDisplayNameMap(previewActionLeads);
   const previewUnassignedLeads = unassignedLeads.slice(0, 5);
   const previewUnassignedLeadNameById = buildLeadDisplayNameMap(previewUnassignedLeads);
   const activityLeadNameById = buildLeadDisplayNameMap(activityFeed.map(({ lead }) => lead));
@@ -931,8 +841,8 @@ export default async function AdminPage({
 
         <SectionHeader
           eyebrow="Workspace"
-          title="Your action center"
-          description="Tasks, leads, and quick actions in one place."
+          title="Next actions"
+          description="Tasks, leads, and lanes that need attention now."
         />
         <AdminDashboardWidgetDeck
           initialOrder={
@@ -1098,189 +1008,45 @@ export default async function AdminPage({
           })}
         />
 
-        <section className="grid gap-6 xl:grid-cols-12">
-          <div className="space-y-6 xl:col-span-8">
-            {visibleDashboardWidgetSet.has("my_tasks") ? (
-              <AdminCollapsibleSection
-              eyebrow="Task list"
-              title={accessLevel === "sales_rep" ? "Your next tasks" : "Tasks due next"}
-              description={
-                accessLevel === "sales_rep"
-                  ? "Due today and overdue first."
-                  : "Urgent tasks first."
-              }
-              actions={
-                <Link
-                  href={appRoutes.tasks}
-                  className="admin-button-secondary inline-flex h-10 items-center justify-center rounded-full px-4 text-sm font-medium"
-                >
-                  Open tasks page
-                </Link>
-              }
-            >
-              <TaskQueueTable
-                tasks={focusedTasks}
-                leadNamesById={leadNameById}
-                leadStateById={leadStateById}
-                emptyTitle="No open tasks right now"
-                emptyDescription="Create a task so the next step stays visible."
-              />
-              </AdminCollapsibleSection>
-            ) : null}
-
-            <AdminCollapsibleSection
-              eyebrow={accessLevel === "sales_rep" ? "My leads" : "Lead queue"}
-              title={accessLevel === "sales_rep" ? "Lead preview" : "Queue preview"}
-              description="Use the leads page for full review."
-              actions={
-                <div className="flex flex-wrap gap-2">
-                  <Link
-                    href={appRoutes.leads}
-                    className="admin-button-secondary inline-flex h-10 items-center justify-center rounded-full px-4 text-sm font-medium"
-                  >
-                    Open leads page
-                  </Link>
-                  <Link
-                    href={buildDashboardHref({ stage: "new" })}
-                    className="rounded-full border border-white/10 bg-white/[0.05] px-3 py-1.5 text-xs font-semibold text-white/70 transition hover:border-white/20 hover:bg-white/[0.08] hover:text-white"
-                  >
-                    New
-                  </Link>
-                </div>
-              }
-            >
-              <div className="grid gap-3">
-                {previewActionLeads.length > 0 ? (
-                  previewActionLeads.map((lead) => (
-                    <Link
-                      key={lead.id}
-                      href={appRoutes.lead(lead.id)}
-                      className="admin-surface-muted rounded-[24px] px-4 py-4 transition hover:border-white/20 hover:bg-white/[0.07]"
-                    >
-                      <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
-                        <div className="min-w-0">
-                          <p className="text-base font-semibold text-white">
-                            {previewActionLeadNameById[lead.id] || `${(lead.firstName || "Lead").trim()} ${lead.lastName}`.trim()}
-                          </p>
-                          <p className="mt-1 text-sm text-white/70 [overflow-wrap:anywhere]">
-                            {lead.email || lead.whatsappNumber || "No contact yet"}
-                          </p>
-                          <p className="mt-2 text-xs font-medium uppercase tracking-[0.14em] text-white/70">
-                            {lead.state ? formatLeadStateLabel(lead.state) : "Region not captured yet"}
-                          </p>
-                        </div>
-                        <div className="flex flex-wrap gap-2">
-                          <SourceBadge source={lead.source} />
-                          <StatusBadge status={resolveLeadStageBadge(lead.stageId)} />
-                          <PriorityBadge priority={lead.priority} />
-                        </div>
-                      </div>
-                    </Link>
-                  ))
-                ) : (
-                  <EmptyState
-                    title="No urgent leads in this view"
-                    description="Open the leads page for the full queue."
+        <section className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_340px]">
+          <AdminCollapsibleSection
+            eyebrow="Recent activity"
+            title="Latest updates"
+            description="Status changes, notes, and follow-up movement."
+          >
+            <div className="space-y-3">
+              {activityFeed.length > 0 ? (
+                activityFeed.map(({ event, lead }) => (
+                  <TimelineItem
+                    key={event.id}
+                    title={`${formatLeadEventLabel(event.eventType)} • ${activityLeadNameById[lead.id] || `${lead.firstName || "Lead"} ${lead.lastName}`.trim()}`.trim()}
+                    description={
+                      typeof event.eventData?.preview === "string"
+                        ? event.eventData.preview
+                        : typeof event.eventData?.to === "string"
+                          ? `Updated to ${crmLabelize(event.eventData.to)}`
+                          : lead.email || lead.whatsappNumber || "Lead activity recorded."
+                    }
+                    meta={event.createdBy || formatLeadSourceLabel(lead.source)}
+                    timestamp={event.createdAt}
+                    tone={eventTone(event.eventType)}
                   />
-                )}
-              </div>
-            </AdminCollapsibleSection>
-          </div>
+                ))
+              ) : (
+                <EmptyState
+                  title="No recent activity yet"
+                  description="Notes, task updates, and stage changes will show up here."
+                />
+              )}
+            </div>
+          </AdminCollapsibleSection>
 
-          <div className="space-y-6 xl:col-span-4">
-            {visibleDashboardWidgetSet.has("team_performance") ? (
-              <AdminCollapsibleSection
-              eyebrow={accessLevel === "sales_rep" ? "My numbers" : "Team snapshot"}
-              title={accessLevel === "sales_rep" ? "Today at a glance" : "Team at a glance"}
-              description={
-                accessLevel === "sales_rep"
-                  ? "Your workload."
-                  : "Workload and coverage."
-              }
-            >
-              <div className="grid gap-3">
-                {accessLevel === "sales_rep" ? (
-                  <>
-                    <MetricCard
-                      label="Open tasks"
-                      value={safeNumber(personalRow?.openTasks ?? 0)}
-                      supporting="Tasks still on your plate."
-                    />
-                    <MetricCard
-                      label="Qualified leads"
-                      value={safeNumber(personalRow?.qualifiedLeads ?? 0)}
-                      supporting="Leads already moving forward."
-                      tone="warning"
-                    />
-                    <MetricCard
-                      label="Converted leads"
-                      value={safeNumber(personalRow?.convertedLeads ?? 0)}
-                      supporting="Leads already closed."
-                      tone="positive"
-                    />
-                  </>
-                ) : (
-                  <>
-                    <MetricCard
-                      label="Active team"
-                      value={safeNumber(teamRows.length)}
-                      supporting="People currently handling leads or tasks."
-                      tone="accent"
-                    />
-                    <MetricCard
-                      label="Overdue queues"
-                      value={safeNumber(repsWithOverdueWork.length)}
-                      supporting="People who may need support."
-                      tone={repsWithOverdueWork.length > 0 ? "warning" : "positive"}
-                    />
-                    <MetricCard
-                      label="Needs owner"
-                      value={safeNumber(stats.unassignedLeads)}
-                      supporting="Leads still waiting for an owner."
-                    />
-                  </>
-                )}
-              </div>
-              </AdminCollapsibleSection>
-            ) : null}
-
-            <AdminCollapsibleSection
-              eyebrow="Recent activity"
-              title="Latest updates"
-              description="Notes, tasks, and status changes."
-            >
-              <div className="space-y-3">
-                {activityFeed.length > 0 ? (
-                  activityFeed.map(({ event, lead }) => (
-                    <TimelineItem
-                      key={event.id}
-                      title={`${formatLeadEventLabel(event.eventType)} • ${activityLeadNameById[lead.id] || `${lead.firstName || "Lead"} ${lead.lastName}`.trim()}`.trim()}
-                      description={
-                        typeof event.eventData?.preview === "string"
-                          ? event.eventData.preview
-                          : typeof event.eventData?.to === "string"
-                            ? `Updated to ${crmLabelize(event.eventData.to)}`
-                            : lead.email || lead.whatsappNumber || "Lead activity recorded."
-                      }
-                      meta={event.createdBy || formatLeadSourceLabel(lead.source)}
-                      timestamp={event.createdAt}
-                      tone={eventTone(event.eventType)}
-                    />
-                  ))
-                ) : (
-                  <EmptyState
-                    title="No recent activity yet"
-                    description="Notes, task updates, and status changes will show up here."
-                  />
-                )}
-              </div>
-            </AdminCollapsibleSection>
-
+          <div className="space-y-6">
             {accessLevel === "sales_rep" ? null : (
               <AdminCollapsibleSection
                 eyebrow="Needs owner"
                 title="Unassigned leads"
-                description="Needs owner."
+                description="Visible separately so they do not get buried under team summaries."
               >
                 <div className="grid gap-3">
                   {previewUnassignedLeads.length > 0 ? (
@@ -1294,7 +1060,8 @@ export default async function AdminPage({
                           {previewUnassignedLeadNameById[lead.id] || `${(lead.firstName || "Lead").trim()} ${lead.lastName}`.trim()}
                         </p>
                         <p className="mt-1 text-sm text-white/70">
-                          {lead.state ? `${formatLeadStateLabel(lead.state)} • ` : ""}{formatLeadSourceLabel(lead.source)} • {lead.email || lead.whatsappNumber || "No contact yet"}
+                          {lead.state ? `${formatLeadStateLabel(lead.state)} • ` : ""}
+                          {formatLeadSourceLabel(lead.source)} • {lead.email || lead.whatsappNumber || "No contact yet"}
                         </p>
                       </Link>
                     ))
@@ -1312,7 +1079,7 @@ export default async function AdminPage({
               <AdminCollapsibleSection
                 eyebrow="Connected tools"
                 title="Tool status"
-                description="Connection health."
+                description="Live connection health."
               >
                 <div className="grid gap-3">
                   <MetricCard

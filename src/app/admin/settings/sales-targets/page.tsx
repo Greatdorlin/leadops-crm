@@ -39,6 +39,11 @@ export default async function AdminSalesTargetsPage() {
     logCrmPageError("settings-sales-targets", error);
   }
 
+  const defaultCurrency =
+    targets?.find((target) => !target.archived)?.currency ??
+    targets?.[0]?.currency ??
+    "NGN";
+
   return (
     <AdminShell
       activeNav="settings"
@@ -66,29 +71,33 @@ export default async function AdminSalesTargetsPage() {
             <MetricCard
               label="Active targets"
               value={targets.filter((target) => !target.archived && target.isActive).length}
-              supporting="Tracking live progress."
+              supporting="Live on the dashboard."
               tone="accent"
             />
             <MetricCard
               label="Global targets"
               value={targets.filter((target) => target.scope === "global" && !target.archived).length}
-              supporting="Visible across the dashboard."
+              supporting="Shared across the workspace."
             />
             <MetricCard
               label="Archived targets"
               value={targets.filter((target) => target.archived).length}
-              supporting="Hidden from active tracking."
+              supporting="Stored but not tracking."
             />
           </section>
 
           <section className="admin-surface rounded-[24px] p-5">
             <SectionHeader
               eyebrow="Sales targets"
-              title="Manage targets"
-              description="Choose the goal the dashboard should track."
+              title="Target control"
+              description="Set the goal behind live pipeline reporting."
             />
             <div className="mt-5">
-              <SalesTargetManager initialTargets={targets} referenceData={referenceData} />
+              <SalesTargetManager
+                initialTargets={targets}
+                referenceData={referenceData}
+                defaultCurrency={defaultCurrency}
+              />
             </div>
           </section>
         </div>

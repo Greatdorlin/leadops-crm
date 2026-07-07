@@ -19,6 +19,7 @@ import { cn } from "@/lib/cn";
 import { appRoutes } from "@/lib/app-routes";
 import type { FormRow } from "@/lib/db/schema";
 import type { AdminAccessLevel } from "@/lib/admin-permissions";
+import { formatCrmDate } from "@/lib/crm/formatters";
 import type { CrmUserRole } from "@/lib/crm/types";
 import { canManageForms } from "@/lib/crm/authz";
 
@@ -149,12 +150,7 @@ function FormCard({
       </div>
 
       <p className="mt-3 text-xs text-white/50">
-        Created{" "}
-        {new Date(form.createdAt).toLocaleDateString(undefined, {
-          year: "numeric",
-          month: "short",
-          day: "numeric",
-        })}
+        Created {formatCrmDate(form.createdAt)}
       </p>
 
       <div className="mt-4 flex flex-wrap gap-2">

@@ -2,7 +2,7 @@
 
 import { startTransition, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, Trash2 } from "lucide-react";
+import { Plus, RotateCcw, Trash2 } from "lucide-react";
 import { crmLabelize } from "@/lib/crm/formatters";
 import {
   buildLeadOpportunityRollup,
@@ -10,6 +10,7 @@ import {
 } from "@/lib/crm/lead-opportunities";
 import type { LeadOpportunityRecord, LeadOpportunityStatus } from "@/lib/crm/types";
 import { AdminSelect } from "./AdminSelect";
+import { InfoTip } from "./ui/InfoTip";
 
 type OpportunityDraft = {
   id?: string;
@@ -53,6 +54,10 @@ function formatMoney(value?: number | null) {
 
 function inputClassName() {
   return "admin-input h-11 w-full rounded-2xl px-4 text-sm outline-none";
+}
+
+function isPipelineStatus(status: LeadOpportunityStatus) {
+  return status === "active" || status === "qualified" || status === "on_hold";
 }
 
 export function LeadOpportunityManager({
@@ -177,9 +182,17 @@ export function LeadOpportunityManager({
         ))}
       </div>
 
-      <div className="rounded-[22px] border border-white/16 bg-white/[0.08] px-4 py-3 text-sm leading-6 text-white/70">
-        Active, qualified, and on-hold offers stay in pipeline. Lost and unqualified offers keep history
-        but stop inflating pipeline value.
+      <div className="flex items-start justify-between gap-3 rounded-[22px] border border-white/16 bg-white/[0.08] px-4 py-3">
+        <div>
+          <p className="text-sm font-semibold text-white">Offer tracking</p>
+          <p className="mt-1 text-sm leading-6 text-white/70">
+            Keep multiple offers on one lead without overstating the live pipeline.
+          </p>
+        </div>
+        <InfoTip
+          label="Active, qualified, and on-hold offers count toward pipeline. Lost and unqualified offers stay in history but stop inflating live value."
+          align="right"
+        />
       </div>
 
       <div className="space-y-3">
@@ -193,6 +206,8 @@ export function LeadOpportunityManager({
 
           const requiresReason =
             opportunity.status === "unqualified" || opportunity.status === "lost";
+          const countsTowardPipeline = isPipelineStatus(opportunity.status);
+          const hasValue = opportunity.estimatedValue.trim().length > 0;
 
           return (
             <div
@@ -209,6 +224,16 @@ export function LeadOpportunityManager({
                   </p>
                 </div>
                 <div className="flex flex-wrap gap-2">
+                  <span
+                    className={[
+                      "inline-flex items-center justify-center rounded-full border px-3 py-1.5 text-xs font-semibold transition",
+                      countsTowardPipeline
+                        ? "border-cyan-300/22 bg-cyan-400/10 text-cyan-100"
+                        : "border-rose-300/22 bg-rose-400/10 text-rose-100",
+                    ].join(" ")}
+                  >
+                    {countsTowardPipeline ? "Counts in pipeline" : "Removed from pipeline"}
+                  </span>
                   <button
                     type="button"
                     onClick={() =>
@@ -277,16 +302,40 @@ export function LeadOpportunityManager({
                   <span className="text-xs font-semibold uppercase tracking-[0.16em] text-white/70">
                     Potential value
                   </span>
-                  <input
-                    type="number"
-                    min="0"
-                    value={opportunity.estimatedValue}
-                    onChange={(event) =>
-                      updateOpportunity(opportunity.localId, { estimatedValue: event.target.value })
-                    }
-                    placeholder="450000"
-                    className={inputClassName()}
-                  />
+                  <div className="space-y-2">
+                    <input
+                      type="number"
+                      min="0"
+                      value={opportunity.estimatedValue}
+                      onChange={(event) =>
+                        updateOpportunity(opportunity.localId, { estimatedValue: event.target.value })
+                      }
+                      placeholder="450000"
+                      className={inputClassName()}
+                    />
+                    {!countsTowardPipeline ? (
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="text-xs text-white/55">
+                          This offer no longer counts toward live pipeline.
+                        </span>
+                        {hasValue ? (
+                          <button
+                            type="button"
+                            onClick={() =>
+                              updateOpportunity(opportunity.localId, {
+                                estimatedValue: "",
+                                closeProbability: "",
+                              })
+                            }
+                            className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/[0.05] px-2.5 py-1 text-[11px] font-semibold text-white/70 transition hover:bg-white/[0.08] hover:text-white"
+                          >
+                            <RotateCcw className="h-3 w-3" />
+                            Clear potential value
+                          </button>
+                        ) : null}
+                      </div>
+                    ) : null}
+                  </div>
                 </label>
                 <label className="space-y-2">
                   <span className="text-xs font-semibold uppercase tracking-[0.16em] text-white/70">
@@ -358,6 +407,31 @@ export function LeadOpportunityManager({
                     className="admin-textarea min-h-[104px] w-full rounded-2xl px-4 py-3 text-sm outline-none"
                   />
                 </label>
+              </div>
+
+              <div className="mt-4 grid gap-3 sm:grid-cols-3">
+                <div className="rounded-[18px] border border-white/10 bg-black/10 px-4 py-3">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/58">
+                    Status effect
+                  </p>
+                  <p className="mt-2 text-sm font-semibold text-white">
+                    {countsTowardPipeline ? "Adds to live pipeline" : "History only"}
+                  </p>
+                </div>
+                <div className="rounded-[18px] border border-white/10 bg-black/10 px-4 py-3">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/58">
+                    Offer value
+                  </p>
+                  <p className="mt-2 text-sm font-semibold text-white">
+                    {hasValue ? formatMoney(Number(opportunity.estimatedValue)) : "Not set"}
+                  </p>
+                </div>
+                <div className="rounded-[18px] border border-white/10 bg-black/10 px-4 py-3">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/58">
+                    Expected value
+                  </p>
+                  <p className="mt-2 text-sm font-semibold text-white">{formatMoney(expectedValue)}</p>
+                </div>
               </div>
             </div>
           );

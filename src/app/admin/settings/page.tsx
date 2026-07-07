@@ -5,10 +5,10 @@ import { AdminSignOutButton } from "@/components/admin/AdminSignOutButton";
 import { EmptyState } from "@/components/admin/EmptyState";
 import { ErrorState } from "@/components/admin/ErrorState";
 import { GlassCard } from "@/components/admin/GlassCard";
-import { AnimatedCard } from "@/components/admin/ui/AnimatedCard";
 import { MetricCard } from "@/components/admin/MetricCard";
 import { SectionHeader } from "@/components/admin/SectionHeader";
 import { TeamAvatar } from "@/components/admin/TeamAvatar";
+import { InfoTip } from "@/components/admin/ui/InfoTip";
 import { getAdminAccessContext } from "@/lib/admin";
 import {
   canEditTeamAccess,
@@ -153,6 +153,64 @@ export default async function AdminSettingsPage() {
     activeUsers.find((user) => user.email.toLowerCase() === session.user?.email?.toLowerCase()) ??
     activeUsers[0] ??
     null;
+  const settingsGroups = [
+    {
+      key: "company",
+      eyebrow: "Company",
+      title: "Business setup",
+      tip: "Keep ownership, branch coverage, team access, and currency defaults aligned before leads start moving.",
+      items: [
+        { label: "Team settings", href: appRoutes.settingsTeam, enabled: true, copy: "People, access, and roster coverage." },
+        { label: "Branches", href: appRoutes.settingsBranches, enabled: canOpenBranches, copy: "Locations and branch ownership." },
+        { label: "Currency", href: appRoutes.settingsCurrency, enabled: canOpenCurrency, copy: "Default value and target currency." },
+        { label: "Role permissions", href: appRoutes.settingsRolePermissions, enabled: canOpenRolePermissions, copy: "What each role can touch." },
+      ],
+    },
+    {
+      key: "pipeline",
+      eyebrow: "Pipeline",
+      title: "Lead operations",
+      tip: "These settings shape qualification, offer routing, source reporting, and the values shown across the dashboard.",
+      items: [
+        { label: "Lead fields", href: appRoutes.settingsFields, enabled: canOpenCustomFields, copy: "Business-specific lead data." },
+        { label: "Lead stages", href: appRoutes.settingsStages, enabled: canOpenLeadStages, copy: "Pipeline stages and outcome states." },
+        { label: "Lead sources", href: appRoutes.settingsSources, enabled: canOpenLeadSources, copy: "Source labels for filtering and reports." },
+        { label: "Sales targets", href: appRoutes.settingsSalesTargets, enabled: canOpenSalesTargets, copy: "Goals behind pipeline tracking." },
+        { label: "Form sources", href: appRoutes.settingsFormSources, enabled: canOpenFormSources, copy: "Website, CSV, and webhook mapping." },
+        { label: "Intake log", href: appRoutes.intake, enabled: canOpenFormSources, copy: "Recent submissions and failures." },
+      ],
+    },
+    {
+      key: "workspace",
+      eyebrow: "Workspace",
+      title: "Brand and layout",
+      tip: "These controls change how the workspace looks, what users see first, and how quickly they can act.",
+      items: [
+        { label: "Appearance", href: appRoutes.settingsAppearance, enabled: canOpenAppearance, copy: "Logo, color system, and login branding." },
+        { label: "Navigation", href: appRoutes.settingsNavigation, enabled: canOpenNavigation, copy: "Sidebar order, labels, and visibility." },
+        { label: "Lead preview", href: appRoutes.settingsLeadPreview, enabled: canOpenLeadPreview, copy: "Preview cards and mobile fields." },
+        { label: "Dashboard", href: appRoutes.settingsDashboard, enabled: canOpenDashboard, copy: "Widgets, order, and visibility." },
+        { label: "Industry", href: appRoutes.settingsIndustry, enabled: canOpenIndustry, copy: "Safer defaults for your business type." },
+        { label: "Profile", href: appRoutes.profile, enabled: Boolean(currentUser), copy: "Your own name and photo." },
+      ],
+    },
+    {
+      key: "system",
+      eyebrow: "Oversight",
+      title: "Reports and controls",
+      tip: "Use these pages when you need proof, exports, notifications, or deployment-readiness checks.",
+      items: [
+        { label: "Reports", href: appRoutes.reports, enabled: true, copy: "Performance, exports, and summaries." },
+        { label: "Notifications", href: appRoutes.notifications, enabled: true, copy: "Follow-up and assignment alerts." },
+        { label: "System status", href: appRoutes.settingsSystemStatus, enabled: canOpenSystemStatus, copy: "Operational health and readiness." },
+      ],
+    },
+  ] as const;
+  const visibleSettingsGroups = settingsGroups.map((group) => ({
+    ...group,
+    items: group.items.filter((item) => item.enabled),
+  })).filter((group) => group.items.length > 0);
+  const savedConnections = showFullAdminSettings ? pageData?.integrations ?? [] : [];
 
   return (
     <AdminShell
@@ -179,8 +237,8 @@ export default async function AdminSettingsPage() {
           <>
             <SectionHeader
               eyebrow="Workspace settings"
-              title="Shape the way your team works"
-              description="Open the right setup area quickly without crowding one page with everything."
+              title="Workspace control"
+              description="Open the right setup area fast."
               className="ld-animate-fade-in-up"
             />
 
@@ -213,7 +271,7 @@ export default async function AdminSettingsPage() {
                   <SectionHeader
                     eyebrow="My profile"
                     title="Your workspace identity"
-                    description="Update your own name and profile photo from the dedicated profile page."
+                    description="Manage your own name and photo from the profile page."
                     actions={
                       <Link
                         href={appRoutes.profile}
@@ -252,7 +310,7 @@ export default async function AdminSettingsPage() {
                 <SectionHeader
                   eyebrow="Team settings"
                   title="People and access"
-                  description="Manage the roster, photos, and workspace access in a dedicated team settings view."
+                  description="Keep the roster, photos, and access clean."
                   actions={
                     <Link
                       href={appRoutes.settingsTeam}
@@ -291,189 +349,83 @@ export default async function AdminSettingsPage() {
               </GlassCard>
             </section>
 
-            <section className="grid gap-6 xl:grid-cols-12">
-              <div className="space-y-6 xl:col-span-7">
-                {showFullAdminSettings ? (
-                  <GlassCard glassStyle="soft" className="p-5">
-                    <SectionHeader
-                      eyebrow="Admin roles"
-                      title="Role access"
-                      description="A quick reference for each admin role."
-                    />
-                    <div className="mt-4 grid gap-3 md:grid-cols-2">
-                      {[ 
-                        ["Owner", "Full company access, exports, settings, and team management."],
-                        ["Admin", "Operational admin access, lead oversight, reports, and everyday settings."],
-                        ["Team Lead", "Team visibility, task assignment, follow-up coverage, and rep support."],
-                        ["Sales Rep", "Assigned leads, personal tasks, and individual performance."],
-                      ].map(([title, copy], index) => (
-                        <AnimatedCard key={title} variant="subtle" animation="fadeInUp" delay={index * 60} className="rounded-2xl p-4">
-                          <p className="text-sm font-semibold text-white">{title}</p>
-                          <p className="mt-2 text-sm leading-6 text-white/70">{copy}</p>
-                        </AnimatedCard>
-                      ))}
+            <section className="grid gap-6 xl:grid-cols-2">
+              {visibleSettingsGroups.map((group) => (
+                <GlassCard key={group.key} glassStyle="soft" className="p-5 sm:p-6">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/70">
+                        {group.eyebrow}
+                      </p>
+                      <h2 className="mt-2 font-[family:var(--font-heading)] text-[1.45rem] leading-[1.02] tracking-[-0.05em] text-white">
+                        {group.title}
+                      </h2>
                     </div>
-                  </GlassCard>
-                ) : null}
-
-                <GlassCard glassStyle="soft" className="p-5">
-                  <SectionHeader
-                    eyebrow="Workspace"
-                    title="Client-ready settings"
-                    description="Open the right setup area without digging through technical screens."
-                  />
-                  <div className="mt-4 grid gap-3 md:grid-cols-2">
-                    {[
-                      { label: "Company Profile", href: appRoutes.settings, enabled: true, copy: "Team access, company-level setup, and owner controls." },
-                      { label: "Appearance", href: appRoutes.settingsAppearance, enabled: canOpenAppearance, copy: "Brand the workspace, login page, and colors." },
-                      { label: "Industry", href: appRoutes.settingsIndustry, enabled: canOpenIndustry, copy: "Apply safer defaults for your business type." },
-                      { label: "Lead Fields", href: appRoutes.settingsFields, enabled: canOpenCustomFields, copy: "Define the extra lead details your business tracks." },
-                      { label: "Lead Preview", href: appRoutes.settingsLeadPreview, enabled: canOpenLeadPreview, copy: "Choose the lead columns and mobile preview fields." },
-                      { label: "Form Sources", href: appRoutes.settingsFormSources, enabled: canOpenFormSources, copy: "Map website, webhook, CSV, and manual sources." },
-                      { label: "Lead Stages", href: appRoutes.settingsStages, enabled: canOpenLeadStages, copy: "Control the stages used across pipeline reporting." },
-                      { label: "Lead Sources", href: appRoutes.settingsSources, enabled: canOpenLeadSources, copy: "Keep source labels clean for reporting and exports." },
-                      { label: "Dashboard", href: appRoutes.settingsDashboard, enabled: canOpenDashboard, copy: "Show, hide, and reorder the dashboard widgets." },
-                      { label: "Sales Targets", href: appRoutes.settingsSalesTargets, enabled: canOpenSalesTargets, copy: "Track monthly goals and progress on the dashboard." },
-                      { label: "Branches", href: appRoutes.settingsBranches, enabled: canOpenBranches, copy: "Manage branch locations and per-branch currencies." },
-                      { label: "Currency", href: appRoutes.settingsCurrency, enabled: canOpenCurrency, copy: "Set the default currency for targets and lead values." },
-                      { label: "Team Settings", href: appRoutes.settingsTeam, enabled: canGrantAccess || activeUsers.length > 0 || inactiveUsers.length > 0, copy: "Manage members, access, profile photos, and roster coverage." },
-                      { label: "Export Data", href: appRoutes.reports, enabled: true, copy: "Review performance and export current lead data." },
-                      { label: "Navigation", href: appRoutes.settingsNavigation, enabled: canOpenNavigation, copy: "Show, hide, rename, and reorder sidebar items." },
-                      { label: "Role Permissions", href: appRoutes.settingsRolePermissions, enabled: canOpenRolePermissions, copy: "Turn permissions on or off for every role." },
-                      { label: "System Status", href: appRoutes.settingsSystemStatus, enabled: canOpenSystemStatus, copy: "Check deployment readiness without exposing secrets." },
-                      { label: "Intake Logs", href: appRoutes.intake, enabled: canOpenFormSources, copy: "Review recent submissions and failed syncs." },
-                    ]
-                      .filter((item) => item.enabled)
-                      .map((item) => (
-                        <Link
-                          key={item.label}
-                          href={item.href}
-                          className="admin-surface-muted group rounded-2xl p-4 transition hover:border-white/20 hover:bg-white/[0.08]"
-                        >
-                          <p className="text-sm font-semibold text-white transition group-hover:text-white">{item.label}</p>
-                          <p className="mt-2 text-sm leading-6 text-white/70">{item.copy}</p>
-                        </Link>
-                      ))}
+                    <InfoTip label={group.tip} align="right" />
                   </div>
-                </GlassCard>
-
-                {canOpenAppearance || canOpenNavigation || canOpenLeadPreview || canOpenDashboard ? (
-                  <GlassCard glassStyle="soft" className="p-5">
-                    <SectionHeader
-                      eyebrow="Brand and workflow"
-                      title="Workspace customization"
-                      description="Shape the way Leads Desk looks and what your team sees first."
-                    />
-                    <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                      {[
-                        { label: "Appearance", href: appRoutes.settingsAppearance, enabled: canOpenAppearance },
-                        { label: "Navigation", href: appRoutes.settingsNavigation, enabled: canOpenNavigation },
-                        { label: "Lead Preview", href: appRoutes.settingsLeadPreview, enabled: canOpenLeadPreview },
-                        { label: "Dashboard", href: appRoutes.settingsDashboard, enabled: canOpenDashboard },
-                      ]
-                        .filter((item) => item.enabled)
-                        .map((item) => (
-                          <Link
-                            key={item.label}
-                            href={item.href}
-                            className="admin-button-secondary inline-flex h-11 items-center justify-center rounded-2xl px-5 text-sm font-medium"
-                          >
-                            {item.label}
-                          </Link>
-                        ))}
-                    </div>
-                  </GlassCard>
-                ) : null}
-
-                {canOpenFormSources ? (
-                  <GlassCard glassStyle="soft" className="p-5">
-                    <SectionHeader
-                      eyebrow="Form sources"
-                      title="Source mappings"
-                      description="Define where leads come from and how each source maps into your lead records."
-                    />
-                    <div className="mt-4">
+                  <div className="mt-5 grid gap-3 md:grid-cols-2">
+                    {group.items.map((item) => (
                       <Link
-                        href={appRoutes.settingsFormSources}
-                        className="admin-button-secondary inline-flex h-11 items-center justify-center rounded-2xl px-5 text-sm font-medium"
+                        key={item.label}
+                        href={item.href}
+                        className="group rounded-[22px] border border-white/10 bg-white/[0.045] px-4 py-4 transition hover:border-white/20 hover:bg-white/[0.08]"
                       >
-                        Open Form Sources
-                      </Link>
-                    </div>
-                  </GlassCard>
-                ) : null}
-              </div>
-
-              <div className="space-y-6 xl:col-span-5">
-                <GlassCard glassStyle="soft" className="p-5">
-                  <SectionHeader
-                    eyebrow="Assignment rules"
-                    title="Working rules"
-                    description="The current rules for ownership, visibility, and follow-up."
-                  />
-                  <div className="mt-4 grid gap-3">
-                    {[
-                      "Owners come from the saved team roster and profile cards.",
-                      "Sales reps work only with their assigned leads and tasks.",
-                      "Unassigned leads stay visible until a team member takes ownership.",
-                    ].map((item, index) => (
-                      <AnimatedCard key={item} variant="subtle" animation="fadeInUp" delay={index * 60} className="rounded-2xl px-4 py-3 text-sm text-white/70">
-                        {item}
-                      </AnimatedCard>
-                    ))}
-                  </div>
-                </GlassCard>
-
-                <GlassCard glassStyle="soft" className="p-5">
-                  <SectionHeader
-                    eyebrow="Notifications"
-                    title="How the team stays on track"
-                    description="Follow-up reminders and lead activity keep the queue moving."
-                  />
-                  <div className="mt-4 grid gap-3">
-                    {[
-                      "Assigned lead alerts appear in the notification inbox.",
-                      "Webhook captures can create intake alerts and assignment notifications.",
-                      "Follow-up reminders depend on the saved next follow-up date and ownership.",
-                    ].map((item, index) => (
-                      <AnimatedCard key={item} variant="subtle" animation="fadeInUp" delay={index * 60} className="rounded-2xl px-4 py-3 text-sm text-white/70">
-                        {item}
-                      </AnimatedCard>
-                    ))}
-                    <Link
-                      href={appRoutes.notifications}
-                      className="admin-button-secondary inline-flex h-11 items-center justify-center rounded-2xl px-5 text-sm font-medium"
-                    >
-                      Open Notifications
-                    </Link>
-                  </div>
-                </GlassCard>
-
-                {showFullAdminSettings ? (
-                  <GlassCard glassStyle="soft" className="p-5">
-                    <SectionHeader
-                      eyebrow="Connected tools"
-                      title="Saved connections"
-                      description="Connections that support imports, exports, and campaign reporting."
-                    />
-                    <div className="mt-4 grid gap-3">
-                      {pageData.integrations.length > 0 ? (
-                        pageData.integrations.map((integration) => (
-                          <div key={integration.id} className="admin-surface-muted rounded-2xl px-4 py-3 text-sm text-white/70">
-                            {formatIntegrationProviderLabel(integration.provider)} • {formatIntegrationStatusLabel(integration.status)}
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <p className="text-sm font-semibold text-white">{item.label}</p>
+                            <p className="mt-2 text-sm leading-6 text-white/68">{item.copy}</p>
                           </div>
-                        ))
-                      ) : (
-                        <EmptyState
-                          title="No saved connections yet"
-                          description="Connected tools will appear here after setup is saved."
-                        />
-                      )}
-                    </div>
-                  </GlassCard>
-                ) : null}
-              </div>
+                          <span className="rounded-full border border-white/10 bg-white/[0.05] px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-white/58 transition group-hover:text-white/78">
+                            Open
+                          </span>
+                        </div>
+                      </Link>
+                    ))}
+                  </div>
+                </GlassCard>
+              ))}
             </section>
+
+            {showFullAdminSettings ? (
+              <GlassCard glassStyle="soft" className="p-5 sm:p-6">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/70">
+                      Connected tools
+                    </p>
+                    <h2 className="mt-2 font-[family:var(--font-heading)] text-[1.45rem] leading-[1.02] tracking-[-0.05em] text-white">
+                      Saved connections
+                    </h2>
+                  </div>
+                  <InfoTip
+                    label="These are the integrations already saved for imports, exports, and reporting support."
+                    align="right"
+                  />
+                </div>
+                <div className="mt-5 grid gap-3 md:grid-cols-2">
+                  {savedConnections.length > 0 ? (
+                    savedConnections.map((integration) => (
+                      <div
+                        key={integration.id}
+                        className="rounded-[22px] border border-white/10 bg-white/[0.045] px-4 py-4"
+                      >
+                        <p className="text-sm font-semibold text-white">
+                          {formatIntegrationProviderLabel(integration.provider)}
+                        </p>
+                        <p className="mt-2 text-sm text-white/68">
+                          {formatIntegrationStatusLabel(integration.status)}
+                        </p>
+                      </div>
+                    ))
+                  ) : (
+                    <EmptyState
+                      title="No saved connections yet"
+                      description="Connected tools will show here after setup is saved."
+                    />
+                  )}
+                </div>
+              </GlassCard>
+            ) : null}
           </>
         ) : (
           <ErrorState

@@ -52,11 +52,11 @@ function FieldLabel({
   return (
     <label
       htmlFor={htmlFor}
-      className="mb-2 block text-sm font-semibold text-slate-700"
+      className="mb-2 block text-sm font-semibold text-white/86"
     >
       {field.label}
       {field.isRequired ? (
-        <span className="ml-1 text-rose-500" aria-hidden="true">
+        <span className="ml-1 text-rose-300" aria-hidden="true">
           *
         </span>
       ) : null}
@@ -70,7 +70,7 @@ function FieldLabel({
 function FieldError({ message }: { message?: string | null }) {
   if (!message) return null;
   return (
-    <p className="mt-1.5 text-sm font-medium text-rose-600" role="alert">
+    <p className="mt-1.5 text-sm font-medium text-rose-200" role="alert">
       {message}
     </p>
   );
@@ -79,7 +79,7 @@ function FieldError({ message }: { message?: string | null }) {
 function FieldHelp({ text }: { text?: string | null }) {
   if (!text) return null;
   return (
-    <p className="mt-1.5 text-sm text-slate-500">{text}</p>
+    <p className="mt-1.5 text-sm text-white/55">{text}</p>
   );
 }
 
@@ -143,12 +143,12 @@ export function PublicFormField({
   );
 
   const baseInputClass = cn(
-    "w-full rounded-xl border bg-white px-4 py-3 text-sm text-slate-900 outline-none transition-all duration-200",
-    "placeholder:text-slate-400",
+    "w-full rounded-2xl border bg-white/[0.06] px-4 py-3 text-sm text-white outline-none transition-all duration-200 backdrop-blur-xl",
+    "placeholder:text-white/38",
     "focus:ring-2 focus:ring-offset-0",
     hasError
-      ? "border-rose-300 focus:border-rose-400 focus:ring-rose-100"
-      : "border-slate-200 focus:border-slate-300 focus:ring-slate-100"
+      ? "border-rose-300/55 focus:border-rose-300 focus:ring-rose-300/20"
+      : "border-white/12 focus:border-white/26 focus:ring-white/12"
   );
 
   const options = field.options ?? [];
@@ -273,8 +273,8 @@ export function PublicFormField({
                   className={cn(
                     "flex cursor-pointer items-center gap-3 rounded-lg border px-4 py-3 transition-all duration-200",
                     isChecked
-                      ? "border-slate-300 bg-slate-50"
-                      : "border-slate-200 bg-white hover:border-slate-300"
+                      ? "border-white/24 bg-white/[0.1]"
+                      : "border-white/10 bg-white/[0.04] hover:border-white/20"
                   )}
                 >
                   <input
@@ -285,9 +285,9 @@ export function PublicFormField({
                     checked={isChecked}
                     onChange={(e) => handleCheckboxChange(opt.value, e.target.checked)}
                     disabled={disabled}
-                    className="h-5 w-5 shrink-0 rounded-md border-slate-300 text-slate-700 accent-slate-800 focus:ring-2 focus:ring-slate-200"
+                    className="h-5 w-5 shrink-0 rounded-md border-white/20 text-white accent-[var(--form-accent)] focus:ring-2 focus:ring-white/20"
                   />
-                  <span className="text-sm text-slate-700">{opt.label}</span>
+                  <span className="text-sm text-white/78">{opt.label}</span>
                 </label>
               );
             })}
@@ -313,8 +313,8 @@ export function PublicFormField({
                   className={cn(
                     "flex cursor-pointer items-center gap-3 rounded-lg border px-4 py-3 transition-all duration-200",
                     isSelected
-                      ? "border-slate-300 bg-slate-50"
-                      : "border-slate-200 bg-white hover:border-slate-300"
+                      ? "border-white/24 bg-white/[0.1]"
+                      : "border-white/10 bg-white/[0.04] hover:border-white/20"
                   )}
                 >
                   <input
@@ -325,9 +325,9 @@ export function PublicFormField({
                     checked={isSelected}
                     onChange={() => handleRadioChange(opt.value)}
                     disabled={disabled}
-                    className="h-5 w-5 shrink-0 border-slate-300 text-slate-700 accent-slate-800 focus:ring-2 focus:ring-slate-200"
+                    className="h-5 w-5 shrink-0 border-white/20 text-white accent-[var(--form-accent)] focus:ring-2 focus:ring-white/20"
                   />
-                  <span className="text-sm text-slate-700">{opt.label}</span>
+                  <span className="text-sm text-white/78">{opt.label}</span>
                 </label>
               );
             })}
@@ -395,10 +395,10 @@ export function PublicFormField({
             aria-invalid={hasError}
             aria-describedby={hasError ? `${inputId}-error` : undefined}
             className={cn(
-              "block w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 outline-none transition-all duration-200",
-              "file:mr-4 file:rounded-lg file:border-0 file:bg-slate-100 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-slate-700",
-              "hover:file:bg-slate-200",
-              hasError && "border-rose-300 focus:border-rose-400"
+              "block w-full rounded-2xl border border-white/12 bg-white/[0.05] px-4 py-3 text-sm text-white/72 outline-none transition-all duration-200 backdrop-blur-xl",
+              "file:mr-4 file:rounded-xl file:border-0 file:bg-white/[0.08] file:px-4 file:py-2 file:text-sm file:font-semibold file:text-white",
+              "hover:file:bg-white/[0.12]",
+              hasError && "border-rose-300/55 focus:border-rose-300"
             )}
           />
           <FieldHelp text={field.helpText} />

@@ -303,7 +303,13 @@ function ColorControl({
 }) {
   const harmonySwatches = useMemo(() => {
     try {
-      return generateColorHarmony(value, "analogous").slice(0, 5);
+      return Array.from(
+        new Map(
+          generateColorHarmony(value, "analogous")
+            .map((swatch) => swatch.toLowerCase())
+            .map((swatch) => [swatch, swatch]),
+        ).values(),
+      ).slice(0, 5);
     } catch {
       return [];
     }

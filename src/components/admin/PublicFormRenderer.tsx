@@ -245,15 +245,15 @@ export function PublicFormRenderer({ form, fields }: PublicFormRendererProps) {
   if (submitSuccess) {
     return (
       <div
-        className="mx-auto w-full max-w-2xl rounded-3xl border border-slate-200 bg-white p-8 shadow-xl sm:p-12"
+        className="mx-auto w-full max-w-3xl rounded-[32px] border border-white/14 bg-[#091120]/78 p-8 shadow-[0_30px_80px_rgba(0,0,0,0.34)] backdrop-blur-[22px] sm:p-12"
         style={brandStyle}
       >
         <div className="text-center">
           <div
             className="mx-auto flex h-20 w-20 items-center justify-center rounded-2xl"
             style={{
-              background: `linear-gradient(135deg, ${accentColor}22, ${primaryColor}18)`,
-              border: `1px solid ${accentColor}30`,
+              background: `linear-gradient(135deg, ${accentColor}30, ${primaryColor}1f)`,
+              border: `1px solid ${accentColor}45`,
             }}
           >
             <svg
@@ -272,21 +272,21 @@ export function PublicFormRenderer({ form, fields }: PublicFormRendererProps) {
             </svg>
           </div>
           <h2
-            className="mt-6 text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl"
+            className="mt-6 text-2xl font-bold tracking-tight text-white sm:text-3xl"
             style={{ fontFamily: "var(--font-heading-active), var(--font-fallback), sans-serif" }}
           >
             Thank you!
           </h2>
-          <p className="mt-3 text-base leading-7 text-slate-600">
+          <p className="mt-3 text-base leading-7 text-white/70">
             {form.successMessage ?? "Thank you for your submission."}
           </p>
           {form.redirectUrl ? (
-            <p className="mt-2 text-sm text-slate-500">
+            <p className="mt-2 text-sm text-white/52">
               Redirecting you shortly...
             </p>
           ) : null}
           {submitResult?.leadId ? (
-            <p className="mt-4 text-sm text-slate-500">
+            <p className="mt-4 text-sm text-white/52">
               Your reference: {submitResult.submissionId.slice(0, 8)}
             </p>
           ) : null}
@@ -297,82 +297,129 @@ export function PublicFormRenderer({ form, fields }: PublicFormRendererProps) {
 
   return (
     <div
-      className="mx-auto w-full max-w-2xl rounded-3xl border border-slate-200 bg-white p-6 shadow-xl sm:p-10"
+      className="mx-auto w-full max-w-3xl overflow-hidden rounded-[32px] border border-white/14 bg-[#091120]/76 p-6 shadow-[0_30px_80px_rgba(0,0,0,0.34)] backdrop-blur-[22px] sm:p-10"
       style={brandStyle}
     >
-      <div className="mb-8">
-        {form.logoUrl ? (
-          <div className="mb-5">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={form.logoUrl}
-              alt=""
-              className="h-10 max-w-[180px] object-contain"
-            />
+      <div
+        className="mb-8 rounded-[28px] border border-white/10 px-5 py-5 sm:px-6"
+        style={{
+          background: `linear-gradient(145deg, ${primaryColor}18, rgba(5,10,20,0.82) 58%, ${accentColor}18)`,
+        }}
+      >
+        <div className="flex flex-wrap items-center gap-3">
+          {form.logoUrl ? (
+            <div className="flex h-12 max-w-[220px] items-center rounded-2xl border border-white/10 bg-white/[0.06] px-4">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={form.logoUrl}
+                alt=""
+                className="h-10 max-w-[180px] object-contain"
+              />
+            </div>
+          ) : (
+            <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.06] px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.14em] text-white/72">
+              Private intake
+            </div>
+          )}
+          <div className="inline-flex items-center rounded-full border border-white/10 bg-white/[0.05] px-3 py-1 text-xs font-semibold text-white/62">
+            Secure form
           </div>
-        ) : null}
-        <h1
-          className="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl"
-          style={{ fontFamily: "var(--font-heading-active), var(--font-fallback), sans-serif" }}
-        >
-          {form.name}
-        </h1>
-        {form.description ? (
-          <p className="mt-2 text-base leading-7 text-slate-600">{form.description}</p>
-        ) : null}
+        </div>
+        <div className="mt-6">
+          <h1
+            className="text-3xl font-bold tracking-tight text-white sm:text-4xl"
+            style={{ fontFamily: "var(--font-heading-active), var(--font-fallback), sans-serif" }}
+          >
+            {form.name}
+          </h1>
+          {form.description ? (
+            <p className="mt-3 max-w-2xl text-base leading-7 text-white/70">{form.description}</p>
+          ) : (
+            <p className="mt-3 max-w-2xl text-base leading-7 text-white/62">
+              Share one link, capture the right details, and route every lead into your private workspace.
+            </p>
+          )}
+        </div>
       </div>
 
-      <form onSubmit={handleSubmit} noValidate className="space-y-6">
-        {visibleFields.map((field) => (
-          <PublicFormField
-            key={field.id}
-            field={field}
-            value={values[field.id]}
-            onChange={handleChange}
-            error={touched.has(field.id) ? errors[field.id] ?? null : null}
-            disabled={submitting}
-          />
-        ))}
-
-        {submitError ? (
+      <div className="mb-8 grid gap-3 sm:grid-cols-3">
+        {[
+          ["Private workspace", "Submissions stay inside this Leads Desk deployment."],
+          ["Built for follow-up", "Default stage, owner, and source rules apply on submit."],
+          ["Fast completion", "Short fields, clear labels, and one primary action."],
+        ].map(([title, copy]) => (
           <div
-            className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-medium text-rose-700"
-            role="alert"
+            key={title}
+            className="rounded-[22px] border border-white/10 bg-white/[0.04] px-4 py-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]"
           >
-            {submitError}
+            <p className="text-sm font-semibold text-white">{title}</p>
+            <p className="mt-2 text-sm leading-6 text-white/58">{copy}</p>
           </div>
-        ) : null}
+        ))}
+      </div>
 
-        <div className="pt-2">
-          <button
-            type="submit"
-            disabled={submitting}
-            className={cn(
-              "relative inline-flex h-12 w-full items-center justify-center rounded-xl px-6 text-sm font-semibold text-white shadow-lg transition-all duration-200 sm:h-14 sm:text-base",
-              "hover:shadow-xl hover:-translate-y-0.5 active:translate-y-0 active:shadow-md",
-              "disabled:cursor-wait disabled:opacity-70 disabled:translate-y-0 disabled:shadow-none"
-            )}
-            style={{
-              background: `linear-gradient(135deg, ${primaryColor}, ${accentColor})`,
-              boxShadow: `0 12px 32px ${primaryColor}33`,
-            }}
-          >
-            {submitting ? (
-              <>
-                <span className="mr-2 inline-block h-5 w-5 animate-spin rounded-full border-2 border-white border-t-transparent" />
-                Submitting...
-              </>
-            ) : (
-              "Submit"
-            )}
-          </button>
+      <div className="rounded-[28px] border border-white/10 bg-black/12 p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] sm:p-6">
+        <div className="mb-6">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/56">
+            Lead capture
+          </p>
+          <p className="mt-2 text-sm text-white/62">
+            Complete the form below and the workspace will route the lead automatically.
+          </p>
         </div>
 
-        <p className="text-center text-xs text-slate-400">
-          Powered by{" "}
-          <span className="font-semibold text-slate-500">Leads Desk</span>
-        </p>
-      </form>
+        <form onSubmit={handleSubmit} noValidate className="space-y-6">
+          {visibleFields.map((field) => (
+            <PublicFormField
+              key={field.id}
+              field={field}
+              value={values[field.id]}
+              onChange={handleChange}
+              error={touched.has(field.id) ? errors[field.id] ?? null : null}
+              disabled={submitting}
+            />
+          ))}
+
+          {submitError ? (
+            <div
+              className="rounded-2xl border border-rose-300/24 bg-rose-400/10 px-4 py-3 text-sm font-medium text-rose-100"
+              role="alert"
+            >
+              {submitError}
+            </div>
+          ) : null}
+
+          <div className="pt-2">
+            <button
+              type="submit"
+              disabled={submitting}
+              className={cn(
+                "relative inline-flex h-12 w-full items-center justify-center rounded-2xl px-6 text-sm font-semibold text-white shadow-lg transition-all duration-200 sm:h-14 sm:text-base",
+                "hover:shadow-xl hover:-translate-y-0.5 active:translate-y-0 active:shadow-md",
+                "disabled:cursor-wait disabled:opacity-70 disabled:translate-y-0 disabled:shadow-none"
+              )}
+              style={{
+                background: `linear-gradient(135deg, ${primaryColor}, ${accentColor})`,
+                boxShadow: `0 16px 40px ${primaryColor}3b`,
+              }}
+            >
+              {submitting ? (
+                <>
+                  <span className="mr-2 inline-block h-5 w-5 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                  Submitting...
+                </>
+              ) : (
+                "Submit"
+              )}
+            </button>
+          </div>
+
+          <p className="text-center text-xs text-white/38">
+            Powered by{" "}
+            <span className="font-semibold text-white/56">Leads Desk</span>
+          </p>
+        </form>
+      </div>
     </div>
   );
 }

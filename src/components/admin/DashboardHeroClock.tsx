@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
 
 function formatDashboardDate(date: Date, timeZone: string) {
   return new Intl.DateTimeFormat(undefined, {
@@ -38,13 +38,11 @@ export function DashboardHeroClock({
   nameClassName?: string;
 }) {
   const [now, setNow] = useState<Date>(() => new Date());
-  const [timeZone] = useState<string>(() => {
-    if (typeof window === "undefined") {
-      return "UTC";
-    }
-
-    return Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
-  });
+  const isHydrated = useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false,
+  );
 
   useEffect(() => {
     const interval = window.setInterval(() => {
@@ -54,13 +52,19 @@ export function DashboardHeroClock({
     return () => window.clearInterval(interval);
   }, []);
 
+  const timeZone = isHydrated
+    ? Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC"
+    : "UTC";
+
   const greeting = useMemo(() => {
-    return resolveGreeting(now, timeZone);
-  }, [now, timeZone]);
+    return isHydrated ? resolveGreeting(now, timeZone) : "Welcome back";
+  }, [isHydrated, now, timeZone]);
 
   const dateLabel = useMemo(() => {
-    return `${formatDashboardDate(now, timeZone)} • ${timeZone.replaceAll("_", " ")}`;
-  }, [now, timeZone]);
+    return `${formatDashboardDate(now, timeZone)} • ${
+      isHydrated ? timeZone.replaceAll("_", " ") : "Workspace time"
+    }`;
+  }, [isHydrated, now, timeZone]);
 
   return (
     <>

@@ -261,6 +261,7 @@ export interface FormSubmissionLeadInput {
   companyName?: string | null;
   state?: string | null;
   country?: string | null;
+  region?: string | null;
   city?: string | null;
   address?: string | null;
   postalCode?: string | null;
@@ -268,6 +269,7 @@ export interface FormSubmissionLeadInput {
   sourceDetail?: string | null;
   priority?: string;
   assignedTo?: string | null;
+  assignedUserId?: string | null;
   stageId?: string | null;
   customFields?: Record<string, unknown>;
 }
@@ -286,8 +288,9 @@ export async function createLeadFromFormSubmission(
       email: leadInput.email ?? "",
       whatsappNumber: leadInput.whatsappNumber ?? "",
       companyName: leadInput.companyName,
-      state: leadInput.state,
+      state: leadInput.state ?? leadInput.region ?? null,
       country: leadInput.country,
+      region: leadInput.region ?? leadInput.state ?? null,
       city: leadInput.city,
       address: leadInput.address,
       postalCode: leadInput.postalCode,
@@ -295,6 +298,7 @@ export async function createLeadFromFormSubmission(
       sourceDetail: leadInput.sourceDetail ?? "form_submission",
       priority: (leadInput.priority as "low" | "medium" | "high" | "urgent") ?? "medium",
       assignedTo: leadInput.assignedTo,
+      assignedUserId: leadInput.assignedUserId ?? null,
       stageId: leadInput.stageId,
       sourcePayload: leadInput.customFields ? (leadInput.customFields as Record<string, unknown>) : null,
     })

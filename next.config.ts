@@ -83,16 +83,6 @@ const nextConfig: NextConfig = {
         permanent: false,
       },
       {
-        source: "/admin/forms/:id",
-        destination: "/forms/:id",
-        permanent: false,
-      },
-      {
-        source: "/admin/forms/:id/:path*",
-        destination: "/forms/:id/:path*",
-        permanent: false,
-      },
-      {
         source: "/admin/intake",
         destination: "/intake",
         permanent: false,

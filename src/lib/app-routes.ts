@@ -11,6 +11,7 @@ export const appRoutes = {
   notifications: "/notifications",
   intake: "/intake",
   forms: "/forms",
+  formsNew: "/forms/new",
   profile: "/profile",
   settings: "/settings",
   settingsAppearance: "/settings/appearance",

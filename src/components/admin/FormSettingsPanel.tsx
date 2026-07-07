@@ -40,6 +40,9 @@ export interface FormSettingsData {
 interface FormSettingsPanelProps {
   formId: string;
   initialForm: Record<string, unknown> | null;
+  stageOptions?: Array<{ value: string; label: string }>;
+  sourceOptions?: Array<{ value: string; label: string }>;
+  ownerOptions?: Array<{ value: string; label: string }>;
 }
 
 const DEFAULT_STATUS_OPTIONS = [
@@ -77,16 +80,6 @@ const AUTO_QUALIFY_OPERATOR_OPTIONS = [
   { value: "unchecked", label: "Is unchecked" },
   { value: "empty", label: "Is empty" },
   { value: "not_empty", label: "Is filled" },
-] as const;
-
-const AUTO_QUALIFY_STAGE_OPTIONS = [
-  { value: "new", label: "New" },
-  { value: "contacted", label: "Contacted" },
-  { value: "follow_up", label: "Follow-up" },
-  { value: "qualified", label: "Qualified" },
-  { value: "proposal", label: "Proposal" },
-  { value: "won", label: "Won" },
-  { value: "lost", label: "Lost" },
 ] as const;
 
 function normalizeForm(data: Record<string, unknown> | null): FormSettingsData {
@@ -135,7 +128,13 @@ function normalizeForm(data: Record<string, unknown> | null): FormSettingsData {
   };
 }
 
-export function FormSettingsPanel({ formId, initialForm }: FormSettingsPanelProps) {
+export function FormSettingsPanel({
+  formId,
+  initialForm,
+  stageOptions = DEFAULT_STATUS_OPTIONS,
+  sourceOptions = DEFAULT_SOURCE_OPTIONS,
+  ownerOptions = [],
+}: FormSettingsPanelProps) {
   const { fields } = useFormDetail();
   const [draft, setDraft] = useState<FormSettingsData>(normalizeForm(initialForm));
   const [saving, setSaving] = useState(false);
@@ -483,7 +482,7 @@ export function FormSettingsPanel({ formId, initialForm }: FormSettingsPanelProp
               value={draft.defaultStatus}
               onChange={(e) => updateDraft({ defaultStatus: e.target.value })}
             >
-              {DEFAULT_STATUS_OPTIONS.map((s) => (
+              {stageOptions.map((s) => (
                 <option key={s.value} value={s.value}>
                   {s.label}
                 </option>
@@ -509,7 +508,7 @@ export function FormSettingsPanel({ formId, initialForm }: FormSettingsPanelProp
               value={draft.defaultSource}
               onChange={(e) => updateDraft({ defaultSource: e.target.value })}
             >
-              {DEFAULT_SOURCE_OPTIONS.map((s) => (
+              {sourceOptions.map((s) => (
                 <option key={s.value} value={s.value}>
                   {s.label}
                 </option>
@@ -523,6 +522,11 @@ export function FormSettingsPanel({ formId, initialForm }: FormSettingsPanelProp
               onChange={(e) => updateDraft({ defaultOwnerId: e.target.value || null })}
             >
               <option value="">— Unassigned —</option>
+              {ownerOptions.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
             </AdminSelect>
           </div>
         </div>
@@ -634,7 +638,7 @@ export function FormSettingsPanel({ formId, initialForm }: FormSettingsPanelProp
                             }
                             className="h-10"
                           >
-                            {AUTO_QUALIFY_STAGE_OPTIONS.map((option) => (
+                            {stageOptions.map((option) => (
                               <option key={option.value} value={option.value}>
                                 {option.label}
                               </option>
@@ -666,7 +670,7 @@ export function FormSettingsPanel({ formId, initialForm }: FormSettingsPanelProp
                           : ""}{" "}
                         the lead moves to{" "}
                         <span className="font-semibold text-white/78">
-                          {AUTO_QUALIFY_STAGE_OPTIONS.find(
+                          {stageOptions.find(
                             (option) => option.value === String(rule.stageKey ?? "qualified"),
                           )?.label ?? "Qualified"}
                         </span>

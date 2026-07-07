@@ -6,6 +6,7 @@ import { GlassSurface } from "@/components/admin/ui/GlassSurface";
 import { AnimatedCard } from "@/components/admin/ui/AnimatedCard";
 import { CopyButton } from "@/components/admin/CopyButton";
 import { cn } from "@/lib/cn";
+import { appRoutes } from "@/lib/app-routes";
 import {
   getFormById,
   listFormFields,
@@ -225,7 +226,7 @@ export default async function FormOverviewPage({
         />
         <div className="mt-5 grid gap-3 sm:grid-cols-2">
           <Link
-            href={`/forms/${id}/fields`}
+            href={`${appRoutes.form(id)}/fields`}
             className="flex items-center gap-3 rounded-[16px] border border-white/10 bg-white/[0.04] px-4 py-3 transition hover:bg-white/[0.08]"
           >
             <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-white/[0.06] text-white/70">
@@ -238,7 +239,7 @@ export default async function FormOverviewPage({
             <ArrowRight className="h-4 w-4 text-white/40" />
           </Link>
           <Link
-            href={`/forms/${id}/rules`}
+            href={`${appRoutes.form(id)}/rules`}
             className="flex items-center gap-3 rounded-[16px] border border-white/10 bg-white/[0.04] px-4 py-3 transition hover:bg-white/[0.08]"
           >
             <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-white/[0.06] text-white/70">
@@ -251,7 +252,7 @@ export default async function FormOverviewPage({
             <ArrowRight className="h-4 w-4 text-white/40" />
           </Link>
           <Link
-            href={`/forms/${id}/settings`}
+            href={`${appRoutes.form(id)}/settings`}
             className="flex items-center gap-3 rounded-[16px] border border-white/10 bg-white/[0.04] px-4 py-3 transition hover:bg-white/[0.08]"
           >
             <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-white/[0.06] text-white/70">
@@ -264,7 +265,7 @@ export default async function FormOverviewPage({
             <ArrowRight className="h-4 w-4 text-white/40" />
           </Link>
           <Link
-            href={`/forms/${id}/embed`}
+            href={`${appRoutes.form(id)}/embed`}
             className="flex items-center gap-3 rounded-[16px] border border-white/10 bg-white/[0.04] px-4 py-3 transition hover:bg-white/[0.08]"
           >
             <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-white/[0.06] text-white/70">
@@ -277,7 +278,7 @@ export default async function FormOverviewPage({
             <ArrowRight className="h-4 w-4 text-white/40" />
           </Link>
           <Link
-            href={`/forms/${id}/submissions`}
+            href={`${appRoutes.form(id)}/submissions`}
             className="flex items-center gap-3 rounded-[16px] border border-white/10 bg-white/[0.04] px-4 py-3 transition hover:bg-white/[0.08]"
           >
             <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-white/[0.06] text-white/70">

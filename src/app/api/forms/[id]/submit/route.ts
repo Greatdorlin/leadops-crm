@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { eq, or } from "drizzle-orm";
 import {
   getFormById,
   listFormFields,
@@ -13,6 +14,8 @@ import {
   normalizeAutoQualifyRules,
   normalizeStageLookupValue,
 } from "@/lib/crm/form-submission-routing";
+import { getDb } from "@/lib/db/client";
+import { crmUsers } from "@/lib/db/schema";
 
 function getClientIp(request: Request): string | null {
   const forwarded = request.headers.get("x-forwarded-for");
@@ -48,6 +51,32 @@ async function resolveStageId(
   );
 
   return normalizedMatch?.id ?? null;
+}
+
+async function resolveLeadAssignment(assignmentValue?: string | null) {
+  const normalizedValue = assignmentValue?.trim() ?? "";
+  if (!normalizedValue) {
+    return { assignedTo: null, assignedUserId: null };
+  }
+
+  const db = getDb();
+  const [user] = await db
+    .select({ id: crmUsers.id, email: crmUsers.email })
+    .from(crmUsers)
+    .where(or(eq(crmUsers.id, normalizedValue), eq(crmUsers.email, normalizedValue)))
+    .limit(1);
+
+  if (user) {
+    return {
+      assignedTo: user.email,
+      assignedUserId: user.id,
+    };
+  }
+
+  return {
+    assignedTo: normalizedValue,
+    assignedUserId: null,
+  };
 }
 
 export async function POST(
@@ -131,6 +160,7 @@ export async function POST(
   let companyName: string | null = null;
   let state: string | null = null;
   let country: string | null = null;
+  let region: string | null = null;
   let city: string | null = null;
   let address: string | null = null;
   let postalCode: string | null = null;
@@ -162,6 +192,9 @@ export async function POST(
         case "state":
           state = String(value);
           break;
+        case "region":
+          region = String(value);
+          break;
         case "country":
           country = String(value);
           break;
@@ -183,6 +216,10 @@ export async function POST(
     }
   }
 
+  const resolvedAssignment = await resolveLeadAssignment(
+    leadOverrides.assignedTo ?? form.defaultOwnerId ?? null,
+  );
+
   // Create lead from submission
   const leadResult = await createLeadFromFormSubmission(submission.id, {
     firstName: firstName ?? "",
@@ -192,13 +229,15 @@ export async function POST(
     companyName,
     state,
     country,
+    region,
     city,
     address,
     postalCode,
     source: (leadOverrides.source as string) ?? form.defaultSource ?? "website_form",
     sourceDetail: `form:${form.slug}`,
     priority: (leadOverrides.priority as string) ?? form.defaultPriority ?? "medium",
-    assignedTo: leadOverrides.assignedTo ?? form.defaultOwnerId ?? null,
+    assignedTo: resolvedAssignment.assignedTo,
+    assignedUserId: resolvedAssignment.assignedUserId,
     stageId: resolvedStageId,
     customFields: Object.keys(customFields).length > 0 ? customFields : undefined,
   });

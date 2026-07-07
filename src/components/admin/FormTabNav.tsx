@@ -2,16 +2,17 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { appRoutes } from "@/lib/app-routes";
 import { cn } from "@/lib/cn";
 
 const tabs = [
-  { id: "overview", label: "Overview", path: (id: string) => `/forms/${id}` },
-  { id: "fields", label: "Fields", path: (id: string) => `/forms/${id}/fields` },
-  { id: "rules", label: "Rules", path: (id: string) => `/forms/${id}/rules` },
-  { id: "settings", label: "Settings", path: (id: string) => `/forms/${id}/settings` },
-  { id: "embed", label: "Embed", path: (id: string) => `/forms/${id}/embed` },
-  { id: "preview", label: "Preview", path: (id: string) => `/forms/${id}/preview` },
-  { id: "submissions", label: "Submissions", path: (id: string) => `/forms/${id}/submissions` },
+  { id: "overview", label: "Overview", path: (id: string) => appRoutes.form(id) },
+  { id: "fields", label: "Fields", path: (id: string) => `${appRoutes.form(id)}/fields` },
+  { id: "rules", label: "Rules", path: (id: string) => `${appRoutes.form(id)}/rules` },
+  { id: "settings", label: "Settings", path: (id: string) => `${appRoutes.form(id)}/settings` },
+  { id: "embed", label: "Embed", path: (id: string) => `${appRoutes.form(id)}/embed` },
+  { id: "preview", label: "Preview", path: (id: string) => `${appRoutes.form(id)}/preview` },
+  { id: "submissions", label: "Submissions", path: (id: string) => `${appRoutes.form(id)}/submissions` },
 ];
 
 export function FormTabNav({ formId }: { formId: string }) {

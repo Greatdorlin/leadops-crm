@@ -3,20 +3,13 @@ import { Eye } from "lucide-react";
 import { SectionHeader } from "@/components/admin/SectionHeader";
 import { GlassSurface } from "@/components/admin/ui/GlassSurface";
 import { SmoothButton } from "@/components/admin/ui/SmoothButton";
+import { getFormById } from "@/lib/crm/form-builder-store";
 
 export const dynamic = "force-dynamic";
 
-async function fetchForm(formId: string) {
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
-  const res = await fetch(`${baseUrl}/api/admin/forms/${formId}`, { cache: "no-store" });
-  if (!res.ok) return null;
-  const data = await res.json();
-  return data.form as { slug: string; isPublic: boolean } | null;
-}
-
 export default async function FormPreviewPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const form = await fetchForm(id);
+  const form = await getFormById(id);
 
   if (!form) {
     return (

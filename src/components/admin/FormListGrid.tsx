@@ -11,7 +11,6 @@ import {
   ListChecks,
   Inbox,
   ExternalLink,
-  AlertCircle,
 } from "lucide-react";
 import { SmoothButton } from "@/components/admin/ui/SmoothButton";
 import { EmptyState } from "@/components/admin/EmptyState";
@@ -229,36 +228,6 @@ export function FormListGrid({
 }) {
   const [forms, setForms] = useState<FormWithCounts[]>(initialForms);
   const canManage = canManageForms({ accessLevel, role });
-  const [creating, setCreating] = useState(false);
-  const [createError, setCreateError] = useState<string | null>(null);
-
-  async function handleCreate() {
-    const name = prompt("Enter form name:");
-    if (!name) return;
-    const slug = name.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "");
-    if (!slug) return;
-
-    setCreating(true);
-    setCreateError(null);
-    try {
-      const res = await fetch(`/api/admin/forms`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, slug }),
-      });
-      const data = await res.json().catch(() => ({}));
-      if (res.ok && data.form) {
-        window.location.href = appRoutes.form(data.form.id);
-      } else {
-        setCreateError(data.error || "Failed to create form.");
-      }
-    } catch (e) {
-      console.error(e);
-      setCreateError("Failed to create form.");
-    } finally {
-      setCreating(false);
-    }
-  }
 
   function handleDelete(id: string) {
     setForms((prev) => prev.filter((f) => f.id !== id));
@@ -306,24 +275,14 @@ export function FormListGrid({
           <p className="mt-1 text-sm text-white/70">Manage forms, fields, and submission rules.</p>
         </div>
         {canManage ? (
-          <SmoothButton
-            variant="primary"
-            size="md"
-            loading={creating}
-            onClick={handleCreate}
-            className="shrink-0"
+          <Link
+            href={appRoutes.formsNew}
+            className="admin-button-primary inline-flex h-11 shrink-0 items-center justify-center rounded-2xl px-5 text-sm font-semibold"
           >
             Create new form
-          </SmoothButton>
+          </Link>
         ) : null}
       </div>
-
-      {createError ? (
-        <div className="flex items-center gap-2 rounded-[16px] border border-rose-400/25 bg-rose-500/10 px-4 py-3 text-sm text-rose-100">
-          <AlertCircle className="h-4 w-4 shrink-0" />
-          {createError}
-        </div>
-      ) : null}
 
       {forms.length === 0 ? (
         <EmptyState
@@ -332,9 +291,12 @@ export function FormListGrid({
           icon={FileText}
           action={
             canManage ? (
-              <SmoothButton variant="primary" size="md" onClick={handleCreate} loading={creating}>
+              <Link
+                href={appRoutes.formsNew}
+                className="admin-button-primary inline-flex h-11 items-center justify-center rounded-2xl px-5 text-sm font-semibold"
+              >
                 Create new form
-              </SmoothButton>
+              </Link>
             ) : null
           }
         />

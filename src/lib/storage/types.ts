@@ -8,6 +8,7 @@ import type {
   LeadNoteRecord,
   LeadPriority,
   LeadRecord,
+  CrmStatus,
   LeadSource,
   LeadSourcePayloadRecord,
   LeadTaskRecord,
@@ -15,13 +16,17 @@ import type {
   SyncJobRecord,
   SyncJobStatus,
 } from "../crm/types";
+import type { SalesPipelineAggregate } from "../crm/sales-metrics";
+import type { TeamPerformanceRow } from "../admin-insights";
 
 export interface LeadListFilters {
   stageId?: string | "all";
+  status?: "all" | CrmStatus;
   sourceId?: string | "all";
   source?: "all" | LeadSource;
   priority?: "all" | LeadPriority;
   leadCustomerType?: "all" | LeadCustomerType;
+  assignment?: "unassigned";
   assignedTo?: string;
   assignedUserId?: string;
   search?: string;
@@ -108,6 +113,13 @@ export interface LeadDuplicateLookupInput {
   whatsappNumber?: string | null;
 }
 
+export interface LeadDuplicateListInput extends LeadDuplicateLookupInput {
+  excludeId: string;
+  assignedTo?: string;
+  assignment?: "unassigned";
+  limit?: number;
+}
+
 export interface LeadEventCreateInput {
   leadId: string;
   eventType: string;
@@ -132,6 +144,7 @@ export interface LeadTaskCreateInput {
 
 export interface LeadTaskListFilters {
   leadId?: string;
+  leadIds?: string[];
   assignedTo?: string;
   stageId?: string;
   completion?: "all" | "open" | "completed";
@@ -139,6 +152,7 @@ export interface LeadTaskListFilters {
   dueBefore?: string | Date;
   dueAfter?: string | Date;
   overdueOnly?: boolean;
+  limit?: number;
 }
 
 export interface LeadProfileUpdateInput {
@@ -169,6 +183,23 @@ export interface LeadProfileUpdateInput {
   lostAt?: string | Date | null;
   lostReason?: string | null;
   nextFollowUpAt?: string | Date | null;
+}
+
+export interface LeadEventCountFilters {
+  eventType?: string;
+  source?: LeadSource;
+}
+
+export interface LeadWorkflowUpdateInput {
+  stageId?: string | null;
+  stageKey?: string | null;
+  priority?: LeadPriority;
+  assignedToList?: string[];
+  assignedUserId?: string | null;
+  nextFollowUpAt?: string | Date | null;
+  wonAt?: string | Date | null;
+  lostAt?: string | Date | null;
+  lostReason?: string | null;
 }
 
 export interface LeadSourcePayloadCreateInput {
@@ -264,6 +295,11 @@ export interface SourceReportItem {
   highPriorityCount: number;
 }
 
+export interface LeadDistributionReport {
+  interestReport: Array<{ label: string; value: number }>;
+  locationReport: Array<{ label: string; value: number }>;
+}
+
 export interface CampaignReportItem {
   provider: IntegrationProvider;
   campaignId: string;
@@ -303,17 +339,26 @@ export interface LeadStorage {
   upsertExternalLead(input: ExternalLeadUpsertInput): Promise<ExternalLeadUpsertResult>;
   createExternalLead(input: ExternalLeadUpsertInput): Promise<LeadRecord>;
   findDuplicateLead(input: LeadDuplicateLookupInput): Promise<LeadRecord | null>;
+  listDuplicateLeads(input: LeadDuplicateListInput): Promise<LeadRecord[]>;
   addLeadEvent(input: LeadEventCreateInput): Promise<LeadEventRecord>;
   listLeadEvents(leadId: string): Promise<LeadEventRecord[]>;
+  countLeadEvents(filters?: LeadEventCountFilters): Promise<number>;
   addLeadNote(input: LeadNoteCreateInput): Promise<LeadNoteRecord>;
   listLeadNotes(leadId: string): Promise<LeadNoteRecord[]>;
+  getLeadNoteCounts(leadIds: string[]): Promise<Record<string, number>>;
   addLeadTask(input: LeadTaskCreateInput): Promise<LeadTaskRecord>;
+  getLeadTaskById(taskId: string): Promise<LeadTaskRecord | null>;
   listLeadTasks(filters?: LeadTaskListFilters): Promise<LeadTaskRecord[]>;
   completeLeadTask(taskId: string, completedBy?: string | null): Promise<LeadTaskRecord | null>;
   assignLead(id: string, assignedTo: string | null, changedBy?: string | null): Promise<LeadRecord | null>;
   assignLeadOwners(
     id: string,
     assignedToList: string[],
+    changedBy?: string | null,
+  ): Promise<LeadRecord | null>;
+  updateLeadWorkflow(
+    id: string,
+    input: LeadWorkflowUpdateInput,
     changedBy?: string | null,
   ): Promise<LeadRecord | null>;
   updateLeadProfile(
@@ -341,8 +386,12 @@ export interface LeadStorage {
   upsertAdCampaignMetric(input: AdCampaignMetricUpsertInput): Promise<AdCampaignMetricRecord>;
   listAdCampaignMetrics(filters?: AdCampaignMetricListFilters): Promise<AdCampaignMetricRecord[]>;
   getDashboardStats(filters?: LeadListFilters): Promise<CrmDashboardStats>;
+  getSalesPipelineAggregate(filters?: LeadListFilters): Promise<SalesPipelineAggregate>;
+  getTeamPerformance(): Promise<TeamPerformanceRow[]>;
+  getLeadDistributionReport(filters?: LeadListFilters): Promise<LeadDistributionReport>;
   getSourceReport(): Promise<SourceReportItem[]>;
   getCampaignReport(): Promise<CampaignReportItem[]>;
+  countGoogleAdsCampaignLeads(input: { campaignId: string; campaignName: string }): Promise<number>;
   listCrmUsers(): Promise<CrmUserRecord[]>;
   getCrmUserById(id: string): Promise<CrmUserRecord | null>;
   getCrmUserByEmail(email: string): Promise<CrmUserRecord | null>;

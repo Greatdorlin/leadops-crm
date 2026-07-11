@@ -14,25 +14,28 @@ import {
   listSalesTargets,
 } from "@/lib/crm/sales-targets-admin";
 import { getCrmPageErrorCopy, logCrmPageError } from "@/lib/crm/runtime";
+import { getCompanySettings } from "@/lib/crm/workspace-settings-server";
 
 export const dynamic = "force-dynamic";
 
 export default async function AdminSalesTargetsPage() {
-  const { role, accessLevel, actualAccessLevel, canSwitchAccessViews } =
+  const { role, accessLevel, actualAccessLevel, canSwitchAccessViews, permissions } =
     await getAdminAccessContext(appRoutes.settingsSalesTargets);
 
-  if (!canManageSalesTargets({ accessLevel, role })) {
+  if (!canManageSalesTargets({ accessLevel, permissions, role })) {
     redirect(appRoutes.settings);
   }
 
   let targets = null;
   let referenceData = null;
+  let workspaceSettings = null;
   let pageError: unknown = null;
 
   try {
-    [targets, referenceData] = await Promise.all([
+    [targets, referenceData, workspaceSettings] = await Promise.all([
       listSalesTargets({ includeArchived: true }),
       getSalesTargetReferenceData(),
+      getCompanySettings(),
     ]);
   } catch (error) {
     pageError = error;
@@ -42,7 +45,8 @@ export default async function AdminSalesTargetsPage() {
   const defaultCurrency =
     targets?.find((target) => !target.archived)?.currency ??
     targets?.[0]?.currency ??
-    "NGN";
+    workspaceSettings?.globalCurrency ??
+    "USD";
 
   return (
     <AdminShell

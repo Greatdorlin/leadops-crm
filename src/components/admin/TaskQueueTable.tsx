@@ -40,12 +40,14 @@ export function TaskQueueTable({
   leadStateById = {},
   emptyTitle,
   emptyDescription,
+  canCompleteTasks = true,
 }: {
   tasks: LeadTaskRecord[];
   leadNamesById: Record<string, string>;
   leadStateById?: Record<string, string | null | undefined>;
   emptyTitle: string;
   emptyDescription: string;
+  canCompleteTasks?: boolean;
 }) {
   if (tasks.length === 0) {
     return <EmptyState title={emptyTitle} description={emptyDescription} />;
@@ -109,7 +111,9 @@ export function TaskQueueTable({
                 >
                   Open lead
                 </Link>
-                {!task.completedAt ? <LeadTaskCompleteButton taskId={task.id} /> : null}
+                {canCompleteTasks && !task.completedAt ? (
+                  <LeadTaskCompleteButton taskId={task.id} />
+                ) : null}
               </div>
             </div>
           </article>

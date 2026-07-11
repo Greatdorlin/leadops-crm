@@ -26,6 +26,7 @@ Required:
 - `AUTH_SECRET`
 - `AUTH_GOOGLE_ID`
 - `AUTH_GOOGLE_SECRET`
+- `NEXTAUTH_URL`
 - `INITIAL_ADMIN_EMAIL`
 - `INITIAL_ADMIN_NAME`
 - `NEXT_PUBLIC_APP_URL`
@@ -54,12 +55,14 @@ Whatever provider you use, Leads Desk should only depend on the final `DATABASE_
 
 ## 5. Apply Schema And Seed Defaults
 
-Run these as a one-off command or terminal task:
+Run journaled migrations as a trusted pre-deploy command, then seed a new workspace once:
 
 ```bash
-npm run db:push
+npm run db:migrate
 npm run db:seed:defaults:full
 ```
+
+Never use `db:push` for a client production database.
 
 ## 6. Domain And SSL
 

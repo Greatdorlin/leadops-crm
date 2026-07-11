@@ -39,6 +39,7 @@ Create `.env` with production values for:
 - `AUTH_SECRET`
 - `AUTH_GOOGLE_ID`
 - `AUTH_GOOGLE_SECRET`
+- `NEXTAUTH_URL`
 - `INITIAL_ADMIN_EMAIL`
 - `INITIAL_ADMIN_NAME`
 - `ALLOWED_EMAIL_DOMAINS` if needed
@@ -46,27 +47,23 @@ Create `.env` with production values for:
 
 If you use the bundled Postgres container, make sure `DATABASE_URL` matches the Postgres service credentials.
 
-## 4. Start Postgres
+Start from `.env.docker.example` when using the bundled Postgres service. The database password has no unsafe fallback and Postgres is not published to the public host network.
+
+## 4. Build And Start
 
 ```bash
-docker compose up -d postgres
+docker compose up -d --build
 ```
 
-## 5. Build And Start The App
+The one-shot `migrate` service applies journaled migrations before the app starts.
+
+## 5. Seed Defaults On First Install
 
 ```bash
-docker compose build app
-docker compose up -d app
+docker compose run --rm migrate npm run db:seed:defaults:full
 ```
 
-## 6. Apply Schema And Seed Defaults
-
-```bash
-docker compose run --rm app npm run db:push
-docker compose run --rm app npm run db:seed:defaults:full
-```
-
-## 7. Health Check
+## 6. Health Check
 
 Confirm the app is live:
 
@@ -74,9 +71,9 @@ Confirm the app is live:
 curl http://127.0.0.1:3000/api/health
 ```
 
-The endpoint should return `200` only when the production configuration is complete.
+The endpoint returns `200` only when production configuration is complete and the database responds.
 
-## 8. Reverse Proxy And SSL
+## 7. Reverse Proxy And SSL
 
 Put the app behind Caddy, Nginx, Traefik, or a platform proxy that handles TLS.
 
@@ -86,13 +83,13 @@ Required outcome:
 - public base URL matches the OAuth callback configuration
 - only ports 80 and 443 are exposed publicly
 
-## 9. Backups
+## 8. Backups
 
 Set a recurring `pg_dump` job and test restore before client handover.
 
 See [BACKUP_AND_RESTORE.md](./BACKUP_AND_RESTORE.md).
 
-## 10. Production Checks
+## 9. Production Checks
 
 Before handover, confirm:
 

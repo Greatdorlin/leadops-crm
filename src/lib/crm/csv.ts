@@ -23,6 +23,15 @@ const headerAliases = {
   assignedTo: ["assignedto", "assigned to", "owner", "leadowner", "lead owner", "assignee"],
   source: ["source", "leadsource", "lead source", "channel"],
   sourceDetail: ["sourcedetail", "source detail", "notes", "note", "details"],
+  sourceRecordId: ["record id", "recordid", "contact id", "contactid", "lead id", "leadid", "id"],
+  sourceUpdatedAt: ["last modified date", "lastmodifieddate", "modified time", "modifiedtime", "updated at", "updatedat"],
+  companyName: ["company", "company name", "companyname", "account name", "accountname", "organization", "organisation"],
+  country: ["country", "country region", "countryregion"],
+  region: ["region", "state province", "stateprovince", "province"],
+  city: ["city", "town"],
+  address: ["address", "street", "street address", "streetaddress"],
+  postalCode: ["postal code", "postalcode", "zip", "zipcode", "zip code"],
+  estimatedValue: ["estimated value", "estimatedvalue", "potential value", "potentialvalue", "amount", "deal amount", "dealamount"],
 } as const;
 
 export interface ParsedLeadImportRow {
@@ -39,6 +48,27 @@ export interface ParsedLeadImportRow {
   source: LeadSource;
   sourceDetail: string | null;
   customFieldValues?: Record<string, unknown>;
+  companyName?: string;
+  country?: string;
+  region?: string;
+  city?: string;
+  address?: string;
+  postalCode?: string;
+  estimatedValue?: number;
+}
+
+export interface LeadImportAnalysisRow {
+  rowNumber: number;
+  sourceRecordId: string | null;
+  sourceUpdatedAt: string | null;
+  rawPayload: Record<string, unknown>;
+  parsedRow: ParsedLeadImportRow | null;
+  error: string | null;
+}
+
+export interface LeadImportAnalysis {
+  headers: string[];
+  rows: LeadImportAnalysisRow[];
 }
 
 function normalizeHeader(value: string) {
@@ -70,6 +100,42 @@ function parseEnumValue<const T extends readonly string[]>(rawValue: string, val
 
   const normalized = rawValue.trim().toLowerCase().replace(/[\s-]+/g, "_");
   return values.find((value) => value === normalized) ?? null;
+}
+
+function parseImportedStage(rawValue: string): CrmStatus {
+  const exact = parseEnumValue(rawValue, CRM_STATUSES);
+  if (exact) {
+    return exact;
+  }
+
+  const normalized = normalizeHeader(rawValue);
+  const aliases: Record<string, CrmStatus> = {
+    lead: "new",
+    subscriber: "new",
+    open: "new",
+    "attempted to contact": "contacted",
+    "in progress": "contacted",
+    "marketing qualified lead": "qualified",
+    "sales qualified lead": "qualified",
+    opportunity: "qualified",
+    proposal: "application_started",
+    customer: "converted",
+    "closed won": "converted",
+    won: "converted",
+    "closed lost": "lost",
+    disqualified: "unqualified",
+  };
+  return aliases[normalized] ?? "new";
+}
+
+function parseImportedNumber(rawValue: string) {
+  if (!rawValue.trim()) {
+    return null;
+  }
+
+  const normalized = rawValue.replace(/[^0-9.-]+/g, "");
+  const value = Number(normalized);
+  return Number.isFinite(value) && value >= 0 ? value : null;
 }
 
 function splitFullName(value: string) {
@@ -195,66 +261,130 @@ export function parseCsvText(csvText: string) {
   return rows;
 }
 
-export function parseLeadImportCsv(
-  csvText: string,
-  options: {
-    customFieldDefinitions?: CustomFieldDefinitionWithOptions[];
-  } = {},
+type LeadImportCsvOptions = {
+  customFieldDefinitions?: CustomFieldDefinitionWithOptions[];
+};
+
+function parseLeadImportRow(
+  headers: string[],
+  row: string[],
+  rowNumber: number,
+  options: LeadImportCsvOptions,
 ) {
+  const email = readColumn(headers, row, headerAliases.email) || null;
+  const whatsappNumber = readColumn(headers, row, headerAliases.whatsappNumber) || null;
+  const firstNameValue = readColumn(headers, row, headerAliases.firstName);
+  const lastNameValue = readColumn(headers, row, headerAliases.lastName);
+  const fullNameValue = readColumn(headers, row, headerAliases.fullName);
+  const fullName = fullNameValue ? splitFullName(fullNameValue) : null;
+  const firstName = inferFirstName({
+    firstName: firstNameValue || fullName?.firstName || "",
+    email,
+    whatsappNumber,
+  });
+  const lastName = lastNameValue || fullName?.lastName || "";
+
+  if (!email && !whatsappNumber) {
+    throw new Error(`Row ${rowNumber} needs an email or WhatsApp number.`);
+  }
+
+  const priority = parseEnumValue(readColumn(headers, row, headerAliases.priority), LEAD_PRIORITIES) ?? "medium";
+  const category = readColumn(headers, row, headerAliases.category) || null;
+  const source = parseEnumValue(readColumn(headers, row, headerAliases.source), LEAD_SOURCES) ?? "manual_entry";
+  const customFieldValues =
+    options.customFieldDefinitions && options.customFieldDefinitions.length > 0
+      ? mapCsvRowToCustomFieldValues(headers, row, options.customFieldDefinitions)
+      : undefined;
+  const optionalText = {
+    companyName: readColumn(headers, row, headerAliases.companyName),
+    country: readColumn(headers, row, headerAliases.country),
+    region: readColumn(headers, row, headerAliases.region),
+    city: readColumn(headers, row, headerAliases.city),
+    address: readColumn(headers, row, headerAliases.address),
+    postalCode: readColumn(headers, row, headerAliases.postalCode),
+  };
+  const estimatedValue = parseImportedNumber(readColumn(headers, row, headerAliases.estimatedValue));
+
+  return {
+    rowNumber,
+    firstName: firstName || "Lead",
+    lastName,
+    email,
+    whatsappNumber,
+    state: readColumn(headers, row, headerAliases.state) || optionalText.region || null,
+    category,
+    stage: parseImportedStage(readColumn(headers, row, headerAliases.crmStatus)),
+    priority,
+    assignedTo: readColumn(headers, row, headerAliases.assignedTo) || null,
+    source,
+    sourceDetail: readColumn(headers, row, headerAliases.sourceDetail) || null,
+    ...(customFieldValues && Object.keys(customFieldValues).length > 0
+      ? { customFieldValues }
+      : {}),
+    ...Object.fromEntries(
+      Object.entries(optionalText).filter(([, value]) => value.length > 0),
+    ),
+    ...(estimatedValue === null ? {} : { estimatedValue }),
+  } as ParsedLeadImportRow;
+}
+
+export function analyzeLeadImportCsv(
+  csvText: string,
+  options: LeadImportCsvOptions = {},
+): LeadImportAnalysis {
   const rows = parseCsvText(csvText);
   if (rows.length < 2) {
     throw new Error("Add a header row and at least one lead row before importing.");
   }
 
   const [headers, ...dataRows] = rows;
-  const parsedRows: ParsedLeadImportRow[] = [];
-
-  for (const [index, row] of dataRows.entries()) {
+  return {
+    headers,
+    rows: dataRows.map((row, index) => {
     const rowNumber = index + 2;
-    const email = readColumn(headers, row, headerAliases.email) || null;
-    const whatsappNumber = readColumn(headers, row, headerAliases.whatsappNumber) || null;
-    const firstNameValue = readColumn(headers, row, headerAliases.firstName);
-    const lastNameValue = readColumn(headers, row, headerAliases.lastName);
-    const fullNameValue = readColumn(headers, row, headerAliases.fullName);
-    const fullName = fullNameValue ? splitFullName(fullNameValue) : null;
-    const firstName = inferFirstName({
-      firstName: firstNameValue || fullName?.firstName || "",
-      email,
-      whatsappNumber,
-    });
-    const lastName = lastNameValue || fullName?.lastName || "";
+      const sourceRecordId = readColumn(headers, row, headerAliases.sourceRecordId) || null;
+      const sourceUpdatedRaw = readColumn(headers, row, headerAliases.sourceUpdatedAt);
+      const sourceUpdatedDate = sourceUpdatedRaw ? new Date(sourceUpdatedRaw) : null;
+      const sourceUpdatedAt = sourceUpdatedDate && Number.isFinite(sourceUpdatedDate.getTime())
+        ? sourceUpdatedDate.toISOString()
+        : null;
+      const rawPayload = {
+        headers: [...headers],
+        values: [...row],
+      };
 
-    if (!email && !whatsappNumber) {
-      throw new Error(`Row ${rowNumber} needs an email or WhatsApp number.`);
-    }
+      try {
+        return {
+          rowNumber,
+          sourceRecordId,
+          sourceUpdatedAt,
+          rawPayload,
+          parsedRow: parseLeadImportRow(headers, row, rowNumber, options),
+          error: null,
+        };
+      } catch (error) {
+        return {
+          rowNumber,
+          sourceRecordId,
+          sourceUpdatedAt,
+          rawPayload,
+          parsedRow: null,
+          error: error instanceof Error ? error.message : `Row ${rowNumber} could not be parsed.`,
+        };
+      }
+    }),
+  };
+}
 
-    const crmStatus = parseEnumValue(readColumn(headers, row, headerAliases.crmStatus), CRM_STATUSES) ?? "new";
-    const priority = parseEnumValue(readColumn(headers, row, headerAliases.priority), LEAD_PRIORITIES) ?? "medium";
-    const category = readColumn(headers, row, headerAliases.category) || null;
-    const source = parseEnumValue(readColumn(headers, row, headerAliases.source), LEAD_SOURCES) ?? "manual_entry";
-    const customFieldValues =
-      options.customFieldDefinitions && options.customFieldDefinitions.length > 0
-        ? mapCsvRowToCustomFieldValues(headers, row, options.customFieldDefinitions)
-        : undefined;
-
-    parsedRows.push({
-      rowNumber,
-      firstName: firstName || "Lead",
-      lastName,
-      email,
-      whatsappNumber,
-      state: readColumn(headers, row, headerAliases.state) || null,
-      category,
-      stage: crmStatus,
-      priority,
-      assignedTo: readColumn(headers, row, headerAliases.assignedTo) || null,
-      source,
-      sourceDetail: readColumn(headers, row, headerAliases.sourceDetail) || null,
-      ...(customFieldValues && Object.keys(customFieldValues).length > 0
-        ? { customFieldValues }
-        : {}),
-    });
+export function parseLeadImportCsv(
+  csvText: string,
+  options: LeadImportCsvOptions = {},
+) {
+  const analysis = analyzeLeadImportCsv(csvText, options);
+  const firstError = analysis.rows.find((row) => row.error)?.error;
+  if (firstError) {
+    throw new Error(firstError);
   }
 
-  return parsedRows;
+  return analysis.rows.flatMap((row) => (row.parsedRow ? [row.parsedRow] : []));
 }

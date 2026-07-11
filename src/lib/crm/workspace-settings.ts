@@ -1,11 +1,7 @@
-import { asc, eq } from "drizzle-orm";
 import { z } from "zod";
-import { getDb } from "@/lib/db/client";
-import { companySettings } from "@/lib/db/schema";
 import type { CustomFieldDefinition } from "@/lib/crm/domain";
-import { createCustomField, listCustomFields } from "@/lib/crm/custom-fields-admin";
-import { createLeadSource, listLeadSources } from "@/lib/crm/lead-sources-admin";
-import { createLeadStage, listLeadStages } from "@/lib/crm/lead-stages-admin";
+import { getContrastColor, getContrastRatio } from "@/lib/design-system";
+import { isSafeImageSource } from "@/lib/security/url-safety";
 
 export const THEME_MODES = ["light", "dark", "system"] as const;
 export const DESIGN_STYLES = ["modern", "classic", "compact", "liquid_glass"] as const;
@@ -148,6 +144,23 @@ export interface ResolvedWorkspaceSettings extends WorkspaceAppearanceSettings {
   industryPreset: IndustryPresetKey;
 }
 
+type WorkspaceSettingsScalarRow = {
+  [Key in Exclude<keyof WorkspaceAppearanceSettings, "fontScale">]?:
+    | (NonNullable<WorkspaceAppearanceSettings[Key]> extends string
+        ? string
+        : WorkspaceAppearanceSettings[Key])
+    | null;
+};
+
+export type WorkspaceSettingsRowLike = WorkspaceSettingsScalarRow & {
+  id?: string | null;
+  fontScale?: string | number | null;
+  navigationConfig?: unknown;
+  dashboardConfig?: unknown;
+  leadPreviewConfig?: unknown;
+  industryPreset?: string | null;
+};
+
 export interface VerticalPresetDefinition {
   key: IndustryPresetKey;
   label: string;
@@ -175,6 +188,24 @@ function normalizeHexColor(value: string | null | undefined, fallback: string) {
   return /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(normalized) ? normalized : fallback;
 }
 
+function normalizeReadableSurfaceColor(
+  value: string | null | undefined,
+  fallback: string,
+) {
+  const normalized = normalizeHexColor(value, fallback);
+  return getContrastRatio(normalized, "#ffffff") >= 4.5 ? normalized : fallback;
+}
+
+function normalizeReadableTextColor(
+  value: string | null | undefined,
+  surfaces: string[],
+) {
+  const normalized = normalizeHexColor(value, DEFAULT_WORKSPACE_APPEARANCE.textColor);
+  return surfaces.every((surface) => getContrastRatio(normalized, surface) >= 4.5)
+    ? normalized
+    : DEFAULT_WORKSPACE_APPEARANCE.textColor;
+}
+
 function normalizeOptionalString(value: unknown) {
   if (typeof value !== "string") {
     return null;
@@ -188,20 +219,13 @@ const urlOrRootPathSchema = (label: string) =>
   z
     .string()
     .trim()
+    .max(2_900_000, `${label} must stay under 2MB.`)
     .refine((value) => {
       if (value.length === 0) {
         return true;
       }
 
-      if (value.startsWith("/")) {
-        return !value.startsWith("//");
-      }
-
-      if (/^data:image\/(png|jpe?g|webp|gif|svg\+xml);base64,[a-z0-9+/=]+$/i.test(value)) {
-        return true;
-      }
-
-      return z.string().url().safeParse(value).success;
+      return isSafeImageSource(value);
     }, `${label} must be a valid image upload, URL, or root-relative path.`);
 
 function normalizeDisplayString(value: unknown, fallback: string) {
@@ -395,6 +419,67 @@ export const VERTICAL_PRESET_DEFINITIONS: Record<IndustryPresetKey, VerticalPres
   },
 };
 
+const appearanceColorSchema = z
+  .string()
+  .trim()
+  .regex(/^#[0-9a-f]{6}$/i, "Use a six-digit hex color such as #0f172a.");
+
+const protectedSurfaceFields = [
+  ["backgroundColor", "Background"],
+  ["surfaceColor", "Surface"],
+  ["cardColor", "Card"],
+  ["sidebarColor", "Sidebar"],
+] as const;
+
+type AppearanceContrastInput = Pick<
+  WorkspaceAppearanceSettings,
+  | "backgroundColor"
+  | "surfaceColor"
+  | "cardColor"
+  | "sidebarColor"
+  | "textColor"
+  | "themeMode"
+>;
+
+export interface AppearanceContrastIssue {
+  field: keyof AppearanceContrastInput;
+  message: string;
+}
+
+export function getWorkspaceAppearanceContrastIssues(
+  settings: AppearanceContrastInput,
+): AppearanceContrastIssue[] {
+  const issues: AppearanceContrastIssue[] = [];
+
+  if (settings.themeMode !== "dark") {
+    issues.push({
+      field: "themeMode",
+      message: "The release workspace uses the protected dark theme.",
+    });
+  }
+
+  for (const [field, label] of protectedSurfaceFields) {
+    if (getContrastRatio(settings[field], "#ffffff") < 4.5) {
+      issues.push({
+        field,
+        message: `${label} must stay dark enough for readable interface text.`,
+      });
+    }
+  }
+
+  const hasReadableConfiguredText = protectedSurfaceFields.every(
+    ([field]) => getContrastRatio(settings[field], settings.textColor) >= 4.5,
+  );
+  if (!hasReadableConfiguredText) {
+    issues.push({
+      field: "textColor",
+      message: "Text color must remain readable on every workspace surface.",
+    });
+  }
+
+  return issues;
+}
+
 export const appearanceSettingsSchema = z.object({
   companyName: z.string().trim().min(1, "Company name is required."),
   logoUrl: urlOrRootPathSchema("Logo URL").optional().nullable(),
@@ -404,14 +489,14 @@ export const appearanceSettingsSchema = z.object({
   loginLogoUrl: urlOrRootPathSchema("Login logo URL").optional().nullable(),
   loginLogoUrlLightMode: urlOrRootPathSchema("Light mode login logo URL").optional().nullable(),
   loginLogoUrlDarkMode: urlOrRootPathSchema("Dark mode login logo URL").optional().nullable(),
-  primaryColor: z.string().trim(),
-  accentColor: z.string().trim(),
-  backgroundColor: z.string().trim(),
-  surfaceColor: z.string().trim(),
-  cardColor: z.string().trim(),
-  sidebarColor: z.string().trim(),
-  textColor: z.string().trim(),
-  borderColor: z.string().trim(),
+  primaryColor: appearanceColorSchema,
+  accentColor: appearanceColorSchema,
+  backgroundColor: appearanceColorSchema,
+  surfaceColor: appearanceColorSchema,
+  cardColor: appearanceColorSchema,
+  sidebarColor: appearanceColorSchema,
+  textColor: appearanceColorSchema,
+  borderColor: appearanceColorSchema,
   borderRadius: z.coerce.number().int().min(8).max(40),
   fontScale: z.coerce.number().min(0.9).max(1.15),
   fontPreset: z.enum(FONT_PRESETS),
@@ -427,6 +512,14 @@ export const appearanceSettingsSchema = z.object({
   loginBackgroundUrl: urlOrRootPathSchema("Login background URL").optional().nullable(),
   loginHeadline: z.string().trim().min(1, "Login headline is required."),
   loginSubheadline: z.string().trim().min(1, "Login subheadline is required."),
+}).superRefine((settings, context) => {
+  for (const issue of getWorkspaceAppearanceContrastIssues(settings)) {
+    context.addIssue({
+      code: "custom",
+      message: issue.message,
+      path: [issue.field],
+    });
+  }
 });
 
 export const navigationSettingsSchema = z.object({
@@ -511,12 +604,35 @@ function parseLeadPreviewConfig(raw: unknown): LeadPreviewCustomizationConfig {
   };
 }
 
-function normalizeAppearanceRow(
-  row?: typeof companySettings.$inferSelect | null,
+export function resolveStoredWorkspaceSettings(
+  row?: WorkspaceSettingsRowLike | null,
 ): ResolvedWorkspaceSettings {
   const globalCurrency = typeof row?.globalCurrency === "string" && row.globalCurrency.trim().length === 3
     ? row.globalCurrency.trim().toUpperCase()
     : DEFAULT_WORKSPACE_APPEARANCE.globalCurrency;
+
+  const backgroundColor = normalizeReadableSurfaceColor(
+    row?.backgroundColor,
+    DEFAULT_WORKSPACE_APPEARANCE.backgroundColor,
+  );
+  const surfaceColor = normalizeReadableSurfaceColor(
+    row?.surfaceColor,
+    DEFAULT_WORKSPACE_APPEARANCE.surfaceColor,
+  );
+  const cardColor = normalizeReadableSurfaceColor(
+    row?.cardColor,
+    DEFAULT_WORKSPACE_APPEARANCE.cardColor,
+  );
+  const sidebarColor = normalizeReadableSurfaceColor(
+    row?.sidebarColor,
+    DEFAULT_WORKSPACE_APPEARANCE.sidebarColor,
+  );
+  const textColor = normalizeReadableTextColor(row?.textColor, [
+    backgroundColor,
+    surfaceColor,
+    cardColor,
+    sidebarColor,
+  ]);
 
   const appearance = {
     companyName: normalizeDisplayString(row?.companyName, DEFAULT_WORKSPACE_APPEARANCE.companyName),
@@ -529,11 +645,11 @@ function normalizeAppearanceRow(
     loginLogoUrlDarkMode: normalizeOptionalString(row?.loginLogoUrlDarkMode),
     primaryColor: normalizeHexColor(row?.primaryColor, DEFAULT_WORKSPACE_APPEARANCE.primaryColor),
     accentColor: normalizeHexColor(row?.accentColor, DEFAULT_WORKSPACE_APPEARANCE.accentColor),
-    backgroundColor: normalizeHexColor(row?.backgroundColor, DEFAULT_WORKSPACE_APPEARANCE.backgroundColor),
-    surfaceColor: normalizeHexColor(row?.surfaceColor, DEFAULT_WORKSPACE_APPEARANCE.surfaceColor),
-    cardColor: normalizeHexColor(row?.cardColor, DEFAULT_WORKSPACE_APPEARANCE.cardColor),
-    sidebarColor: normalizeHexColor(row?.sidebarColor, DEFAULT_WORKSPACE_APPEARANCE.sidebarColor),
-    textColor: normalizeHexColor(row?.textColor, DEFAULT_WORKSPACE_APPEARANCE.textColor),
+    backgroundColor,
+    surfaceColor,
+    cardColor,
+    sidebarColor,
+    textColor,
     borderColor: normalizeHexColor(row?.borderColor, DEFAULT_WORKSPACE_APPEARANCE.borderColor),
     borderRadius: clampNumber(row?.borderRadius ?? DEFAULT_WORKSPACE_APPEARANCE.borderRadius, 8, 40),
     fontScale: clampNumber(Number(row?.fontScale ?? DEFAULT_WORKSPACE_APPEARANCE.fontScale), 0.9, 1.15),
@@ -543,9 +659,7 @@ function normalizeAppearanceRow(
     density: DENSITY_OPTIONS.includes((row?.density ?? "") as DensityOption)
       ? (row?.density as DensityOption)
       : DEFAULT_WORKSPACE_APPEARANCE.density,
-    themeMode: THEME_MODES.includes((row?.themeMode ?? "") as ThemeMode)
-      ? (row?.themeMode as ThemeMode)
-      : DEFAULT_WORKSPACE_APPEARANCE.themeMode,
+    themeMode: "dark" as const,
     designStyle: DESIGN_STYLES.includes((row?.designStyle ?? "") as DesignStyle)
       ? (row?.designStyle as DesignStyle)
       : DEFAULT_WORKSPACE_APPEARANCE.designStyle,
@@ -588,9 +702,7 @@ export function getResolvedThemeSettings(settings?: Partial<ResolvedWorkspaceSet
   };
 
   return {
-    themeMode: THEME_MODES.includes(resolved.themeMode as ThemeMode)
-      ? (resolved.themeMode as ThemeMode)
-      : DEFAULT_WORKSPACE_APPEARANCE.themeMode,
+    themeMode: "dark" as const,
     designStyle: DESIGN_STYLES.includes(resolved.designStyle as DesignStyle)
       ? (resolved.designStyle as DesignStyle)
       : DEFAULT_WORKSPACE_APPEARANCE.designStyle,
@@ -663,32 +775,68 @@ export function buildThemeCssVariables(settings: WorkspaceAppearanceSettings) {
     : 'url("/backgrounds/bg-butterfly-glass.png")';
   const glassOpacity = clampNumber(settings.glassOpacity, 0, 100) / 100;
   const glassBlur = `${clampNumber(settings.glassBlur, 0, 40)}px`;
+  const backgroundColor = normalizeReadableSurfaceColor(
+    settings.backgroundColor,
+    DEFAULT_WORKSPACE_APPEARANCE.backgroundColor,
+  );
+  const surfaceColor = normalizeReadableSurfaceColor(
+    settings.surfaceColor,
+    DEFAULT_WORKSPACE_APPEARANCE.surfaceColor,
+  );
+  const cardColor = normalizeReadableSurfaceColor(
+    settings.cardColor,
+    DEFAULT_WORKSPACE_APPEARANCE.cardColor,
+  );
+  const sidebarColor = normalizeReadableSurfaceColor(
+    settings.sidebarColor,
+    DEFAULT_WORKSPACE_APPEARANCE.sidebarColor,
+  );
+  const textColor = normalizeReadableTextColor(settings.textColor, [
+    backgroundColor,
+    surfaceColor,
+    cardColor,
+    sidebarColor,
+  ]);
+  const primaryColor = normalizeHexColor(
+    settings.primaryColor,
+    DEFAULT_WORKSPACE_APPEARANCE.primaryColor,
+  );
+  const accentColor = normalizeHexColor(
+    settings.accentColor,
+    DEFAULT_WORKSPACE_APPEARANCE.accentColor,
+  );
+  const borderColor = normalizeHexColor(
+    settings.borderColor,
+    DEFAULT_WORKSPACE_APPEARANCE.borderColor,
+  );
 
   return {
-    "--color-primary": settings.primaryColor,
-    "--color-accent": settings.accentColor,
-    "--color-background": settings.backgroundColor,
-    "--color-surface": settings.surfaceColor,
-    "--color-card": settings.cardColor,
-    "--color-card-border": settings.borderColor,
-    "--color-sidebar": settings.sidebarColor,
-    "--color-text": settings.textColor,
+    "--color-primary": primaryColor,
+    "--color-accent": accentColor,
+    "--color-background": backgroundColor,
+    "--color-surface": surfaceColor,
+    "--color-card": cardColor,
+    "--color-card-border": borderColor,
+    "--color-sidebar": sidebarColor,
+    "--color-text": textColor,
     "--radius-ui": `${settings.borderRadius}px`,
     "--font-scale": String(settings.fontScale),
-    "--ld-color-primary": settings.primaryColor,
-    "--ld-color-primary-strong": settings.primaryColor,
-    "--ld-color-accent": settings.accentColor,
-    "--ld-color-background": settings.backgroundColor,
-    "--ld-color-background-soft": settings.surfaceColor,
-    "--ld-color-surface": `color-mix(in srgb, ${settings.surfaceColor} 70%, transparent)`,
-    "--ld-color-surface-strong": `color-mix(in srgb, ${settings.surfaceColor} 84%, transparent)`,
-    "--ld-color-card": `color-mix(in srgb, ${settings.cardColor} 62%, transparent)`,
-    "--ld-color-card-strong": `color-mix(in srgb, ${settings.cardColor} 78%, transparent)`,
-    "--ld-color-card-border": `color-mix(in srgb, ${settings.borderColor} 56%, rgba(255, 255, 255, 0.08))`,
-    "--ld-color-sidebar": `color-mix(in srgb, ${settings.sidebarColor} 84%, transparent)`,
-    "--ld-color-sidebar-active": `color-mix(in srgb, ${settings.primaryColor} 24%, rgba(255, 255, 255, 0.1))`,
-    "--ld-color-text": settings.textColor,
-    "--ld-color-muted": `color-mix(in srgb, ${settings.textColor} 58%, #9ca3af)`,
+    "--ld-color-primary": primaryColor,
+    "--ld-color-primary-strong": primaryColor,
+    "--ld-color-accent": accentColor,
+    "--ld-color-on-primary": getContrastColor(primaryColor),
+    "--ld-color-on-accent": getContrastColor(accentColor),
+    "--ld-color-background": backgroundColor,
+    "--ld-color-background-soft": surfaceColor,
+    "--ld-color-surface": `color-mix(in srgb, ${surfaceColor} 70%, transparent)`,
+    "--ld-color-surface-strong": `color-mix(in srgb, ${surfaceColor} 84%, transparent)`,
+    "--ld-color-card": `color-mix(in srgb, ${cardColor} 62%, transparent)`,
+    "--ld-color-card-strong": `color-mix(in srgb, ${cardColor} 78%, transparent)`,
+    "--ld-color-card-border": `color-mix(in srgb, ${borderColor} 56%, rgba(255, 255, 255, 0.08))`,
+    "--ld-color-sidebar": `color-mix(in srgb, ${sidebarColor} 84%, transparent)`,
+    "--ld-color-sidebar-active": `color-mix(in srgb, ${primaryColor} 24%, rgba(255, 255, 255, 0.1))`,
+    "--ld-color-text": textColor,
+    "--ld-color-muted": `color-mix(in srgb, ${textColor} 58%, #9ca3af)`,
     "--ld-background-image": backgroundImage,
     "--ld-background-overlay-opacity": "0.48",
     "--ld-sidebar-width": "260px",
@@ -818,162 +966,4 @@ export function buildVerticalPresetSettingsPatch(key: IndustryPresetKey) {
       maxCustomFieldColumns: DEFAULT_LEAD_PREVIEW_CONFIG.maxCustomFieldColumns,
     },
   };
-}
-
-export async function getCompanySettings() {
-  try {
-    const db = getDb();
-    const [row] = await db.select().from(companySettings).orderBy(asc(companySettings.createdAt)).limit(1);
-    return normalizeAppearanceRow(row);
-  } catch {
-    return normalizeAppearanceRow(null);
-  }
-}
-
-async function ensureCompanySettingsRow() {
-  const db = getDb();
-  const [existing] = await db.select().from(companySettings).orderBy(asc(companySettings.createdAt)).limit(1);
-  if (existing) {
-    return existing;
-  }
-
-  const [created] = await db.insert(companySettings).values({}).returning();
-  return created;
-}
-
-export async function updateCompanySettings(
-  patch: Partial<WorkspaceAppearanceSettings> & {
-    navigationConfig?: NavigationCustomizationConfig;
-    dashboardConfig?: DashboardCustomizationConfig;
-    leadPreviewConfig?: LeadPreviewCustomizationConfig;
-    industryPreset?: IndustryPresetKey;
-    globalCurrency?: string;
-  },
-) {
-  const db = getDb();
-  const row = await ensureCompanySettingsRow();
-
-  await db
-    .update(companySettings)
-    .set({
-      ...(patch.companyName !== undefined ? { companyName: patch.companyName } : {}),
-      ...(patch.logoUrl !== undefined ? { logoUrl: patch.logoUrl } : {}),
-      ...(patch.logoUrlLightMode !== undefined ? { logoUrlLightMode: patch.logoUrlLightMode } : {}),
-      ...(patch.logoUrlDarkMode !== undefined ? { logoUrlDarkMode: patch.logoUrlDarkMode } : {}),
-      ...(patch.faviconUrl !== undefined ? { faviconUrl: patch.faviconUrl } : {}),
-      ...(patch.loginLogoUrl !== undefined ? { loginLogoUrl: patch.loginLogoUrl } : {}),
-      ...(patch.loginLogoUrlLightMode !== undefined
-        ? { loginLogoUrlLightMode: patch.loginLogoUrlLightMode }
-        : {}),
-      ...(patch.loginLogoUrlDarkMode !== undefined
-        ? { loginLogoUrlDarkMode: patch.loginLogoUrlDarkMode }
-        : {}),
-      ...(patch.primaryColor !== undefined ? { primaryColor: patch.primaryColor } : {}),
-      ...(patch.accentColor !== undefined ? { accentColor: patch.accentColor } : {}),
-      ...(patch.backgroundColor !== undefined ? { backgroundColor: patch.backgroundColor } : {}),
-      ...(patch.surfaceColor !== undefined ? { surfaceColor: patch.surfaceColor } : {}),
-      ...(patch.cardColor !== undefined ? { cardColor: patch.cardColor } : {}),
-      ...(patch.sidebarColor !== undefined ? { sidebarColor: patch.sidebarColor } : {}),
-      ...(patch.textColor !== undefined ? { textColor: patch.textColor } : {}),
-      ...(patch.borderColor !== undefined ? { borderColor: patch.borderColor } : {}),
-      ...(patch.borderRadius !== undefined ? { borderRadius: patch.borderRadius } : {}),
-      ...(patch.fontScale !== undefined ? { fontScale: patch.fontScale.toFixed(2) } : {}),
-      ...(patch.fontPreset !== undefined ? { fontPreset: patch.fontPreset } : {}),
-      ...(patch.density !== undefined ? { density: patch.density } : {}),
-      ...(patch.themeMode !== undefined ? { themeMode: patch.themeMode } : {}),
-      ...(patch.designStyle !== undefined ? { designStyle: patch.designStyle } : {}),
-      ...(patch.glassEnabled !== undefined ? { glassEnabled: patch.glassEnabled } : {}),
-      ...(patch.glassOpacity !== undefined ? { glassOpacity: patch.glassOpacity } : {}),
-      ...(patch.glassBlur !== undefined ? { glassBlur: patch.glassBlur } : {}),
-      ...(patch.celebrationsEnabled !== undefined
-        ? { celebrationsEnabled: patch.celebrationsEnabled }
-        : {}),
-      ...(patch.stageCelebrationsEnabled !== undefined
-        ? { stageCelebrationsEnabled: patch.stageCelebrationsEnabled }
-        : {}),
-      ...(patch.targetCelebrationsEnabled !== undefined
-        ? { targetCelebrationsEnabled: patch.targetCelebrationsEnabled }
-        : {}),
-      ...(patch.loginBackgroundUrl !== undefined ? { loginBackgroundUrl: patch.loginBackgroundUrl } : {}),
-      ...(patch.loginHeadline !== undefined ? { loginHeadline: patch.loginHeadline } : {}),
-      ...(patch.loginSubheadline !== undefined ? { loginSubheadline: patch.loginSubheadline } : {}),
-      ...(patch.navigationConfig !== undefined
-        ? { navigationConfig: patch.navigationConfig as unknown as Record<string, unknown> }
-        : {}),
-      ...(patch.dashboardConfig !== undefined
-        ? { dashboardConfig: patch.dashboardConfig as unknown as Record<string, unknown> }
-        : {}),
-      ...(patch.leadPreviewConfig !== undefined
-        ? { leadPreviewConfig: patch.leadPreviewConfig as unknown as Record<string, unknown> }
-        : {}),
-      ...(patch.industryPreset !== undefined ? { industryPreset: patch.industryPreset } : {}),
-      ...(patch.globalCurrency !== undefined ? { globalCurrency: patch.globalCurrency.toUpperCase() } : {}),
-      updatedAt: new Date(),
-    })
-    .where(eq(companySettings.id, row.id));
-
-  return getCompanySettings();
-}
-
-export async function applyVerticalPreset(
-  key: IndustryPresetKey,
-  options: { applyMissingDefaults?: boolean } = {},
-) {
-  const patch = buildVerticalPresetSettingsPatch(key);
-  const updatedSettings = await updateCompanySettings(patch);
-
-  if (!options.applyMissingDefaults) {
-    return updatedSettings;
-  }
-
-  const preset = getVerticalPreset(key);
-  const [existingStages, existingSources, existingCustomFields] = await Promise.all([
-    listLeadStages(),
-    listLeadSources(),
-    listCustomFields(),
-  ]);
-
-  for (const [index, stageName] of preset.stageNames.entries()) {
-    if (existingStages.some((stage) => stage.name.toLowerCase() === stageName.toLowerCase())) {
-      continue;
-    }
-
-    await createLeadStage({
-      name: stageName,
-      sortOrder: index,
-      isWon: stageName.toLowerCase() === "won",
-      isLost: stageName.toLowerCase() === "lost",
-    });
-  }
-
-  for (const sourceName of preset.sourceNames) {
-    if (existingSources.some((source) => source.name.toLowerCase() === sourceName.toLowerCase())) {
-      continue;
-    }
-
-    await createLeadSource({
-      name: sourceName,
-    });
-  }
-
-  for (const field of preset.recommendedCustomFields) {
-    if (
-      existingCustomFields.some(
-        (current) => current.key === field.key || current.label.toLowerCase() === field.label.toLowerCase(),
-      )
-    ) {
-      continue;
-    }
-
-    await createCustomField({
-      label: field.label,
-      key: field.key,
-      type: field.type as never,
-      showInForm: true,
-      showInDetails: true,
-      showInTable: ["budget", "interest", "property_type", "service_type"].includes(field.key),
-    });
-  }
-
-  return updatedSettings;
 }

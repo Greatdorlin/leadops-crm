@@ -17,9 +17,9 @@ import { appRoutes } from "@/lib/app-routes";
 export const dynamic = "force-dynamic";
 
 export default async function AdminGoogleAdsIntegrationPage() {
-  const { role, accessLevel, actualAccessLevel, canSwitchAccessViews } =
+  const { role, accessLevel, actualAccessLevel, canSwitchAccessViews, permissions } =
     await getAdminAccessContext(appRoutes.integration("google-ads"));
-  if (!canManageIntegrations(accessLevel, role)) {
+  if (!canManageIntegrations(accessLevel, role, permissions)) {
     redirect(appRoutes.dashboard);
   }
 
@@ -27,21 +27,23 @@ export default async function AdminGoogleAdsIntegrationPage() {
     | {
         campaigns: Awaited<ReturnType<typeof leadStore.getCampaignReport>>;
         jobs: Awaited<ReturnType<typeof leadStore.listSyncJobs>>;
-        googleAdsLeads: Awaited<ReturnType<typeof leadStore.list>>;
+        googleAdsLeadCount: number;
+        recentGoogleAdsLeads: Awaited<ReturnType<typeof leadStore.list>>;
         failedPayloads: Awaited<ReturnType<typeof leadStore.listFailedPayloads>>;
       }
     | null = null;
   let pageError: unknown = null;
 
   try {
-    const [campaigns, jobs, googleAdsLeads, failedPayloads] = await Promise.all([
+    const [campaigns, jobs, googleAdsLeadCount, recentGoogleAdsLeads, failedPayloads] = await Promise.all([
       leadStore.getCampaignReport(),
       leadStore.listSyncJobs({ provider: "google_ads", limit: 20 }),
-      leadStore.list({ source: "google_ads" }),
+      leadStore.countLeads({ source: "google_ads" }),
+      leadStore.list({ source: "google_ads", limit: 1 }),
       leadStore.listFailedPayloads("google_ads"),
     ]);
 
-    pageData = { campaigns, jobs, googleAdsLeads, failedPayloads };
+    pageData = { campaigns, jobs, googleAdsLeadCount, recentGoogleAdsLeads, failedPayloads };
   } catch (error) {
     pageError = error;
     logCrmPageError("integrations:google-ads", error);
@@ -108,7 +110,7 @@ export default async function AdminGoogleAdsIntegrationPage() {
               />
               <MetricCard
                 label="Imported leads"
-                value={pageData?.googleAdsLeads.length ?? 0}
+                value={pageData?.googleAdsLeadCount ?? 0}
                 supporting="Leads currently attributed to Google Ads."
               />
               <MetricCard
@@ -170,8 +172,8 @@ export default async function AdminGoogleAdsIntegrationPage() {
                 <MetricCard
                   label="Latest lead"
                   value={
-                    pageData?.googleAdsLeads[0]
-                      ? formatCrmDateTime(pageData.googleAdsLeads[0].createdAt)
+                    pageData?.recentGoogleAdsLeads[0]
+                      ? formatCrmDateTime(pageData.recentGoogleAdsLeads[0].createdAt)
                       : "Not yet"
                   }
                   supporting="Most recent Google Ads lead captured in the CRM."

@@ -5,7 +5,16 @@ import { getAdminRequestContext } from "@/lib/admin";
 import { scopeLeadListFilters } from "@/lib/admin-permissions";
 import { canExportLeads } from "@/lib/crm/authz";
 import { createNotificationEvent } from "@/lib/crm/notification-events";
+import {
+  LeadExportLimitError,
+  listLeadsForSynchronousExport,
+} from "@/lib/crm/lead-export-batches";
 import { leadStore } from "@/lib/storage";
+import { getCompanySettings } from "@/lib/crm/workspace-settings-server";
+import {
+  buildCsvDocument,
+  sanitizeSpreadsheetValues,
+} from "@/lib/crm/spreadsheet-export";
 
 export const dynamic = "force-dynamic";
 
@@ -20,6 +29,7 @@ export async function GET(request: Request) {
       !canExportLeads({
         accessLevel: context.accessLevel,
         email: context.session.user.email,
+        permissions: context.permissions,
         role: context.role,
       })
     ) {
@@ -43,8 +53,13 @@ export async function GET(request: Request) {
       context.session.user.email,
     );
 
-    const leads = await leadStore.list(scopedFilters);
-    const values = await buildLeadExportValues(leads);
+    const [leads, workspaceSettings] = await Promise.all([
+      listLeadsForSynchronousExport(leadStore, scopedFilters),
+      getCompanySettings(),
+    ]);
+    const values = await buildLeadExportValues(leads, {
+      currency: workspaceSettings.globalCurrency,
+    });
     const fileName = buildLeadExportFileName(format);
     if (context.crmUser?.id) {
       await createNotificationEvent({
@@ -56,9 +71,7 @@ export async function GET(request: Request) {
     }
 
     if (format === "csv") {
-      const xlsx = await import("xlsx");
-      const worksheet = xlsx.utils.aoa_to_sheet(values);
-      const csv = xlsx.utils.sheet_to_csv(worksheet);
+      const csv = buildCsvDocument(values);
 
       return new NextResponse(csv, {
         headers: {
@@ -69,16 +82,24 @@ export async function GET(request: Request) {
       });
     }
 
-    const xlsx = await import("xlsx");
-    const worksheet = xlsx.utils.aoa_to_sheet(values);
-    const workbook = xlsx.utils.book_new();
-    xlsx.utils.book_append_sheet(workbook, worksheet, "Leads");
-    const buffer = xlsx.write(workbook, {
-      type: "buffer",
-      bookType: "xlsx",
-    });
+    const { default: writeXlsxFile } = await import("write-excel-file/node");
+    const safeValues = sanitizeSpreadsheetValues(values);
+    const sheetData = safeValues.map((row, rowIndex) =>
+      row.map((value) => ({
+        value,
+        type: String,
+        wrap: true,
+        ...(rowIndex === 0
+          ? { fontWeight: "bold" as const, backgroundColor: "#E2E8F0" }
+          : {}),
+      })),
+    );
+    const buffer = await writeXlsxFile(sheetData, {
+      columns: (safeValues[0] ?? []).map(() => ({ width: 22 })),
+      stickyRowsCount: 1,
+    }).toBuffer();
 
-    return new NextResponse(buffer, {
+    return new NextResponse(new Uint8Array(buffer), {
       headers: {
         "Content-Type":
           "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
@@ -87,6 +108,13 @@ export async function GET(request: Request) {
       },
     });
   } catch (error) {
+    if (error instanceof LeadExportLimitError) {
+      return NextResponse.json(
+        { error: error.message, maxRows: error.maxRows, rowCount: error.rowCount },
+        { status: 422 },
+      );
+    }
+
     return NextResponse.json(
       {
         error: error instanceof Error ? error.message : "Lead export failed.",

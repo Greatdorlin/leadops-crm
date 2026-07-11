@@ -71,7 +71,7 @@ export function DashboardHeroClock({
       <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/70">
         {dateLabel}
       </p>
-      <h2 className="mt-2 font-[family:var(--font-heading)] text-[2.5rem] leading-none tracking-[-0.06em] text-white sm:text-[3rem]">
+      <h2 className="mt-2 break-words font-[family:var(--font-heading)] text-[2.25rem] leading-[1.08] tracking-[-0.055em] text-white sm:text-[3rem] sm:leading-[1.03]">
         {greeting}, <span className={nameClassName}>{name}</span>.
       </h2>
     </>

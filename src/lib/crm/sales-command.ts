@@ -1,5 +1,6 @@
 import { and, asc, eq, gte, inArray, isNull, lte, or } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
+import type { DatabaseExecutor } from "@/lib/db/client";
 import { crmUsers, leadSources, leadStages, leads } from "@/lib/db/schema";
 import type { LeadRecord, LeadSource } from "@/lib/crm/types";
 import { LEADS_DESK_SOURCE_BACKFILL_PLAN, LEADS_DESK_STAGE_BACKFILL_PLAN } from "@/lib/db/defaults";
@@ -277,8 +278,8 @@ export async function resolveLeadSourceIdByLegacySource(source?: LeadSource | nu
 export async function updateLeadSalesCommandFields(
   leadId: string,
   input: LeadSalesCommandUpdateInput,
+  db: DatabaseExecutor = getDb(),
 ) {
-  const db = getDb();
   const closeProbability = clampCloseProbability(input.closeProbability);
   const estimatedValue =
     input.estimatedValue === undefined ? undefined : asNullableNumeric(input.estimatedValue);

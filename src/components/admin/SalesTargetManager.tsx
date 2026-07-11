@@ -49,7 +49,7 @@ function getMonthDraftDates(offset = 0) {
   };
 }
 
-function createEmptyTargetDraft(defaultCurrency = "NGN"): TargetDraft {
+function createEmptyTargetDraft(defaultCurrency = "USD"): TargetDraft {
   const dates = getCurrentMonthDraftDates();
   return {
     name: "Monthly sales target",
@@ -85,7 +85,7 @@ function buildPayload(draft: TargetDraft) {
     scopeId: draft.scope === "global" ? null : draft.scopeId || null,
     period: draft.period,
     targetValue: Number(draft.targetValue || 0),
-    currency: draft.currency || "NGN",
+    currency: draft.currency || "USD",
     startDate: draft.startDate,
     endDate: draft.endDate,
     isActive: draft.isActive,
@@ -342,7 +342,7 @@ function TargetEditor({
 export function SalesTargetManager({
   initialTargets,
   referenceData,
-  defaultCurrency = "NGN",
+  defaultCurrency = "USD",
 }: {
   initialTargets: AdminSalesTargetRecord[];
   referenceData: SalesTargetReferenceData;

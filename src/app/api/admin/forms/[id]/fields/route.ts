@@ -1,26 +1,20 @@
 import { NextResponse } from "next/server";
 import { getAdminRequestContext } from "@/lib/admin";
-import { canManageFormSources } from "@/lib/crm/authz";
+import { canManageForms } from "@/lib/crm/authz";
 import {
+  getFormById,
   listFormFields,
   createFormField,
   reorderFormFields,
 } from "@/lib/crm/form-builder-store";
-
-function validateOptions(raw: unknown): { label: string; value: string }[] | null {
-  if (!Array.isArray(raw)) return null;
-  const valid = raw.filter((item): item is { label: string; value: string } => {
-    if (typeof item !== "object" || item === null) return false;
-    const obj = item as Record<string, unknown>;
-    return typeof obj.label === "string" && typeof obj.value === "string";
-  });
-  return valid.length > 0 ? valid : null;
-}
-
-function validateValidationRules(raw: unknown): Record<string, unknown> | null {
-  if (typeof raw !== "object" || raw === null) return null;
-  return raw as Record<string, unknown>;
-}
+import {
+  formFieldOrderPayloadSchema,
+  formFieldPayloadSchema,
+} from "@/lib/crm/form-field-contract";
+import {
+  FormFieldAdminError,
+  validateFormFieldReferences,
+} from "@/lib/crm/form-field-admin";
 
 export async function GET(
   _request: Request,
@@ -30,8 +24,14 @@ export async function GET(
   if (!context) {
     return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
   }
+  if (!canManageForms(context)) {
+    return NextResponse.json({ error: "Forbidden." }, { status: 403 });
+  }
 
   const { id } = await params;
+  if (!(await getFormById(id))) {
+    return NextResponse.json({ error: "Form not found." }, { status: 404 });
+  }
   const fields = await listFormFields(id);
   return NextResponse.json({ fields });
 }
@@ -45,47 +45,34 @@ export async function POST(
     return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
   }
 
-  if (!canManageFormSources(context)) {
+  if (!canManageForms(context)) {
     return NextResponse.json({ error: "Forbidden." }, { status: 403 });
   }
 
   const { id } = await params;
-  const payload = (await request.json().catch(() => null)) as Record<string, unknown> | null;
-  if (!payload) {
-    return NextResponse.json({ error: "Invalid request body." }, { status: 400 });
+  if (!(await getFormById(id))) {
+    return NextResponse.json({ error: "Form not found." }, { status: 404 });
   }
-
-  const label = typeof payload.label === "string" ? payload.label.trim() : "";
-  const fieldType = typeof payload.fieldType === "string" ? payload.fieldType.trim() : "";
-
-  if (!label) {
-    return NextResponse.json({ error: "Field label is required." }, { status: 400 });
+  const payload = await request.json().catch(() => null);
+  const parsed = formFieldPayloadSchema.safeParse(payload);
+  if (!parsed.success) {
+    return NextResponse.json(
+      { error: parsed.error.issues[0]?.message ?? "Invalid form field." },
+      { status: 400 },
+    );
   }
-  if (!fieldType) {
-    return NextResponse.json({ error: "Field type is required." }, { status: 400 });
-  }
-
-  const options = validateOptions(payload.options);
-  const validationRules = validateValidationRules(payload.validationRules);
 
   try {
+    await validateFormFieldReferences(id, parsed.data);
     const field = await createFormField({
       formId: id,
-      fieldType,
-      label,
-      placeholder: typeof payload.placeholder === "string" ? payload.placeholder.trim() : null,
-      helpText: typeof payload.helpText === "string" ? payload.helpText.trim() : null,
-      isRequired: payload.isRequired === true,
-      isVisible: payload.isVisible !== false,
-      order: typeof payload.order === "number" ? payload.order : 0,
-      options: options as unknown as { label: string; value: string }[] | null,
-      validationRules: validationRules as unknown as Record<string, unknown> | null,
-      mapsToLeadField: typeof payload.mapsToLeadField === "string" ? payload.mapsToLeadField.trim() : null,
-      showWhen: (payload.showWhen as Record<string, unknown> | null) ?? null,
-      defaultValue: typeof payload.defaultValue === "string" ? payload.defaultValue : null,
+      ...parsed.data,
     });
     return NextResponse.json({ field }, { status: 201 });
   } catch (error) {
+    if (error instanceof FormFieldAdminError) {
+      return NextResponse.json({ error: error.message }, { status: 400 });
+    }
     console.error("[form-fields:create]", error);
     return NextResponse.json(
       { error: "We couldn't create this field right now." },
@@ -103,20 +90,39 @@ export async function PUT(
     return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
   }
 
-  if (!canManageFormSources(context)) {
+  if (!canManageForms(context)) {
     return NextResponse.json({ error: "Forbidden." }, { status: 403 });
   }
 
   const { id } = await params;
-  const payload = (await request.json().catch(() => null)) as Record<string, unknown> | null;
-  if (!payload || !Array.isArray(payload.orderedIds)) {
-    return NextResponse.json({ error: "orderedIds array is required." }, { status: 400 });
+  if (!(await getFormById(id))) {
+    return NextResponse.json({ error: "Form not found." }, { status: 404 });
+  }
+  const payload = await request.json().catch(() => null);
+  const parsed = formFieldOrderPayloadSchema.safeParse(payload);
+  if (!parsed.success) {
+    return NextResponse.json(
+      { error: parsed.error.issues[0]?.message ?? "Invalid field order." },
+      { status: 400 },
+    );
   }
 
   try {
-    await reorderFormFields(id, payload.orderedIds.filter((id): id is string => typeof id === "string"));
     const fields = await listFormFields(id);
-    return NextResponse.json({ fields });
+    const expectedIds = new Set(fields.map((field) => field.id));
+    if (
+      parsed.data.orderedIds.length !== expectedIds.size ||
+      new Set(parsed.data.orderedIds).size !== expectedIds.size ||
+      parsed.data.orderedIds.some((fieldId) => !expectedIds.has(fieldId))
+    ) {
+      return NextResponse.json(
+        { error: "Include each field from this form exactly once." },
+        { status: 400 },
+      );
+    }
+    await reorderFormFields(id, parsed.data.orderedIds);
+    const reorderedFields = await listFormFields(id);
+    return NextResponse.json({ fields: reorderedFields });
   } catch (error) {
     console.error("[form-fields:reorder]", error);
     return NextResponse.json(

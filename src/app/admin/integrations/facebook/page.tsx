@@ -17,14 +17,15 @@ import { appRoutes } from "@/lib/app-routes";
 export const dynamic = "force-dynamic";
 
 export default async function AdminFacebookIntegrationPage() {
-  const { role, accessLevel, actualAccessLevel, canSwitchAccessViews } =
+  const { role, accessLevel, actualAccessLevel, canSwitchAccessViews, permissions } =
     await getAdminAccessContext(appRoutes.integration("facebook"));
-  if (!canManageIntegrations(accessLevel, role)) {
+  if (!canManageIntegrations(accessLevel, role, permissions)) {
     redirect(appRoutes.dashboard);
   }
   let pageData:
     | {
-        facebookLeads: Awaited<ReturnType<typeof leadStore.list>>;
+        facebookLeadCount: number;
+        recentFacebookLeads: Awaited<ReturnType<typeof leadStore.list>>;
         failedPayloads: Awaited<ReturnType<typeof leadStore.listFailedPayloads>>;
         duplicateUpdates: number;
       }
@@ -32,19 +33,19 @@ export default async function AdminFacebookIntegrationPage() {
   let pageError: unknown = null;
 
   try {
-    const [facebookLeads, failedPayloads] = await Promise.all([
-      leadStore.list({ source: "facebook_lead_ads" }),
+    const [facebookLeadCount, recentFacebookLeads, failedPayloads, duplicateUpdates] = await Promise.all([
+      leadStore.countLeads({ source: "facebook_lead_ads" }),
+      leadStore.list({ source: "facebook_lead_ads", limit: 1 }),
       leadStore.listFailedPayloads("facebook_lead_ads"),
+      leadStore.countLeadEvents({
+        eventType: "lead_updated_from_source",
+        source: "facebook_lead_ads",
+      }),
     ]);
 
-    const duplicateUpdates = (
-      await Promise.all(facebookLeads.map((lead) => leadStore.listLeadEvents(lead.id)))
-    )
-      .flat()
-      .filter((event) => event.eventType === "lead_updated_from_source").length;
-
     pageData = {
-      facebookLeads,
+      facebookLeadCount,
+      recentFacebookLeads,
       failedPayloads,
       duplicateUpdates,
     };
@@ -80,7 +81,7 @@ export default async function AdminFacebookIntegrationPage() {
               />
               <MetricCard
                 label="Imported leads"
-                value={pageData.facebookLeads.length}
+                value={pageData.facebookLeadCount}
                 supporting="Leads currently attributed to Facebook Lead Ads."
               />
               <MetricCard
@@ -116,7 +117,7 @@ export default async function AdminFacebookIntegrationPage() {
                 />
                 <MetricCard
                   label="Last successful import"
-                  value={pageData.facebookLeads[0] ? formatCrmDateTime(pageData.facebookLeads[0].createdAt) : "Not yet"}
+                  value={pageData.recentFacebookLeads[0] ? formatCrmDateTime(pageData.recentFacebookLeads[0].createdAt) : "Not yet"}
                   supporting="Latest lead attributed to Facebook Lead Ads."
                 />
               </div>

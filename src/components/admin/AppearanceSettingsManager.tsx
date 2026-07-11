@@ -2,19 +2,21 @@
 
 import type { CSSProperties } from "react";
 import { startTransition, useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Check, Eye, ImagePlus, Monitor, RotateCcw, Sparkles, X } from "lucide-react";
-import { LeadsDeskWordmark } from "@/components/brand/LeadsDeskWordmark";
+import { ArrowUpRight, Check, ImagePlus, RotateCcw, X } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { generateColorHarmony } from "@/lib/design-system";
+import { appRoutes } from "@/lib/app-routes";
 import {
   buildThemeCssVariables,
   DEFAULT_WORKSPACE_APPEARANCE,
   FONT_PRESETS,
-  resolveBrandLogo,
+  getWorkspaceAppearanceContrastIssues,
   type ResolvedWorkspaceSettings,
 } from "@/lib/crm/workspace-settings";
 import { AnimatedCard, SectionHeader, SmoothButton, StatusRing } from "@/components/admin/ui";
+import { InfoTip } from "@/components/admin/ui/InfoTip";
 
 type AppearanceDraft = Pick<
   ResolvedWorkspaceSettings,
@@ -221,8 +223,8 @@ function ImageUploadControl({
       return;
     }
 
-    if (!file.type.startsWith("image/")) {
-      setError("Choose a PNG, JPG, WebP, SVG, or GIF image.");
+    if (!["image/png", "image/jpeg", "image/webp", "image/gif"].includes(file.type)) {
+      setError("Choose a PNG, JPG, WebP, or GIF image.");
       return;
     }
 
@@ -253,7 +255,7 @@ function ImageUploadControl({
           >
             {value ? (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={value} alt="" className="h-full w-full object-cover" />
+              <img src={value} alt="" className="h-full w-full object-contain p-1" />
             ) : (
               <ImagePlus className="h-5 w-5 text-white/70" />
             )}
@@ -261,14 +263,14 @@ function ImageUploadControl({
           <div className="min-w-0 flex-1">
             <p className="text-sm font-semibold text-white">{value ? "Image selected" : "Upload image"}</p>
             <p className="mt-1 text-xs leading-5 text-white/70">
-              {description ?? "PNG, JPG, WebP, SVG, or GIF. Max 2MB."}
+              {description ?? "PNG, JPG, WebP, or GIF. Max 2MB."}
             </p>
             <div className="mt-3 flex flex-wrap gap-2">
               <label className="admin-button-secondary inline-flex h-9 cursor-pointer items-center justify-center rounded-full px-3 text-xs font-semibold">
                 Choose file
                 <input
                   type="file"
-                  accept="image/png,image/jpeg,image/webp,image/gif,image/svg+xml"
+                  accept="image/png,image/jpeg,image/webp,image/gif"
                   onChange={(event) => handleFile(event.target.files?.[0])}
                   className="sr-only"
                 />
@@ -301,6 +303,7 @@ function ColorControl({
   value: string;
   onChange: (value: string) => void;
 }) {
+  const colorInputValue = /^#[0-9a-f]{6}$/i.test(value) ? value : "#000000";
   const harmonySwatches = useMemo(() => {
     try {
       return Array.from(
@@ -322,7 +325,7 @@ function ColorControl({
         <div className="flex items-center gap-3">
           <input
             type="color"
-            value={value}
+            value={colorInputValue}
             onChange={(event) => onChange(event.target.value)}
             className="h-12 w-14 cursor-pointer overflow-hidden rounded-[18px] border border-white/12 bg-transparent p-0 shadow-[0_10px_24px_rgba(0,0,0,0.2)]"
             aria-label={label}
@@ -334,6 +337,8 @@ function ColorControl({
               type="text"
               value={value}
               onChange={(event) => onChange(event.target.value)}
+              maxLength={7}
+              spellCheck={false}
               className="mt-1 min-w-0 w-full bg-transparent text-base font-semibold tracking-[-0.02em] text-white outline-none"
               aria-label={`${label} hex value`}
             />
@@ -441,150 +446,12 @@ function ThemeSection({
 }) {
   return (
     <AnimatedCard variant="default" animation="fadeInUp" delay={delay} className="p-5">
-      <div className="mb-4">
+      <div className="mb-4 flex items-center gap-2.5">
         <h2 className="text-lg font-semibold tracking-[-0.04em] text-white">{title}</h2>
-        <p className="mt-1 text-sm leading-6 text-white/70">{description}</p>
+        <InfoTip label={description} align="left" />
       </div>
       <div className="grid gap-4">{children}</div>
     </AnimatedCard>
-  );
-}
-
-function MiniPreview({
-  draft,
-  previewStyle,
-}: {
-  draft: AppearanceDraft;
-  previewStyle: CSSProperties;
-}) {
-  const background = draft.loginBackgroundUrl || DEFAULT_BACKGROUND;
-  const glassStyle = getGlassStyle(draft);
-
-  return (
-    <div
-      className="admin-shell relative min-h-[640px] overflow-hidden rounded-[32px] border border-white/10 p-4 shadow-[0_24px_80px_rgba(0,0,0,0.34)]"
-      style={previewStyle}
-      data-design-style={draft.designStyle}
-      data-density={draft.density}
-      data-theme-mode={draft.themeMode}
-      data-glass={draft.glassEnabled ? "on" : "off"}
-      data-glass-style={glassStyle}
-    >
-      <div className="ld-bg-overlay" aria-hidden="true" />
-      <div className="relative z-10 grid h-full gap-4 lg:grid-cols-[150px_minmax(0,1fr)]">
-        <aside className="ld-glass-sidebar rounded-[24px] border border-white/10 p-3">
-          <LeadsDeskWordmark
-            tone="light"
-            companyName={draft.companyName}
-            logoUrl={resolveBrandLogo({
-              logoUrl: draft.logoUrl,
-              logoUrlLightMode: draft.logoUrlLightMode,
-              logoUrlDarkMode: draft.logoUrlDarkMode,
-              surfaceMode: "dark",
-            })}
-            logoUrlLightMode={draft.logoUrlLightMode}
-            logoUrlDarkMode={draft.logoUrlDarkMode}
-            surfaceMode="dark"
-          />
-          <div className="mt-5 space-y-2">
-            {["Dashboard", "Leads", "Reports", "Settings"].map((item, index) => (
-              <div
-                key={item}
-                className={cn(
-                  "h-9 rounded-2xl border px-3 py-2 text-xs font-semibold",
-                  index === 0
-                    ? "border-white/12 bg-[color:var(--ld-color-sidebar-active)] text-white"
-                    : "border-white/8 bg-white/[0.035] text-white/70",
-                )}
-              >
-                {item}
-              </div>
-            ))}
-          </div>
-        </aside>
-
-        <div className="min-w-0 space-y-4">
-          <div className="ld-glass-topbar rounded-[24px] border border-white/10 px-4 py-3">
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-white/70">Live preview</p>
-                <h3 className="mt-1 text-xl font-semibold tracking-[-0.05em] text-white">Sales command center</h3>
-              </div>
-              <button className="admin-button-primary h-10 rounded-2xl px-4 text-sm">Add lead</button>
-            </div>
-          </div>
-
-          <div className="grid gap-3 sm:grid-cols-3">
-            {[
-              ["Total Leads", "1,256"],
-              ["Overdue", "12"],
-              ["Won Value", "$84k"],
-            ].map(([label, value]) => (
-              <div key={label} className="ld-glass ld-glass-card ld-glass-soft p-4">
-                <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-white/70">{label}</p>
-                <p className="mt-4 text-2xl font-semibold tracking-[-0.06em] text-white">{value}</p>
-                <div className="mt-4 h-1.5 rounded-full bg-white/10">
-                  <div className="h-full w-2/3 rounded-full bg-[linear-gradient(90deg,var(--ld-color-primary),var(--ld-color-accent))]" />
-                </div>
-              </div>
-            ))}
-          </div>
-
-          <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_220px]">
-            <div className="ld-glass ld-glass-card ld-glass-soft p-4">
-              <div className="mb-3 flex items-center justify-between">
-                <p className="text-sm font-semibold text-white">Recent leads</p>
-                <span className="rounded-full border border-white/10 bg-white/[0.06] px-2.5 py-1 text-xs text-white/70">
-                  This week
-                </span>
-              </div>
-              <div className="ld-readable-table">
-                {["Amina Bello", "Jordan Lee", "Maya Stone"].map((lead, index) => (
-                  <div
-                    key={lead}
-                    className="grid grid-cols-[1fr_80px_72px] gap-3 border-b border-white/5 px-3 py-3 text-sm last:border-b-0"
-                  >
-                    <span className="font-medium text-white">{lead}</span>
-                    <span className="text-white/70">{index === 0 ? "Website" : "Referral"}</span>
-                    <span className="text-[color:var(--ld-color-accent)]">{index === 0 ? "New" : "Won"}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div
-              className="ld-glass ld-glass-card ld-glass-vibrant p-5"
-              style={{
-                backgroundImage: `linear-gradient(180deg, color-mix(in srgb, var(--ld-color-background, ${draft.backgroundColor}) 42%, transparent), color-mix(in srgb, var(--ld-color-background, ${draft.backgroundColor}) 66%, transparent)), url(${background})`,
-                backgroundPosition: "center",
-                backgroundSize: "cover",
-              }}
-            >
-              <LeadsDeskWordmark
-                tone="light"
-                companyName={draft.companyName}
-                logoUrl={resolveBrandLogo({
-                  logoUrl: draft.loginLogoUrl || draft.logoUrl,
-                  logoUrlLightMode: draft.loginLogoUrlLightMode || draft.logoUrlLightMode,
-                  logoUrlDarkMode: draft.loginLogoUrlDarkMode || draft.logoUrlDarkMode,
-                  surfaceMode: "dark",
-                })}
-                logoUrlLightMode={draft.loginLogoUrlLightMode || draft.logoUrlLightMode}
-                logoUrlDarkMode={draft.loginLogoUrlDarkMode || draft.logoUrlDarkMode}
-                surfaceMode="dark"
-              />
-              <h4 className="mt-10 text-2xl font-semibold tracking-[-0.05em] text-white">{draft.loginHeadline}</h4>
-              <p className="mt-2 text-sm leading-6 text-white/70">{draft.loginSubheadline}</p>
-              <div className="mt-5 space-y-2">
-                <div className="h-10 rounded-2xl border border-white/10 bg-white/[0.08]" />
-                <div className="h-10 rounded-2xl border border-white/10 bg-white/[0.08]" />
-                <button className="admin-button-primary h-10 w-full rounded-2xl text-sm">Sign in</button>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
   );
 }
 
@@ -615,7 +482,7 @@ export function AppearanceSettingsManager({
     fontScale: initialSettings.fontScale,
     fontPreset: initialSettings.fontPreset,
     density: initialSettings.density,
-    themeMode: initialSettings.themeMode,
+    themeMode: "dark",
     designStyle: initialSettings.designStyle,
     glassEnabled: initialSettings.glassEnabled,
     glassOpacity: initialSettings.glassOpacity,
@@ -629,7 +496,10 @@ export function AppearanceSettingsManager({
   });
   const [message, setMessage] = useState("");
   const [isSaving, setIsSaving] = useState(false);
-  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+  const contrastIssues = useMemo(
+    () => getWorkspaceAppearanceContrastIssues({ ...draft, themeMode: "dark" }),
+    [draft],
+  );
 
   const previewStyle = useMemo(
     () =>
@@ -661,6 +531,11 @@ export function AppearanceSettingsManager({
   }, [previewStyle]);
 
   async function saveSettings() {
+    if (contrastIssues.length > 0) {
+      setMessage(contrastIssues[0].message);
+      return;
+    }
+
     setIsSaving(true);
     setMessage("");
 
@@ -670,6 +545,7 @@ export function AppearanceSettingsManager({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...draft,
+          themeMode: "dark",
           logoUrl: toOptionalString(draft.logoUrl),
           logoUrlLightMode: toOptionalString(draft.logoUrlLightMode),
           logoUrlDarkMode: toOptionalString(draft.logoUrlDarkMode),
@@ -712,7 +588,6 @@ export function AppearanceSettingsManager({
   const glassStyle = getGlassStyle(draft);
 
   return (
-    <>
     <div className="space-y-5">
         <AnimatedCard variant="elevated" animation="none" className="p-5 sm:p-6">
           <SectionHeader
@@ -721,18 +596,18 @@ export function AppearanceSettingsManager({
             description="Brand the workspace, login screen, colors, glass, and layout."
             actions={
               <div className="flex flex-wrap gap-3">
-                <SmoothButton
-                  variant="secondary"
-                  size="md"
-                  icon={<Eye className="h-4 w-4" />}
-                  onClick={() => setIsPreviewOpen(true)}
+                <Link
+                  href={appRoutes.dashboard}
+                  className="admin-button-secondary ld-focus-ring inline-flex h-10 items-center justify-center gap-2 rounded-xl px-4 text-sm font-semibold"
                 >
-                  Open preview
-                </SmoothButton>
+                  <ArrowUpRight className="h-4 w-4" />
+                  View saved dashboard
+                </Link>
                 <SmoothButton
                   variant="primary"
                   size="md"
                   loading={isSaving}
+                  disabled={contrastIssues.length > 0}
                   onClick={() => void saveSettings()}
                 >
                   {isSaving ? "Saving..." : "Save theme"}
@@ -811,6 +686,25 @@ export function AppearanceSettingsManager({
             <ColorControl label="Surface" value={draft.surfaceColor} onChange={(value) => update("surfaceColor", value)} />
             <ColorControl label="Card" value={draft.cardColor} onChange={(value) => update("cardColor", value)} />
             <ColorControl label="Text" value={draft.textColor} onChange={(value) => update("textColor", value)} />
+          </div>
+          <div
+            className={cn(
+              "flex items-center justify-between gap-3 rounded-[18px] border px-4 py-3 text-sm font-semibold",
+              contrastIssues.length > 0
+                ? "border-amber-300/22 bg-amber-400/10 text-amber-100"
+                : "border-emerald-300/18 bg-emerald-400/8 text-emerald-100",
+            )}
+            role="status"
+          >
+            <span>{contrastIssues.length > 0 ? "Adjust contrast before saving" : "Contrast protected"}</span>
+            <InfoTip
+              label={
+                contrastIssues.length > 0
+                  ? contrastIssues.map((issue) => issue.message).join(" ")
+                  : "Workspace surfaces are checked against readable interface text before they can be saved."
+              }
+              align="right"
+            />
           </div>
         </ThemeSection>
 
@@ -996,49 +890,20 @@ export function AppearanceSettingsManager({
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[color:var(--ld-color-accent)]">
-                Preview
+                Live on this page
               </p>
-              <h2 className="mt-1 text-xl font-semibold tracking-[-0.04em] text-white">Preview before you save</h2>
-              <p className="mt-2 text-sm leading-6 text-white/70">Open the live workspace mockup in a focused view instead of squeezing it beside the controls.</p>
+              <h2 className="mt-1 text-xl font-semibold tracking-[-0.04em] text-white">Review the real interface</h2>
+              <p className="mt-2 text-sm leading-6 text-white/70">Every control above updates this settings page immediately. Save before opening another page.</p>
             </div>
-            <SmoothButton
-              variant="secondary"
-              size="md"
-              icon={<Monitor className="h-4 w-4" />}
-              onClick={() => setIsPreviewOpen(true)}
+            <Link
+              href={appRoutes.dashboard}
+              className="admin-button-secondary ld-focus-ring inline-flex h-10 items-center justify-center gap-2 rounded-xl px-4 text-sm font-semibold"
             >
-              Open live preview
-            </SmoothButton>
+              <ArrowUpRight className="h-4 w-4" />
+              Open saved dashboard
+            </Link>
           </div>
         </AnimatedCard>
       </div>
-
-      {isPreviewOpen ? (
-        <div className="fixed inset-0 z-[90] flex items-center justify-center bg-[#030712]/78 p-4 backdrop-blur-xl">
-          <div className="relative w-full max-w-[1240px] rounded-[34px] border border-white/10 bg-[#040918]/92 p-4 shadow-[0_40px_120px_rgba(0,0,0,0.55)]">
-            <div className="mb-4 flex flex-wrap items-center justify-between gap-3 px-2 pt-2">
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[color:var(--ld-color-accent)]">
-                  Live preview
-                </p>
-                <h2 className="mt-1 text-2xl font-semibold tracking-[-0.04em] text-white">Workspace snapshot</h2>
-              </div>
-              <SmoothButton
-                variant="secondary"
-                size="md"
-                onClick={() => setIsPreviewOpen(false)}
-              >
-                Close preview
-              </SmoothButton>
-            </div>
-            <MiniPreview draft={draft} previewStyle={previewStyle} />
-            <div className="mt-4 flex items-start gap-3 rounded-2xl border border-white/10 bg-white/[0.045] px-4 py-3 text-sm leading-6 text-white/70">
-              <Sparkles className="mt-0.5 h-4 w-4 shrink-0 text-[color:var(--ld-color-accent)]" />
-              Theme changes update this page instantly and save to company settings.
-            </div>
-          </div>
-        </div>
-      ) : null}
-    </>
   );
 }

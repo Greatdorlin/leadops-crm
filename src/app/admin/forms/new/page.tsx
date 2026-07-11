@@ -14,10 +14,10 @@ import { leadStore } from "@/lib/storage";
 export const dynamic = "force-dynamic";
 
 export default async function AdminNewFormPage() {
-  const { role, accessLevel, actualAccessLevel, canSwitchAccessViews } =
+  const { role, accessLevel, actualAccessLevel, canSwitchAccessViews, permissions } =
     await getAdminAccessContext(appRoutes.formsNew);
 
-  if (!canManageForms({ accessLevel, role })) {
+  if (!canManageForms({ accessLevel, permissions, role })) {
     redirect(appRoutes.forms);
   }
 

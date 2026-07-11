@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { cn } from "@/lib/cn";
+import { InfoTip } from "./ui/InfoTip";
 
 export function PremiumPageHeader({
   eyebrow,
@@ -14,6 +15,8 @@ export function PremiumPageHeader({
   actions?: ReactNode;
   className?: string;
 }) {
+  const useDescriptionTip = Boolean(description && description.length > 48);
+
   return (
     <div className={cn("flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between", className)}>
       <div className="max-w-3xl">
@@ -22,10 +25,15 @@ export function PremiumPageHeader({
             {eyebrow}
           </p>
         ) : null}
-        <h1 className="mt-2 text-[2.4rem] font-semibold leading-[0.95] tracking-[-0.06em] text-white sm:text-[3rem]">
-          {title}
-        </h1>
-        {description ? <p className="mt-3 text-base leading-7 text-white/70">{description}</p> : null}
+        <div className="mt-2 flex items-center gap-2.5">
+          <h2 className="break-words text-[2rem] font-semibold leading-[1.08] tracking-[-0.055em] text-white sm:text-[2.45rem]">
+            {title}
+          </h2>
+          {useDescriptionTip && description ? <InfoTip label={description} align="left" /> : null}
+        </div>
+        {description && !useDescriptionTip ? (
+          <p className="mt-3 text-sm leading-6 text-white/70">{description}</p>
+        ) : null}
       </div>
       {actions ? <div className="flex flex-wrap items-center gap-3">{actions}</div> : null}
     </div>

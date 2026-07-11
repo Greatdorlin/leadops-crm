@@ -4,8 +4,15 @@ import type { CSSProperties, PropsWithChildren, ReactNode } from "react";
 import { useState } from "react";
 import { Menu } from "lucide-react";
 import Link from "next/link";
-import type { AdminAccessLevel } from "@/lib/admin-permissions";
+import {
+  getStoredRoleForAccessLevel,
+  type AdminAccessLevel,
+} from "@/lib/admin-permissions";
 import type { CrmUserRole } from "@/lib/crm/types";
+import {
+  resolvePermissionList,
+  type PermissionKey,
+} from "@/lib/crm/role-permissions-contract";
 import { cn } from "@/lib/cn";
 import {
   buildThemeCssVariables,
@@ -15,6 +22,7 @@ import {
 import { LeadsDeskWordmark } from "@/components/brand/LeadsDeskWordmark";
 import { AdminSidebar } from "./AdminSidebar";
 import { AdminTopbar } from "./AdminTopbar";
+import { useAdminPermissions } from "./AdminAuthorizationProvider";
 import { useAdminWorkspaceSettings } from "./AdminWorkspaceSettingsProvider";
 import { MobileSidebarDrawer } from "./ui/MobileSidebarDrawer";
 import { SmoothButton } from "./ui/SmoothButton";
@@ -25,6 +33,7 @@ interface AdminShellProps extends PropsWithChildren {
   activeNav: string;
   accessLevel?: AdminAccessLevel;
   role?: CrmUserRole | null;
+  permissions?: readonly PermissionKey[];
   actualAccessLevel?: AdminAccessLevel;
   canSwitchAccessViews?: boolean;
   title: string;
@@ -59,6 +68,7 @@ export function AdminShell({
   activeNav,
   accessLevel = "general_admin",
   role,
+  permissions,
   actualAccessLevel,
   canSwitchAccessViews,
   title,
@@ -72,6 +82,12 @@ export function AdminShell({
   children,
 }: AdminShellProps) {
   const workspaceSettings = useAdminWorkspaceSettings();
+  const contextPermissions = useAdminPermissions();
+  const fallbackRole = getStoredRoleForAccessLevel(accessLevel);
+  const resolvedPermissions = resolvePermissionList(
+    permissions ?? contextPermissions,
+    fallbackRole,
+  );
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
   const adminThemeStyle = buildThemeCssVariables(workspaceSettings) as CSSProperties;
@@ -86,7 +102,12 @@ export function AdminShell({
     setIsSidebarCollapsed((current) => !current);
   }
 
-  const navigation = getAdminNavigation(accessLevel, role, workspaceSettings.navigation);
+  const navigation = getAdminNavigation(
+    accessLevel,
+    role,
+    workspaceSettings.navigation,
+    resolvedPermissions,
+  );
 
   return (
     <div
@@ -112,6 +133,7 @@ export function AdminShell({
               activeKey={activeNav}
               accessLevel={accessLevel}
               role={role}
+              permissions={resolvedPermissions}
               footer={sidebarFooter}
               collapsed={isSidebarCollapsed}
               onToggleCollapse={toggleSidebar}
@@ -147,6 +169,7 @@ export function AdminShell({
               activeNav={activeNav}
               accessLevel={accessLevel}
               role={role}
+              permissions={resolvedPermissions}
               actualAccessLevel={actualAccessLevel}
               canSwitchAccessViews={canSwitchAccessViews}
               title={title}
@@ -175,6 +198,7 @@ export function AdminShell({
               <Link
                 key={item.key}
                 href={item.href}
+                prefetch={false}
                 onClick={() => setMobileDrawerOpen(false)}
                 className={cn(
                   "flex items-center gap-3 rounded-[16px] border px-3 py-2.5 transition duration-200",

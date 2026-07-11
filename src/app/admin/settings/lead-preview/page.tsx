@@ -3,24 +3,51 @@ import { redirect } from "next/navigation";
 import { AdminShell } from "@/components/admin/AdminShell";
 import { AdminSignOutButton } from "@/components/admin/AdminSignOutButton";
 import { LeadPreviewSettingsManager } from "@/components/admin/LeadPreviewSettingsManager";
-import { PremiumPageHeader } from "@/components/admin/PremiumPageHeader";
 import { getAdminAccessContext } from "@/lib/admin";
 import { appRoutes } from "@/lib/app-routes";
 import { canManageLeadPreviewSettings } from "@/lib/crm/authz";
+import { loadAdminLeadReadContext } from "@/lib/crm/admin-read-context";
 import { listCustomFields } from "@/lib/crm/custom-fields-admin";
-import { getCompanySettings } from "@/lib/crm/workspace-settings";
+import { listLeadStages } from "@/lib/crm/lead-stages-admin";
+import { buildAdminLeadListItem } from "@/lib/crm/view-models";
+import { getCompanySettings } from "@/lib/crm/workspace-settings-server";
+import { leadStore } from "@/lib/storage";
 
 export const dynamic = "force-dynamic";
 
 export default async function LeadPreviewSettingsPage() {
-  const { role, accessLevel, actualAccessLevel, canSwitchAccessViews } =
+  const { role, accessLevel, actualAccessLevel, canSwitchAccessViews, permissions } =
     await getAdminAccessContext(appRoutes.settingsLeadPreview);
 
-  if (!canManageLeadPreviewSettings({ accessLevel, role })) {
+  if (!canManageLeadPreviewSettings({ accessLevel, permissions, role })) {
     redirect(appRoutes.settings);
   }
 
-  const [settings, customFields] = await Promise.all([getCompanySettings(), listCustomFields()]);
+  const [settings, customFields, previewLeads, stages] = await Promise.all([
+    getCompanySettings(),
+    listCustomFields(),
+    leadStore.list({ limit: 1 }),
+    listLeadStages(),
+  ]);
+  const previewLeadRow = previewLeads[0] ?? null;
+  const previewContext = previewLeadRow
+    ? await loadAdminLeadReadContext([previewLeadRow], { includeCustomFields: true })
+    : null;
+  const previewLead = previewLeadRow && previewContext
+    ? buildAdminLeadListItem(previewLeadRow, {
+        stage: previewLeadRow.stageId
+          ? previewContext.stagesById.get(previewLeadRow.stageId) ?? null
+          : null,
+        source: previewLeadRow.sourceId
+          ? previewContext.sourcesById.get(previewLeadRow.sourceId) ?? null
+          : null,
+        owner: previewLeadRow.assignedUserId
+          ? previewContext.ownersById.get(previewLeadRow.assignedUserId) ?? null
+          : null,
+        customFieldDefinitions: customFields,
+        customFieldValues: previewContext.customFieldValuesByLeadId.get(previewLeadRow.id) ?? [],
+      })
+    : null;
 
   return (
     <AdminShell
@@ -31,32 +58,38 @@ export default async function LeadPreviewSettingsPage() {
       canSwitchAccessViews={canSwitchAccessViews}
       title="Lead Preview"
       description="Choose which lead details show up in the table and mobile cards."
-      actions={<AdminSignOutButton />}
+      actions={
+        <>
+          <Link
+            href={appRoutes.settingsFields}
+            prefetch={false}
+            className="admin-button-secondary inline-flex h-10 items-center justify-center rounded-full px-4 text-sm font-medium"
+          >
+            Manage fields
+          </Link>
+          <Link
+            href={appRoutes.settings}
+            prefetch={false}
+            className="admin-button-secondary inline-flex h-10 items-center justify-center rounded-full px-4 text-sm font-medium"
+          >
+            Back to settings
+          </Link>
+          <AdminSignOutButton />
+        </>
+      }
     >
-      <div className="space-y-6">
-        <PremiumPageHeader
-          eyebrow="Lead preview"
-          title="Queue visibility"
-          description="Choose what matters in the table and in the mobile card."
-          actions={
-            <>
-              <Link
-                href={appRoutes.settingsFields}
-                className="admin-button-secondary inline-flex h-11 items-center justify-center rounded-2xl px-5 text-sm font-medium"
-              >
-                Manage fields
-              </Link>
-              <Link
-                href={appRoutes.settings}
-                className="admin-button-secondary inline-flex h-11 items-center justify-center rounded-2xl px-5 text-sm font-medium"
-              >
-                Back to settings
-              </Link>
-            </>
-          }
-        />
-        <LeadPreviewSettingsManager initialSettings={settings} customFields={customFields} />
-      </div>
+      <LeadPreviewSettingsManager
+        initialSettings={settings}
+        customFields={customFields}
+        previewLead={previewLead}
+        currency={settings.globalCurrency}
+        stageOptions={stages.map((stage) => ({
+          id: stage.id,
+          key: stage.key,
+          label: stage.name,
+          color: stage.color,
+        }))}
+      />
     </AdminShell>
   );
 }

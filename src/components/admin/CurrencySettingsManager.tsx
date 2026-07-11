@@ -4,6 +4,7 @@ import { startTransition, useState } from "react";
 import { useRouter } from "next/navigation";
 import { SmoothButton } from "@/components/admin/ui";
 import { SectionHeader } from "@/components/admin/SectionHeader";
+import { InfoTip } from "@/components/admin/ui/InfoTip";
 import { CurrencySelect } from "./CurrencySelect";
 import { isSupportedCurrency } from "@/lib/currency";
 
@@ -66,17 +67,14 @@ export function CurrencySettingsManager({
         </p>
       ) : null}
 
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid gap-4 sm:grid-cols-[minmax(0,420px)_auto] sm:items-end">
         <CurrencySelect value={currency} onChange={setCurrency} label="Workspace currency" />
-      </div>
-
-      <div className="rounded-[24px] border border-white/10 bg-white/[0.045] p-4 text-sm text-white/70">
-        <p className="font-semibold text-white/80">How this works</p>
-        <ul className="mt-2 list-disc space-y-1 pl-5 leading-6">
-          <li>The default currency applies to sales targets, lead estimated values, and pipeline reporting.</li>
-          <li>Individual sales targets can still use a different currency if needed.</li>
-          <li>Currency formatting adapts to the locale of each selected currency for proper display.</li>
-        </ul>
+        <div className="pb-2">
+          <InfoTip
+            label="This currency formats lead values, pipeline reports, and new targets. An individual target may still use a different currency."
+            align="left"
+          />
+        </div>
       </div>
     </div>
   );

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { AlarmClockCheck, CircleAlert, ListTodo, Users2 } from "lucide-react";
 import { AdminWorkspaceComposer } from "@/components/admin/AdminWorkspaceComposer";
 import { AdminShell } from "@/components/admin/AdminShell";
@@ -15,6 +16,7 @@ import { TaskQueueTable } from "@/components/admin/TaskQueueTable";
 import { getAdminAccessContext } from "@/lib/admin";
 import { isDateToday, isTaskOverdue } from "@/lib/admin-insights";
 import { canAssignTasksToOthers } from "@/lib/admin-permissions";
+import { canEditLeads, canViewLeads } from "@/lib/crm/authz";
 import { listCustomFields } from "@/lib/crm/custom-fields-admin";
 import { buildLeadDisplayNameMap } from "@/lib/crm/lead-identity";
 import { formatLeadStateLabel } from "@/lib/crm/formatters";
@@ -117,8 +119,15 @@ export default async function AdminTasksPage({
     accessLevel,
     actualAccessLevel,
     canSwitchAccessViews,
+    permissions,
   } = await getAdminAccessContext(appRoutes.tasks);
+  if (!canViewLeads({ accessLevel, permissions, role })) {
+    redirect(appRoutes.dashboard);
+  }
+
   const params = await searchParams;
+  const canEditTasks = canEditLeads({ accessLevel, permissions, role });
+  const canAssignOtherTasks = canAssignTasksToOthers(accessLevel, permissions);
   const availableViews: readonly (typeof views)[number][] =
     accessLevel === "sales_rep" ? ["today", "overdue", "my", "completed"] : views;
   const view =
@@ -151,9 +160,12 @@ export default async function AdminTasksPage({
         overdueOnly: view === "overdue",
         dueAfter: view === "today" ? new Date(new Date().setHours(0, 0, 0, 0)) : undefined,
         dueBefore: view === "today" ? new Date(new Date().setHours(23, 59, 59, 999)) : undefined,
+        limit: 200,
       }),
       leadStore.list(
-        accessLevel === "sales_rep" ? { assignedTo: session.user?.email ?? undefined } : undefined,
+        accessLevel === "sales_rep"
+          ? { assignedTo: session.user?.email ?? undefined, limit: 200 }
+          : { limit: 200 },
       ),
     ]);
 
@@ -203,7 +215,7 @@ export default async function AdminTasksPage({
   }
 
   const assigneeOptions =
-    accessLevel === "sales_rep"
+    !canAssignOtherTasks
       ? [
           {
             label: session.user?.name || session.user?.email || "My queue",
@@ -256,27 +268,19 @@ export default async function AdminTasksPage({
       }
       actions={
         <>
-          <Link
-            href="#task-action-center"
-            className="admin-button-primary inline-flex h-10 items-center justify-center rounded-full px-4 text-sm font-semibold"
-          >
-            {canAssignTasksToOthers(accessLevel) ? "Assign task" : "Create task"}
-          </Link>
+          {canEditTasks ? (
+            <Link
+              href="#task-action-center"
+              className="admin-button-primary inline-flex h-10 items-center justify-center rounded-full px-4 text-sm font-semibold"
+            >
+              {canAssignOtherTasks ? "Assign task" : "Create task"}
+            </Link>
+          ) : null}
           <AdminSignOutButton />
         </>
       }
     >
       <div className="space-y-6">
-        <SectionHeader
-          eyebrow="Task queue"
-          title={accessLevel === "sales_rep" ? "My Tasks" : "Tasks"}
-          description={
-            accessLevel === "sales_rep"
-              ? "Your follow-up queue, due dates, and completed work in one compact view."
-              : "A table-first task queue for assigning, scanning, and clearing follow-up work quickly."
-          }
-          className="ld-animate-fade-in-up"
-        />
         <FilterBar>
           <div className="flex flex-col gap-3">
             <nav className="flex gap-2 overflow-x-auto pb-1" aria-label="Task views">
@@ -365,19 +369,23 @@ export default async function AdminTasksPage({
             </div>
           </GlassSurface>
 
-          <div id="task-action-center">
-            <AdminWorkspaceComposer
-              accessLevel={accessLevel}
-              leadOptions={leadOptions}
-              assignmentLeadOptions={assignmentLeadOptions}
-              assigneeOptions={assigneeOptions}
-              defaultAssignedTo={accessLevel === "sales_rep" ? session.user?.email ?? "" : ""}
-              defaultLeadId={defaultLeadId}
-              variant="compact"
-              leadCaptureCustomFields={leadCaptureCustomFields}
-              allowedModes={["task"]}
-            />
-          </div>
+          {canEditTasks ? (
+            <div id="task-action-center">
+              <AdminWorkspaceComposer
+                accessLevel={accessLevel}
+                leadOptions={leadOptions}
+                assignmentLeadOptions={assignmentLeadOptions}
+                assigneeOptions={assigneeOptions}
+                defaultAssignedTo={
+                  canAssignOtherTasks ? "" : session.user?.email ?? ""
+                }
+                defaultLeadId={defaultLeadId}
+                variant="compact"
+                leadCaptureCustomFields={leadCaptureCustomFields}
+                allowedModes={["task"]}
+              />
+            </div>
+          ) : null}
         </section>
 
         <section className="grid gap-6 xl:grid-cols-12">
@@ -395,6 +403,7 @@ export default async function AdminTasksPage({
                   leadStateById={leadStateById}
                   emptyTitle="No tasks match this view"
                   emptyDescription="Create a task from the action center to keep follow-up work visible."
+                  canCompleteTasks={canEditTasks}
                 />
               </div>
             </GlassSurface>

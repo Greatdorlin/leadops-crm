@@ -3,9 +3,9 @@ import { AdminSignInButton } from "@/components/admin/AdminSignInButton";
 import { LeadsDeskWordmark } from "@/components/brand/LeadsDeskWordmark";
 import {
   buildThemeCssVariables,
-  getCompanySettings,
   resolveBrandLogo,
 } from "@/lib/crm/workspace-settings";
+import { getCompanySettings } from "@/lib/crm/workspace-settings-server";
 import {
   isAdminAuthConfigured,
   isLocalAdminPreviewEnabled,
@@ -88,7 +88,7 @@ export default async function AdminSignInPage({
             <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/60">
               Private workspace
             </p>
-            <h1 className="mt-3 font-[family:var(--font-heading)] text-[2.25rem] leading-[1.02] tracking-[-0.06em] text-white sm:text-[2.7rem]">
+            <h1 className="mt-3 break-words font-[family:var(--font-heading)] text-[2.15rem] leading-[1.1] tracking-[-0.055em] text-white sm:text-[2.7rem] sm:leading-[1.04]">
               {settings.loginHeadline}
             </h1>
             <p className="mt-3 text-sm leading-7 text-white/70 sm:text-base">

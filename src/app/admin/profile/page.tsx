@@ -3,7 +3,6 @@ import { AdminSignOutButton } from "@/components/admin/AdminSignOutButton";
 import { ErrorState } from "@/components/admin/ErrorState";
 import { GlassCard } from "@/components/admin/GlassCard";
 import { AnimatedCard } from "@/components/admin/ui/AnimatedCard";
-import { SectionHeader } from "@/components/admin/SectionHeader";
 import { TeamMemberProfileForm } from "@/components/admin/TeamMemberProfileForm";
 import { getAdminAccessContext } from "@/lib/admin";
 import { resolveAdminAccessLevel } from "@/lib/admin-permissions";
@@ -29,13 +28,7 @@ export default async function AdminProfilePage() {
       userEmail={crmUser?.email || session.user?.email}
       userAvatarUrl={crmUser?.avatarUrl}
     >
-      <div className="mx-auto max-w-4xl space-y-6">
-        <SectionHeader
-          eyebrow="Profile"
-          title="My profile"
-          description="Keep your sales workspace identity current."
-        />
-
+      <div className="mx-auto max-w-4xl">
         {crmUser ? (
           <AnimatedCard animation="fadeInUp" variant="elevated" className="ld-animate-fade-in-up">
             <GlassCard glassStyle="vibrant" className="p-5 sm:p-6">

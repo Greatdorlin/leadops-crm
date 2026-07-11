@@ -1,6 +1,6 @@
 import {
-  isAllowedAdminEmail,
   isEmailDomainAllowed,
+  isInitialAdminEmail,
   normalizeAdminEmail,
 } from "@/lib/admin-access";
 import { isCrmConfigurationError } from "@/lib/crm/runtime";
@@ -31,7 +31,7 @@ export async function hasAdminWorkspaceAccess(email?: string | null) {
     return false;
   }
 
-  if (isAllowedAdminEmail(email)) {
+  if (isInitialAdminEmail(email)) {
     return true;
   }
 

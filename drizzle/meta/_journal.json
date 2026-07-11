@@ -71,6 +71,13 @@
       "when": 1781857112383,
       "tag": "0009_lying_hemingway",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1783754633245,
+      "tag": "0010_leads_desk_release",
+      "breakpoints": true
     }
   ]
 }

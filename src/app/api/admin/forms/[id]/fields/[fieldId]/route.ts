@@ -1,28 +1,16 @@
 import { NextResponse } from "next/server";
 import { getAdminRequestContext } from "@/lib/admin";
-import { canManageFormSources } from "@/lib/crm/authz";
+import { canManageForms } from "@/lib/crm/authz";
 import {
   getFormFieldById,
   updateFormField,
   deleteFormField,
 } from "@/lib/crm/form-builder-store";
-
-function validateOptions(raw: unknown): { label: string; value: string }[] | null | undefined {
-  if (raw === undefined) return undefined;
-  if (!Array.isArray(raw)) return null;
-  const valid = raw.filter((item): item is { label: string; value: string } => {
-    if (typeof item !== "object" || item === null) return false;
-    const obj = item as Record<string, unknown>;
-    return typeof obj.label === "string" && typeof obj.value === "string";
-  });
-  return valid.length > 0 ? valid : null;
-}
-
-function validateValidationRules(raw: unknown): Record<string, unknown> | null | undefined {
-  if (raw === undefined) return undefined;
-  if (typeof raw !== "object" || raw === null) return null;
-  return raw as Record<string, unknown>;
-}
+import { formFieldPayloadSchema } from "@/lib/crm/form-field-contract";
+import {
+  FormFieldAdminError,
+  validateFormFieldReferences,
+} from "@/lib/crm/form-field-admin";
 
 export async function PUT(
   request: Request,
@@ -33,13 +21,13 @@ export async function PUT(
     return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
   }
 
-  if (!canManageFormSources(context)) {
+  if (!canManageForms(context)) {
     return NextResponse.json({ error: "Forbidden." }, { status: 403 });
   }
 
-  const { fieldId } = await params;
+  const { id, fieldId } = await params;
   const existing = await getFormFieldById(fieldId);
-  if (!existing) {
+  if (!existing || existing.formId !== id) {
     return NextResponse.json({ error: "Field not found." }, { status: 404 });
   }
 
@@ -48,24 +36,36 @@ export async function PUT(
     return NextResponse.json({ error: "Invalid request body." }, { status: 400 });
   }
 
-  const updates: Partial<Record<string, unknown>> = {};
-  if (typeof payload.label === "string") updates.label = payload.label.trim();
-  if (typeof payload.fieldType === "string") updates.fieldType = payload.fieldType.trim();
-  if (typeof payload.placeholder === "string") updates.placeholder = payload.placeholder.trim() || null;
-  if (typeof payload.helpText === "string") updates.helpText = payload.helpText.trim() || null;
-  if (typeof payload.isRequired === "boolean") updates.isRequired = payload.isRequired;
-  if (typeof payload.isVisible === "boolean") updates.isVisible = payload.isVisible;
-  if (typeof payload.order === "number") updates.order = payload.order;
-  if (payload.options !== undefined) updates.options = validateOptions(payload.options) as unknown;
-  if (payload.validationRules !== undefined) updates.validationRules = validateValidationRules(payload.validationRules) as unknown;
-  if (typeof payload.mapsToLeadField === "string") updates.mapsToLeadField = payload.mapsToLeadField.trim() || null;
-  if (payload.showWhen !== undefined) updates.showWhen = payload.showWhen as Record<string, unknown> | null;
-  if (typeof payload.defaultValue === "string") updates.defaultValue = payload.defaultValue;
+  const parsed = formFieldPayloadSchema.safeParse({
+    fieldType: existing.fieldType,
+    label: existing.label,
+    placeholder: existing.placeholder,
+    helpText: existing.helpText,
+    isRequired: existing.isRequired,
+    isVisible: existing.isVisible,
+    order: existing.order,
+    options: existing.options,
+    validationRules: existing.validationRules,
+    mapsToLeadField: existing.mapsToLeadField,
+    showWhen: existing.showWhen,
+    defaultValue: existing.defaultValue,
+    ...payload,
+  });
+  if (!parsed.success) {
+    return NextResponse.json(
+      { error: parsed.error.issues[0]?.message ?? "Invalid form field." },
+      { status: 400 },
+    );
+  }
 
   try {
-    const field = await updateFormField(fieldId, updates);
+    await validateFormFieldReferences(id, parsed.data, fieldId);
+    const field = await updateFormField(fieldId, parsed.data);
     return NextResponse.json({ field });
   } catch (error) {
+    if (error instanceof FormFieldAdminError) {
+      return NextResponse.json({ error: error.message }, { status: 400 });
+    }
     console.error("[form-field:update]", error);
     return NextResponse.json(
       { error: "We couldn't update this field right now." },
@@ -83,13 +83,13 @@ export async function DELETE(
     return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
   }
 
-  if (!canManageFormSources(context)) {
+  if (!canManageForms(context)) {
     return NextResponse.json({ error: "Forbidden." }, { status: 403 });
   }
 
-  const { fieldId } = await params;
+  const { id, fieldId } = await params;
   const existing = await getFormFieldById(fieldId);
-  if (!existing) {
+  if (!existing || existing.formId !== id) {
     return NextResponse.json({ error: "Field not found." }, { status: 404 });
   }
 

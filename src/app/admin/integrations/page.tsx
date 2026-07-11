@@ -4,6 +4,7 @@ import { ErrorState } from "@/components/admin/ErrorState";
 import { AdminSignOutButton } from "@/components/admin/AdminSignOutButton";
 import { EmptyState } from "@/components/admin/EmptyState";
 import { IntegrationHealthCard } from "@/components/admin/IntegrationHealthCard";
+import { ConnectorCatalog } from "@/components/admin/ConnectorCatalog";
 import { MetricCard } from "@/components/admin/MetricCard";
 import { SectionHeader } from "@/components/admin/SectionHeader";
 import { getAdminAccessContext } from "@/lib/admin";
@@ -137,9 +138,9 @@ function inferFallbackStatus(provider: IntegrationProvider): IntegrationRecord["
 }
 
 export default async function AdminIntegrationsPage() {
-  const { role, accessLevel, actualAccessLevel, canSwitchAccessViews } =
+  const { role, accessLevel, actualAccessLevel, canSwitchAccessViews, permissions } =
     await getAdminAccessContext(appRoutes.integrations);
-  if (!canManageIntegrations(accessLevel, role)) {
+  if (!canManageIntegrations(accessLevel, role, permissions)) {
     redirect(appRoutes.dashboard);
   }
   let pageData:
@@ -253,6 +254,17 @@ export default async function AdminIntegrationsPage() {
                     ) : null}
                   </div>
                 ))}
+              </div>
+            </section>
+
+            <section className="admin-surface rounded-[24px] p-5">
+              <SectionHeader
+                eyebrow="Connector catalog"
+                title="Capture, migration, and marketing paths"
+                description="Available tools open setup; adapter-ready tools are never shown as connected."
+              />
+              <div className="mt-5">
+                <ConnectorCatalog />
               </div>
             </section>
 

@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { ArrowLeft, FormInput } from "lucide-react";
 import { AdminShell } from "@/components/admin/AdminShell";
 import { AdminSignOutButton } from "@/components/admin/AdminSignOutButton";
@@ -8,12 +8,11 @@ import { FormTabNav } from "@/components/admin/FormTabNav";
 import { FormDetailProvider } from "@/components/admin/FormDetailProvider";
 import { GlassSurface } from "@/components/admin/ui/GlassSurface";
 import { getAdminAccessContext } from "@/lib/admin";
+import { canAccessFormsWorkspace } from "@/lib/admin-permissions";
 import { appRoutes } from "@/lib/app-routes";
 import {
   getFormById,
   listFormFields,
-  listFormRules,
-  listFormSubmissions,
 } from "@/lib/crm/form-builder-store";
 import { getCrmPageErrorCopy, logCrmPageError } from "@/lib/crm/runtime";
 
@@ -27,23 +26,21 @@ export default async function FormDetailLayout({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const { role, accessLevel, actualAccessLevel, canSwitchAccessViews } =
+  const { role, accessLevel, actualAccessLevel, canSwitchAccessViews, permissions } =
     await getAdminAccessContext(appRoutes.form(id));
+
+  if (!canAccessFormsWorkspace(accessLevel, role, permissions)) {
+    redirect(appRoutes.dashboard);
+  }
 
   let form: Awaited<ReturnType<typeof getFormById>> = null;
   let pageError: unknown = null;
   let fields: Awaited<ReturnType<typeof listFormFields>> = [];
-  let rules: Awaited<ReturnType<typeof listFormRules>> = [];
-  let submissions: Awaited<ReturnType<typeof listFormSubmissions>> = [];
 
   try {
     form = await getFormById(id);
     if (form) {
-      [fields, rules, submissions] = await Promise.all([
-        listFormFields(id),
-        listFormRules(id),
-        listFormSubmissions(id),
-      ]);
+      fields = await listFormFields(id);
     }
   } catch (error) {
     logCrmPageError("form-detail", error);
@@ -119,8 +116,6 @@ export default async function FormDetailLayout({
             form={form}
             formId={id}
             fields={fields}
-            rules={rules}
-            submissions={submissions}
           >
             <GlassSurface as="section" intensity="medium" className="rounded-[24px] p-5 sm:p-6">
               {children}

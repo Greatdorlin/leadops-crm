@@ -18,10 +18,10 @@ import { getCrmPageErrorCopy, logCrmPageError } from "@/lib/crm/runtime";
 export const dynamic = "force-dynamic";
 
 export default async function AdminFormSourcesPage() {
-  const { role, accessLevel, actualAccessLevel, canSwitchAccessViews } =
+  const { role, accessLevel, actualAccessLevel, canSwitchAccessViews, permissions } =
     await getAdminAccessContext(appRoutes.settingsFormSources);
 
-  if (!canManageFormSources({ accessLevel, role })) {
+  if (!canManageFormSources({ accessLevel, permissions, role })) {
     redirect(appRoutes.settings);
   }
 

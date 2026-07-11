@@ -1,3 +1,4 @@
+import { redirect } from "next/navigation";
 import { AdminShell } from "@/components/admin/AdminShell";
 import { AdminSignOutButton } from "@/components/admin/AdminSignOutButton";
 import { EmptyState } from "@/components/admin/EmptyState";
@@ -7,8 +8,10 @@ import { GlassSurface } from "@/components/admin/ui/GlassSurface";
 import { SalesCommandReports } from "@/components/admin/SalesCommandReports";
 import { SectionHeader } from "@/components/admin/SectionHeader";
 import { getAdminAccessContext } from "@/lib/admin";
-import { buildTeamPerformance } from "@/lib/admin-insights";
-import { canManageIntegrationsAccess } from "@/lib/admin-permissions";
+import {
+  canAccessReports,
+  canManageIntegrationsAccess,
+} from "@/lib/admin-permissions";
 import { appRoutes } from "@/lib/app-routes";
 import {
   crmLabelize,
@@ -16,45 +19,72 @@ import {
 } from "@/lib/crm/formatters";
 import { listLeadIntakeEvents } from "@/lib/crm/intake-runtime";
 import { getCrmPageErrorCopy, logCrmPageError } from "@/lib/crm/runtime";
-import { buildSalesDashboardSummary } from "@/lib/crm/sales-metrics";
+import { mergeSalesDashboardSummary } from "@/lib/crm/sales-metrics";
 import { getActiveGlobalSalesTarget } from "@/lib/crm/sales-targets-admin";
-import { buildAdminReportSummary } from "@/lib/crm/view-models";
+import { getCompanySettings } from "@/lib/crm/workspace-settings-server";
 import { leadStore } from "@/lib/storage";
 
 export const dynamic = "force-dynamic";
 
 export default async function AdminReportsPage() {
-  const { session, role, accessLevel, actualAccessLevel, canSwitchAccessViews } =
+  const {
+    session,
+    role,
+    accessLevel,
+    actualAccessLevel,
+    canSwitchAccessViews,
+    permissions,
+  } =
     await getAdminAccessContext(appRoutes.reports);
+  if (!canAccessReports(accessLevel, permissions)) {
+    redirect(appRoutes.dashboard);
+  }
   const showTeamOnly = accessLevel === "lead_sales_rep";
   const showPersonalOnly = accessLevel === "sales_rep";
   const showSourceAndCampaignReports =
-    accessLevel === "master_admin" || accessLevel === "general_admin" || canManageIntegrationsAccess(accessLevel, role);
+    canManageIntegrationsAccess(accessLevel, role, permissions);
   let pageData:
     | {
-        leads: Awaited<ReturnType<typeof leadStore.list>>;
-        tasks: Awaited<ReturnType<typeof leadStore.listLeadTasks>>;
-        users: Awaited<ReturnType<typeof leadStore.listCrmUsers>>;
+        leadDistribution: Awaited<ReturnType<typeof leadStore.getLeadDistributionReport>>;
+        stats: Awaited<ReturnType<typeof leadStore.getDashboardStats>>;
+        salesAggregate: Awaited<ReturnType<typeof leadStore.getSalesPipelineAggregate>>;
+        teamRows: Awaited<ReturnType<typeof leadStore.getTeamPerformance>>;
         sourceReport: Awaited<ReturnType<typeof leadStore.getSourceReport>>;
         campaignReport: Awaited<ReturnType<typeof leadStore.getCampaignReport>>;
         intakeEvents: Awaited<ReturnType<typeof listLeadIntakeEvents>>;
         activeTarget: Awaited<ReturnType<typeof getActiveGlobalSalesTarget>>;
+        workspaceCurrency: string;
       }
     | null = null;
   let pageError: unknown = null;
 
   try {
-    const [leads, tasks, users, sourceReport, campaignReport, intakeEvents, activeTarget] = await Promise.all([
-      leadStore.list(showPersonalOnly ? { assignedTo: session.user?.email ?? undefined } : undefined),
-      leadStore.listLeadTasks(showPersonalOnly ? { assignedTo: session.user?.email ?? undefined } : undefined),
-      leadStore.listCrmUsers(),
+    const reportFilters = showPersonalOnly
+      ? { assignedTo: session.user?.email ?? undefined }
+      : {};
+    const [leadDistribution, stats, salesAggregate, teamRows, sourceReport, campaignReport, intakeEvents, activeTarget, workspaceSettings] = await Promise.all([
+      leadStore.getLeadDistributionReport(reportFilters),
+      leadStore.getDashboardStats(reportFilters),
+      leadStore.getSalesPipelineAggregate(reportFilters),
+      leadStore.getTeamPerformance(),
       showSourceAndCampaignReports ? leadStore.getSourceReport() : Promise.resolve([]),
       showSourceAndCampaignReports ? leadStore.getCampaignReport() : Promise.resolve([]),
       showPersonalOnly ? Promise.resolve([]) : listLeadIntakeEvents({ limit: 8 }),
       getActiveGlobalSalesTarget(),
+      getCompanySettings(),
     ]);
 
-    pageData = { leads, tasks, users, sourceReport, campaignReport, intakeEvents, activeTarget };
+    pageData = {
+      leadDistribution,
+      stats,
+      salesAggregate,
+      teamRows,
+      sourceReport,
+      campaignReport,
+      intakeEvents,
+      activeTarget,
+      workspaceCurrency: workspaceSettings.globalCurrency,
+    };
   } catch (error) {
     pageError = error;
     logCrmPageError("reports", error);
@@ -87,18 +117,31 @@ export default async function AdminReportsPage() {
     );
   }
 
-  const { leads, tasks, users, sourceReport, campaignReport, intakeEvents, activeTarget } = pageData;
-  const teamRows = buildTeamPerformance(users, leads, tasks);
+  const {
+    leadDistribution,
+    stats,
+    salesAggregate,
+    teamRows,
+    sourceReport,
+    campaignReport,
+    intakeEvents,
+    activeTarget,
+    workspaceCurrency,
+  } = pageData;
   const personalRow =
     teamRows.find((row) => row.email.toLowerCase() === session.user?.email?.toLowerCase()) ?? null;
-  const reportSummary = buildAdminReportSummary(leads);
-  const converted = leads.filter((lead) => Boolean(lead.wonAt)).length;
-  const progressing = leads.filter((lead) => Boolean(lead.stageId) || Boolean(lead.wonAt)).length;
-  const highIntentLeads = reportSummary.highIntentLeads;
-  const salesReportSummary = buildSalesDashboardSummary({
-    leads,
-    tasks,
-    users,
+  const reportSummary = leadDistribution;
+  const statusReport = salesAggregate.stagePerformance.map((row) => ({
+    label: row.label,
+    value: row.totalLeads,
+  }));
+  const converted = salesAggregate.wonLeads;
+  const progressing = Math.max(
+    0,
+    salesAggregate.totalLeads - salesAggregate.newLeads - salesAggregate.lostLeads,
+  );
+  const highIntentLeads = stats.highPriorityLeads;
+  const salesReportSummary = mergeSalesDashboardSummary(salesAggregate, {
     intakeEvents,
     activeTarget,
   });
@@ -121,23 +164,16 @@ export default async function AdminReportsPage() {
       actions={<AdminSignOutButton />}
     >
       <div className="space-y-6">
-        <SectionHeader
-          eyebrow="Overview"
-          title={showPersonalOnly ? "My performance" : "Reports"}
-          description={
-            showPersonalOnly
-              ? "Your lead progress, follow-up output, and conversion results."
-              : showTeamOnly
-                ? "Team workload, qualification progress, and rep performance."
-                : "Pipeline, demand, source quality, and team performance across the CRM."
-          }
-          className="ld-animate-fade-in-up"
-        />
-        {showPersonalOnly ? null : <SalesCommandReports summary={salesReportSummary} />}
+        {showPersonalOnly ? null : (
+          <SalesCommandReports
+            summary={salesReportSummary}
+            workspaceCurrency={workspaceCurrency}
+          />
+        )}
         {showPersonalOnly ? (
           <>
             <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
-              <MetricCard label="Assigned leads" value={leads.length} supporting="Leads currently in your queue." tone="accent" />
+              <MetricCard label="Assigned leads" value={salesAggregate.totalLeads} supporting="Leads currently in your queue." tone="accent" />
               <MetricCard label="Contacted" value={personalRow?.contactedLeads ?? 0} supporting="Leads you have moved past new." />
               <MetricCard label="Qualified" value={personalRow?.qualifiedLeads ?? 0} supporting="Leads progressing well." tone="warning" />
               <MetricCard label="Converted" value={personalRow?.convertedLeads ?? 0} supporting="Leads already closed." tone="positive" />
@@ -153,8 +189,8 @@ export default async function AdminReportsPage() {
                     description="Where your current leads sit in the follow-up journey."
                   />
                   <div className="mt-4 space-y-3">
-                    {reportSummary.statusReport.length > 0 ? (
-                      reportSummary.statusReport.map((item) => (
+                    {statusReport.length > 0 ? (
+                      statusReport.map((item) => (
                         <div key={item.label} className="admin-surface-muted flex items-center justify-between rounded-2xl px-4 py-3">
                           <span className="text-white/80">{item.label}</span>
                           <span className="font-semibold text-white">{item.value}</span>
@@ -189,7 +225,7 @@ export default async function AdminReportsPage() {
         ) : (
           <>
             <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
-              <MetricCard label="Total leads" value={leads.length} supporting="Leads visible in this reporting view." tone="accent" />
+              <MetricCard label="Total leads" value={salesAggregate.totalLeads} supporting="Leads visible in this reporting view." tone="accent" />
               <MetricCard label="Converted" value={converted} supporting="Leads marked converted." tone="positive" />
               <MetricCard label="Progressing" value={progressing} supporting="Leads moving forward in the pipeline." />
               <MetricCard label="High intent" value={highIntentLeads} supporting="Human-support requests or high-priority signals." tone="warning" />
@@ -280,8 +316,8 @@ export default async function AdminReportsPage() {
                     description="Where current lead volume sits in the journey."
                   />
                   <div className="mt-4 space-y-3">
-                    {reportSummary.statusReport.length > 0 ? (
-                      reportSummary.statusReport.map((item) => (
+                    {statusReport.length > 0 ? (
+                      statusReport.map((item) => (
                         <div key={item.label} className="admin-surface-muted flex items-center justify-between rounded-2xl px-4 py-3">
                           <span className="text-white/80">{item.label}</span>
                           <span className="font-semibold text-white">{item.value}</span>

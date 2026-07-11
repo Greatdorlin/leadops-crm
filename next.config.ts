@@ -14,12 +14,26 @@ const securityHeaders = [
     value: "strict-origin-when-cross-origin",
   },
   {
+    key: "Permissions-Policy",
+    value: "camera=(), microphone=(), geolocation=()",
+  },
+];
+
+const privateFrameHeaders = [
+  {
     key: "X-Frame-Options",
     value: "DENY",
   },
   {
-    key: "Permissions-Policy",
-    value: "camera=(), microphone=(), geolocation=()",
+    key: "Content-Security-Policy",
+    value: "frame-ancestors 'none'",
+  },
+];
+
+const publicFormFrameHeaders = [
+  {
+    key: "Content-Security-Policy",
+    value: "frame-ancestors *",
   },
 ];
 
@@ -124,6 +138,18 @@ const nextConfig: NextConfig = {
       {
         source: "/(.*)",
         headers: securityHeaders,
+      },
+      {
+        source: "/((?!forms/|embed/forms/).*)",
+        headers: privateFrameHeaders,
+      },
+      {
+        source: "/forms/:path*",
+        headers: publicFormFrameHeaders,
+      },
+      {
+        source: "/embed/forms/:path*",
+        headers: publicFormFrameHeaders,
       },
     ];
   },

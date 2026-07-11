@@ -190,8 +190,8 @@ export function LeadProfileForm({
           <p className={labelClass}>Lead type</p>
           <div className="grid gap-2 sm:grid-cols-2">
             {[
-              { value: "direct", label: "Direct customer", hint: "Individual buyer or household." },
-              { value: "business", label: "Business lead", hint: "Company, partner, or B2B account." },
+              { value: "direct", label: "Individual lead", hint: "Individual buyer or household." },
+              { value: "business", label: "Company lead", hint: "Company, partner, or B2B account." },
             ].map((option) => {
               const selected = leadCustomerType === option.value;
               return (

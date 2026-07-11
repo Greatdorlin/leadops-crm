@@ -3,16 +3,15 @@ import { redirect } from "next/navigation";
 import { AdminShell } from "@/components/admin/AdminShell";
 import { AdminSignOutButton } from "@/components/admin/AdminSignOutButton";
 import { ErrorState } from "@/components/admin/ErrorState";
-import { PremiumPageHeader } from "@/components/admin/PremiumPageHeader";
 import { TeamSettingsWorkspace } from "@/components/admin/TeamSettingsWorkspace";
 import { getAdminAccessContext } from "@/lib/admin";
 import {
-  canManageSettings,
   canManageTeamMember,
   canManageTeamRoster,
   getGrantableAccessLevels,
   resolveAdminAccessLevel,
 } from "@/lib/admin-permissions";
+import { canManageUsers } from "@/lib/crm/authz";
 import { getCrmPageErrorCopy, logCrmPageError } from "@/lib/crm/runtime";
 import { appRoutes } from "@/lib/app-routes";
 import { leadStore } from "@/lib/storage";
@@ -56,10 +55,17 @@ function buildDevelopmentTeamData() {
 }
 
 export default async function AdminSettingsTeamPage() {
-  const { session, role, accessLevel, actualAccessLevel, canSwitchAccessViews } =
+  const {
+    session,
+    role,
+    accessLevel,
+    actualAccessLevel,
+    canSwitchAccessViews,
+    permissions,
+  } =
     await getAdminAccessContext(appRoutes.settingsTeam);
 
-  if (!canManageSettings(accessLevel, role)) {
+  if (!canManageUsers({ accessLevel, permissions, role })) {
     redirect(appRoutes.dashboard);
   }
 
@@ -102,7 +108,7 @@ export default async function AdminSettingsTeamPage() {
 
   const grantableAccessLevels = getGrantableAccessLevels(accessLevel);
   const canGrantAccess = grantableAccessLevels.length > 0;
-  const canEditRoster = canManageTeamRoster(accessLevel);
+  const canEditRoster = canManageTeamRoster(accessLevel, permissions);
   const currentUser =
     users.find((user) => user.email.toLowerCase() === session.user?.email?.toLowerCase()) ?? null;
 
@@ -124,6 +130,7 @@ export default async function AdminSettingsTeamPage() {
         targetAccessLevel,
         session.user?.email,
         user.email,
+        permissions,
       ),
     };
   });
@@ -152,34 +159,26 @@ export default async function AdminSettingsTeamPage() {
       userEmail={currentUser?.email || session.user?.email}
       userAvatarUrl={currentUser?.avatarUrl}
     >
-      <div className="space-y-6">
-        <PremiumPageHeader
-          eyebrow="Team settings"
-          title="People, access, and profile identity"
-          description="Keep team management in one dedicated workspace instead of scattering it through general settings."
-        />
-
-        <TeamSettingsWorkspace
-          currentUser={
-            currentUser
-              ? {
-                  id: currentUser.id,
-                  fullName: currentUser.fullName,
+      <TeamSettingsWorkspace
+        currentUser={
+          currentUser
+            ? {
+                id: currentUser.id,
+                fullName: currentUser.fullName,
+                email: currentUser.email,
+                avatarUrl: currentUser.avatarUrl,
+                accessLevel: resolveAdminAccessLevel({
                   email: currentUser.email,
-                  avatarUrl: currentUser.avatarUrl,
-                  accessLevel: resolveAdminAccessLevel({
-                    email: currentUser.email,
-                    role: currentUser.role,
-                  }),
-                }
-              : null
-          }
-          members={roster}
-          canGrantAccess={canGrantAccess}
-          canEditRoster={canEditRoster}
-          grantableAccessLevels={grantableAccessLevels}
-        />
-      </div>
+                  role: currentUser.role,
+                }),
+              }
+            : null
+        }
+        members={roster}
+        canGrantAccess={canGrantAccess}
+        canEditRoster={canEditRoster}
+        grantableAccessLevels={grantableAccessLevels}
+      />
     </AdminShell>
   );
 }

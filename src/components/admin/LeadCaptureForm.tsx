@@ -10,7 +10,6 @@ import {
 import { crmLabelize } from "@/lib/crm/formatters";
 import type { AdminAccessLevel } from "@/lib/admin-permissions";
 import {
-  type CrmStatus,
   type LeadCustomerType,
   type LeadPriority,
   type LeadSource,
@@ -31,13 +30,13 @@ export function LeadCaptureForm({
   assigneeOptions,
   defaultAssignedTo = "",
   customFieldDefinitions = [],
-  stageOptions = CRM_STATUSES.map((status) => ({ value: status, label: crmLabelize(status) })),
+  stageOptions = CRM_STATUSES.map((status) => ({ value: status, key: status, label: crmLabelize(status) })),
 }: {
   accessLevel: AdminAccessLevel;
   assigneeOptions: Array<{ label: string; value: string }>;
   defaultAssignedTo?: string;
   customFieldDefinitions?: CustomFieldDefinitionWithOptions[];
-  stageOptions?: Array<{ value: CrmStatus; label: string }>;
+  stageOptions?: Array<{ value: string; key: string; label: string; stageId?: string }>;
 }) {
   const customFieldInputModel = buildCustomFieldInputModel(
     customFieldDefinitions.filter((field) => field.showInForm),
@@ -55,7 +54,9 @@ export function LeadCaptureForm({
   const [companyName, setCompanyName] = useState("");
   const [leadCustomerType, setLeadCustomerType] = useState<LeadCustomerType>("direct");
   const [source, setSource] = useState<LeadSource>("manual_entry");
-  const [stage, setStage] = useState<CrmStatus>("new");
+  const defaultStageValue =
+    stageOptions.find((option) => option.key === "new")?.value ?? stageOptions[0]?.value ?? "new";
+  const [stage, setStage] = useState(defaultStageValue);
   const [priority, setPriority] = useState<LeadPriority>("medium");
   const [assignedTo, setAssignedTo] = useState(defaultAssignedTo);
   const [sourceDetail, setSourceDetail] = useState("");
@@ -84,6 +85,7 @@ export function LeadCaptureForm({
     setMessage("");
 
     try {
+      const selectedStage = stageOptions.find((option) => option.value === stage);
       const response = await fetch("/api/admin/leads", {
         method: "POST",
         headers: {
@@ -101,7 +103,9 @@ export function LeadCaptureForm({
           postalCode: postalCode.trim() || null,
           companyName: companyName.trim() || null,
           leadCustomerType,
-          stage,
+          ...(selectedStage?.stageId
+            ? { stageId: selectedStage.stageId }
+            : { stage: selectedStage?.key ?? "new" }),
           priority,
           assignedTo: accessLevel === "sales_rep" ? defaultAssignedTo || null : assignedTo || null,
           source,
@@ -136,7 +140,7 @@ export function LeadCaptureForm({
       setCompanyName("");
       setLeadCustomerType("direct");
       setSource("manual_entry");
-      setStage("new");
+      setStage(defaultStageValue);
       setPriority("medium");
       setAssignedTo(defaultAssignedTo);
       setSourceDetail("");
@@ -190,8 +194,8 @@ export function LeadCaptureForm({
           <p className={labelClass}>Lead type</p>
           <div className="grid gap-2 sm:grid-cols-2">
             {[
-              { value: "direct", label: "Direct customer", hint: "Individual buyer or household." },
-              { value: "business", label: "Business lead", hint: "Company, partner, or B2B account." },
+              { value: "direct", label: "Individual lead", hint: "Individual buyer or household." },
+              { value: "business", label: "Company lead", hint: "Company, partner, or B2B account." },
             ].map((option) => {
               const selected = leadCustomerType === option.value;
               return (
@@ -318,7 +322,7 @@ export function LeadCaptureForm({
           <span className={labelClass}>Stage</span>
           <AdminSelect
             value={stage}
-            onChange={(event) => setStage(event.target.value as CrmStatus)}
+            onChange={(event) => setStage(event.target.value)}
             className="h-11"
           >
             {stageOptions.map((option) => (

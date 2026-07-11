@@ -17,11 +17,11 @@ import { EmptyState } from "./EmptyState";
 import { PremiumMetricCard } from "./PremiumMetricCard";
 import { InfoTip } from "./ui/InfoTip";
 
-function formatMoney(value: number, currency = "NGN") {
+function formatMoney(value: number, currency = "USD") {
   return `${currency} ${value.toLocaleString()}`;
 }
 
-function formatShortMoney(value: number, currency = "NGN") {
+function formatShortMoney(value: number, currency = "USD") {
   if (value >= 1_000_000) {
     return `${currency} ${(value / 1_000_000).toFixed(value >= 10_000_000 ? 0 : 1)}M`;
   }
@@ -175,14 +175,16 @@ function CompactProgressRow({
 export function SalesCommandOverview({
   summary,
   visibleWidgets,
+  workspaceCurrency = "USD",
 }: {
   summary: SalesDashboardSummary;
   visibleWidgets?: DashboardWidgetKey[];
+  workspaceCurrency?: string;
 }) {
   const widgetSet = new Set(visibleWidgets ?? []);
   const showAll = widgetSet.size === 0;
   const showWidget = (key: DashboardWidgetKey) => showAll || widgetSet.has(key);
-  const currency = summary.target?.currency ?? "NGN";
+  const currency = summary.target?.currency ?? workspaceCurrency;
   const stageMax = Math.max(...summary.stagePerformance.map((stage) => stage.totalLeads), 1);
   const sourceMax = Math.max(...summary.topSources.map((source) => source.totalLeads), 1);
   const targetProgress = summary.target?.progressPercent ?? 0;

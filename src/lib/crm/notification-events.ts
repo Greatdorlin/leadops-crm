@@ -1,7 +1,8 @@
-import { and, desc, eq, isNull, or, sql, type SQL } from "drizzle-orm";
+import { and, desc, eq, inArray, isNull, lt, or, sql, type SQL } from "drizzle-orm";
 import type { NotificationChannel, NotificationStatus, NotificationType } from "@/lib/crm/domain";
 import { getDb } from "@/lib/db/client";
 import { notificationEvents } from "@/lib/db/schema";
+import { decodeNotificationCursor } from "@/lib/crm/notification-pagination";
 
 export interface NotificationEventRecord {
   id: string;
@@ -30,6 +31,8 @@ export interface NotificationListOptions {
   includeRead?: boolean;
   includeGlobal?: boolean;
   limit?: number;
+  cursor?: string;
+  types?: NotificationType[];
 }
 
 function combineOrPredicates(predicates: [SQL<unknown>, ...SQL<unknown>[]]) {
@@ -89,11 +92,27 @@ export async function listUserNotifications(
   if (!options.includeRead) {
     wherePredicates.push(isNull(notificationEvents.readAt));
   }
+  if (options.types?.length) {
+    wherePredicates.push(inArray(notificationEvents.type, options.types));
+  }
+  const cursor = decodeNotificationCursor(options.cursor);
+  if (cursor) {
+    const cursorDate = new Date(cursor.createdAt);
+    wherePredicates.push(
+      or(
+        lt(notificationEvents.createdAt, cursorDate),
+        and(
+          eq(notificationEvents.createdAt, cursorDate),
+          lt(notificationEvents.id, cursor.id),
+        ),
+      ) as SQL<unknown>,
+    );
+  }
 
   const rows = await db.query.notificationEvents.findMany({
     where: and(...wherePredicates),
-    orderBy: [desc(notificationEvents.createdAt)],
-    limit: options.limit ?? 50,
+    orderBy: [desc(notificationEvents.createdAt), desc(notificationEvents.id)],
+    limit: Math.min(Math.max(options.limit ?? 30, 1), 100),
   });
 
   return rows.map(toRecord);
@@ -237,6 +256,25 @@ export function buildLeadClosedNotification(input: {
   };
 }
 
+export function buildLeadOfferQualifiedNotification(input: {
+  recipientUserId: string;
+  leadId: string;
+  leadName: string;
+  offerLabels: string[];
+}) {
+  const offerCount = input.offerLabels.length;
+  const shortList = input.offerLabels.slice(0, 2).join(", ");
+  return {
+    type: "lead_offer_qualified" as const,
+    channel: "in_app" as const,
+    recipientUserId: input.recipientUserId,
+    leadId: input.leadId,
+    title: offerCount === 1 ? "Qualified offer ready" : `${offerCount} qualified offers ready`,
+    message: `${input.leadName} qualified for ${shortList}${offerCount > 2 ? ` and ${offerCount - 2} more` : ""}.`,
+    status: "sent" as const,
+  };
+}
+
 export async function notifyNewLeadAssigned(input: {
   leadId: string;
   recipientUserId: string | null;
@@ -359,6 +397,26 @@ export async function notifyLeadMarkedLost(input: {
       leadId: input.leadId,
       leadName: input.leadName,
       reasonLabel: input.reasonLabel,
+    }),
+  );
+}
+
+export async function notifyLeadOffersQualified(input: {
+  recipientUserId: string | null;
+  leadId: string;
+  leadName: string;
+  offerLabels: string[];
+}) {
+  if (!input.recipientUserId || input.offerLabels.length === 0) {
+    return null;
+  }
+
+  return createNotificationEvent(
+    buildLeadOfferQualifiedNotification({
+      recipientUserId: input.recipientUserId,
+      leadId: input.leadId,
+      leadName: input.leadName,
+      offerLabels: input.offerLabels,
     }),
   );
 }

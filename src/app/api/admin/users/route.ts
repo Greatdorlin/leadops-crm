@@ -39,7 +39,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
   }
 
-  if (!canManageUsers({ accessLevel: context.accessLevel, role: context.role })) {
+  if (!canManageUsers(context)) {
     return NextResponse.json({ error: "Forbidden." }, { status: 403 });
   }
 

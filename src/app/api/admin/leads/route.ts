@@ -2,12 +2,14 @@ import { NextResponse } from "next/server";
 import { normalizeAdminEmail } from "@/lib/admin-access";
 import { getAdminRequestContext } from "@/lib/admin";
 import { canCreateLeadRecords } from "@/lib/admin-permissions";
+import { canAssignLeads } from "@/lib/crm/authz";
 import { CRM_STATUSES, LEAD_PRIORITIES } from "@/lib/crm/constants";
 import { listCustomFields } from "@/lib/crm/custom-fields-admin";
 import { upsertLeadCustomFieldValues } from "@/lib/crm/custom-field-values-store";
 import { validateCustomFieldValues } from "@/lib/crm/custom-field-values";
 import { normalizeAdminLeadCapturePayload } from "@/lib/crm/form-contracts";
 import { mapAdminInputToSalesCommandUpdate } from "@/lib/crm/input-mapping";
+import { listLeadStages } from "@/lib/crm/lead-stages-admin";
 import {
   notifyFollowUpDue,
   notifyFollowUpOverdue,
@@ -60,7 +62,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
   }
 
-  if (!canCreateLeadRecords()) {
+  if (!canCreateLeadRecords(context.permissions)) {
     return NextResponse.json({ error: "Forbidden." }, { status: 403 });
   }
 
@@ -106,12 +108,37 @@ export async function POST(request: Request) {
       ? context.session.user?.email ?? null
       : parsed.data.assignedTo ?? null;
 
-  const stageId = await resolveLeadStageIdByLegacyStatus(stage);
+  if (
+    context.accessLevel !== "sales_rep" &&
+    parsed.data.assignedTo &&
+    !canAssignLeads(context)
+  ) {
+    return NextResponse.json(
+      { error: "You do not have permission to assign lead ownership." },
+      { status: 403 },
+    );
+  }
+
+  const activeStages = await listLeadStages();
+  const stageId = parsed.data.stageId ?? (await resolveLeadStageIdByLegacyStatus(stage));
+  const selectedStage = stageId
+    ? activeStages.find((candidate) => candidate.id === stageId)
+    : undefined;
+
+  if (parsed.data.stageId && !selectedStage) {
+    return NextResponse.json(
+      { error: "Choose an active lead stage." },
+      { status: 400 },
+    );
+  }
+
   const sourceId = await resolveLeadSourceIdByLegacySource(parsed.data.source);
   const assignedUserId = await resolveCrmUserIdByEmail(assignedTo);
   const nowIso = new Date().toISOString();
-  const wonAt = stage === "converted" ? nowIso : null;
-  const lostAt = stage === "lost" ? nowIso : null;
+  const isWonStage = selectedStage?.isWon || stage === "converted";
+  const isLostStage = selectedStage?.isLost || stage === "lost";
+  const wonAt = isWonStage ? nowIso : null;
+  const lostAt = isLostStage ? nowIso : null;
 
   const result = await leadStore.upsertExternalLead({
     source: parsed.data.source,
@@ -213,13 +240,13 @@ export async function POST(request: Request) {
     });
   }
 
-  if (stage === "converted") {
+  if (isWonStage) {
     await notifyLeadMarkedWon({
       recipientUserId: assignedUserId,
       leadId: lead.id,
       leadName,
     });
-  } else if (stage === "lost") {
+  } else if (isLostStage) {
     await notifyLeadMarkedLost({
       recipientUserId: assignedUserId,
       leadId: lead.id,

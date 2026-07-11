@@ -23,7 +23,7 @@ export async function PATCH(
     return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
   }
 
-  if (!canManageCustomFields({ accessLevel: context.accessLevel, role: context.role })) {
+  if (!canManageCustomFields(context)) {
     return NextResponse.json({ error: "Forbidden." }, { status: 403 });
   }
 

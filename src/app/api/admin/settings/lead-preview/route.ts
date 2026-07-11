@@ -3,12 +3,14 @@ import { getAdminRequestContext } from "@/lib/admin";
 import { canManageLeadPreviewSettings } from "@/lib/crm/authz";
 import { listCustomFields } from "@/lib/crm/custom-fields-admin";
 import {
-  getCompanySettings,
   leadPreviewCustomizationSchema,
   resolveLeadPreviewConfig,
   type LeadPreviewCustomizationConfig,
-  updateCompanySettings,
 } from "@/lib/crm/workspace-settings";
+import {
+  getCompanySettings,
+  updateCompanySettings,
+} from "@/lib/crm/workspace-settings-server";
 
 export async function GET() {
   const context = await getAdminRequestContext();
@@ -27,7 +29,7 @@ export async function PATCH(request: Request) {
     return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
   }
 
-  if (!canManageLeadPreviewSettings({ accessLevel: context.accessLevel, role: context.role })) {
+  if (!canManageLeadPreviewSettings(context)) {
     return NextResponse.json({ error: "Forbidden." }, { status: 403 });
   }
 

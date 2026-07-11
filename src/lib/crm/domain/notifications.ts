@@ -5,6 +5,7 @@ export const NOTIFICATION_TYPES = [
   "lead_stage_changed",
   "lead_marked_won",
   "lead_marked_lost",
+  "lead_offer_qualified",
   "webhook_lead_captured",
   "import_completed",
   "export_completed",

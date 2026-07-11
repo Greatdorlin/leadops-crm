@@ -28,8 +28,8 @@ export function SourceBadge({
 }) {
   if (!source) {
     return (
-      <span className={cn("inline-flex items-center gap-1.5 rounded-full border border-white/25 bg-[var(--ld-color-primary)]/12 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.04em] text-white/80 backdrop-blur-sm", className)}>
-        <span className="h-1.5 w-1.5 rounded-full bg-white/60" />
+      <span className={cn("inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border border-white/25 bg-[var(--ld-color-primary)]/12 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.04em] text-white/80 backdrop-blur-sm", className)}>
+        <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-white/60" />
         {label || "Unknown source"}
       </span>
     );
@@ -38,8 +38,8 @@ export function SourceBadge({
   const style = sourceStyleMap[source] ?? fallbackStyle;
 
   return (
-    <span className={cn("inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.04em] backdrop-blur-sm transition-all duration-200", style.bg, style.border, style.text, className)}>
-      <span className={cn("h-1.5 w-1.5 rounded-full", style.dot)} />
+    <span className={cn("inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.04em] backdrop-blur-sm transition-all duration-200", style.bg, style.border, style.text, className)}>
+      <span className={cn("h-1.5 w-1.5 shrink-0 rounded-full", style.dot)} />
       {label || formatLeadSourceLabel(source)}
     </span>
   );

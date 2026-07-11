@@ -9,6 +9,7 @@ import {
 import { getDb } from "@/lib/db/client";
 import { leadEvents, leadNotes, leadTasks } from "@/lib/db/schema";
 import { canAccessLeadTrash } from "@/lib/admin-permissions";
+import { canAssignLeads } from "@/lib/crm/authz";
 import { leadStore } from "@/lib/storage";
 
 type DuplicateLeadCandidateRow = {
@@ -151,7 +152,9 @@ async function getExactDuplicateRows() {
     order by normalized."emailKey" asc, normalized."phoneKey" asc, normalized."createdAt" asc
   `);
 
-  return result.rows.map((row) => normalizeDuplicateRow(row as Record<string, unknown>));
+  return Array.from(result).map((row) =>
+    normalizeDuplicateRow(row as Record<string, unknown>),
+  );
 }
 
 async function applyCleanup(actorEmail: string | null) {
@@ -215,7 +218,7 @@ export async function GET() {
     return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
   }
 
-  if (!canAccessLeadTrash(context.accessLevel)) {
+  if (!canAccessLeadTrash(context.accessLevel, context.permissions)) {
     return NextResponse.json({ error: "Forbidden." }, { status: 403 });
   }
 
@@ -245,7 +248,10 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
   }
 
-  if (!canAccessLeadTrash(context.accessLevel)) {
+  if (
+    !canAccessLeadTrash(context.accessLevel, context.permissions) ||
+    !canAssignLeads(context)
+  ) {
     return NextResponse.json({ error: "Forbidden." }, { status: 403 });
   }
 

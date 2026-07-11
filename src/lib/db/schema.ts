@@ -1,5 +1,6 @@
 import {
   boolean,
+  check,
   date,
   index,
   integer,
@@ -12,6 +13,7 @@ import {
   uniqueIndex,
   uuid,
 } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
 import {
   CRM_USER_ROLES,
   INTEGRATION_PROVIDERS,
@@ -231,6 +233,10 @@ export const leadCustomFieldValues = pgTable(
   (table) => ({
     leadIdIdx: index("lead_custom_field_values_lead_id_idx").on(table.leadId),
     customFieldIdIdx: index("lead_custom_field_values_custom_field_id_idx").on(table.customFieldId),
+    leadIdCustomFieldIdUnique: uniqueIndex("lead_custom_field_values_lead_field_unique").on(
+      table.leadId,
+      table.customFieldId,
+    ),
   }),
 );
 
@@ -334,7 +340,7 @@ export const salesTargets = pgTable(
     scopeId: uuid("scope_id"),
     period: salesTargetPeriodEnum("period").notNull(),
     targetValue: numeric("target_value", { precision: 12, scale: 2 }).notNull(),
-    currency: text("currency").notNull().default("NGN"),
+    currency: text("currency").notNull().default("USD"),
     startDate: date("start_date").notNull(),
     endDate: date("end_date").notNull(),
     isActive: boolean("is_active").notNull().default(true),
@@ -478,6 +484,35 @@ export const leads = pgTable(
     createdAtIdx: index("leads_created_at_idx").on(table.createdAt),
     updatedAtIdx: index("leads_updated_at_idx").on(table.updatedAt),
     updatedAtIdIdx: index("leads_updated_at_id_idx").on(table.updatedAt, table.id),
+    activeQueueIdx: index("leads_active_queue_idx").on(
+      table.deletedAt,
+      table.updatedAt,
+      table.id,
+    ),
+    ownerActiveQueueIdx: index("leads_owner_active_queue_idx").on(
+      table.assignedUserId,
+      table.deletedAt,
+      table.updatedAt,
+      table.id,
+    ),
+    stageActiveQueueIdx: index("leads_stage_active_queue_idx").on(
+      table.stageId,
+      table.deletedAt,
+      table.updatedAt,
+      table.id,
+    ),
+    sourceActiveQueueIdx: index("leads_source_active_queue_idx").on(
+      table.sourceId,
+      table.deletedAt,
+      table.updatedAt,
+      table.id,
+    ),
+    customerTypeActiveQueueIdx: index("leads_customer_type_active_queue_idx").on(
+      table.leadCustomerType,
+      table.deletedAt,
+      table.updatedAt,
+      table.id,
+    ),
     emailIdx: index("leads_email_idx").on(table.email),
     whatsappNumberIdx: index("leads_whatsapp_number_idx").on(table.whatsappNumber),
     stateIdx: index("leads_state_idx").on(table.state),
@@ -521,8 +556,36 @@ export const leadOpportunities = pgTable(
     leadIdIdx: index("lead_opportunities_lead_id_idx").on(table.leadId),
     statusIdx: index("lead_opportunities_status_idx").on(table.status),
     primaryIdx: index("lead_opportunities_is_primary_idx").on(table.isPrimary),
+    activePrimaryUnique: uniqueIndex("lead_opportunities_active_primary_unique")
+      .on(table.leadId)
+      .where(sql`${table.isPrimary} = true and ${table.archivedAt} is null`),
+    pipelineIdx: index("lead_opportunities_pipeline_idx").on(
+      table.archivedAt,
+      table.status,
+      table.leadId,
+    ),
     archivedAtIdx: index("lead_opportunities_archived_at_idx").on(table.archivedAt),
     sortOrderIdx: index("lead_opportunities_sort_order_idx").on(table.sortOrder),
+    probabilityCheck: check(
+      "lead_opportunities_probability_check",
+      sql`${table.closeProbability} is null or (${table.closeProbability} >= 0 and ${table.closeProbability} <= 100)`,
+    ),
+    estimatedValueCheck: check(
+      "lead_opportunities_estimated_value_check",
+      sql`${table.estimatedValue} is null or ${table.estimatedValue} >= 0`,
+    ),
+    expectedValueCheck: check(
+      "lead_opportunities_expected_value_check",
+      sql`${table.expectedValue} is null or ${table.expectedValue} >= 0`,
+    ),
+    sortOrderCheck: check(
+      "lead_opportunities_sort_order_check",
+      sql`${table.sortOrder} >= 0`,
+    ),
+    reasonCheck: check(
+      "lead_opportunities_reason_check",
+      sql`${table.status} not in ('lost', 'unqualified') or nullif(trim(${table.reason}), '') is not null`,
+    ),
   }),
 );
 
@@ -534,7 +597,7 @@ export const crmUsers = pgTable(
     fullName: text("full_name").notNull().default(""),
     avatarUrl: text("avatar_url"),
     role: crmUserRoleEnum("role").$type<CrmUserRole>().notNull().default("sales_agent"),
-    isActive: boolean("is_active").notNull().default(true),
+    isActive: boolean("is_active").notNull().default(false),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
@@ -766,6 +829,10 @@ export const forms = pgTable(
     slugIdx: index("forms_slug_idx").on(table.slug),
     statusIdx: index("forms_status_idx").on(table.status),
     slugWorkspaceUnique: uniqueIndex("forms_slug_workspace_unique").on(table.slug, table.workspaceId),
+    statusCheck: check(
+      "forms_status_check",
+      sql`${table.status} in ('draft', 'active', 'archived')`,
+    ),
   }),
 );
 
@@ -794,6 +861,7 @@ export const formFields = pgTable(
   (table) => ({
     formIdIdx: index("form_fields_form_id_idx").on(table.formId),
     formIdOrderIdx: index("form_fields_order_idx").on(table.formId, table.order),
+    orderCheck: check("form_fields_order_check", sql`${table.order} >= 0`),
   }),
 );
 
@@ -821,6 +889,7 @@ export const formRules = pgTable(
   (table) => ({
     formIdIdx: index("form_rules_form_id_idx").on(table.formId),
     formIdOrderIdx: index("form_rules_order_idx").on(table.formId, table.order),
+    orderCheck: check("form_rules_order_check", sql`${table.order} >= 0`),
   }),
 );
 
@@ -839,7 +908,7 @@ export const formSubmissions = pgTable(
     referrer: text("referrer"),
     status: text("status").notNull().default("pending"),
     appliedRules: jsonb("applied_rules").$type<Record<string, unknown>[] | null>(),
-    createdLeadId: uuid("created_lead_id").references(() => leads.id),
+    createdLeadId: uuid("created_lead_id").references(() => leads.id, { onDelete: "set null" }),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
@@ -848,12 +917,120 @@ export const formSubmissions = pgTable(
     leadIdIdx: index("form_submissions_lead_id_idx").on(table.leadId),
     statusIdx: index("form_submissions_status_idx").on(table.status),
     createdAtIdx: index("form_submissions_created_at_idx").on(table.createdAt),
+    formIdCreatedAtIdIdx: index("form_submissions_form_created_id_idx").on(
+      table.formId,
+      table.createdAt,
+      table.id,
+    ),
+  }),
+);
+
+export const migrationArchives = pgTable(
+  "migration_archives",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    sourceSystem: text("source_system").notNull(),
+    recordType: text("record_type").notNull(),
+    sourceRecordId: text("source_record_id").notNull(),
+    payload: jsonb("payload").$type<Record<string, unknown>>().notNull(),
+    migratedAt: timestamp("migrated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => ({
+    sourceRecordUnique: uniqueIndex("migration_archives_source_record_unique").on(
+      table.sourceSystem,
+      table.recordType,
+      table.sourceRecordId,
+    ),
+    sourceSystemIdx: index("migration_archives_source_system_idx").on(table.sourceSystem),
+    migratedAtIdx: index("migration_archives_migrated_at_idx").on(table.migratedAt),
+  }),
+);
+
+export const dataImports = pgTable(
+  "data_imports",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    sourceSystem: text("source_system").notNull(),
+    sourceFileName: text("source_file_name"),
+    sourceFileSha256: text("source_file_sha256"),
+    status: text("status").notNull().default("staged"),
+    mode: text("mode").notNull().default("validate"),
+    fieldMapping: jsonb("field_mapping").$type<Record<string, unknown> | null>(),
+    summary: jsonb("summary").$type<Record<string, unknown> | null>(),
+    createdBy: text("created_by"),
+    startedAt: timestamp("started_at", { withTimezone: true }),
+    completedAt: timestamp("completed_at", { withTimezone: true }),
+    rolledBackAt: timestamp("rolled_back_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => ({
+    statusCreatedIdx: index("data_imports_status_created_idx").on(table.status, table.createdAt),
+    sourceCreatedIdx: index("data_imports_source_created_idx").on(table.sourceSystem, table.createdAt),
+    createdByIdx: index("data_imports_created_by_idx").on(table.createdBy),
+    statusCheck: check(
+      "data_imports_status_check",
+      sql`${table.status} in ('staged', 'validating', 'validated', 'importing', 'completed', 'completed_with_errors', 'failed', 'rolled_back')`,
+    ),
+    modeCheck: check(
+      "data_imports_mode_check",
+      sql`${table.mode} in ('validate', 'commit')`,
+    ),
+  }),
+);
+
+export const dataImportRecords = pgTable(
+  "data_import_records",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    importId: uuid("import_id")
+      .notNull()
+      .references(() => dataImports.id, { onDelete: "cascade" }),
+    rowNumber: integer("row_number").notNull(),
+    objectType: text("object_type").notNull().default("lead"),
+    sourceRecordId: text("source_record_id"),
+    sourceUpdatedAt: timestamp("source_updated_at", { withTimezone: true }),
+    status: text("status").notNull().default("pending"),
+    checksum: text("checksum").notNull(),
+    rawPayload: jsonb("raw_payload").$type<Record<string, unknown>>().notNull(),
+    normalizedPayload: jsonb("normalized_payload").$type<Record<string, unknown> | null>(),
+    previousLeadSnapshot: jsonb("previous_lead_snapshot").$type<Record<string, unknown> | null>(),
+    resultAction: text("result_action"),
+    leadId: uuid("lead_id").references(() => leads.id, { onDelete: "set null" }),
+    errorCode: text("error_code"),
+    errorMessage: text("error_message"),
+    processedAt: timestamp("processed_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => ({
+    importStatusRowIdx: index("data_import_records_import_status_row_idx").on(
+      table.importId,
+      table.status,
+      table.rowNumber,
+    ),
+    leadIdIdx: index("data_import_records_lead_id_idx").on(table.leadId),
+    sourceRecordIdx: index("data_import_records_source_record_idx").on(
+      table.objectType,
+      table.sourceRecordId,
+    ),
+    importSourceRecordUnique: uniqueIndex("data_import_records_import_source_unique")
+      .on(table.importId, table.objectType, table.sourceRecordId)
+      .where(sql`${table.sourceRecordId} is not null`),
+    rowNumberCheck: check("data_import_records_row_number_check", sql`${table.rowNumber} >= 1`),
+    statusCheck: check(
+      "data_import_records_status_check",
+      sql`${table.status} in ('pending', 'valid', 'imported', 'updated', 'failed', 'skipped', 'rolled_back')`,
+    ),
   }),
 );
 
 export type LeadRow = typeof leads.$inferSelect;
 export type NewLeadRow = typeof leads.$inferInsert;
 export type LeadOpportunityRow = typeof leadOpportunities.$inferSelect;
+export type MigrationArchiveRow = typeof migrationArchives.$inferSelect;
+export type DataImportRow = typeof dataImports.$inferSelect;
+export type DataImportRecordRow = typeof dataImportRecords.$inferSelect;
 export type BranchRow = typeof branches.$inferSelect;
 export type DepartmentRow = typeof departments.$inferSelect;
 export type TeamRow = typeof teams.$inferSelect;

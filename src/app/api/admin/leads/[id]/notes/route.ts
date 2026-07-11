@@ -37,7 +37,14 @@ export async function POST(
     );
   }
 
-  if (!canManageLeadRecord(context.accessLevel, lead, context.session.user?.email)) {
+  if (
+    !canManageLeadRecord(
+      context.accessLevel,
+      lead,
+      context.session.user?.email,
+      context.permissions,
+    )
+  ) {
     return NextResponse.json({ error: "Forbidden." }, { status: 403 });
   }
 

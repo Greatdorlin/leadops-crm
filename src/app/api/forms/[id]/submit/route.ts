@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { eq, or } from "drizzle-orm";
+import { and, eq, or } from "drizzle-orm";
 import {
   getFormById,
   listFormFields,
@@ -9,11 +9,20 @@ import {
   listFormRules,
 } from "@/lib/crm/form-builder-store";
 import { listLeadStages } from "@/lib/crm/lead-stages-admin";
+import { notifyLeadOffersQualified } from "@/lib/crm/notification-events";
+import { listCustomFields } from "@/lib/crm/custom-fields-admin";
+import { validateCustomFieldValues } from "@/lib/crm/custom-field-values";
+import {
+  MAX_FORM_SUBMISSION_BODY_BYTES,
+  validateFormSubmissionData,
+} from "@/lib/crm/form-submission-validation";
 import {
   applySubmissionRules,
+  mergeSubmissionRuleEvaluations,
   normalizeAutoQualifyRules,
   normalizeStageLookupValue,
 } from "@/lib/crm/form-submission-routing";
+import { resolveQuickScheduleDate } from "@/lib/crm/schedule-presets";
 import { getDb } from "@/lib/db/client";
 import { crmUsers } from "@/lib/db/schema";
 
@@ -63,7 +72,12 @@ async function resolveLeadAssignment(assignmentValue?: string | null) {
   const [user] = await db
     .select({ id: crmUsers.id, email: crmUsers.email })
     .from(crmUsers)
-    .where(or(eq(crmUsers.id, normalizedValue), eq(crmUsers.email, normalizedValue)))
+    .where(
+      and(
+        eq(crmUsers.isActive, true),
+        or(eq(crmUsers.id, normalizedValue), eq(crmUsers.email, normalizedValue)),
+      ),
+    )
     .limit(1);
 
   if (user) {
@@ -73,10 +87,7 @@ async function resolveLeadAssignment(assignmentValue?: string | null) {
     };
   }
 
-  return {
-    assignedTo: normalizedValue,
-    assignedUserId: null,
-  };
+  return { assignedTo: null, assignedUserId: null };
 }
 
 export async function POST(
@@ -90,31 +101,46 @@ export async function POST(
     return NextResponse.json({ error: "Form not found or not active." }, { status: 404 });
   }
 
-  const [fields, rules] = await Promise.all([listFormFields(id), listFormRules(id)]);
-
-  const payload = (await request.json().catch(() => null)) as Record<string, unknown> | null;
+  if (!request.headers.get("content-type")?.toLowerCase().includes("application/json")) {
+    return NextResponse.json({ error: "Submit this form as JSON." }, { status: 415 });
+  }
+  const declaredLength = Number.parseInt(request.headers.get("content-length") ?? "0", 10);
+  if (Number.isFinite(declaredLength) && declaredLength > MAX_FORM_SUBMISSION_BODY_BYTES) {
+    return NextResponse.json({ error: "This submission is too large." }, { status: 413 });
+  }
+  const rawBody = await request.text();
+  if (new TextEncoder().encode(rawBody).byteLength > MAX_FORM_SUBMISSION_BODY_BYTES) {
+    return NextResponse.json({ error: "This submission is too large." }, { status: 413 });
+  }
+  let payload: Record<string, unknown> | null = null;
+  try {
+    payload = JSON.parse(rawBody) as Record<string, unknown>;
+  } catch {
+    payload = null;
+  }
   if (!payload || typeof payload.data !== "object" || payload.data === null || Array.isArray(payload.data)) {
     return NextResponse.json({ error: "Invalid submission data." }, { status: 400 });
   }
 
-  const data = payload.data as Record<string, unknown>;
-
-  // Validate required fields
-  const missingFields: string[] = [];
-  for (const field of fields) {
-    if (!field.isVisible || !field.isRequired) continue;
-    const value = data[field.id];
-    if (value === undefined || value === null || value === "") {
-      missingFields.push(field.label);
-    }
-  }
-
-  if (missingFields.length > 0) {
+  const [fields, rules, customFieldDefinitions] = await Promise.all([
+    listFormFields(id),
+    listFormRules(id),
+    listCustomFields(),
+  ]);
+  const validation = validateFormSubmissionData(
+    fields,
+    payload.data as Record<string, unknown>,
+  );
+  if (!validation.success) {
     return NextResponse.json(
-      { error: `Missing required fields: ${missingFields.join(", ")}` },
+      {
+        error: "Review the highlighted form fields and try again.",
+        fieldErrors: validation.fieldErrors,
+      },
       { status: 400 },
     );
   }
+  const data = validation.data;
 
   const availableFieldIds = new Set(fields.map((field) => field.id));
   const autoQualifyRules = form.enableAutoQualify
@@ -126,33 +152,17 @@ export async function POST(
     availableFieldIds,
   );
   const ruleEvaluation = applySubmissionRules(rules, data, availableFieldIds);
-  const appliedRules = [
-    ...autoQualifyEvaluation.appliedRules,
-    ...ruleEvaluation.appliedRules,
-  ];
-  const leadOverrides = {
-    ...autoQualifyEvaluation.leadOverrides,
-    ...ruleEvaluation.leadOverrides,
-  };
+  const {
+    appliedRules,
+    leadOverrides,
+    opportunityOverrides,
+    taskOverrides,
+  } = mergeSubmissionRuleEvaluations(autoQualifyEvaluation, ruleEvaluation);
   const stages = await listLeadStages();
   const resolvedStageId =
     (await resolveStageId(leadOverrides.stageValue, stages)) ??
     (await resolveStageId(form.defaultStatus, stages));
 
-  // Create submission record
-  const submission = await createFormSubmission({
-    formId: id,
-    leadId: null,
-    data,
-    ipAddress: getClientIp(request),
-    userAgent: request.headers.get("user-agent") ?? null,
-    referrer: request.headers.get("referer") ?? null,
-    status: "pending",
-    appliedRules: appliedRules.length > 0 ? appliedRules : null,
-    createdLeadId: null,
-  });
-
-  // Map form data to lead fields
   let firstName: string | null = null;
   let lastName: string | null = null;
   let email: string | null = null;
@@ -165,6 +175,14 @@ export async function POST(
   let address: string | null = null;
   let postalCode: string | null = null;
   const customFields: Record<string, unknown> = {};
+  const customFieldValues: Record<string, unknown> = {};
+  const mappedCustomFieldIds = new Set<string>();
+  const customFieldByReference = new Map(
+    customFieldDefinitions.flatMap((definition) => [
+      [definition.id, definition] as const,
+      [definition.key, definition] as const,
+    ]),
+  );
 
   for (const field of fields) {
     const value = data[field.id];
@@ -209,7 +227,13 @@ export async function POST(
           break;
         default:
           if (target.startsWith("customField_")) {
-            customFields[target] = value;
+            const reference = target.slice("customField_".length);
+            const definition = customFieldByReference.get(reference);
+            customFields[reference] = value;
+            if (definition) {
+              customFieldValues[definition.id] = value;
+              mappedCustomFieldIds.add(definition.id);
+            }
           }
           break;
       }
@@ -220,44 +244,112 @@ export async function POST(
     leadOverrides.assignedTo ?? form.defaultOwnerId ?? null,
   );
 
-  // Create lead from submission
-  const leadResult = await createLeadFromFormSubmission(submission.id, {
-    firstName: firstName ?? "",
-    lastName: lastName ?? "",
-    email: email ?? "",
-    whatsappNumber: phone ?? "",
-    companyName,
-    state,
-    country,
-    region,
-    city,
-    address,
-    postalCode,
-    source: (leadOverrides.source as string) ?? form.defaultSource ?? "website_form",
-    sourceDetail: `form:${form.slug}`,
-    priority: (leadOverrides.priority as string) ?? form.defaultPriority ?? "medium",
-    assignedTo: resolvedAssignment.assignedTo,
-    assignedUserId: resolvedAssignment.assignedUserId,
-    stageId: resolvedStageId,
-    customFields: Object.keys(customFields).length > 0 ? customFields : undefined,
+  const mappedCustomFieldDefinitions = customFieldDefinitions.filter((definition) =>
+    mappedCustomFieldIds.has(definition.id),
+  );
+  const customFieldValidation = validateCustomFieldValues(
+    mappedCustomFieldDefinitions,
+    customFieldValues,
+  );
+  if (!customFieldValidation.success) {
+    return NextResponse.json(
+      {
+        error: "Review the custom field values and try again.",
+        fieldErrors: customFieldValidation.fieldErrors,
+      },
+      { status: 400 },
+    );
+  }
+
+  const submission = await createFormSubmission({
+    formId: id,
+    leadId: null,
+    data,
+    ipAddress: getClientIp(request)?.slice(0, 128) ?? null,
+    userAgent: request.headers.get("user-agent")?.slice(0, 1_000) ?? null,
+    referrer: request.headers.get("referer")?.slice(0, 2_000) ?? null,
+    status: "pending",
+    appliedRules: appliedRules.length > 0 ? appliedRules : null,
+    createdLeadId: null,
   });
 
-  if (leadResult) {
-    await updateFormSubmission(submission.id, {
-      status: "processed",
-      leadId: leadResult.leadId,
-      createdLeadId: leadResult.leadId,
+  let leadResult: { leadId: string } | null = null;
+  try {
+    leadResult = await createLeadFromFormSubmission(submission.id, {
+      firstName: firstName ?? "",
+      lastName: lastName ?? "",
+      email: email ?? "",
+      whatsappNumber: phone ?? "",
+      companyName,
+      state,
+      country,
+      region,
+      city,
+      address,
+      postalCode,
+      source: (leadOverrides.source as string) ?? form.defaultSource ?? "website_form",
+      sourceDetail: `form:${form.slug}`,
+      priority: (leadOverrides.priority as string) ?? form.defaultPriority ?? "medium",
+      assignedTo: resolvedAssignment.assignedTo,
+      assignedUserId: resolvedAssignment.assignedUserId,
+      stageId: resolvedStageId,
+      customFields: Object.keys(customFields).length > 0 ? customFields : undefined,
+      customFieldValues: customFieldValidation.values,
+      opportunities: opportunityOverrides.map((opportunity) => ({
+        offerLabel: opportunity.offerLabel,
+        status: opportunity.status ?? "active",
+        estimatedValue: opportunity.estimatedValue,
+        reason: opportunity.reason,
+      })),
+      tasks: taskOverrides.map((task) => ({
+        title: task.title,
+        dueAt:
+          task.duePreset === "none"
+            ? null
+            : resolveQuickScheduleDate(task.duePreset).toISOString(),
+        assignedTo: resolvedAssignment.assignedTo,
+        sourceRuleId: task.sourceRuleId,
+      })),
     });
-  } else {
+  } catch (error) {
+    console.error("[public-form:submit]", error);
     await updateFormSubmission(submission.id, {
       status: "failed",
     });
+    return NextResponse.json(
+      { error: "We couldn't create the lead right now. Please try again." },
+      { status: 500 },
+    );
+  }
+
+  if (!leadResult) {
+    await updateFormSubmission(submission.id, { status: "failed" });
+    return NextResponse.json(
+      { error: "We couldn't create the lead right now. Please try again." },
+      { status: 500 },
+    );
+  }
+
+  const qualifiedOffers = opportunityOverrides
+    .filter((opportunity) => opportunity.status === "qualified")
+    .map((opportunity) => opportunity.offerLabel);
+  if (qualifiedOffers.length > 0) {
+    try {
+      await notifyLeadOffersQualified({
+        recipientUserId: resolvedAssignment.assignedUserId,
+        leadId: leadResult.leadId,
+        leadName: `${firstName || "Lead"} ${lastName || ""}`.trim(),
+        offerLabels: qualifiedOffers,
+      });
+    } catch (notificationError) {
+      console.error("[public-form:qualification-notification]", notificationError);
+    }
   }
 
   return NextResponse.json({
     success: true,
     submissionId: submission.id,
-    leadId: leadResult?.leadId ?? null,
+    leadId: leadResult.leadId,
     message: form.successMessage,
     redirectUrl: form.redirectUrl,
   });

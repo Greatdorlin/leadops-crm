@@ -15,10 +15,10 @@ import { getCrmPageErrorCopy, logCrmPageError } from "@/lib/crm/runtime";
 export const dynamic = "force-dynamic";
 
 export default async function AdminLeadStagesPage() {
-  const { role, accessLevel, actualAccessLevel, canSwitchAccessViews } =
+  const { role, accessLevel, actualAccessLevel, canSwitchAccessViews, permissions } =
     await getAdminAccessContext(appRoutes.settingsStages);
 
-  if (!canManageLeadStages({ accessLevel, role })) {
+  if (!canManageLeadStages({ accessLevel, permissions, role })) {
     redirect(appRoutes.settings);
   }
 

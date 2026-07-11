@@ -8,8 +8,7 @@ export type FormTemplateFieldDefinition = {
     | "checkbox"
     | "radio"
     | "textarea"
-    | "date"
-    | "file";
+    | "date";
   label: string;
   placeholder?: string;
   helpText?: string;
@@ -186,7 +185,7 @@ export const FORM_TEMPLATES: FormTemplateDefinition[] = [
     defaultStatus: "contacted",
     defaultPriority: "high",
     defaultSource: "website_form",
-    successMessage: "Thanks. A property advisor will review this enquiry.",
+    successMessage: "Thanks. A team member will review this enquiry.",
     fields: createLeadBasics([
       {
         fieldType: "select",

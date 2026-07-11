@@ -1,5 +1,6 @@
 "use client";
 
+import { Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
@@ -29,11 +30,13 @@ export function LeadLifecycleButton({
   action,
   onSuccessHref,
   className,
+  compact = false,
 }: {
   leadId: string;
   action: keyof typeof actionCopy;
   onSuccessHref?: string;
   className: string;
+  compact?: boolean;
 }) {
   const router = useRouter();
   const [isSaving, setIsSaving] = useState(false);
@@ -82,8 +85,16 @@ export function LeadLifecycleButton({
       onClick={() => void runAction()}
       disabled={isSaving}
       className={className}
+      aria-label={compact ? actionCopy[action].label : undefined}
+      title={compact ? actionCopy[action].label : undefined}
     >
-      {isSaving ? actionCopy[action].loading : actionCopy[action].label}
+      {isSaving ? (
+        actionCopy[action].loading
+      ) : compact && action === "trash" ? (
+        <Trash2 className="h-4 w-4" aria-hidden="true" />
+      ) : (
+        actionCopy[action].label
+      )}
     </button>
   );
 }

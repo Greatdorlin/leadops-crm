@@ -17,27 +17,29 @@ import { appRoutes } from "@/lib/app-routes";
 export const dynamic = "force-dynamic";
 
 export default async function AdminTikTokIntegrationPage() {
-  const { role, accessLevel, actualAccessLevel, canSwitchAccessViews } =
+  const { role, accessLevel, actualAccessLevel, canSwitchAccessViews, permissions } =
     await getAdminAccessContext(appRoutes.integration("tiktok"));
-  if (!canManageIntegrations(accessLevel, role)) {
+  if (!canManageIntegrations(accessLevel, role, permissions)) {
     redirect(appRoutes.dashboard);
   }
 
   let pageData:
     | {
-        tiktokLeads: Awaited<ReturnType<typeof leadStore.list>>;
+        tiktokLeadCount: number;
+        recentTikTokLeads: Awaited<ReturnType<typeof leadStore.list>>;
         failedPayloads: Awaited<ReturnType<typeof leadStore.listFailedPayloads>>;
       }
     | null = null;
   let pageError: unknown = null;
 
   try {
-    const [tiktokLeads, failedPayloads] = await Promise.all([
-      leadStore.list({ source: "tiktok_lead_ads" }),
+    const [tiktokLeadCount, recentTikTokLeads, failedPayloads] = await Promise.all([
+      leadStore.countLeads({ source: "tiktok_lead_ads" }),
+      leadStore.list({ source: "tiktok_lead_ads", limit: 1 }),
       leadStore.listFailedPayloads("tiktok_lead_ads"),
     ]);
 
-    pageData = { tiktokLeads, failedPayloads };
+    pageData = { tiktokLeadCount, recentTikTokLeads, failedPayloads };
   } catch (error) {
     pageError = error;
     logCrmPageError("integrations:tiktok", error);
@@ -75,7 +77,7 @@ export default async function AdminTikTokIntegrationPage() {
               />
               <MetricCard
                 label="Imported leads"
-                value={pageData.tiktokLeads.length}
+                value={pageData.tiktokLeadCount}
                 supporting="Leads currently attributed to TikTok Lead Ads."
               />
               <MetricCard
@@ -86,7 +88,7 @@ export default async function AdminTikTokIntegrationPage() {
               />
               <MetricCard
                 label="Last successful import"
-                value={pageData.tiktokLeads[0] ? formatCrmDateTime(pageData.tiktokLeads[0].createdAt) : "Not yet"}
+                value={pageData.recentTikTokLeads[0] ? formatCrmDateTime(pageData.recentTikTokLeads[0].createdAt) : "Not yet"}
                 supporting="Latest lead attributed to TikTok Lead Ads."
               />
             </section>

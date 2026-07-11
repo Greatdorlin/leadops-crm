@@ -45,16 +45,19 @@ import {
 import { listLeadIntakeEvents } from "@/lib/crm/intake-runtime";
 import { buildAffiliateDashboardSummary } from "@/lib/crm/affiliate-dashboard";
 import { getCrmPageErrorCopy, logCrmPageError } from "@/lib/crm/runtime";
-import { buildSalesDashboardSummary } from "@/lib/crm/sales-metrics";
+import {
+  buildSalesDashboardSummary,
+  mergeSalesDashboardSummary,
+} from "@/lib/crm/sales-metrics";
 import { getActiveGlobalSalesTarget } from "@/lib/crm/sales-targets-admin";
 import { appRoutes } from "@/lib/app-routes";
 import {
   DASHBOARD_WIDGET_KEYS,
-  getCompanySettings,
   resolveDashboardConfig,
   resolveDashboardWidgetOrder,
   type DashboardWidgetKey,
 } from "@/lib/crm/workspace-settings";
+import { getCompanySettings } from "@/lib/crm/workspace-settings-server";
 import type { CrmStatus, LeadRecord } from "@/lib/crm/types";
 import { leadStore } from "@/lib/storage";
 
@@ -483,13 +486,22 @@ export default async function AdminPage({
     accessLevel,
     actualAccessLevel,
     canSwitchAccessViews,
+    permissions,
   } = await getAdminAccessContext(appRoutes.dashboard);
   const params = await searchParams;
   const filters = parseLeadListFilters(params);
-  const selectedStage = readStageFilter(params) ?? (filters.stageId === "all" ? "all" : filters.stageId);
+  const selectedStage =
+    readStageFilter(params) ??
+    (filters.stageId === "all" || filters.status === "all"
+      ? "all"
+      : filters.stageId ?? filters.status);
   const scopedFilters = scopeLeadListFilters(filters, accessLevel, session.user?.email);
-  const showTeamViews = canViewSalesTeam(accessLevel);
-  const showTechnicalSummary = canManageIntegrationsAccess(accessLevel, role);
+  const showTeamViews = canViewSalesTeam(accessLevel, permissions);
+  const showTechnicalSummary = canManageIntegrationsAccess(
+    accessLevel,
+    role,
+    permissions,
+  );
   const usePersonalTaskScope =
     accessLevel === "sales_rep" || accessLevel === "affiliate" || accessLevel === "finance";
   const showIntakeFeed =
@@ -499,6 +511,7 @@ export default async function AdminPage({
     | {
         leads: Awaited<ReturnType<typeof leadStore.list>>;
         stats: Awaited<ReturnType<typeof leadStore.getDashboardStats>>;
+        salesAggregate: Awaited<ReturnType<typeof leadStore.getSalesPipelineAggregate>> | null;
         tasks: Awaited<ReturnType<typeof leadStore.listLeadTasks>>;
         users: Awaited<ReturnType<typeof leadStore.listCrmUsers>>;
         integrations: Awaited<ReturnType<typeof leadStore.listIntegrations>>;
@@ -509,18 +522,18 @@ export default async function AdminPage({
   let usingDevelopmentDemoData = false;
 
   try {
-    const [leads, stats, tasks, users, integrations, intakeEvents, activeTarget] = await Promise.all([
+    const [leads, stats, salesAggregate, tasks, users, integrations, intakeEvents, activeTarget] = await Promise.all([
       leadStore.list({
         ...scopedFilters,
-        stageId: selectedStage,
         limit: 120,
       }),
       leadStore.getDashboardStats({
         ...scopedFilters,
-        stageId: selectedStage,
       }),
+      leadStore.getSalesPipelineAggregate(scopedFilters),
       leadStore.listLeadTasks({
         assignedTo: usePersonalTaskScope ? session.user?.email ?? undefined : undefined,
+        limit: 500,
       }),
       showTeamViews ? leadStore.listCrmUsers() : Promise.resolve([]),
       showTechnicalSummary ? leadStore.listIntegrations() : Promise.resolve([]),
@@ -531,6 +544,7 @@ export default async function AdminPage({
     pageData = {
       leads,
       stats,
+      salesAggregate,
       tasks,
       users,
       integrations,
@@ -542,7 +556,10 @@ export default async function AdminPage({
     logCrmPageError("dashboard", error);
 
     if (process.env.NODE_ENV !== "production") {
-      pageData = buildDevelopmentDashboardData();
+      pageData = {
+        ...buildDevelopmentDashboardData(),
+        salesAggregate: null,
+      };
       usingDevelopmentDemoData = true;
     }
   }
@@ -582,9 +599,8 @@ export default async function AdminPage({
     );
   }
 
-  const { leads, stats, tasks, users, integrations, intakeEvents, activeTarget } = pageData;
+  const { leads, stats, salesAggregate, tasks, users, integrations, intakeEvents, activeTarget } = pageData;
   const openTasks = tasks.filter((task) => !task.completedAt);
-  const unassignedLeads = leads.filter((lead) => !lead.assignedTo);
   const leadNameById = buildLeadDisplayNameMap(leads);
   const focusedTasks = openTasks
     .sort((left, right) => {
@@ -642,8 +658,6 @@ export default async function AdminPage({
     .sort((left, right) => new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime())
     .slice(0, 5);
   const recentLeadNameById = buildLeadDisplayNameMap(recentLeads);
-  const previewUnassignedLeads = unassignedLeads.slice(0, 5);
-  const previewUnassignedLeadNameById = buildLeadDisplayNameMap(previewUnassignedLeads);
   const activityLeadNameById = buildLeadDisplayNameMap(activityFeed.map(({ lead }) => lead));
   const workspaceSettings = await getCompanySettings();
   const dashboardConfig = resolveDashboardConfig(workspaceSettings.dashboard);
@@ -652,13 +666,15 @@ export default async function AdminPage({
     dashboardConfig,
   ).map((item) => item.id);
   const visibleDashboardWidgetSet = new Set<DashboardWidgetKey>(visibleDashboardWidgetKeys);
-  const salesDashboardSummary = buildSalesDashboardSummary({
-    leads,
-    tasks,
-    users,
-    intakeEvents,
-    activeTarget,
-  });
+  const salesDashboardSummary = salesAggregate
+    ? mergeSalesDashboardSummary(salesAggregate, { intakeEvents, activeTarget })
+    : buildSalesDashboardSummary({
+        leads,
+        tasks,
+        users,
+        intakeEvents,
+        activeTarget,
+      });
   const affiliateDashboardSummary =
     accessLevel === "affiliate"
       ? buildAffiliateDashboardSummary({
@@ -821,7 +837,7 @@ export default async function AdminPage({
         {affiliateDashboardSummary ? (
           <AffiliateDashboardPanel
             summary={affiliateDashboardSummary}
-            currency={salesDashboardSummary.target?.currency ?? "NGN"}
+            currency={salesDashboardSummary.target?.currency ?? workspaceSettings.globalCurrency}
           />
         ) : accessLevel === "sales_rep" ? null : (
           <>
@@ -834,6 +850,7 @@ export default async function AdminPage({
               <SalesCommandOverview
                 summary={salesDashboardSummary}
                 visibleWidgets={visibleDashboardWidgetKeys}
+                workspaceCurrency={workspaceSettings.globalCurrency}
               />
             </div>
           </>
@@ -1008,7 +1025,12 @@ export default async function AdminPage({
           })}
         />
 
-        <section className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_340px]">
+        <section
+          className={cn(
+            "grid gap-6",
+            showTechnicalSummary && "xl:grid-cols-[minmax(0,1fr)_340px]",
+          )}
+        >
           <AdminCollapsibleSection
             eyebrow="Recent activity"
             title="Latest updates"
@@ -1041,41 +1063,8 @@ export default async function AdminPage({
             </div>
           </AdminCollapsibleSection>
 
-          <div className="space-y-6">
-            {accessLevel === "sales_rep" ? null : (
-              <AdminCollapsibleSection
-                eyebrow="Needs owner"
-                title="Unassigned leads"
-                description="Visible separately so they do not get buried under team summaries."
-              >
-                <div className="grid gap-3">
-                  {previewUnassignedLeads.length > 0 ? (
-                    previewUnassignedLeads.map((lead) => (
-                      <Link
-                        key={lead.id}
-                        href={appRoutes.lead(lead.id)}
-                        className="admin-surface-muted rounded-[22px] px-4 py-3 transition hover:border-white/20 hover:bg-white/[0.07]"
-                      >
-                        <p className="text-sm font-semibold text-white">
-                          {previewUnassignedLeadNameById[lead.id] || `${(lead.firstName || "Lead").trim()} ${lead.lastName}`.trim()}
-                        </p>
-                        <p className="mt-1 text-sm text-white/70">
-                          {lead.state ? `${formatLeadStateLabel(lead.state)} • ` : ""}
-                          {formatLeadSourceLabel(lead.source)} • {lead.email || lead.whatsappNumber || "No contact yet"}
-                        </p>
-                      </Link>
-                    ))
-                  ) : (
-                    <EmptyState
-                      title="No unassigned leads"
-                      description="Every visible lead already has an owner."
-                    />
-                  )}
-                </div>
-              </AdminCollapsibleSection>
-            )}
-
-            {showTechnicalSummary ? (
+          {showTechnicalSummary ? (
+            <div className="space-y-6">
               <AdminCollapsibleSection
                 eyebrow="Connected tools"
                 title="Tool status"
@@ -1109,8 +1098,8 @@ export default async function AdminPage({
                   )}
                 </div>
               </AdminCollapsibleSection>
-            ) : null}
-          </div>
+            </div>
+          ) : null}
         </section>
       </div>
     </AdminShell>

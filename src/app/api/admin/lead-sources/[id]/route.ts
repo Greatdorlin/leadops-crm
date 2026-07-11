@@ -18,7 +18,7 @@ export async function PATCH(
     return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
   }
 
-  if (!canManageLeadSources({ accessLevel: context.accessLevel, role: context.role })) {
+  if (!canManageLeadSources(context)) {
     return NextResponse.json({ error: "Forbidden." }, { status: 403 });
   }
 

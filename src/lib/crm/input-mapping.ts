@@ -72,7 +72,7 @@ export function mapAdminInputToSalesCommandUpdate(
 
 export function mapAdminLeadFilterInputToLegacyFilters(input: AdminLeadFilterInput): LeadListFilters {
   return {
-    stageId: input.stage as LeadListFilters["stageId"],
+    status: input.stage as LeadListFilters["status"],
     source: input.source as LeadListFilters["source"],
     priority: input.priority as LeadListFilters["priority"],
     assignedTo: input.assignedTo?.trim() || undefined,

@@ -28,6 +28,7 @@ Copy `.env.example` to `.env` and set the required values:
 - `AUTH_SECRET`
 - `AUTH_GOOGLE_ID`
 - `AUTH_GOOGLE_SECRET`
+- `NEXTAUTH_URL`
 - `INITIAL_ADMIN_EMAIL`
 - `INITIAL_ADMIN_NAME`
 
@@ -47,10 +48,10 @@ Important:
 
 Create a Postgres database and point `DATABASE_URL` to it.
 
-Apply the current schema:
+Apply the journaled migrations:
 
 ```bash
-npm run db:push
+npm run db:migrate
 ```
 
 ## 4. Seed Default Leads Desk Data
@@ -125,9 +126,7 @@ Recommended first actions:
 Run:
 
 ```bash
-npm run test
-npm run lint
-npm run build
+npm run verify
 ```
 
 Then verify:

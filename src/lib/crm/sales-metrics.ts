@@ -75,6 +75,11 @@ export interface SalesDashboardSummary {
     | null;
 }
 
+export type SalesPipelineAggregate = Omit<
+  SalesDashboardSummary,
+  "intakeSummary" | "recentIntake" | "target"
+>;
+
 function roundMoney(value: number) {
   return Number.parseFloat(value.toFixed(2));
 }
@@ -137,6 +142,38 @@ export function buildIntakeStatusSummary(events: IntakeEventAdminRow[]): IntakeS
     },
     { received: 0, mapped: 0, leadCreated: 0, failed: 0, ignored: 0 },
   );
+}
+
+export function mergeSalesDashboardSummary(
+  aggregate: SalesPipelineAggregate,
+  input: {
+    intakeEvents?: IntakeEventAdminRow[];
+    activeTarget?: AdminSalesTargetRecord | null;
+  } = {},
+): SalesDashboardSummary {
+  const intakeEvents = input.intakeEvents ?? [];
+  const activeTarget = input.activeTarget ?? null;
+
+  return {
+    ...aggregate,
+    intakeSummary: buildIntakeStatusSummary(intakeEvents),
+    recentIntake: intakeEvents.slice(0, 8),
+    target: activeTarget
+      ? {
+          id: activeTarget.id,
+          name: activeTarget.name,
+          targetValue: activeTarget.targetValue,
+          wonValue: aggregate.wonValue,
+          remainingValue: roundMoney(Math.max(0, activeTarget.targetValue - aggregate.wonValue)),
+          progressPercent:
+            activeTarget.targetValue > 0
+              ? Number.parseFloat(((aggregate.wonValue / activeTarget.targetValue) * 100).toFixed(1))
+              : 0,
+          periodLabel: formatTargetPeriodLabel(activeTarget),
+          currency: activeTarget.currency,
+        }
+      : null,
+  };
 }
 
 export function buildSourcePerformanceSummary(leads: LeadRecord[]) {
@@ -267,10 +304,9 @@ export function buildSalesDashboardSummary(input: {
     input.leads.length > 0
       ? Number.parseFloat(((wonLeads.length / input.leads.length) * 100).toFixed(1))
       : 0;
-  const activeTarget = input.activeTarget ?? null;
   const intakeEvents = input.intakeEvents ?? [];
 
-  return {
+  const aggregate: SalesPipelineAggregate = {
     totalLeads: input.leads.length,
     newLeads: input.leads.filter((lead) => lead.crmStatus === "new").length,
     leadsThisMonth: input.leads.filter((lead) => new Date(lead.createdAt) >= monthStart).length,
@@ -285,22 +321,10 @@ export function buildSalesDashboardSummary(input: {
     topSources: buildSourcePerformanceSummary(input.leads).slice(0, 5),
     stagePerformance: buildStagePerformanceSummary(input.leads).slice(0, 6),
     repPerformance: buildRepPerformanceSummary(input.users, input.leads, input.tasks).slice(0, 6),
-    intakeSummary: buildIntakeStatusSummary(intakeEvents),
-    recentIntake: intakeEvents.slice(0, 8),
-    target: activeTarget
-      ? {
-          id: activeTarget.id,
-          name: activeTarget.name,
-          targetValue: activeTarget.targetValue,
-          wonValue,
-          remainingValue: roundMoney(Math.max(0, activeTarget.targetValue - wonValue)),
-          progressPercent:
-            activeTarget.targetValue > 0
-              ? Number.parseFloat(((wonValue / activeTarget.targetValue) * 100).toFixed(1))
-              : 0,
-          periodLabel: formatTargetPeriodLabel(activeTarget),
-          currency: activeTarget.currency,
-        }
-      : null,
   };
+
+  return mergeSalesDashboardSummary(aggregate, {
+    activeTarget: input.activeTarget,
+    intakeEvents,
+  });
 }

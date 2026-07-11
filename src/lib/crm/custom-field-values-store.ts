@@ -1,10 +1,13 @@
 import { and, eq, inArray } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
+import type { DatabaseExecutor } from "@/lib/db/client";
 import { leadCustomFieldValues } from "@/lib/db/schema";
 import type { LeadCustomFieldValueInputRecord } from "./custom-field-values";
 
-export async function listLeadCustomFieldValues(leadId: string) {
-  const db = getDb();
+export async function listLeadCustomFieldValues(
+  leadId: string,
+  db: DatabaseExecutor = getDb(),
+) {
   return db
     .select({
       id: leadCustomFieldValues.id,
@@ -22,8 +25,8 @@ export async function listLeadCustomFieldValues(leadId: string) {
 export async function upsertLeadCustomFieldValues(
   leadId: string,
   values: LeadCustomFieldValueInputRecord[],
+  db: DatabaseExecutor = getDb(),
 ) {
-  const db = getDb();
   const fieldIds = values.map((value) => value.customFieldId);
 
   if (fieldIds.length === 0) {
@@ -76,5 +79,5 @@ export async function upsertLeadCustomFieldValues(
     });
   }
 
-  return listLeadCustomFieldValues(leadId);
+  return listLeadCustomFieldValues(leadId, db);
 }

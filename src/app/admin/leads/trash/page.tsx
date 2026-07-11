@@ -13,7 +13,8 @@ import { listCustomFields } from "@/lib/crm/custom-fields-admin";
 import { getTableVisibleCustomFields } from "@/lib/crm/custom-field-values";
 import { getCrmPageErrorCopy, logCrmPageError } from "@/lib/crm/runtime";
 import { buildAdminLeadListItem } from "@/lib/crm/view-models";
-import { getCompanySettings, resolveLeadPreviewConfig } from "@/lib/crm/workspace-settings";
+import { resolveLeadPreviewConfig } from "@/lib/crm/workspace-settings";
+import { getCompanySettings } from "@/lib/crm/workspace-settings-server";
 import { leadStore } from "@/lib/storage";
 
 export const dynamic = "force-dynamic";
@@ -39,10 +40,10 @@ export default async function AdminLeadTrashPage({
 }: {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
-  const { role, accessLevel, actualAccessLevel, canSwitchAccessViews } =
+  const { role, accessLevel, actualAccessLevel, canSwitchAccessViews, permissions } =
     await getAdminAccessContext(appRoutes.leadsTrash);
 
-  if (!canAccessLeadTrash(accessLevel)) {
+  if (!canAccessLeadTrash(accessLevel, permissions)) {
     return (
       <AdminShell
         activeNav="leads"
@@ -159,7 +160,9 @@ export default async function AdminLeadTrashPage({
           leads={leadRows}
           emptyTitle="Trash is empty"
           emptyDescription="Deleted leads will appear here until they are restored or removed permanently."
+          interactiveWorkflow={false}
           previewConfig={previewConfig}
+          currency={workspaceSettings.globalCurrency}
           renderActions={(lead) => (
             <>
               <Link

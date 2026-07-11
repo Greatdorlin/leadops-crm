@@ -22,10 +22,10 @@ export default async function AdminIntakePage({
 }: {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
-  const { role, accessLevel, actualAccessLevel, canSwitchAccessViews } =
+  const { role, accessLevel, actualAccessLevel, canSwitchAccessViews, permissions } =
     await getAdminAccessContext(appRoutes.intake);
 
-  if (!canViewIntakeLogs({ accessLevel, role })) {
+  if (!canViewIntakeLogs({ accessLevel, permissions, role })) {
     redirect(appRoutes.dashboard);
   }
 

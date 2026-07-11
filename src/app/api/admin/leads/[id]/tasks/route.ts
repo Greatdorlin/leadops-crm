@@ -2,13 +2,16 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { normalizeAdminEmail } from "@/lib/admin-access";
 import { getAdminRequestContext } from "@/lib/admin";
-import { canManageLeadRecord } from "@/lib/admin-permissions";
+import {
+  canAssignTasksToOthers,
+  canManageLeadRecord,
+} from "@/lib/admin-permissions";
 import { leadStore } from "@/lib/storage";
 
 const leadTaskSchema = z.object({
   title: z.string().trim().min(2).max(160),
   description: z.string().trim().max(2000).nullable().optional(),
-  dueAt: z.string().trim().nullable().optional(),
+  dueAt: z.string().datetime({ offset: true }).nullable().optional(),
   assignedTo: z.string().trim().email().nullable().optional(),
 });
 
@@ -41,17 +44,42 @@ export async function POST(
     );
   }
 
-  if (!canManageLeadRecord(context.accessLevel, lead, context.session.user?.email)) {
+  if (
+    !canManageLeadRecord(
+      context.accessLevel,
+      lead,
+      context.session.user?.email,
+      context.permissions,
+    )
+  ) {
     return NextResponse.json({ error: "Forbidden." }, { status: 403 });
   }
 
-  if (
-    context.accessLevel === "sales_rep" &&
+  if (parsed.data.assignedTo) {
+    const activeOwner = (await leadStore.listCrmUsers()).find(
+      (user) =>
+        user.isActive &&
+        normalizeAdminEmail(user.email) === normalizeAdminEmail(parsed.data.assignedTo ?? ""),
+    );
+    if (!activeOwner) {
+      return NextResponse.json(
+        { error: "Choose an active workspace user as the task owner." },
+        { status: 400 },
+      );
+    }
+  }
+
+  const assignsAnotherUser =
     parsed.data.assignedTo &&
-    normalizeAdminEmail(parsed.data.assignedTo) !== normalizeAdminEmail(context.session.user?.email ?? "")
+    normalizeAdminEmail(parsed.data.assignedTo) !==
+      normalizeAdminEmail(context.session.user?.email ?? "");
+
+  if (
+    assignsAnotherUser &&
+    !canAssignTasksToOthers(context.accessLevel, context.permissions)
   ) {
     return NextResponse.json(
-      { error: "Sales access can only assign tasks to the signed-in owner." },
+      { error: "You do not have permission to assign tasks to another user." },
       { status: 403 },
     );
   }

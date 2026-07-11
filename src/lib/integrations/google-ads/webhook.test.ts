@@ -14,7 +14,7 @@ function buildGooglePayload(
     form_id: "form-1",
     form_name: "Abuja Intake Form",
     campaign_id: "campaign-1",
-    campaign_name: "June Study Push",
+    campaign_name: "June Growth Push",
     adgroup_id: "adgroup-1",
     creative_id: "creative-1",
     gcl_id: "gclid-1",
@@ -128,7 +128,7 @@ test("processGoogleAdsPayload upserts a lead and records attribution details", a
   assert.deepEqual(result, { processed: 1, skipped: false });
   assert.equal(processedId, "payload-1");
   assert.equal((receivedInput as { source: string }).source, "google_ads");
-  assert.equal(eventData?.campaignName, "June Study Push");
+  assert.equal(eventData?.campaignName, "June Growth Push");
   assert.equal(eventData?.googleClickId, "gclid-1");
 });
 

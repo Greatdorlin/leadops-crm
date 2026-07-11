@@ -126,7 +126,7 @@ export const ADDITIONAL_INDUSTRY_PRESETS: IndustryPreset[] = [
       },
       {
         fieldType: "select",
-        label: "Field of Study",
+        label: "Program of interest",
         isRequired: true,
         options: [
           { label: "Business / MBA", value: "business" },

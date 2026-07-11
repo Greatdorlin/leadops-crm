@@ -5,6 +5,7 @@ import type {
   LeadRecord,
   LeadTaskRecord,
 } from "@/lib/crm/types";
+import type { PermissionKey } from "@/lib/crm/role-permissions-contract";
 import type { LeadListFilters } from "@/lib/storage/types";
 
 export const ADMIN_ACCESS_LEVELS = [
@@ -31,6 +32,13 @@ type AdminNavKey =
 
 function normalizeEmail(value?: string | null) {
   return value ? normalizeAdminEmail(value) : "";
+}
+
+function getConfiguredPermission(
+  permissions: readonly PermissionKey[] | undefined,
+  permission: PermissionKey,
+) {
+  return permissions ? permissions.includes(permission) : null;
 }
 
 export function getAccessLevelFromRole(role?: CrmUserRole | null): AdminAccessLevel {
@@ -61,7 +69,7 @@ export function resolveAdminAccessLevel(input: {
   }
 
   if (!input.role) {
-    return "master_admin";
+    return "sales_rep";
   }
 
   return getAccessLevelFromRole(input.role);
@@ -85,11 +93,26 @@ export function getStoredRoleForAccessLevel(level: AdminAccessLevel): CrmUserRol
   }
 }
 
-export function canAccessReports(accessLevel: AdminAccessLevel = "sales_rep") {
+export function canAccessReports(
+  accessLevel: AdminAccessLevel = "sales_rep",
+  permissions?: readonly PermissionKey[],
+) {
+  const configured = getConfiguredPermission(permissions, "canViewReports");
+  if (configured !== null) {
+    return configured;
+  }
+
   return accessLevel !== "affiliate" && accessLevel !== "finance";
 }
 
-export function canViewSalesTeam(accessLevel: AdminAccessLevel) {
+export function canViewSalesTeam(
+  accessLevel: AdminAccessLevel,
+  permissions?: readonly PermissionKey[],
+) {
+  if (permissions) {
+    return permissions.includes("canManageUsers") || permissions.includes("canViewReports");
+  }
+
   return (
     accessLevel === "master_admin" ||
     accessLevel === "general_admin" ||
@@ -100,14 +123,26 @@ export function canViewSalesTeam(accessLevel: AdminAccessLevel) {
 export function canManageIntegrationsAccess(
   accessLevel: AdminAccessLevel,
   role?: CrmUserRole | null,
+  permissions?: readonly PermissionKey[],
 ) {
+  const configured = getConfiguredPermission(permissions, "canManageIntegrations");
+  if (configured !== null) {
+    return configured;
+  }
+
   return accessLevel === "master_admin" || role === "ad_manager";
 }
 
 export function canManageSettings(
   accessLevel: AdminAccessLevel,
   role?: CrmUserRole | null,
+  permissions?: readonly PermissionKey[],
 ) {
+  const configured = getConfiguredPermission(permissions, "canManageSettings");
+  if (configured !== null) {
+    return configured;
+  }
+
   if (role === "ad_manager") {
     return false;
   }
@@ -122,7 +157,13 @@ export function canManageSettings(
 export function canAccessFormsWorkspace(
   accessLevel: AdminAccessLevel,
   role?: CrmUserRole | null,
+  permissions?: readonly PermissionKey[],
 ) {
+  const configured = getConfiguredPermission(permissions, "canManageForms");
+  if (configured !== null) {
+    return configured;
+  }
+
   if (role === "ad_manager") {
     return false;
   }
@@ -130,11 +171,27 @@ export function canAccessFormsWorkspace(
   return accessLevel === "master_admin" || accessLevel === "general_admin";
 }
 
-export function canEditTeamAccess(accessLevel: AdminAccessLevel) {
+export function canEditTeamAccess(
+  accessLevel: AdminAccessLevel,
+  permissions?: readonly PermissionKey[],
+) {
+  const configured = getConfiguredPermission(permissions, "canManageUsers");
+  if (configured !== null) {
+    return configured;
+  }
+
   return accessLevel === "master_admin" || accessLevel === "general_admin";
 }
 
-export function canManageTeamRoster(accessLevel: AdminAccessLevel) {
+export function canManageTeamRoster(
+  accessLevel: AdminAccessLevel,
+  permissions?: readonly PermissionKey[],
+) {
+  const configured = getConfiguredPermission(permissions, "canManageUsers");
+  if (configured !== null) {
+    return configured;
+  }
+
   return (
     accessLevel === "master_admin" ||
     accessLevel === "general_admin" ||
@@ -158,7 +215,15 @@ export function getGrantableAccessLevels(accessLevel: AdminAccessLevel): AdminAc
   }
 }
 
-export function canAssignTasksToOthers(accessLevel: AdminAccessLevel) {
+export function canAssignTasksToOthers(
+  accessLevel: AdminAccessLevel,
+  permissions?: readonly PermissionKey[],
+) {
+  const configured = getConfiguredPermission(permissions, "canAssignLeads");
+  if (configured !== null) {
+    return configured;
+  }
+
   return (
     accessLevel === "master_admin" ||
     accessLevel === "general_admin" ||
@@ -166,7 +231,15 @@ export function canAssignTasksToOthers(accessLevel: AdminAccessLevel) {
   );
 }
 
-export function canAssignLeadOwners(accessLevel: AdminAccessLevel) {
+export function canAssignLeadOwners(
+  accessLevel: AdminAccessLevel,
+  permissions?: readonly PermissionKey[],
+) {
+  const configured = getConfiguredPermission(permissions, "canAssignLeads");
+  if (configured !== null) {
+    return configured;
+  }
+
   return (
     accessLevel === "master_admin" ||
     accessLevel === "general_admin" ||
@@ -174,7 +247,15 @@ export function canAssignLeadOwners(accessLevel: AdminAccessLevel) {
   );
 }
 
-export function canSoftDeleteLead(accessLevel: AdminAccessLevel) {
+export function canSoftDeleteLead(
+  accessLevel: AdminAccessLevel,
+  permissions?: readonly PermissionKey[],
+) {
+  const configured = getConfiguredPermission(permissions, "canDeleteLeads");
+  if (configured !== null) {
+    return configured;
+  }
+
   return (
     accessLevel === "master_admin" ||
     accessLevel === "general_admin" ||
@@ -182,15 +263,31 @@ export function canSoftDeleteLead(accessLevel: AdminAccessLevel) {
   );
 }
 
-export function canAccessLeadTrash(accessLevel: AdminAccessLevel) {
+export function canAccessLeadTrash(
+  accessLevel: AdminAccessLevel,
+  permissions?: readonly PermissionKey[],
+) {
+  const configured = getConfiguredPermission(permissions, "canDeleteLeads");
+  if (configured !== null) {
+    return configured;
+  }
+
   return accessLevel === "master_admin" || accessLevel === "general_admin";
 }
 
-export function canCreateLeadRecords() {
-  return true;
+export function canCreateLeadRecords(permissions?: readonly PermissionKey[]) {
+  return getConfiguredPermission(permissions, "canCreateLeads") ?? true;
 }
 
-export function canImportLeadRecords(accessLevel: AdminAccessLevel) {
+export function canImportLeadRecords(
+  accessLevel: AdminAccessLevel,
+  permissions?: readonly PermissionKey[],
+) {
+  const configured = getConfiguredPermission(permissions, "canCreateLeads");
+  if (configured !== null) {
+    return configured;
+  }
+
   return (
     accessLevel === "master_admin" ||
     accessLevel === "general_admin" ||
@@ -201,15 +298,21 @@ export function canImportLeadRecords(accessLevel: AdminAccessLevel) {
 export function canViewTechnicalLeadContext(
   accessLevel: AdminAccessLevel,
   role?: CrmUserRole | null,
+  permissions?: readonly PermissionKey[],
 ) {
-  return canManageIntegrationsAccess(accessLevel, role);
+  return canManageIntegrationsAccess(accessLevel, role, permissions);
 }
 
 export function canViewLeadRecord(
   accessLevel: AdminAccessLevel,
   lead: LeadRecord,
   currentUserEmail?: string | null,
+  permissions?: readonly PermissionKey[],
 ) {
+  if (getConfiguredPermission(permissions, "canViewLeads") === false) {
+    return false;
+  }
+
   if (accessLevel !== "sales_rep" && accessLevel !== "affiliate") {
     return true;
   }
@@ -227,12 +330,17 @@ export function canManageLeadRecord(
   accessLevel: AdminAccessLevel,
   lead: LeadRecord,
   currentUserEmail?: string | null,
+  permissions?: readonly PermissionKey[],
 ) {
+  if (getConfiguredPermission(permissions, "canEditLeads") === false) {
+    return false;
+  }
+
   if (accessLevel === "finance") {
     return false;
   }
 
-  return canViewLeadRecord(accessLevel, lead, currentUserEmail);
+  return canViewLeadRecord(accessLevel, lead, currentUserEmail, permissions);
 }
 
 export function canManageTeamMember(
@@ -240,8 +348,9 @@ export function canManageTeamMember(
   targetAccessLevel: AdminAccessLevel,
   currentUserEmail?: string | null,
   targetEmail?: string | null,
+  permissions?: readonly PermissionKey[],
 ) {
-  if (!canManageTeamRoster(accessLevel)) {
+  if (!canManageTeamRoster(accessLevel, permissions)) {
     return false;
   }
 
@@ -276,7 +385,12 @@ export function canManageTaskRecord(
   accessLevel: AdminAccessLevel,
   task: LeadTaskRecord,
   currentUserEmail?: string | null,
+  permissions?: readonly PermissionKey[],
 ) {
+  if (getConfiguredPermission(permissions, "canEditLeads") === false) {
+    return false;
+  }
+
   if (accessLevel !== "sales_rep" && accessLevel !== "affiliate" && accessLevel !== "finance") {
     return true;
   }
@@ -294,8 +408,10 @@ export function scopeLeadListFilters(
   }
 
   const email = normalizeEmail(currentUserEmail);
+  const scopedFilters = { ...filters };
+  delete scopedFilters.assignment;
   return {
-    ...filters,
+    ...scopedFilters,
     assignedTo: email || undefined,
   };
 }

@@ -62,6 +62,30 @@ function parseHexRgb(hex: string): { r: number; g: number; b: number } {
   };
 }
 
+function toLinearChannel(value: number) {
+  const channel = value / 255;
+  return channel <= 0.04045
+    ? channel / 12.92
+    : ((channel + 0.055) / 1.055) ** 2.4;
+}
+
+function getRelativeLuminance(hex: string) {
+  const { r, g, b } = parseHexRgb(hex);
+  return (
+    0.2126 * toLinearChannel(r) +
+    0.7152 * toLinearChannel(g) +
+    0.0722 * toLinearChannel(b)
+  );
+}
+
+export function getContrastRatio(firstColor: string, secondColor: string) {
+  const first = getRelativeLuminance(firstColor);
+  const second = getRelativeLuminance(secondColor);
+  const lighter = Math.max(first, second);
+  const darker = Math.min(first, second);
+  return (lighter + 0.05) / (darker + 0.05);
+}
+
 /**
  * Convert hex color to HSL object.
  */
@@ -238,9 +262,10 @@ export function adjustColor(
  * @returns "#000000" or "#ffffff"
  */
 export function getContrastColor(backgroundColor: string): '#000000' | '#ffffff' {
-  const { r, g, b } = parseHexRgb(backgroundColor);
-  const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
-  return luminance > 0.5 ? '#000000' : '#ffffff';
+  return getContrastRatio(backgroundColor, '#ffffff') >=
+    getContrastRatio(backgroundColor, '#000000')
+    ? '#ffffff'
+    : '#000000';
 }
 
 /**

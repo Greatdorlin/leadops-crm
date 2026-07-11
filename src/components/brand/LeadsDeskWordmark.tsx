@@ -1,4 +1,4 @@
-import Image from "next/image";
+import { BrandLogoAsset } from "@/components/brand/BrandLogoAsset";
 import { cn } from "@/lib/cn";
 import { resolveBrandLogo } from "@/lib/crm/workspace-settings";
 
@@ -51,23 +51,7 @@ export function LeadsDeskWordmark({
 
   return (
     <div className={cn("inline-flex min-w-0 items-center gap-3", toneClass.text, className)}>
-      {resolvedLogoUrl ? (
-        <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-[16px] border border-white/10 bg-white/90 shadow-[0_14px_30px_rgba(15,23,42,0.12)]">
-          <Image
-            key={resolvedLogoUrl ?? "default-logo"}
-            src={resolvedLogoUrl}
-            alt={`${companyName} logo`}
-            width={40}
-            height={40}
-            className="h-full w-full object-cover"
-            unoptimized
-          />
-        </span>
-      ) : (
-        <span className="ld-brand-mark" aria-hidden="true">
-          <span />
-        </span>
-      )}
+      <BrandLogoAsset companyName={companyName} src={resolvedLogoUrl} />
       {variant === "mark" ? null : (
         <span className="min-w-0">
           <span className="block truncate whitespace-nowrap font-[family:var(--font-heading)] text-[1.18rem] font-bold leading-none tracking-[-0.04em]">

@@ -5,6 +5,10 @@ npm-debug.log
 coverage
 dist
 tmp
+artifacts
+.codex
+.codex-shots
+.vercel
 *.local
 .env
 .env.*

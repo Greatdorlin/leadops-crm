@@ -34,7 +34,7 @@ export function StatusBadge({
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.04em] capitalize backdrop-blur-sm transition-all duration-200",
+        "inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.04em] capitalize backdrop-blur-sm transition-all duration-200",
         style.bg,
         style.border,
         style.text,
@@ -42,7 +42,7 @@ export function StatusBadge({
       )}
       style={isActive && style.glow ? { boxShadow: style.glow } : undefined}
     >
-      <span className={cn("h-1.5 w-1.5 rounded-full", style.dot)} />
+      <span className={cn("h-1.5 w-1.5 shrink-0 rounded-full", style.dot)} />
       {label || crmLabelize(status)}
     </span>
   );

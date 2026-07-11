@@ -3,9 +3,11 @@ import { getAdminRequestContext } from "@/lib/admin";
 import { canManageCurrencySettings } from "@/lib/crm/authz";
 import {
   currencySettingsSchema,
+} from "@/lib/crm/workspace-settings";
+import {
   getCompanySettings,
   updateCompanySettings,
-} from "@/lib/crm/workspace-settings";
+} from "@/lib/crm/workspace-settings-server";
 
 export async function GET() {
   const context = await getAdminRequestContext();
@@ -23,7 +25,7 @@ export async function PATCH(request: Request) {
     return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
   }
 
-  if (!canManageCurrencySettings({ accessLevel: context.accessLevel, role: context.role })) {
+  if (!canManageCurrencySettings(context)) {
     return NextResponse.json({ error: "Forbidden." }, { status: 403 });
   }
 

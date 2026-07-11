@@ -1,15 +1,16 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { AdminShell } from "@/components/admin/AdminShell";
 import { AdminSignOutButton } from "@/components/admin/AdminSignOutButton";
 import { ErrorState } from "@/components/admin/ErrorState";
 import { FormListGrid } from "@/components/admin/FormListGrid";
 import { getAdminAccessContext } from "@/lib/admin";
+import { canAccessFormsWorkspace } from "@/lib/admin-permissions";
 import { appRoutes } from "@/lib/app-routes";
 import { getCrmPageErrorCopy, logCrmPageError } from "@/lib/crm/runtime";
 import {
+  getFormResourceCounts,
   listForms,
-  listFormFields,
-  listFormSubmissions,
 } from "@/lib/crm/form-builder-store";
 
 export const dynamic = "force-dynamic";
@@ -20,26 +21,24 @@ export default async function AdminFormsPage() {
     accessLevel,
     actualAccessLevel,
     canSwitchAccessViews,
+    permissions,
   } = await getAdminAccessContext(appRoutes.forms);
+
+  if (!canAccessFormsWorkspace(accessLevel, role, permissions)) {
+    redirect(appRoutes.dashboard);
+  }
 
   let formsWithCounts: (Awaited<ReturnType<typeof listForms>>[number] & { fieldCount: number; submissionCount: number })[] = [];
   let pageError: unknown = null;
 
   try {
-    const forms = await listForms();
-    formsWithCounts = await Promise.all(
-      forms.map(async (form) => {
-        const [fields, submissions] = await Promise.all([
-          listFormFields(form.id),
-          listFormSubmissions(form.id),
-        ]);
-        return {
-          ...form,
-          fieldCount: fields.length,
-          submissionCount: submissions.length,
-        };
-      })
-    );
+    const forms = await listForms({ includeArchived: true });
+    const counts = await getFormResourceCounts(forms.map((form) => form.id));
+    formsWithCounts = forms.map((form) => ({
+      ...form,
+      fieldCount: counts.get(form.id)?.fieldCount ?? 0,
+      submissionCount: counts.get(form.id)?.submissionCount ?? 0,
+    }));
   } catch (error) {
     pageError = error;
     logCrmPageError("forms", error);

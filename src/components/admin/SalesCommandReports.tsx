@@ -9,15 +9,18 @@ import {
   PieChartLegend,
 } from "@/components/admin/charts";
 
-function formatMoney(value: number, currency = "NGN") {
+function formatMoney(value: number, currency = "USD") {
   return `${currency} ${value.toLocaleString()}`;
 }
 
 export function SalesCommandReports({
   summary,
+  workspaceCurrency = "USD",
 }: {
   summary: SalesDashboardSummary;
+  workspaceCurrency?: string;
 }) {
+  const currency = summary.target?.currency ?? workspaceCurrency;
   const sourceChartData = summary.topSources.map((source) => ({
     label: source.label,
     value: source.totalLeads,
@@ -47,8 +50,8 @@ export function SalesCommandReports({
   return (
     <div className="space-y-6">
       <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-6">
-        <MetricCard label="Pipeline value" value={formatMoney(summary.pipelineValue, summary.target?.currency ?? "NGN")} supporting="Open lead value." />
-        <MetricCard label="Won value" value={formatMoney(summary.wonValue, summary.target?.currency ?? "NGN")} supporting="Closed value so far." tone="positive" />
+        <MetricCard label="Pipeline value" value={formatMoney(summary.pipelineValue, currency)} supporting="Open lead value." />
+        <MetricCard label="Won value" value={formatMoney(summary.wonValue, currency)} supporting="Closed value so far." tone="positive" />
         <MetricCard label="Conversion rate" value={`${summary.conversionRate}%`} supporting="Won leads against total volume." />
         <MetricCard label="Overdue follow-ups" value={summary.overdueFollowUps} supporting="Needs action now." tone={summary.overdueFollowUps > 0 ? "danger" : "positive"} />
         <MetricCard label="Webhook failures" value={summary.intakeSummary.failed} supporting="Failed intake submissions." tone={summary.intakeSummary.failed > 0 ? "danger" : "positive"} />

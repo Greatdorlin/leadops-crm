@@ -9,6 +9,11 @@ import { AnimatedCard } from "@/components/admin/ui/AnimatedCard";
 import { SectionHeader } from "@/components/admin/ui/SectionHeader";
 import { AdminSelect } from "@/components/admin/AdminSelect";
 import {
+  AUTOMATION_TASK_DUE_PRESETS,
+  OPPORTUNITY_RULE_STATUSES,
+} from "@/lib/crm/form-submission-routing";
+import { crmLabelize } from "@/lib/crm/formatters";
+import {
   Plus,
   Trash2,
   Edit3,
@@ -28,19 +33,19 @@ export type RuleOperator =
   | "greater_than"
   | "less_than"
   | "checked"
-  | "unchecked";
+  | "unchecked"
+  | "empty"
+  | "not_empty";
 
 export type RuleActionType =
-  | "set_status"
+  | "set_stage"
   | "set_priority"
   | "set_owner"
   | "set_source"
-  | "set_stage"
-  | "send_email"
-  | "show_field"
-  | "hide_field"
-  | "require_field"
-  | "send_notification";
+  | "set_opportunity_status"
+  | "set_opportunity_value"
+  | "create_task"
+  | "qualify_offer_and_create_call";
 
 export interface FormRuleData {
   id: string;
@@ -62,6 +67,9 @@ interface FormRulesEditorProps {
   formId: string;
   initialFields: unknown[];
   initialRules: unknown[];
+  stageOptions: Array<{ value: string; label: string }>;
+  sourceOptions: Array<{ value: string; label: string }>;
+  ownerOptions: Array<{ value: string; label: string }>;
 }
 
 const OPERATOR_LABELS: Record<RuleOperator, string> = {
@@ -72,30 +80,20 @@ const OPERATOR_LABELS: Record<RuleOperator, string> = {
   less_than: "is less than",
   checked: "is checked",
   unchecked: "is unchecked",
+  empty: "is empty",
+  not_empty: "is not empty",
 };
 
 const ACTION_TYPE_LABELS: Record<RuleActionType, string> = {
-  set_status: "Set Status",
+  set_stage: "Move to Stage",
   set_priority: "Set Priority",
   set_owner: "Set Owner",
   set_source: "Set Source",
-  set_stage: "Set Stage",
-  send_email: "Send Email",
-  show_field: "Show Field",
-  hide_field: "Hide Field",
-  require_field: "Require Field",
-  send_notification: "Send Notification",
+  set_opportunity_status: "Set Offer Status",
+  set_opportunity_value: "Set Offer Value",
+  create_task: "Create Owner Task",
+  qualify_offer_and_create_call: "Qualify Offer + Create Call",
 };
-
-const STATUS_OPTIONS = [
-  { value: "new", label: "New" },
-  { value: "contacted", label: "Contacted" },
-  { value: "qualified", label: "Qualified" },
-  { value: "proposal", label: "Proposal" },
-  { value: "negotiation", label: "Negotiation" },
-  { value: "closed_won", label: "Closed Won" },
-  { value: "closed_lost", label: "Closed Lost" },
-];
 
 const PRIORITY_OPTIONS = [
   { value: "low", label: "Low" },
@@ -103,6 +101,22 @@ const PRIORITY_OPTIONS = [
   { value: "high", label: "High" },
   { value: "urgent", label: "Urgent" },
 ];
+
+const OPPORTUNITY_STATUS_OPTIONS = OPPORTUNITY_RULE_STATUSES.map((status) => ({
+  value: status,
+  label: crmLabelize(status),
+}));
+
+const TASK_DUE_OPTIONS = AUTOMATION_TASK_DUE_PRESETS.map((preset) => ({
+  value: preset,
+  label: {
+    later_today: "Later today",
+    tomorrow: "Tomorrow",
+    in_3_days: "In 3 days",
+    next_week: "Next week",
+    none: "No due date",
+  }[preset],
+}));
 
 interface RuleField {
   id: string;
@@ -123,14 +137,26 @@ function buildRuleSummary(rule: FormRuleData, fields: RuleField[]): string {
   const operator = OPERATOR_LABELS[rule.conditionOperator] || rule.conditionOperator;
   const actionLabel = ACTION_TYPE_LABELS[rule.actionType] || rule.actionType;
   const actionValue = rule.actionValue ? ` to "${rule.actionValue}"` : "";
+  const actionTarget = rule.actionTarget ? ` for "${rule.actionTarget}"` : "";
 
-  if (rule.conditionOperator === "checked" || rule.conditionOperator === "unchecked") {
-    return `If "${fieldName}" ${operator}, then ${actionLabel.toLowerCase()}${actionValue}`;
+  if (["checked", "unchecked", "empty", "not_empty"].includes(rule.conditionOperator)) {
+    return `If "${fieldName}" ${operator}, then ${actionLabel.toLowerCase()}${actionTarget}${actionValue}`;
   }
-  return `If "${fieldName}" ${operator} "${rule.conditionValue || ""}", then ${actionLabel.toLowerCase()}${actionValue}`;
+  return `If "${fieldName}" ${operator} "${rule.conditionValue || ""}", then ${actionLabel.toLowerCase()}${actionTarget}${actionValue}`;
 }
 
-export function FormRulesEditor({ formId, initialFields, initialRules }: FormRulesEditorProps) {
+function operatorNeedsValue(operator: RuleOperator) {
+  return !["checked", "unchecked", "empty", "not_empty"].includes(operator);
+}
+
+export function FormRulesEditor({
+  formId,
+  initialFields,
+  initialRules,
+  stageOptions,
+  sourceOptions,
+  ownerOptions,
+}: FormRulesEditorProps) {
   const fields = (initialFields as RuleField[]).map((f) => ({
     id: f.id,
     label: f.label || "Untitled Field",
@@ -138,7 +164,13 @@ export function FormRulesEditor({ formId, initialFields, initialRules }: FormRul
   }));
 
   const [rules, setRules] = useState<FormRuleData[]>(
-    (initialRules as FormRuleData[]).sort((a, b) => a.order - b.order)
+    (initialRules as Array<Omit<FormRuleData, "actionType"> & { actionType: string }>)
+      .filter((rule) => rule.actionType === "set_status" || rule.actionType in ACTION_TYPE_LABELS)
+      .map((rule) => ({
+        ...rule,
+        actionType: rule.actionType === "set_status" ? "set_stage" : rule.actionType as RuleActionType,
+      }))
+      .sort((a, b) => a.order - b.order),
   );
   const [editingRule, setEditingRule] = useState<FormRuleData | null>(null);
   const [isCreating, setIsCreating] = useState(false);
@@ -154,9 +186,9 @@ export function FormRulesEditor({ formId, initialFields, initialRules }: FormRul
       conditionFieldId: fields[0]?.id ?? "",
       conditionOperator: "equals",
       conditionValue: "",
-      actionType: "set_status",
+      actionType: "set_stage",
       actionTarget: null,
-      actionValue: null,
+      actionValue: stageOptions[0]?.value ?? null,
       isActive: true,
       order: maxOrder + 1,
     };
@@ -252,30 +284,37 @@ export function FormRulesEditor({ formId, initialFields, initialRules }: FormRul
     setEditingRule((prev) => (prev ? { ...prev, ...updates } : null));
   };
 
-  const getActionTargetOptions = (actionType: RuleActionType) => {
+  const getActionValueOptions = (actionType: RuleActionType) => {
     switch (actionType) {
-      case "set_status":
-        return STATUS_OPTIONS;
+      case "set_stage":
+        return stageOptions;
       case "set_priority":
         return PRIORITY_OPTIONS;
-      case "show_field":
-      case "hide_field":
-      case "require_field":
-        return fields.map((f) => ({ value: f.id, label: f.label }));
+      case "set_owner":
+        return ownerOptions;
+      case "set_source":
+        return sourceOptions;
+      case "set_opportunity_status":
+        return OPPORTUNITY_STATUS_OPTIONS;
+      case "create_task":
+      case "qualify_offer_and_create_call":
+        return TASK_DUE_OPTIONS;
       default:
         return [];
     }
   };
-
-  const actionNeedsTarget = (actionType: RuleActionType) => {
-    return ["show_field", "hide_field", "require_field"].includes(actionType);
-  };
-
-  const actionNeedsValue = (actionType: RuleActionType) => {
-    return ["set_status", "set_priority", "send_email", "send_notification", "set_owner", "set_source", "set_stage"].includes(actionType);
-  };
-
-  const currentActionTargetOptions = editingRule ? getActionTargetOptions(editingRule.actionType) : [];
+  const currentActionValueOptions = editingRule
+    ? getActionValueOptions(editingRule.actionType)
+    : [];
+  const isOpportunityAction = editingRule
+    ? editingRule.actionType === "set_opportunity_status" ||
+      editingRule.actionType === "set_opportunity_value" ||
+      editingRule.actionType === "qualify_offer_and_create_call"
+    : false;
+  const isTaskAction = editingRule
+    ? editingRule.actionType === "create_task" ||
+      editingRule.actionType === "qualify_offer_and_create_call"
+    : false;
 
   return (
     <div className="space-y-4">
@@ -439,7 +478,7 @@ export function FormRulesEditor({ formId, initialFields, initialRules }: FormRul
                         ))}
                       </AdminSelect>
                     </div>
-                    {!["checked", "unchecked"].includes(editingRule.conditionOperator) && (
+                    {operatorNeedsValue(editingRule.conditionOperator) && (
                       <div>
                         <label className="mb-1 block text-xs text-white/70">Value</label>
                         <input
@@ -466,13 +505,17 @@ export function FormRulesEditor({ formId, initialFields, initialRules }: FormRul
                       <label className="mb-1 block text-xs text-white/70">Action Type</label>
                       <AdminSelect
                         value={editingRule.actionType}
-                        onChange={(e) =>
+                        onChange={(e) => {
+                          const actionType = e.target.value as RuleActionType;
                           updateDraft({
-                            actionType: e.target.value as RuleActionType,
+                            actionType,
                             actionTarget: null,
-                            actionValue: null,
-                          })
-                        }
+                            actionValue:
+                              actionType === "set_opportunity_value"
+                                ? ""
+                                : getActionValueOptions(actionType)[0]?.value ?? null,
+                          });
+                        }}
                       >
                         {(Object.keys(ACTION_TYPE_LABELS) as RuleActionType[]).map((action) => (
                           <option key={action} value={action}>
@@ -482,41 +525,52 @@ export function FormRulesEditor({ formId, initialFields, initialRules }: FormRul
                       </AdminSelect>
                     </div>
 
-                    {actionNeedsTarget(editingRule.actionType) && (
-                      <div>
-                        <label className="mb-1 block text-xs text-white/70">Target</label>
-                        <AdminSelect
-                          value={editingRule.actionTarget ?? ""}
-                          onChange={(e) => updateDraft({ actionTarget: e.target.value || null })}
-                        >
-                          <option value="">— Select target —</option>
-                          {currentActionTargetOptions.map((opt) => (
-                            <option key={opt.value} value={opt.value}>
-                              {opt.label}
-                            </option>
-                          ))}
-                        </AdminSelect>
-                      </div>
-                    )}
-
-                    {actionNeedsValue(editingRule.actionType) && (
+                    {isOpportunityAction || editingRule.actionType === "create_task" ? (
                       <div>
                         <label className="mb-1 block text-xs text-white/70">
-                          {editingRule.actionType === "send_email" ? "Email Address" : "Value"}
+                          {editingRule.actionType === "create_task" ? "Task title" : "Offer name"}
                         </label>
                         <input
                           type="text"
-                          value={editingRule.actionValue ?? ""}
-                          onChange={(e) => updateDraft({ actionValue: e.target.value || null })}
-                          placeholder={
-                            editingRule.actionType === "send_email"
-                              ? "recipient@example.com"
-                              : "Value to set"
-                          }
+                          value={editingRule.actionTarget ?? ""}
+                          onChange={(event) => updateDraft({ actionTarget: event.target.value || null })}
+                          placeholder={editingRule.actionType === "create_task" ? "Call about Premium plan" : "Premium plan"}
                           className="admin-input w-full"
                         />
                       </div>
-                    )}
+                    ) : null}
+
+                    <div>
+                      <label className="mb-1 block text-xs text-white/70">
+                        {editingRule.actionType === "set_opportunity_value"
+                          ? "Potential value"
+                          : isTaskAction
+                            ? "Task due"
+                            : "Routing value"}
+                      </label>
+                      {editingRule.actionType === "set_opportunity_value" ? (
+                        <input
+                          type="number"
+                          min="0"
+                          value={editingRule.actionValue ?? ""}
+                          onChange={(event) => updateDraft({ actionValue: event.target.value || null })}
+                          placeholder="250000"
+                          className="admin-input w-full"
+                        />
+                      ) : (
+                        <AdminSelect
+                          value={editingRule.actionValue ?? ""}
+                          onChange={(e) => updateDraft({ actionValue: e.target.value || null })}
+                        >
+                          <option value="">Select value</option>
+                          {currentActionValueOptions.map((option) => (
+                            <option key={option.value} value={option.value}>
+                              {option.label}
+                            </option>
+                          ))}
+                        </AdminSelect>
+                      )}
+                    </div>
                   </div>
                 </div>
 
@@ -538,7 +592,13 @@ export function FormRulesEditor({ formId, initialFields, initialRules }: FormRul
                 variant="primary"
                 icon={<Save className="h-4 w-4" />}
                 loading={saving}
-                disabled={!editingRule.name.trim() || !editingRule.conditionFieldId}
+                disabled={
+                  !editingRule.name.trim() ||
+                  !editingRule.conditionFieldId ||
+                  !editingRule.actionValue ||
+                  (isOpportunityAction && !editingRule.actionTarget?.trim()) ||
+                  (operatorNeedsValue(editingRule.conditionOperator) && !editingRule.conditionValue?.trim())
+                }
                 onClick={() => handleSave(editingRule)}
               >
                 {isCreating ? "Create Rule" : "Save Changes"}

@@ -21,9 +21,9 @@ import { appRoutes } from "@/lib/app-routes";
 export const dynamic = "force-dynamic";
 
 export default async function AdminGoogleSheetsIntegrationPage() {
-  const { role, accessLevel, actualAccessLevel, canSwitchAccessViews } =
+  const { role, accessLevel, actualAccessLevel, canSwitchAccessViews, permissions } =
     await getAdminAccessContext(appRoutes.integration("google-sheets"));
-  if (!canManageIntegrations(accessLevel, role)) {
+  if (!canManageIntegrations(accessLevel, role, permissions)) {
     redirect(appRoutes.dashboard);
   }
   let jobs: Awaited<ReturnType<typeof leadStore.listSyncJobs>> = [];

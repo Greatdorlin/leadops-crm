@@ -29,37 +29,35 @@ Rules:
 
 ## Current Repo Reality
 
-The current repo still contains:
+The release runtime is Leads Desk. Inherited product routes, customer-facing branding, and travel/study behavior are outside the active product boundary.
 
-- FlyConnect branding and metadata
-- public assessment routes and a pathway engine
-- travel/study-specific copy and assets
-- Neon-specific storage naming
-- hardcoded personal/admin email behavior
-- early CRM/admin functionality that may be reusable in parts
+Compatibility material remains where it is required for safe upgrades:
+
+- historical Drizzle migrations and snapshots preserve the original database lineage
+- the release migration archives retired fields before removing them
+- source-label normalization still recognizes old stored values
+- `NeonLeadStore` remains a transitional internal class name, while runtime database access uses the provider-neutral `DATABASE_URL` contract
 
 Important:
 
-- Do not assume inherited behavior is correct for Leads Desk.
-- Do not blindly rename old files and call the migration complete.
-- Do not remove risky legacy files until replacement architecture is ready and verified.
-- Do not present legacy public flows as part of the Leads Desk product.
+- Do not reintroduce inherited product behavior into active routes.
+- Do not remove compatibility migrations or mappings without proving upgrades from an existing database.
+- Treat customer-facing legacy terminology as a release defect.
+- Keep new storage, auth, and deployment work provider-neutral.
 
 ## Read First
 
 Before making non-trivial changes, read:
 
 - `AGENTS.md`
-- `docs/IMPLEMENTATION_PLAN.md`
+- `README.md`
+- `docs/ARCHITECTURE.md`
 - `docs/INFRASTRUCTURE_STRATEGY.md`
-- `docs/MVP_SCOPE.md`
-- `docs/CODEX_WORKFLOW.md`
+- `docs/MIGRATIONS_AND_CONNECTORS.md`
 - `docs/CUSTOMIZATION_ARCHITECTURE.md`
 - `docs/VERTICAL_PRESETS.md`
 - `docs/UI_CUSTOMIZATION_STANDARD.md`
-- `docs/COPY_AND_CONTENT_STANDARD.md`
 - `docs/SECURITY_AND_PERMISSIONS.md`
-- `docs/DATA_MODEL_PLAN.md`
 - `docs/DEPLOYMENT_BUCKETS.md`
 - `package.json`
 - `next.config.ts`
@@ -75,18 +73,11 @@ Before making non-trivial changes, read:
 
 If the task touches a reused legacy area, also inspect the relevant inherited files before editing them.
 
-Legacy reference documents that may still explain inherited behavior:
-
-- `docs/HANDOVER.md`
-- `docs/AD_INTEGRATIONS_SETUP.md`
-- `docs/REPORT_KNOWLEDGE_MAP.md`
-
-Those legacy docs are reference material only. They are not the product source of truth for Leads Desk.
+Git history is the reference for retired migration phases. Do not reintroduce old product documents into the release tree.
 
 ## Core Working Rules
 
 - Quality and system stability matter more than speed.
-- Do not proceed to Phase 1 implementation until the documentation foundation is reviewed.
 - Do not break the current build while laying the new foundation.
 - Do not do a greenfield rewrite unless the user explicitly asks for one.
 - Do not ship partial migrations that leave the repo half-old-product and half-new-product without clear boundaries.
@@ -250,7 +241,7 @@ See `docs/CUSTOMIZATION_ARCHITECTURE.md` and `docs/VERTICAL_PRESETS.md`.
 
 ## UI Rules
 
-The current admin UI is a functional reference, not the final commercial design.
+The current admin UI is the commercial Leads Desk interface and must remain release-grade.
 
 The target Leads Desk UI must be:
 
@@ -362,16 +353,7 @@ After each task, report:
 
 ## Immediate Priorities
 
-The current phase is foundation, not a risky rewrite.
-
-Prioritize:
-
-1. product rules and migration discipline
-2. provider-neutral infrastructure direction
-3. MVP scope clarity
-4. customization architecture
-5. UI standards
-6. safe phased replacement of legacy FlyConnect behavior
+Prioritize release correctness, provider-neutral deployment, scoped permissions, reliable lead workflows, migration safety, responsive UI quality, and clean verification evidence.
 
 If speed conflicts with quality, choose quality.
 If local cleanup conflicts with system stability, protect system stability.

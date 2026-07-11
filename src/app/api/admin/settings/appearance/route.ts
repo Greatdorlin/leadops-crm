@@ -3,9 +3,11 @@ import { getAdminRequestContext } from "@/lib/admin";
 import { canManageAppearanceSettings } from "@/lib/crm/authz";
 import {
   appearanceSettingsSchema,
+} from "@/lib/crm/workspace-settings";
+import {
   getCompanySettings,
   updateCompanySettings,
-} from "@/lib/crm/workspace-settings";
+} from "@/lib/crm/workspace-settings-server";
 
 export async function GET() {
   const context = await getAdminRequestContext();
@@ -23,7 +25,7 @@ export async function PATCH(request: Request) {
     return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
   }
 
-  if (!canManageAppearanceSettings({ accessLevel: context.accessLevel, role: context.role })) {
+  if (!canManageAppearanceSettings(context)) {
     return NextResponse.json({ error: "Forbidden." }, { status: 403 });
   }
 

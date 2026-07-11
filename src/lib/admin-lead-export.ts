@@ -68,10 +68,16 @@ export function formatCustomFieldExportValue(
   return input.displayValue ?? formatCustomFieldDisplayValue(input.type, input.value) ?? "";
 }
 
-export async function buildLeadExportValues(leads: LeadRecord[]) {
-  const [notesByLead, allTasks, activeCustomFields, opportunitySummaries, readContext] = await Promise.all([
-    Promise.all(leads.map((lead) => leadStore.listLeadNotes(lead.id))),
-    leads.length > 0 ? leadStore.listLeadTasks({ completion: "all" }) : Promise.resolve([]),
+export async function buildLeadExportValues(
+  leads: LeadRecord[],
+  options: { currency?: string } = {},
+) {
+  const currency = options.currency?.trim().toUpperCase() || "USD";
+  const [noteCounts, allTasks, activeCustomFields, opportunitySummaries, readContext] = await Promise.all([
+    leadStore.getLeadNoteCounts(leads.map((lead) => lead.id)),
+    leads.length > 0
+      ? leadStore.listLeadTasks({ completion: "all", leadIds: leads.map((lead) => lead.id) })
+      : Promise.resolve([]),
     listCustomFields(),
     listLeadOpportunitySummariesByLeadIds(leads.map((lead) => lead.id)),
     leads.length > 0
@@ -92,8 +98,8 @@ export async function buildLeadExportValues(leads: LeadRecord[]) {
   }
 
   const noteCountByLeadId = new Map<string, number>();
-  for (const [index, lead] of leads.entries()) {
-    noteCountByLeadId.set(lead.id, notesByLead[index]?.length ?? 0);
+  for (const lead of leads) {
+    noteCountByLeadId.set(lead.id, noteCounts[lead.id] ?? 0);
   }
 
   const taskCountByLeadId = new Map<string, number>();
@@ -139,7 +145,7 @@ export async function buildLeadExportValues(leads: LeadRecord[]) {
         leadView.assignedUserName,
         leadView.nextFollowUpAt ? formatCrmDateTime(leadView.nextFollowUpAt) : "",
         lead.expectedValue ?? lead.estimatedValue
-          ? `NGN ${(lead.expectedValue ?? lead.estimatedValue ?? 0).toLocaleString()}`
+          ? `${currency} ${(lead.expectedValue ?? lead.estimatedValue ?? 0).toLocaleString()}`
           : "",
         String(opportunitySummaries.get(lead.id)?.activeCount ?? 0),
         String(opportunitySummaries.get(lead.id)?.qualifiedCount ?? 0),

@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { Globe, Eye, EyeOff, FileText, ListChecks, Sparkles, Inbox, ArrowRight, Code } from "lucide-react";
+import { Globe, Eye, EyeOff, FileText, ListChecks, GitBranch, Inbox, ArrowRight, Code } from "lucide-react";
 import { SectionHeader } from "@/components/admin/SectionHeader";
 import { GlassSurface } from "@/components/admin/ui/GlassSurface";
 import { AnimatedCard } from "@/components/admin/ui/AnimatedCard";
@@ -9,9 +9,9 @@ import { cn } from "@/lib/cn";
 import { appRoutes } from "@/lib/app-routes";
 import {
   getFormById,
+  getFormResourceCounts,
   listFormFields,
   listFormRules,
-  listFormSubmissions,
 } from "@/lib/crm/form-builder-store";
 
 function FormStatusBadge({ status }: { status: string }) {
@@ -51,11 +51,12 @@ export default async function FormOverviewPage({
     notFound();
   }
 
-  const [fields, rules, submissions] = await Promise.all([
+  const [fields, rules, countsByForm] = await Promise.all([
     listFormFields(id),
     listFormRules(id),
-    listFormSubmissions(id),
+    getFormResourceCounts([id]),
   ]);
+  const submissionCount = countsByForm.get(id)?.submissionCount ?? 0;
 
   const publicUrl = `/forms/${form.slug}`;
 
@@ -74,7 +75,7 @@ export default async function FormOverviewPage({
         </AnimatedCard>
         <AnimatedCard variant="subtle" className="rounded-[20px] p-4">
           <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/70">Submissions</p>
-          <p className="mt-2 text-2xl font-semibold tracking-[-0.04em] text-white">{submissions.length}</p>
+          <p className="mt-2 text-2xl font-semibold tracking-[-0.04em] text-white">{submissionCount}</p>
           <p className="mt-1 text-xs text-white/50">Total received</p>
         </AnimatedCard>
         <AnimatedCard variant="subtle" className="rounded-[20px] p-4">
@@ -243,7 +244,7 @@ export default async function FormOverviewPage({
             className="flex items-center gap-3 rounded-[16px] border border-white/10 bg-white/[0.04] px-4 py-3 transition hover:bg-white/[0.08]"
           >
             <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-white/[0.06] text-white/70">
-              <Sparkles className="h-4 w-4" />
+              <GitBranch className="h-4 w-4" />
             </div>
             <div className="min-w-0 flex-1">
               <p className="text-sm font-semibold text-white">Rules</p>
@@ -286,7 +287,7 @@ export default async function FormOverviewPage({
             </div>
             <div className="min-w-0 flex-1">
               <p className="text-sm font-semibold text-white">Submissions</p>
-              <p className="text-xs text-white/50">{submissions.length} received</p>
+              <p className="text-xs text-white/50">{submissionCount} received</p>
             </div>
             <ArrowRight className="h-4 w-4 text-white/40" />
           </Link>

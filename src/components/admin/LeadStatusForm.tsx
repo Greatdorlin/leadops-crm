@@ -40,27 +40,34 @@ function formatDateTimeLocalValue(value?: string | null) {
 export function LeadStatusForm({
   leadId,
   initialStage,
+  initialStageKey,
   initialPriority,
   initialAssignedTo,
   initialAssignedToList,
   initialNextFollowUpAt,
   assigneeOptions,
+  canReassignOwner = true,
   stageOptions = stageKeys.map((status, index) => ({
     value: status,
+    key: status,
     label: crmLabelize(status),
     sortOrder: index,
   })),
 }: {
   leadId: string;
   initialStage: string;
+  initialStageKey?: string;
   initialPriority: LeadPriority;
   initialAssignedTo: string | null;
   initialAssignedToList: string[];
   initialNextFollowUpAt?: string | null;
   assigneeOptions: Array<{ label: string; value: string }>;
+  canReassignOwner?: boolean;
   stageOptions?: Array<{
     value: string;
+    key: string;
     label: string;
+    stageId?: string;
     sortOrder?: number;
     isWon?: boolean;
     isLost?: boolean;
@@ -99,17 +106,26 @@ export function LeadStatusForm({
     setMessage("");
 
     try {
-      const response = await fetch(`/api/admin/leads/${leadId}`, {
+      const selectedStage = stageOptions.find((option) => option.value === stage);
+      const response = await fetch(`/api/admin/leads/${leadId}/workflow`, {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          stage,
+          ...(selectedStage?.stageId
+            ? { stageId: selectedStage.stageId }
+            : { stage: selectedStage?.key ?? stage }),
           priority,
-          assignedTo: assignedTo || null,
-          assignedToList: assignedToList.filter(Boolean),
-          nextFollowUpAt: nextFollowUpAt || null,
+          ...(canReassignOwner
+            ? {
+                assignedTo: assignedTo || null,
+                assignedToList: assignedToList.filter(Boolean),
+              }
+            : {}),
+          nextFollowUpAt: nextFollowUpAt
+            ? new Date(nextFollowUpAt).toISOString()
+            : null,
         }),
       });
 
@@ -122,14 +138,28 @@ export function LeadStatusForm({
       }
 
       if (workspaceSettings.celebrationsEnabled && workspaceSettings.stageCelebrationsEnabled) {
-        const activeStageLabel =
-          stageOptions.find((option) => option.value === stage)?.label ?? crmLabelize(stage);
-        const nextCelebration = buildLeadStageCelebration({
-          previousStatus: initialStage as Parameters<typeof buildLeadStageCelebration>[0]["previousStatus"],
-          nextStatus: stage as Parameters<typeof buildLeadStageCelebration>[0]["nextStatus"],
-          stageLabel: activeStageLabel,
-        });
-        setCelebration(nextCelebration);
+        const activeStage = stageOptions.find((option) => option.value === stage);
+        const previousStatus = stageKeys.includes(
+          (initialStageKey ?? initialStage) as (typeof stageKeys)[number],
+        )
+          ? ((initialStageKey ?? initialStage) as (typeof stageKeys)[number])
+          : null;
+        const nextStatus = activeStage?.isWon
+          ? "converted"
+          : activeStage?.isLost
+            ? "lost"
+            : stageKeys.includes(activeStage?.key as (typeof stageKeys)[number])
+              ? (activeStage?.key as (typeof stageKeys)[number])
+              : null;
+        setCelebration(
+          previousStatus && nextStatus
+            ? buildLeadStageCelebration({
+                previousStatus,
+                nextStatus,
+                stageLabel: activeStage?.label ?? crmLabelize(nextStatus),
+              })
+            : null,
+        );
       } else {
         setCelebration(null);
       }
@@ -193,6 +223,7 @@ export function LeadStatusForm({
           <span className="text-xs font-semibold uppercase tracking-[0.16em] text-white/70">Assigned owner</span>
           <AdminSelect
             value={assignedTo}
+            disabled={!canReassignOwner}
             onChange={(event) => {
               const nextPrimary = event.target.value;
               setAssignedTo(nextPrimary);
@@ -207,7 +238,7 @@ export function LeadStatusForm({
             }}
             className="h-12"
           >
-            <option value="">Unassigned</option>
+            {canReassignOwner ? <option value="">Unassigned</option> : null}
             {assigneeOptions.map((option) => (
               <option key={option.value} value={option.value}>
                 {option.label}
@@ -226,7 +257,7 @@ export function LeadStatusForm({
           />
         </label>
 
-        {assigneeOptions.length > 1 ? (
+        {canReassignOwner && assigneeOptions.length > 1 ? (
           <div className="space-y-2">
             <span className="text-xs font-semibold uppercase tracking-[0.16em] text-white/70">
               Also share with

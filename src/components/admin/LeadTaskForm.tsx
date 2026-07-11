@@ -1,8 +1,15 @@
 "use client";
 
-import { CalendarDays, Clock3 } from "lucide-react";
+import { startTransition, useState } from "react";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { CalendarClock, Check, ListTodo, Mail, PhoneCall } from "lucide-react";
+import { cn } from "@/lib/cn";
+import {
+  localDateTimeInputToIso,
+  resolveQuickScheduleDate,
+  toLocalDateTimeInputValue,
+  type QuickSchedulePreset,
+} from "@/lib/crm/schedule-presets";
 import { AnimatedCard } from "./ui/AnimatedCard";
 import { SmoothButton } from "./ui/SmoothButton";
 import { AdminSelect } from "./AdminSelect";
@@ -12,81 +19,23 @@ interface TaskOption {
   value: string;
 }
 
-const monthOptions = [
-  { value: "01", label: "Jan" },
-  { value: "02", label: "Feb" },
-  { value: "03", label: "Mar" },
-  { value: "04", label: "Apr" },
-  { value: "05", label: "May" },
-  { value: "06", label: "Jun" },
-  { value: "07", label: "Jul" },
-  { value: "08", label: "Aug" },
-  { value: "09", label: "Sep" },
-  { value: "10", label: "Oct" },
-  { value: "11", label: "Nov" },
-  { value: "12", label: "Dec" },
-] as const;
+const taskTypes = [
+  { label: "Call", title: "Call lead", icon: PhoneCall },
+  { label: "Email", title: "Email lead", icon: Mail },
+  { label: "Follow up", title: "Follow up with lead", icon: CalendarClock },
+  { label: "Next step", title: "Complete next step", icon: ListTodo },
+];
 
-const hourOptions = Array.from({ length: 12 }, (_, index) => {
-  const value = String(index + 1).padStart(2, "0");
-  return { value, label: value };
-});
+const dueOptions: Array<{ id: QuickSchedulePreset | "none"; label: string }> = [
+  { id: "later_today", label: "Today" },
+  { id: "tomorrow", label: "Tomorrow" },
+  { id: "in_3_days", label: "In 3 days" },
+  { id: "next_week", label: "Next week" },
+  { id: "none", label: "No date" },
+];
 
-const minuteOptions = Array.from({ length: 60 }, (_, index) => {
-  const value = String(index).padStart(2, "0");
-  return { value, label: value };
-});
-
-const periodOptions = ["AM", "PM"] as const;
-const labelClass = "text-xs font-semibold uppercase tracking-[0.16em] text-white/70";
-const subtleTextClass = "text-xs text-white/70";
-
-function getDayOptions(year: string, month: string) {
-  const maxDays =
-    year && month ? new Date(Number(year), Number(month), 0).getDate() : 31;
-
-  return Array.from({ length: maxDays }, (_, index) => {
-    const value = String(index + 1).padStart(2, "0");
-    return { value, label: value };
-  });
-}
-
-function buildDueAtValue(
-  year: string,
-  month: string,
-  day: string,
-  hour: string,
-  minute: string,
-  period: string,
-) {
-  if (!year || !month || !day || !hour || !minute || !period) {
-    return "";
-  }
-
-  const normalizedHour = Number(hour) % 12 + (period === "PM" ? 12 : 0);
-  return new Date(
-    Number(year),
-    Number(month) - 1,
-    Number(day),
-    normalizedHour,
-    Number(minute),
-  ).toISOString();
-}
-
-function splitDateForControls(date: Date) {
-  const hour24 = date.getHours();
-  const period = hour24 >= 12 ? "PM" : "AM";
-  const hour12 = hour24 % 12 || 12;
-
-  return {
-    month: String(date.getMonth() + 1).padStart(2, "0"),
-    day: String(date.getDate()).padStart(2, "0"),
-    year: String(date.getFullYear()),
-    hour: String(hour12).padStart(2, "0"),
-    minute: String(date.getMinutes()).padStart(2, "0"),
-    period,
-  };
-}
+const labelClass = "text-xs font-semibold uppercase tracking-[0.14em] text-white/64";
+type DueSelection = QuickSchedulePreset | "none" | "custom";
 
 export function LeadTaskForm({
   leadId,
@@ -101,331 +50,210 @@ export function LeadTaskForm({
 }) {
   const router = useRouter();
   const [selectedLeadId, setSelectedLeadId] = useState(leadId ?? leadOptions?.[0]?.value ?? "");
-  const [title, setTitle] = useState("");
+  const [title, setTitle] = useState("Call lead");
   const [description, setDescription] = useState("");
-  const [dueAt, setDueAt] = useState("");
-  const [dueMonth, setDueMonth] = useState("");
-  const [dueDay, setDueDay] = useState("");
-  const [dueYear, setDueYear] = useState("");
-  const [dueHour, setDueHour] = useState("");
-  const [dueMinute, setDueMinute] = useState("");
-  const [duePeriod, setDuePeriod] = useState("");
+  const [duePreset, setDuePreset] = useState<DueSelection>("tomorrow");
+  const [dueAtLocal, setDueAtLocal] = useState(
+    toLocalDateTimeInputValue(resolveQuickScheduleDate("tomorrow")),
+  );
   const [assignedTo, setAssignedTo] = useState(defaultAssignedTo);
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState("");
-  const yearOptions = Array.from({ length: 6 }, (_, index) => String(new Date().getFullYear() + index));
-  const dayOptions = getDayOptions(dueYear, dueMonth);
+  const [hasError, setHasError] = useState(false);
 
-  function updateDueDate(next: {
-    month?: string;
-    day?: string;
-    year?: string;
-    hour?: string;
-    minute?: string;
-    period?: string;
-  }) {
-    const month = next.month ?? dueMonth;
-    const day = next.day ?? dueDay;
-    const year = next.year ?? dueYear;
-    const hour = next.hour ?? dueHour;
-    const minute = next.minute ?? dueMinute;
-    const period = next.period ?? duePeriod;
-
-    if (next.month !== undefined) {
-      setDueMonth(next.month);
-    }
-
-    if (next.day !== undefined) {
-      setDueDay(next.day);
-    }
-
-    if (next.year !== undefined) {
-      setDueYear(next.year);
-    }
-
-    if (next.hour !== undefined) {
-      setDueHour(next.hour);
-    }
-
-    if (next.minute !== undefined) {
-      setDueMinute(next.minute);
-    }
-
-    if (next.period !== undefined) {
-      setDuePeriod(next.period);
-    }
-
-    setDueAt(buildDueAtValue(year, month, day, hour, minute, period));
-  }
-
-  function clearDueDate() {
-    setDueMonth("");
-    setDueDay("");
-    setDueYear("");
-    setDueHour("");
-    setDueMinute("");
-    setDuePeriod("");
-    setDueAt("");
-  }
-
-  function applyQuickDueDate(offsetDays: number) {
-    const date = new Date();
-    date.setDate(date.getDate() + offsetDays);
-    date.setHours(offsetDays === 0 ? 16 : 10, 0, 0, 0);
-    const next = splitDateForControls(date);
-
-    setDueMonth(next.month);
-    setDueDay(next.day);
-    setDueYear(next.year);
-    setDueHour(next.hour);
-    setDueMinute(next.minute);
-    setDuePeriod(next.period);
-    setDueAt(buildDueAtValue(next.year, next.month, next.day, next.hour, next.minute, next.period));
+  function chooseDuePreset(preset: QuickSchedulePreset | "none") {
+    setDuePreset(preset);
+    setDueAtLocal(
+      preset === "none" ? "" : toLocalDateTimeInputValue(resolveQuickScheduleDate(preset)),
+    );
   }
 
   async function saveTask() {
     if (!selectedLeadId) {
-      setMessage("Choose a lead before saving this task.");
+      setHasError(true);
+      setMessage("Choose a lead first.");
+      return;
+    }
+    if (title.trim().length < 2) {
+      setHasError(true);
+      setMessage("Add a task title first.");
       return;
     }
 
-    if (!title.trim()) {
-      setMessage("Add a task title before saving.");
+    const dueAt = dueAtLocal ? localDateTimeInputToIso(dueAtLocal) : null;
+    if (dueAtLocal && !dueAt) {
+      setHasError(true);
+      setMessage("Choose a valid due time.");
       return;
     }
 
     setIsSaving(true);
+    setHasError(false);
     setMessage("");
 
     try {
       const response = await fetch(`/api/admin/leads/${selectedLeadId}/tasks`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           title,
-          description,
-          dueAt: dueAt || null,
+          description: description || null,
+          dueAt,
           assignedTo: assignedTo || null,
         }),
       });
-
       const payload = (await response.json().catch(() => null)) as { error?: string } | null;
       if (!response.ok) {
-        setMessage(payload?.error ?? "We couldn't create this task right now.");
+        setHasError(true);
+        setMessage(payload?.error ?? "We couldn't create this task.");
         setIsSaving(false);
         return;
       }
 
-      setTitle("");
       setDescription("");
-      clearDueDate();
-      setAssignedTo(defaultAssignedTo);
       setMessage("Task created.");
       setIsSaving(false);
-      router.refresh();
+      startTransition(() => router.refresh());
     } catch {
-      setMessage("We couldn't create this task right now.");
+      setHasError(true);
+      setMessage("We couldn't create this task.");
       setIsSaving(false);
     }
   }
 
   return (
-    <AnimatedCard animation="fadeInUp" variant="subtle" className="space-y-5">
-      <div className="grid gap-3">
-        {leadId ? null : (
-          <label className="space-y-2">
-            <span className={labelClass}>Lead</span>
-            <AdminSelect
-              value={selectedLeadId}
-              onChange={(event) => setSelectedLeadId(event.target.value)}
-              className="h-11"
-            >
-              <option value="">Choose a lead</option>
-              {leadOptions?.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </AdminSelect>
-          </label>
-        )}
+    <AnimatedCard animation="fadeInUp" variant="subtle" className="space-y-4">
+      {leadId ? null : (
         <label className="space-y-2">
-          <span className={labelClass}>Task title</span>
+          <span className={labelClass}>Lead</span>
+          <AdminSelect
+            value={selectedLeadId}
+            onChange={(event) => setSelectedLeadId(event.target.value)}
+            className="h-11"
+          >
+            <option value="">Choose a lead</option>
+            {leadOptions?.map((option) => (
+              <option key={option.value} value={option.value}>{option.label}</option>
+            ))}
+          </AdminSelect>
+        </label>
+      )}
+
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+        {taskTypes.map((taskType) => {
+          const Icon = taskType.icon;
+          const selected = title === taskType.title;
+          return (
+            <button
+              key={taskType.label}
+              type="button"
+              onClick={() => setTitle(taskType.title)}
+              className={cn(
+                "ld-focus-ring rounded-[18px] border px-3 py-3 text-sm font-semibold transition",
+                selected
+                  ? "border-white/22 bg-white/[0.12] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.1)]"
+                  : "border-white/10 bg-white/[0.045] text-white/68 hover:bg-white/[0.08] hover:text-white",
+              )}
+            >
+              <Icon className="mx-auto mb-1.5 h-4 w-4" />
+              {taskType.label}
+            </button>
+          );
+        })}
+      </div>
+
+      <label className="space-y-2">
+        <span className={labelClass}>Task</span>
+        <input
+          type="text"
+          value={title}
+          onChange={(event) => setTitle(event.target.value)}
+          maxLength={160}
+          placeholder="What needs to happen?"
+          className="admin-input ld-focus-ring h-12 w-full rounded-[18px] px-4 text-sm outline-none"
+        />
+      </label>
+
+      <div className="space-y-2">
+        <span className={labelClass}>Due</span>
+        <div className="flex flex-wrap gap-2">
+          {dueOptions.map((option) => (
+            <button
+              key={option.id}
+              type="button"
+              onClick={() => chooseDuePreset(option.id)}
+              className={cn(
+                "ld-focus-ring rounded-full border px-3.5 py-2 text-xs font-semibold transition",
+                duePreset === option.id
+                  ? "border-white/22 bg-white/[0.12] text-white"
+                  : "border-white/10 bg-white/[0.045] text-white/64 hover:text-white",
+              )}
+            >
+              {option.label}
+            </button>
+          ))}
+        </div>
+        <label className="flex items-center gap-3 rounded-[18px] border border-white/10 bg-white/[0.045] p-3">
+          <CalendarClock className="h-4 w-4 shrink-0 text-white/64" />
           <input
-            type="text"
-            value={title}
-            onChange={(event) => setTitle(event.target.value)}
-            placeholder="Call back after the demo"
-            className="admin-input ld-focus-ring h-11 w-full rounded-2xl px-4 text-sm outline-none"
+            type="datetime-local"
+            value={dueAtLocal}
+            min={toLocalDateTimeInputValue(new Date())}
+            onChange={(event) => {
+              setDueAtLocal(event.target.value);
+              setDuePreset(event.target.value ? "custom" : "none");
+            }}
+            className="admin-input h-10 min-w-0 flex-1 rounded-[13px] px-3 text-sm"
+            aria-label="Exact task due time"
           />
         </label>
-        <label className="space-y-2">
-          <span className={labelClass}>Task note</span>
+      </div>
+
+      <details className="group rounded-[18px] border border-white/10 bg-white/[0.035] px-4 py-3">
+        <summary className="cursor-pointer list-none text-sm font-semibold text-white/72 marker:hidden">
+          Details and owner <span className="text-white/42 group-open:hidden">(optional)</span>
+        </summary>
+        <div className="mt-4 grid gap-3">
           <textarea
             value={description}
             onChange={(event) => setDescription(event.target.value)}
-            rows={4}
-            placeholder="Add context for the next person touching this lead."
-            className="admin-textarea ld-focus-ring min-h-[132px] w-full rounded-2xl px-4 py-3 text-sm outline-none"
+            rows={3}
+            maxLength={2_000}
+            placeholder="Context for this task"
+            className="admin-textarea ld-focus-ring min-h-[96px] w-full rounded-[16px] px-4 py-3 text-sm"
           />
-        </label>
-        <div className="grid gap-3">
-          <label className="space-y-2">
-            <span className={labelClass}>Due</span>
-            <div className="space-y-3 rounded-[24px] border border-white/10 bg-white/[0.045] p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
-              <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-                {[
-                  { label: "Today", offset: 0 },
-                  { label: "Tomorrow", offset: 1 },
-                  { label: "Next week", offset: 7 },
-                ].map((option) => (
-                  <button
-                    key={option.label}
-                    type="button"
-                    onClick={() => applyQuickDueDate(option.offset)}
-                    className="ld-floating-control h-10 rounded-2xl px-3 text-xs font-semibold"
-                  >
-                    {option.label}
-                  </button>
-                ))}
-                <button
-                  type="button"
-                  onClick={clearDueDate}
-                  className="ld-floating-control h-10 rounded-2xl px-3 text-xs font-semibold"
-                >
-                  No follow-up
-                </button>
-              </div>
-
-              <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-white/70">
-                <CalendarDays className="h-3.5 w-3.5" />
-                Date
-              </div>
-              <div className="grid grid-cols-[1.15fr_0.9fr_1fr] gap-2">
-                <AdminSelect
-                  value={dueMonth}
-                  onChange={(event) => updateDueDate({ month: event.target.value })}
-                >
-                  <option value="">Month</option>
-                  {monthOptions.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </AdminSelect>
-                <AdminSelect
-                  value={dueDay}
-                  onChange={(event) => updateDueDate({ day: event.target.value })}
-                >
-                  <option value="">Day</option>
-                  {dayOptions.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </AdminSelect>
-                <AdminSelect
-                  value={dueYear}
-                  onChange={(event) => updateDueDate({ year: event.target.value })}
-                >
-                  <option value="">Year</option>
-                  {yearOptions.map((option) => (
-                    <option key={option} value={option}>
-                      {option}
-                    </option>
-                  ))}
-                </AdminSelect>
-              </div>
-
-              <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-white/70">
-                <Clock3 className="h-3.5 w-3.5" />
-                Time
-              </div>
-              <div className="grid grid-cols-3 gap-2">
-                <AdminSelect
-                  value={dueHour}
-                  onChange={(event) => updateDueDate({ hour: event.target.value })}
-                >
-                  <option value="">Hour</option>
-                  {hourOptions.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </AdminSelect>
-                <AdminSelect
-                  value={dueMinute}
-                  onChange={(event) => updateDueDate({ minute: event.target.value })}
-                >
-                  <option value="">Min</option>
-                  {minuteOptions.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </AdminSelect>
-                <AdminSelect
-                  value={duePeriod}
-                  onChange={(event) => updateDueDate({ period: event.target.value })}
-                >
-                  <option value="">AM/PM</option>
-                  {periodOptions.map((option) => (
-                    <option key={option} value={option}>
-                      {option}
-                    </option>
-                  ))}
-                </AdminSelect>
-              </div>
-
-              <div className="flex items-center justify-between gap-3 border-t border-white/10 pt-3">
-                <p className={subtleTextClass}>
-                  Optional. Use quick choices or set an exact due time.
-                </p>
-                {(dueMonth || dueDay || dueYear || dueHour || dueMinute || duePeriod) ? (
-                  <button
-                    type="button"
-                    onClick={clearDueDate}
-                    className="text-xs font-semibold uppercase tracking-[0.14em] text-white transition hover:text-white"
-                  >
-                    Clear
-                  </button>
-                ) : null}
-              </div>
-            </div>
-          </label>
-          <label className="space-y-2">
-            <span className={labelClass}>Owner</span>
-            <AdminSelect
-              value={assignedTo}
-              onChange={(event) => setAssignedTo(event.target.value)}
-              className="h-11"
-            >
-              <option value="">Assign later</option>
-              {assigneeOptions.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </AdminSelect>
-          </label>
+          <AdminSelect
+            value={assignedTo}
+            onChange={(event) => setAssignedTo(event.target.value)}
+            className="h-11"
+            aria-label="Task owner"
+          >
+            <option value="">Assign later</option>
+            {assigneeOptions.map((option) => (
+              <option key={option.value} value={option.value}>{option.label}</option>
+            ))}
+          </AdminSelect>
         </div>
-      </div>
-      <div className="flex flex-col gap-3 border-t border-white/10 pt-4 sm:flex-row sm:items-end sm:justify-between">
-        <p className="max-w-[18rem] text-sm leading-6 text-white/70">
-          Tasks stay linked to the lead record so handoffs and exports stay consistent.
+      </details>
+
+      <div className="flex flex-col gap-3 border-t border-white/10 pt-4 sm:flex-row sm:items-center sm:justify-between">
+        <p
+          className={cn("min-h-5 text-sm", hasError ? "text-rose-200" : "text-emerald-200")}
+          role={hasError ? "alert" : "status"}
+          aria-live="polite"
+        >
+          {message}
         </p>
         <SmoothButton
           variant="primary"
           size="md"
           onClick={() => void saveTask()}
           loading={isSaving}
+          icon={<Check className="h-4 w-4" />}
         >
           Create task
         </SmoothButton>
       </div>
-      {message ? <p className="text-sm text-white/70">{message}</p> : null}
     </AnimatedCard>
   );
 }

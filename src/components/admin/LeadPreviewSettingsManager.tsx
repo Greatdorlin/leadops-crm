@@ -1,10 +1,10 @@
 "use client";
 
 import { startTransition, useMemo, useState } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Check, Monitor, RotateCcw, Settings2, Smartphone, TableProperties, WandSparkles } from "lucide-react";
+import { Check, Monitor, RotateCcw, Smartphone, WandSparkles } from "lucide-react";
 import type { AdminCustomFieldRecord } from "@/lib/crm/custom-fields-admin";
+import type { AdminLeadListItem } from "@/lib/crm/view-models";
 import type {
   CoreLeadPreviewField,
   LeadPreviewFieldKey,
@@ -13,6 +13,8 @@ import type {
 import { CORE_LEAD_PREVIEW_FIELDS, DEFAULT_LEAD_PREVIEW_CONFIG } from "@/lib/crm/workspace-settings";
 import { cn } from "@/lib/cn";
 import { GlassSurface, SectionHeader, SmoothButton } from "@/components/admin/ui";
+import { LeadDataTable } from "@/components/admin/LeadDataTable";
+import type { LeadStageQuickOption } from "@/components/admin/LeadStatusQuickChange";
 
 const fieldLabels: Record<CoreLeadPreviewField, string> = {
   name: "Name",
@@ -106,9 +108,15 @@ function FieldChoice({
 export function LeadPreviewSettingsManager({
   initialSettings,
   customFields,
+  previewLead,
+  currency,
+  stageOptions,
 }: {
   initialSettings: ResolvedWorkspaceSettings;
   customFields: AdminCustomFieldRecord[];
+  previewLead: AdminLeadListItem | null;
+  currency: string;
+  stageOptions: LeadStageQuickOption[];
 }) {
   const router = useRouter();
   const [desktopColumns, setDesktopColumns] = useState<LeadPreviewFieldKey[]>(initialSettings.leadPreview.desktopColumns);
@@ -116,6 +124,12 @@ export function LeadPreviewSettingsManager({
   const [maxCustomFieldColumns, setMaxCustomFieldColumns] = useState(initialSettings.leadPreview.maxCustomFieldColumns);
   const [message, setMessage] = useState("");
   const [isSaving, setIsSaving] = useState(false);
+  const draftPreviewConfig = {
+    ...initialSettings.leadPreview,
+    desktopColumns,
+    mobileFields,
+    maxCustomFieldColumns,
+  };
 
   const selectableCustomFields = useMemo(
     () => customFields.filter((field) => !field.archived),
@@ -171,7 +185,7 @@ export function LeadPreviewSettingsManager({
         title="Choose what appears in the queue"
         description="Fine-tune the lead table and mobile card views."
       />
-      <div className="grid gap-4 xl:grid-cols-[minmax(0,1.15fr)_360px]">
+      <div>
         <div className="admin-surface-soft rounded-[26px] p-4 md:p-5 ld-animate-fade-in-up" style={{ animationDelay: "80ms" }}>
           <div className="flex items-start gap-3">
             <span className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl border border-violet-200/18 bg-violet-300/10 text-violet-100">
@@ -179,9 +193,7 @@ export function LeadPreviewSettingsManager({
             </span>
             <div>
               <p className="text-base font-semibold text-white">Quick layout recipes</p>
-              <p className="mt-1 text-sm text-white/70">
-                Start from a focused default, then fine-tune the queue only where it matters.
-              </p>
+              <p className="mt-1 text-sm text-white/70">Choose a starting layout.</p>
             </div>
           </div>
           <div className="mt-4 grid gap-3 md:grid-cols-3">
@@ -201,71 +213,23 @@ export function LeadPreviewSettingsManager({
             ))}
           </div>
         </div>
-
-        <div className="admin-surface-soft rounded-[26px] p-4 md:p-5 ld-animate-fade-in-up" style={{ animationDelay: "120ms" }}>
-          <div className="flex items-start gap-3">
-            <span className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl border border-white/15 bg-white/[0.06] text-white/80">
-              <TableProperties className="h-5 w-5" />
-            </span>
-            <div>
-              <p className="text-base font-semibold text-white">Keep the queue clean</p>
-              <p className="mt-1 text-sm text-white/70">
-                Use Lead Fields when a new custom value should become visible in the table.
-              </p>
-            </div>
-          </div>
-          <div className="mt-4 space-y-3">
-            {[
-              "Six to eight desktop columns usually read best.",
-              "Mobile works best when it shows only the fields a rep needs in seconds.",
-              "Custom fields only appear when the lead actually has saved values.",
-            ].map((item) => (
-              <div
-                key={item}
-                className="rounded-[18px] border border-white/10 bg-white/[0.045] px-4 py-3 text-sm text-white/70"
-              >
-                {item}
-              </div>
-            ))}
-          </div>
-          <Link
-            href="/settings/fields"
-            className="admin-button-secondary mt-4 inline-flex h-11 items-center justify-center rounded-2xl px-5 text-sm font-medium"
-          >
-            <Settings2 className="mr-2 h-4 w-4" />
-            Manage lead fields
-          </Link>
-        </div>
       </div>
 
-      <div className="grid gap-3 md:grid-cols-3">
-        <div className="rounded-[22px] border border-white/10 bg-white/[0.045] p-4 ld-animate-fade-in-up" style={{ animationDelay: "160ms" }}>
-          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/70">
-            Desktop fields
-          </p>
-          <p className="mt-3 text-2xl font-semibold tracking-[-0.05em] text-white">
-            {desktopColumns.length}
-          </p>
-          <p className="mt-2 text-sm text-white/70">Visible in the main leads table.</p>
-        </div>
-        <div className="rounded-[22px] border border-white/10 bg-white/[0.045] p-4 ld-animate-fade-in-up" style={{ animationDelay: "200ms" }}>
-          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/70">
-            Mobile fields
-          </p>
-          <p className="mt-3 text-2xl font-semibold tracking-[-0.05em] text-white">
-            {mobileFields.length}
-          </p>
-          <p className="mt-2 text-sm text-white/70">Shown in the compact card view.</p>
-        </div>
-        <div className="rounded-[22px] border border-white/10 bg-white/[0.045] p-4 ld-animate-fade-in-up" style={{ animationDelay: "240ms" }}>
-          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/70">
-            Custom columns
-          </p>
-          <p className="mt-3 text-2xl font-semibold tracking-[-0.05em] text-white">
-            {maxCustomFieldColumns}
-          </p>
-          <p className="mt-2 text-sm text-white/70">Maximum custom fields shown per lead row.</p>
-        </div>
+      <div className="admin-surface-soft space-y-4 rounded-[26px] p-4 md:p-5">
+        <SectionHeader
+          eyebrow="Live preview"
+          title="Your actual lead queue"
+          description="Draft changes appear here before you save."
+        />
+        <LeadDataTable
+          leads={previewLead ? [previewLead] : []}
+          emptyTitle="No lead is available to preview"
+          emptyDescription="Add a lead, then return here to preview real workspace data."
+          previewConfig={draftPreviewConfig}
+          currency={currency}
+          stageOptions={stageOptions}
+          interactiveWorkflow={false}
+        />
       </div>
 
       <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
@@ -339,10 +303,6 @@ export function LeadPreviewSettingsManager({
             className="admin-range w-full"
           />
         </label>
-      </div>
-
-      <div className="rounded-[24px] border border-white/10 bg-[linear-gradient(135deg,color-mix(in_srgb,var(--ld-color-primary)_14%,transparent),color-mix(in_srgb,var(--ld-color-accent)_8%,transparent))] p-4 text-sm text-white/70 ld-animate-fade-in-up" style={{ animationDelay: "400ms" }}>
-        Focus beats clutter. A sharper queue usually performs better than trying to show everything at once.
       </div>
 
       <div className="flex flex-col gap-3 border-t border-white/10 pt-4 sm:flex-row sm:items-center sm:justify-between">

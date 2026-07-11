@@ -17,27 +17,29 @@ import { appRoutes } from "@/lib/app-routes";
 export const dynamic = "force-dynamic";
 
 export default async function AdminLinkedInIntegrationPage() {
-  const { role, accessLevel, actualAccessLevel, canSwitchAccessViews } =
+  const { role, accessLevel, actualAccessLevel, canSwitchAccessViews, permissions } =
     await getAdminAccessContext(appRoutes.integration("linkedin"));
-  if (!canManageIntegrations(accessLevel, role)) {
+  if (!canManageIntegrations(accessLevel, role, permissions)) {
     redirect(appRoutes.dashboard);
   }
 
   let pageData:
     | {
-        linkedInLeads: Awaited<ReturnType<typeof leadStore.list>>;
+        linkedInLeadCount: number;
+        recentLinkedInLeads: Awaited<ReturnType<typeof leadStore.list>>;
         failedPayloads: Awaited<ReturnType<typeof leadStore.listFailedPayloads>>;
       }
     | null = null;
   let pageError: unknown = null;
 
   try {
-    const [linkedInLeads, failedPayloads] = await Promise.all([
-      leadStore.list({ source: "linkedin_lead_gen_forms" }),
+    const [linkedInLeadCount, recentLinkedInLeads, failedPayloads] = await Promise.all([
+      leadStore.countLeads({ source: "linkedin_lead_gen_forms" }),
+      leadStore.list({ source: "linkedin_lead_gen_forms", limit: 1 }),
       leadStore.listFailedPayloads("linkedin_lead_gen_forms"),
     ]);
 
-    pageData = { linkedInLeads, failedPayloads };
+    pageData = { linkedInLeadCount, recentLinkedInLeads, failedPayloads };
   } catch (error) {
     pageError = error;
     logCrmPageError("integrations:linkedin", error);
@@ -77,7 +79,7 @@ export default async function AdminLinkedInIntegrationPage() {
               />
               <MetricCard
                 label="Imported leads"
-                value={pageData.linkedInLeads.length}
+                value={pageData.linkedInLeadCount}
                 supporting="Leads currently attributed to LinkedIn Lead Gen Forms."
               />
               <MetricCard
@@ -88,7 +90,7 @@ export default async function AdminLinkedInIntegrationPage() {
               />
               <MetricCard
                 label="Last successful import"
-                value={pageData.linkedInLeads[0] ? formatCrmDateTime(pageData.linkedInLeads[0].createdAt) : "Not yet"}
+                value={pageData.recentLinkedInLeads[0] ? formatCrmDateTime(pageData.recentLinkedInLeads[0].createdAt) : "Not yet"}
                 supporting="Latest lead attributed to LinkedIn Lead Gen Forms."
               />
             </section>

@@ -24,8 +24,13 @@ export async function POST(
   }
 
   if (
-    !canSoftDeleteLead(context.accessLevel) ||
-    !canManageLeadRecord(context.accessLevel, lead, context.session.user?.email)
+    !canSoftDeleteLead(context.accessLevel, context.permissions) ||
+    !canManageLeadRecord(
+      context.accessLevel,
+      lead,
+      context.session.user?.email,
+      context.permissions,
+    )
   ) {
     return NextResponse.json({ error: "Forbidden." }, { status: 403 });
   }
@@ -43,7 +48,7 @@ export async function PATCH(
     return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
   }
 
-  if (!canAccessLeadTrash(context.accessLevel)) {
+  if (!canAccessLeadTrash(context.accessLevel, context.permissions)) {
     return NextResponse.json({ error: "Forbidden." }, { status: 403 });
   }
 
@@ -71,7 +76,7 @@ export async function DELETE(
     return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
   }
 
-  if (!canAccessLeadTrash(context.accessLevel)) {
+  if (!canAccessLeadTrash(context.accessLevel, context.permissions)) {
     return NextResponse.json({ error: "Forbidden." }, { status: 403 });
   }
 

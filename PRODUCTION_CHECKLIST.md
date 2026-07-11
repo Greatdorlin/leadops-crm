@@ -7,6 +7,7 @@
 - `DATABASE_URL` points to the intended production database.
 - `AUTH_SECRET` is strong.
 - Google OAuth credentials are configured.
+- `NEXTAUTH_URL` and `NEXT_PUBLIC_APP_URL` match the HTTPS production domain.
 - `INITIAL_ADMIN_EMAIL` and `INITIAL_ADMIN_NAME` are configured.
 - `NEXT_PUBLIC_APP_URL` matches the production domain.
 
@@ -19,7 +20,8 @@
 
 ## Database
 
-- `npm run db:push` has been applied to production.
+- `npm run db:migrate` has completed against the intended production database.
+- `npm run db:push` has not been used as the production release mechanism.
 - Default stages and sources have been seeded.
 - Recommended custom fields have been seeded if the client wants them.
 - Backup strategy is documented and scheduled.

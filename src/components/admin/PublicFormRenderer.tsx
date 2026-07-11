@@ -203,17 +203,31 @@ export function PublicFormRenderer({ form, fields }: PublicFormRendererProps) {
 
         const result = await response.json().catch(() => ({
           error: "Something went wrong. Please try again.",
-        }));
+        })) as {
+          error?: string;
+          fieldErrors?: Record<string, unknown>;
+          submissionId?: string;
+          leadId?: string | null;
+        };
 
         if (!response.ok) {
+          if (result.fieldErrors && typeof result.fieldErrors === "object") {
+            const serverErrors = Object.fromEntries(
+              Object.entries(result.fieldErrors).filter(
+                (entry): entry is [string, string] => typeof entry[1] === "string",
+              ),
+            );
+            setErrors(serverErrors);
+            setTouched(new Set(Object.keys(serverErrors)));
+          }
           setSubmitError(result.error ?? "Submission failed. Please try again.");
           return;
         }
 
         setSubmitSuccess(true);
         setSubmitResult({
-          submissionId: result.submissionId as string,
-          leadId: result.leadId as string | null,
+          submissionId: result.submissionId ?? "",
+          leadId: result.leadId ?? null,
         });
 
         if (form.redirectUrl) {

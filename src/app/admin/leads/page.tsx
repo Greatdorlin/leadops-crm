@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { ArrowLeft, ArrowRight, Rows3, Search, UserRoundPlus } from "lucide-react";
+import { redirect } from "next/navigation";
+import { ArrowLeft, ArrowRight, Building2, Rows3, UserRound } from "lucide-react";
 import { AdminShell } from "@/components/admin/AdminShell";
 import { AdminLeadExportButton } from "@/components/admin/AdminLeadExportButton";
 import { AdminSignOutButton } from "@/components/admin/AdminSignOutButton";
@@ -7,28 +8,40 @@ import { AdminSelect } from "@/components/admin/AdminSelect";
 import { ErrorState } from "@/components/admin/ErrorState";
 import { FilterBar } from "@/components/admin/FilterBar";
 import { LeadDataTable } from "@/components/admin/LeadDataTable";
+import { LeadComposerLauncher } from "@/components/admin/LeadComposerLauncher";
 import { LeadLifecycleButton } from "@/components/admin/LeadLifecycleButton";
-import { QueueStatChip } from "@/components/admin/QueueStatChip";
+import { ResponsiveFilterFields } from "@/components/admin/ResponsiveFilterFields";
 import { SearchInput } from "@/components/admin/SearchInput";
 import { AdminWorkspaceComposer } from "@/components/admin/AdminWorkspaceComposer";
 import { getAdminAccessContext } from "@/lib/admin";
 import { parseLeadListFilters } from "@/lib/admin-leads";
 import { loadAdminLeadReadContext } from "@/lib/crm/admin-read-context";
 import { listCustomFields } from "@/lib/crm/custom-fields-admin";
-import { CRM_STATUSES, LEAD_PRIORITIES, LEAD_SOURCES } from "@/lib/crm/constants";
-import { canExportLeads } from "@/lib/crm/authz";
+import { LEAD_PRIORITIES, LEAD_SOURCES } from "@/lib/crm/constants";
+import {
+  canAssignLeads,
+  canExportLeads,
+  canViewLeads,
+} from "@/lib/crm/authz";
 import { getTableVisibleCustomFields } from "@/lib/crm/custom-field-values";
+import { listLeadStages } from "@/lib/crm/lead-stages-admin";
+import {
+  decodeLeadCursor,
+  encodeLeadCursor,
+} from "@/lib/crm/lead-pagination";
 import {
   DEFAULT_LEAD_PREVIEW_CONFIG,
-  getCompanySettings,
   resolveLeadPreviewConfig,
 } from "@/lib/crm/workspace-settings";
+import { getCompanySettings } from "@/lib/crm/workspace-settings-server";
 import {
   canAccessLeadTrash,
+  canCreateLeadRecords,
+  canImportLeadRecords,
   canSoftDeleteLead,
   scopeLeadListFilters,
 } from "@/lib/admin-permissions";
-import { crmLabelize } from "@/lib/crm/formatters";
+import { crmLabelize, formatCrmRoleLabel } from "@/lib/crm/formatters";
 import { getCrmPageErrorCopy, logCrmPageError } from "@/lib/crm/runtime";
 import { buildAdminLeadListItem } from "@/lib/crm/view-models";
 import { appRoutes } from "@/lib/app-routes";
@@ -37,6 +50,45 @@ import { leadStore } from "@/lib/storage";
 export const dynamic = "force-dynamic";
 
 const PAGE_SIZE = 50;
+
+const DEVELOPMENT_STAGE_DEFINITIONS = [
+  { key: "new", name: "New", color: "#60a5fa" },
+  { key: "contacted", name: "Contacted", color: "#f59e0b" },
+  { key: "qualified", name: "Qualified", color: "#10b981" },
+  { key: "consultation_booked", name: "Consultation booked", color: "#8b5cf6" },
+  { key: "won", name: "Won", color: "#22c55e", isWon: true },
+  { key: "lost", name: "Lost", color: "#f43f5e", isLost: true },
+] as const;
+
+function buildDevelopmentStages() {
+  const timestamp = new Date().toISOString();
+  return DEVELOPMENT_STAGE_DEFINITIONS.map((stage, index) => ({
+    id: `demo-stage-${stage.key}`,
+    key: stage.key,
+    name: stage.name,
+    color: stage.color,
+    sortOrder: index,
+    isWon: "isWon" in stage ? stage.isWon : false,
+    isLost: "isLost" in stage ? stage.isLost : false,
+    archived: false,
+    createdAt: timestamp,
+    updatedAt: timestamp,
+  }));
+}
+
+function buildDevelopmentUsers() {
+  const timestamp = new Date().toISOString();
+  return ["Sarah Kim", "James Lee", "Priya Shah"].map((fullName, index) => ({
+    id: `demo-user-${index + 1}`,
+    email: `${fullName.toLowerCase().replace(/\s+/g, ".")}@local.leadsdesk.test`,
+    fullName,
+    role: "sales_agent" as const,
+    isActive: true,
+    avatarUrl: null,
+    createdAt: timestamp,
+    updatedAt: timestamp,
+  }));
+}
 
 function buildDevelopmentLeadRows() {
   const now = new Date();
@@ -138,7 +190,7 @@ function buildDevelopmentLeadRows() {
       assignedTo: row.owner.toLowerCase().replace(/\s+/g, ".") + "@local.leadsdesk.test",
       assignedToList: [],
       leadCustomerType: row.leadCustomerType,
-      leadCustomerTypeLabel: row.leadCustomerType === "business" ? "Business lead" : "Direct customer",
+      leadCustomerTypeLabel: row.leadCustomerType === "business" ? "Company lead" : "Individual lead",
       ownerDisplay: {
         id: `demo-owner-${row.owner.toLowerCase().replace(/\s+/g, "-")}`,
         label: row.owner,
@@ -178,6 +230,19 @@ function readPage(input: Record<string, string | string[] | undefined>) {
   return Number.isFinite(value) && value > 0 ? value : 1;
 }
 
+function readCursor(input: Record<string, string | string[] | undefined>) {
+  const rawCursor = Array.isArray(input.cursor) ? input.cursor[0] : input.cursor;
+  const rawDirection = Array.isArray(input.direction) ? input.direction[0] : input.direction;
+  const value = decodeLeadCursor(rawCursor);
+
+  return value && rawCursor
+    ? {
+        cursor: rawCursor,
+        direction: rawDirection === "prev" ? ("prev" as const) : ("next" as const),
+      }
+    : null;
+}
+
 function safeNumber(value: number) {
   return new Intl.NumberFormat().format(value);
 }
@@ -193,12 +258,19 @@ function buildLeadsHref(
     assignedTo?: string;
     createdFrom?: string;
     createdTo?: string;
+    cursor?: string;
+    direction?: "next" | "prev";
   },
 ) {
   const query = new URLSearchParams();
 
   if (params.page > 1) {
     query.set("page", String(params.page));
+  }
+
+  if (params.cursor) {
+    query.set("cursor", params.cursor);
+    query.set("direction", params.direction ?? "next");
   }
 
   if (params.search?.trim()) {
@@ -248,12 +320,23 @@ export default async function AdminLeadsPage({
     accessLevel,
     actualAccessLevel,
     canSwitchAccessViews,
+    permissions,
   } = await getAdminAccessContext(appRoutes.leads);
+  if (!canViewLeads({ accessLevel, permissions, role })) {
+    redirect(appRoutes.dashboard);
+  }
+
   const params = await searchParams;
+  const requestedComposer = Array.isArray(params.composer) ? params.composer[0] : params.composer;
   const filters = parseLeadListFilters(params);
-  const selectedStage = readStageFilter(params) ?? (filters.stageId === "all" ? "all" : filters.stageId);
+  const selectedStage =
+    readStageFilter(params) ??
+    (filters.stageId === "all" || filters.status === "all"
+      ? "all"
+      : filters.stageId ?? filters.status);
   const scopedFilters = scopeLeadListFilters(filters, accessLevel, session.user?.email);
-  const requestedPage = readPage(params);
+  const cursorState = readCursor(params);
+  const requestedPage = cursorState ? readPage(params) : 1;
   let pageError: unknown = null;
   let usingDevelopmentDemoData = false;
   let pageData:
@@ -261,23 +344,23 @@ export default async function AdminLeadsPage({
         leads: Awaited<ReturnType<typeof leadStore.list>>;
         totalLeads: number;
         users: Awaited<ReturnType<typeof leadStore.listCrmUsers>>;
+        stages: Awaited<ReturnType<typeof listLeadStages>>;
         trashCount: number;
       }
     | null = null;
 
   try {
     const totalLeads = await leadStore.countLeads(scopedFilters);
-    const totalPages = Math.max(1, Math.ceil(totalLeads / PAGE_SIZE));
-    const page = Math.min(requestedPage, totalPages);
-    const showTrashFolder = canAccessLeadTrash(accessLevel);
-    const [leads, users] = await Promise.all([
+    const showTrashFolder = canAccessLeadTrash(accessLevel, permissions);
+    const [leads, users, stages] = await Promise.all([
       leadStore.list({
         ...scopedFilters,
-        stageId: selectedStage,
         limit: PAGE_SIZE,
-        offset: (page - 1) * PAGE_SIZE,
+        cursor: cursorState?.cursor,
+        cursorDirection: cursorState?.direction,
       }),
       accessLevel === "sales_rep" ? Promise.resolve([]) : leadStore.listCrmUsers(),
+      listLeadStages(),
     ]);
     const trashCount = showTrashFolder ? await leadStore.countLeads({ recordState: "trashed" }) : 0;
 
@@ -285,6 +368,7 @@ export default async function AdminLeadsPage({
       leads,
       totalLeads,
       users,
+      stages,
       trashCount,
     };
   } catch (error) {
@@ -295,7 +379,8 @@ export default async function AdminLeadsPage({
       pageData = {
         leads: [],
         totalLeads: buildDevelopmentLeadRows().length,
-        users: [],
+        users: buildDevelopmentUsers(),
+        stages: buildDevelopmentStages(),
         trashCount: 0,
       };
     }
@@ -324,23 +409,28 @@ export default async function AdminLeadsPage({
     );
   }
 
-  const { leads, totalLeads, users, trashCount } = pageData;
-  const showTrashFolder = canAccessLeadTrash(accessLevel);
-  const canTrashLead = canSoftDeleteLead(accessLevel);
+  const { leads, totalLeads, users, stages, trashCount } = pageData;
+  const showTrashFolder = canAccessLeadTrash(accessLevel, permissions);
+  const canTrashLead = canSoftDeleteLead(accessLevel, permissions);
   const totalPages = Math.max(1, Math.ceil(totalLeads / PAGE_SIZE));
   const currentPage = Math.min(requestedPage, totalPages);
-  const rangeStart = totalLeads === 0 ? 0 : (currentPage - 1) * PAGE_SIZE + 1;
-  const rangeEnd = totalLeads === 0 ? 0 : Math.min(totalLeads, currentPage * PAGE_SIZE);
   const baseHrefParams = {
     search: filters.search,
     stage: selectedStage,
     source: filters.source,
     priority: filters.priority,
     leadCustomerType: filters.leadCustomerType,
-    assignedTo: scopedFilters.assignedTo,
+    assignedTo:
+      filters.assignment === "unassigned" ? "__unassigned__" : scopedFilters.assignedTo,
     createdFrom: typeof filters.createdFrom === "string" ? filters.createdFrom : undefined,
     createdTo: typeof filters.createdTo === "string" ? filters.createdTo : undefined,
   };
+  const previousCursor = leads[0]
+    ? encodeLeadCursor({ id: leads[0].id, updatedAt: leads[0].updatedAt })
+    : undefined;
+  const nextCursor = leads.at(-1)
+    ? encodeLeadCursor({ id: leads.at(-1)!.id, updatedAt: leads.at(-1)!.updatedAt })
+    : undefined;
   const hasFilters = Boolean(
     filters.search ||
       (selectedStage && selectedStage !== "all") ||
@@ -349,31 +439,44 @@ export default async function AdminLeadsPage({
       (filters.leadCustomerType && filters.leadCustomerType !== "all") ||
       filters.createdFrom ||
       filters.createdTo ||
-      scopedFilters.assignedTo,
+      scopedFilters.assignedTo ||
+      filters.assignment === "unassigned",
   );
-  const canExportCurrentView = canExportLeads({ accessLevel, email: session.user?.email, role });
-  const assigneeOptions =
-    accessLevel === "sales_rep"
-      ? session.user?.email
-        ? [
-            {
-              label: session.user.name || session.user.email,
-              value: session.user.email,
-            },
-          ]
-        : []
-      : users
-          .filter((user) => user.isActive)
-          .map((user) => ({
+  const hasAdvancedFilters = Boolean(
+    (selectedStage && selectedStage !== "all") ||
+      (filters.source && filters.source !== "all") ||
+      (filters.priority && filters.priority !== "all") ||
+      filters.createdFrom ||
+      filters.createdTo ||
+      scopedFilters.assignedTo ||
+      filters.assignment === "unassigned",
+  );
+  const canCreateLead = canCreateLeadRecords(permissions);
+  const canExportCurrentView = canExportLeads({
+    accessLevel,
+    email: session.user?.email,
+    permissions,
+    role,
+  });
+  const canImportLeads = canImportLeadRecords(accessLevel, permissions);
+  const canReassignOwner = canAssignLeads({ accessLevel, permissions, role });
+  const assigneeOptions = canReassignOwner
+    ? users
+        .filter((user) => user.isActive)
+        .map((user) => ({
+          avatarUrl: user.avatarUrl,
+          detail: formatCrmRoleLabel(user.role),
           label: user.fullName || user.email,
           value: user.email,
-        }));
-  const [previewConfig, leadRows, leadCaptureCustomFields] = await (async () => {
+        }))
+    : [];
+  const [previewConfig, leadRows, leadCaptureCustomFields, workspaceCurrency] = await (async () => {
     if (usingDevelopmentDemoData) {
       return [
         DEFAULT_LEAD_PREVIEW_CONFIG,
         buildDevelopmentLeadRows(),
         [] as Awaited<ReturnType<typeof listCustomFields>>,
+        "USD",
       ] as const;
     }
 
@@ -400,6 +503,7 @@ export default async function AdminLeadsPage({
             }),
           ),
           formVisibleCustomFields,
+          workspaceSettings.globalCurrency,
         ] as const;
     } catch (error) {
       if (process.env.NODE_ENV === "production") {
@@ -416,6 +520,7 @@ export default async function AdminLeadsPage({
           }),
         ),
         [] as Awaited<ReturnType<typeof listCustomFields>>,
+        "USD",
       ] as const;
     }
   })();
@@ -431,195 +536,160 @@ export default async function AdminLeadsPage({
       description="Search, segment, assign, import, and export leads."
       actions={
         <>
-          <Link
-            href="#lead-action-center"
-            className="admin-button-primary inline-flex h-10 items-center justify-center rounded-full px-4 text-sm font-semibold"
-          >
-            Add lead
-          </Link>
-          <Link
-            href="#lead-action-center"
-            className="admin-button-secondary inline-flex h-10 items-center justify-center rounded-full px-4 text-sm font-medium"
-          >
-            Import leads
-          </Link>
+          {canCreateLead ? (
+            <LeadComposerLauncher mode="lead">
+              Add lead
+            </LeadComposerLauncher>
+          ) : null}
+          {canImportLeads ? (
+            <LeadComposerLauncher mode="import" variant="secondary">
+              Import leads
+            </LeadComposerLauncher>
+          ) : null}
           {canExportCurrentView ? <AdminLeadExportButton /> : null}
+          {showTrashFolder ? (
+            <Link
+              href={appRoutes.leadsTrash}
+              className="admin-button-secondary inline-flex h-10 items-center justify-center rounded-full px-4 text-sm font-medium"
+            >
+              Trash ({safeNumber(trashCount)})
+            </Link>
+          ) : null}
           <AdminSignOutButton />
         </>
       }
     >
       <div className="space-y-6">
-        <section className="ld-glass-panel rounded-[32px] p-5 sm:p-6">
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-            <div className="max-w-3xl">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/70">
-                Lead queue
-              </p>
-              <h2 className="mt-2 font-[family:var(--font-heading)] text-[2.4rem] leading-[1.1] tracking-[-0.05em] text-white sm:text-[2.9rem]">
-                Leads
-              </h2>
-              <p className="mt-2 text-sm leading-6 text-white/70">Filter the queue, assign owners quickly, and export the right segment.</p>
-            </div>
-            <div className="flex flex-wrap gap-3">
-              {showTrashFolder ? (
-                <Link
-                  href={appRoutes.leadsTrash}
-                  className="ld-floating-control inline-flex h-11 items-center justify-center rounded-2xl px-5 text-sm font-medium"
-                >
-                  Trash ({safeNumber(trashCount)})
-                </Link>
-              ) : null}
+        <nav
+          aria-label="Lead type"
+          className="ld-glass-card ld-glass-soft grid grid-cols-3 gap-1.5 rounded-[24px] p-1.5 sm:gap-2 sm:p-2"
+        >
+          {[
+            { value: "all", label: "All leads", icon: Rows3 },
+            { value: "direct", label: "Individuals", icon: UserRound },
+            { value: "business", label: "Companies", icon: Building2 },
+          ].map((tab) => {
+            const isActive = (filters.leadCustomerType ?? "all") === tab.value;
+            const Icon = tab.icon;
+            return (
               <Link
-                href={appRoutes.dashboard}
-                className="ld-floating-control inline-flex h-11 items-center justify-center rounded-2xl px-5 text-sm font-medium"
+                key={tab.value}
+                href={buildLeadsHref({
+                  ...baseHrefParams,
+                  page: 1,
+                  leadCustomerType: tab.value,
+                })}
+                prefetch={false}
+                aria-current={isActive ? "page" : undefined}
+                className={[
+                  "ld-focus-ring inline-flex min-h-11 min-w-0 items-center justify-center gap-1.5 rounded-[18px] border px-2 text-xs font-semibold transition sm:gap-2 sm:px-4 sm:text-sm",
+                  isActive
+                    ? "border-[color:var(--ld-color-accent)]/35 bg-[linear-gradient(135deg,color-mix(in_srgb,var(--ld-color-primary)_32%,transparent),color-mix(in_srgb,var(--ld-color-accent)_20%,transparent))] text-white shadow-[0_12px_28px_rgba(3,8,28,0.22)]"
+                    : "border-transparent text-white/70 hover:border-white/12 hover:bg-white/[0.07] hover:text-white",
+                ].join(" ")}
               >
-                Back to dashboard
+                <Icon className="h-4 w-4" />
+                {tab.label}
               </Link>
-            </div>
-          </div>
-
-          <div className="mt-5 grid gap-3 lg:grid-cols-3">
-            <QueueStatChip
-              label="Matching leads"
-              value={safeNumber(totalLeads)}
-              hint="Results after the current filters."
-              icon={Rows3}
-              tone="accent"
-              surface="contrast"
-            />
-            <QueueStatChip
-              label="Showing"
-              value={totalLeads === 0 ? "0" : `${safeNumber(rangeStart)} - ${safeNumber(rangeEnd)}`}
-              hint={`${safeNumber(PAGE_SIZE)} rows per page.`}
-              icon={Search}
-              surface="contrast"
-            />
-            <QueueStatChip
-              label="Owners visible"
-              value={safeNumber(
-                new Set(leadRows.map((lead) => lead.assignedTo).filter(Boolean)).size,
-              )}
-              hint="Distinct owners on this page."
-              icon={UserRoundPlus}
-              surface="contrast"
-            />
-          </div>
-        </section>
+            );
+          })}
+        </nav>
 
         <FilterBar>
           <form action={appRoutes.leads} className="grid gap-3">
-            <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-[minmax(0,1.35fr)_minmax(170px,0.55fr)_minmax(170px,0.55fr)_minmax(170px,0.55fr)_minmax(180px,0.6fr)_minmax(210px,0.75fr)] [&>*]:min-w-0">
+            <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-3 lg:grid-cols-3 xl:grid-cols-[minmax(0,1.45fr)_repeat(3,minmax(170px,0.58fr))_minmax(210px,0.75fr)] [&>*]:min-w-0">
               <SearchInput
                 defaultValue={filters.search}
-                placeholder="Search name, region, email, phone, source, or owner"
+                placeholder="Search leads"
               />
-              <AdminSelect name="stage" defaultValue={selectedStage ?? "all"} className="h-12">
-                <option value="all">All stages</option>
-                {CRM_STATUSES.map((option) => (
-                  <option key={option} value={option}>
-                    {crmLabelize(option)}
-                  </option>
-                ))}
-              </AdminSelect>
-              <AdminSelect name="source" defaultValue={filters.source ?? "all"} className="h-12">
-                <option value="all">All sources</option>
-                {LEAD_SOURCES.map((option) => (
-                  <option key={option} value={option}>
-                    {crmLabelize(option)}
-                  </option>
-                ))}
-              </AdminSelect>
-              <AdminSelect name="priority" defaultValue={filters.priority ?? "all"} className="h-12">
-                <option value="all">All priorities</option>
-                {LEAD_PRIORITIES.map((option) => (
-                  <option key={option} value={option}>
-                    {crmLabelize(option)}
-                  </option>
-                ))}
-              </AdminSelect>
-              <AdminSelect name="leadCustomerType" defaultValue={filters.leadCustomerType ?? "all"} className="h-12">
-                <option value="all">All lead types</option>
-                <option value="direct">Direct customers</option>
-                <option value="business">Business leads</option>
-              </AdminSelect>
-              {accessLevel === "sales_rep" ? (
-                <input type="hidden" name="assignedTo" value={scopedFilters.assignedTo ?? ""} />
-              ) : (
-                <AdminSelect name="assignedTo" defaultValue={scopedFilters.assignedTo ?? ""} className="h-12">
-                  <option value="">All owners</option>
-                  {users.map((user) => (
-                    <option key={user.id} value={user.email}>
-                      {user.fullName || user.email}{!user.isActive ? " (inactive)" : ""}
+              <ResponsiveFilterFields defaultOpen={hasAdvancedFilters}>
+                <AdminSelect name="stage" defaultValue={selectedStage ?? "all"} className="h-12">
+                  <option value="all">All stages</option>
+                  {stages.filter((stage) => !stage.archived).map((stage) => (
+                    <option key={stage.id} value={stage.id}>
+                      {stage.name}
                     </option>
                   ))}
                 </AdminSelect>
-              )}
-            </div>
+                <AdminSelect name="source" defaultValue={filters.source ?? "all"} className="h-12">
+                  <option value="all">All sources</option>
+                  {LEAD_SOURCES.map((option) => (
+                    <option key={option} value={option}>
+                      {crmLabelize(option)}
+                    </option>
+                  ))}
+                </AdminSelect>
+                <AdminSelect name="priority" defaultValue={filters.priority ?? "all"} className="h-12">
+                  <option value="all">All priorities</option>
+                  {LEAD_PRIORITIES.map((option) => (
+                    <option key={option} value={option}>
+                      {crmLabelize(option)}
+                    </option>
+                  ))}
+                </AdminSelect>
+                {filters.leadCustomerType && filters.leadCustomerType !== "all" ? (
+                  <input type="hidden" name="leadCustomerType" value={filters.leadCustomerType} />
+                ) : null}
+                {accessLevel === "sales_rep" ? (
+                  <input type="hidden" name="assignedTo" value={scopedFilters.assignedTo ?? ""} />
+                ) : (
+                  <AdminSelect
+                    name="assignedTo"
+                    defaultValue={filters.assignment === "unassigned" ? "__unassigned__" : scopedFilters.assignedTo ?? ""}
+                    className="h-12"
+                  >
+                    <option value="">All owners</option>
+                    <option value="__unassigned__">Unassigned</option>
+                    {users.map((user) => (
+                      <option key={user.id} value={user.email}>
+                        {user.fullName || user.email}{!user.isActive ? " (inactive)" : ""}
+                      </option>
+                    ))}
+                  </AdminSelect>
+                )}
 
-            <div className="grid gap-3 sm:grid-cols-2 lg:max-w-xl">
-              <label className="space-y-2">
-                <span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/70">Created from</span>
-                <input
-                  type="date"
-                  name="createdFrom"
-                  defaultValue={typeof filters.createdFrom === "string" ? filters.createdFrom : ""}
-                  className="admin-input h-12 w-full rounded-[20px] px-4 text-sm outline-none"
-                />
-              </label>
-              <label className="space-y-2">
-                <span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/70">Created to</span>
-                <input
-                  type="date"
-                  name="createdTo"
-                  defaultValue={typeof filters.createdTo === "string" ? filters.createdTo : ""}
-                  className="admin-input h-12 w-full rounded-[20px] px-4 text-sm outline-none"
-                />
-              </label>
-            </div>
+                <div className="col-span-full grid gap-3 sm:grid-cols-2 lg:max-w-xl">
+                  <label className="space-y-2">
+                    <span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/70">Created from</span>
+                    <input
+                      type="date"
+                      name="createdFrom"
+                      defaultValue={typeof filters.createdFrom === "string" ? filters.createdFrom : ""}
+                      className="admin-input h-12 w-full rounded-[20px] px-4 text-sm outline-none"
+                    />
+                  </label>
+                  <label className="space-y-2">
+                    <span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/70">Created to</span>
+                    <input
+                      type="date"
+                      name="createdTo"
+                      defaultValue={typeof filters.createdTo === "string" ? filters.createdTo : ""}
+                      className="admin-input h-12 w-full rounded-[20px] px-4 text-sm outline-none"
+                    />
+                  </label>
+                </div>
 
-            <div className="flex flex-wrap items-center gap-3">
-              <button
-                type="submit"
-                className="admin-button-primary inline-flex h-11 items-center justify-center rounded-2xl px-5 text-sm font-semibold"
-              >
-                Apply filters
-              </button>
-              <Link
-                href={appRoutes.leads}
-                className="admin-button-secondary inline-flex h-11 items-center justify-center rounded-2xl px-5 text-sm font-medium"
-              >
-                Reset
-              </Link>
-              <div className="rounded-full border border-white/10 bg-white/[0.07] px-3 py-2 text-xs font-medium text-white/70">
-                {hasFilters ? "Filtered view" : "All leads"}
-              </div>
+                <div className="col-span-full flex flex-wrap items-center gap-3">
+                  <button
+                    type="submit"
+                    className="admin-button-primary inline-flex h-11 items-center justify-center rounded-2xl px-5 text-sm font-semibold"
+                  >
+                    Apply filters
+                  </button>
+                  <Link
+                    href={appRoutes.leads}
+                    className="admin-button-secondary inline-flex h-11 items-center justify-center rounded-2xl px-5 text-sm font-medium"
+                  >
+                    Reset
+                  </Link>
+                  <div className="rounded-full border border-white/10 bg-white/[0.07] px-3 py-2 text-xs font-medium text-white/70">
+                    {hasFilters ? "Filtered view" : "All leads"}
+                  </div>
+                </div>
+              </ResponsiveFilterFields>
             </div>
           </form>
         </FilterBar>
-
-        <div id="lead-action-center">
-          <AdminWorkspaceComposer
-            accessLevel={accessLevel}
-            leadOptions={leadRows.map((lead) => ({
-              value: lead.id,
-              label: `${lead.displayName} • ${lead.email || lead.phone || "No contact yet"}`,
-            }))}
-            assignmentLeadOptions={leadRows
-              .filter((lead) => !lead.assignedTo || lead.stage === "new")
-              .map((lead) => ({
-                value: lead.id,
-                label: `${lead.displayName} • ${lead.email || lead.phone || "No contact yet"}`,
-                assignedTo: lead.assignedTo,
-                stage: lead.stage ?? "new",
-                priority: lead.priority,
-              }))}
-            assigneeOptions={assigneeOptions}
-            defaultAssignedTo={accessLevel === "sales_rep" ? session.user?.email ?? "" : ""}
-            variant="compact"
-            leadCaptureCustomFields={leadCaptureCustomFields}
-            allowedModes={accessLevel === "sales_rep" ? ["lead"] : ["lead", "assignment", "import"]}
-          />
-        </div>
 
         <section className="space-y-4">
           <LeadDataTable
@@ -627,12 +697,20 @@ export default async function AdminLeadsPage({
             emptyTitle="No leads match this view"
             emptyDescription="Try a broader filter or reset the queue."
             assigneeOptions={assigneeOptions}
+            stageOptions={stages.filter((stage) => !stage.archived).map((stage) => ({
+              id: stage.id,
+              key: stage.key,
+              label: stage.name,
+              color: stage.color,
+            }))}
             previewConfig={previewConfig}
+            currency={workspaceCurrency}
             renderActions={(lead) => (
               <>
-                <Link
-                  href={appRoutes.lead(lead.id)}
-                  className="admin-button-secondary inline-flex h-10 items-center justify-center rounded-full px-4 text-sm font-medium"
+                  <Link
+                    href={appRoutes.lead(lead.id)}
+                    prefetch={false}
+                    className="admin-button-secondary inline-flex h-10 items-center justify-center rounded-full px-4 text-sm font-medium"
                 >
                   Open
                 </Link>
@@ -640,7 +718,8 @@ export default async function AdminLeadsPage({
                   <LeadLifecycleButton
                     leadId={lead.id}
                     action="trash"
-                    className="inline-flex h-10 items-center justify-center rounded-full border border-rose-300/30 bg-rose-400/10 px-4 text-sm font-medium text-rose-100 transition hover:bg-rose-400/15"
+                    compact
+                    className="ld-focus-ring inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-rose-300/30 bg-rose-400/10 p-0 text-rose-100 transition hover:bg-rose-400/15"
                   />
                 ) : null}
               </>
@@ -656,6 +735,8 @@ export default async function AdminLeadsPage({
                 href={buildLeadsHref({
                   ...baseHrefParams,
                   page: Math.max(1, currentPage - 1),
+                  cursor: previousCursor,
+                  direction: "prev",
                 })}
                 aria-disabled={currentPage <= 1}
                 className={[
@@ -670,6 +751,8 @@ export default async function AdminLeadsPage({
                 href={buildLeadsHref({
                   ...baseHrefParams,
                   page: Math.min(totalPages, currentPage + 1),
+                  cursor: nextCursor,
+                  direction: "next",
                 })}
                 aria-disabled={currentPage >= totalPages}
                 className={[
@@ -683,6 +766,29 @@ export default async function AdminLeadsPage({
             </div>
           </div>
         </section>
+
+        <div id="lead-action-center" tabIndex={-1} className="scroll-mt-24 outline-none">
+          <AdminWorkspaceComposer
+            accessLevel={accessLevel}
+            leadOptions={leadRows.map((lead) => ({
+              value: lead.id,
+              label: `${lead.displayName} • ${lead.email || lead.phone || "No contact yet"}`,
+            }))}
+            assignmentLeadOptions={[]}
+            assigneeOptions={assigneeOptions}
+            defaultAssignedTo={accessLevel === "sales_rep" ? session.user?.email ?? "" : ""}
+            initialMode={requestedComposer === "import" && canImportLeads ? "import" : "lead"}
+            variant="compact"
+            leadCaptureCustomFields={leadCaptureCustomFields}
+            leadCaptureStageOptions={stages.filter((stage) => !stage.archived).map((stage) => ({
+              value: stage.id,
+              key: stage.key,
+              label: stage.name,
+              stageId: stage.id,
+            }))}
+            allowedModes={canImportLeads ? ["lead", "import"] : ["lead"]}
+          />
+        </div>
       </div>
     </AdminShell>
   );

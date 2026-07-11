@@ -14,6 +14,7 @@ import {
 import { cn } from "@/lib/cn";
 import { GlassSurface } from "@/components/admin/ui/GlassSurface";
 import { SmoothButton } from "@/components/admin/ui/SmoothButton";
+import { InfoTip } from "@/components/admin/ui/InfoTip";
 
 const STORAGE_KEY = "ld-admin-dashboard-widgets-v1";
 
@@ -144,6 +145,7 @@ export function AdminDashboardWidgetDeck({
       <div className="grid gap-5 xl:grid-cols-12">
         {orderedWidgets.map((widget, index) => {
           const isOpen = openState[widget.id] ?? true;
+          const useDescriptionTip = widget.description.length > 48;
           const accentClass = accentClassMap[widget.accent ?? "warm"];
           const slotClass =
             index === 2 ? "xl:col-span-12" : "xl:col-span-6";
@@ -196,12 +198,17 @@ export function AdminDashboardWidgetDeck({
                         </p>
                       </div>
                     </div>
-                    <h2 className="mt-4 min-w-0 max-w-2xl font-[family:var(--font-heading)] text-[1.65rem] leading-[0.98] tracking-[-0.055em] text-white sm:text-[1.9rem]">
-                      {widget.title}
-                    </h2>
-                    <p className="mt-2 min-w-0 max-w-2xl text-sm leading-6 text-white/70">
-                      {widget.description}
-                    </p>
+                    <div className="mt-4 flex min-w-0 items-center gap-2.5">
+                      <h2 className="min-w-0 max-w-2xl break-words font-[family:var(--font-heading)] text-[1.65rem] leading-[1.1] tracking-[-0.05em] text-white sm:text-[1.9rem]">
+                        {widget.title}
+                      </h2>
+                      {useDescriptionTip ? <InfoTip label={widget.description} align="left" /> : null}
+                    </div>
+                    {!useDescriptionTip ? (
+                      <p className="mt-2 min-w-0 max-w-2xl text-sm leading-6 text-white/70">
+                        {widget.description}
+                      </p>
+                    ) : null}
                   </div>
 
                   <div className="flex min-w-0 flex-wrap items-center justify-end gap-2">

@@ -4,20 +4,19 @@ import { AdminShell } from "@/components/admin/AdminShell";
 import { AdminSignOutButton } from "@/components/admin/AdminSignOutButton";
 import { CurrencySettingsManager } from "@/components/admin/CurrencySettingsManager";
 import { GlassSurface } from "@/components/admin/ui/GlassSurface";
-import { SectionHeader } from "@/components/admin/SectionHeader";
 import { getAdminAccessContext } from "@/lib/admin";
 import { appRoutes } from "@/lib/app-routes";
 import { canManageCurrencySettings } from "@/lib/crm/authz";
-import { getCompanySettings } from "@/lib/crm/workspace-settings";
+import { getCompanySettings } from "@/lib/crm/workspace-settings-server";
 import { getCrmPageErrorCopy, logCrmPageError } from "@/lib/crm/runtime";
 
 export const dynamic = "force-dynamic";
 
 export default async function CurrencySettingsPage() {
-  const { role, accessLevel, actualAccessLevel, canSwitchAccessViews } =
+  const { role, accessLevel, actualAccessLevel, canSwitchAccessViews, permissions } =
     await getAdminAccessContext(appRoutes.settingsCurrency);
 
-  if (!canManageCurrencySettings({ accessLevel, role })) {
+  if (!canManageCurrencySettings({ accessLevel, permissions, role })) {
     redirect(appRoutes.settings);
   }
 
@@ -53,16 +52,9 @@ export default async function CurrencySettingsPage() {
       }
     >
       {settings ? (
-        <div className="space-y-6">
-          <SectionHeader
-            eyebrow="Workspace currency"
-            title="Currency settings"
-            description="Control the default currency used across targets, leads, and reporting."
-          />
-          <GlassSurface as="section" intensity="medium" className="rounded-[24px] p-5 sm:p-6 ld-animate-fade-in-up">
-            <CurrencySettingsManager initialGlobalCurrency={settings.globalCurrency} />
-          </GlassSurface>
-        </div>
+        <GlassSurface as="section" intensity="medium" className="rounded-[24px] p-5 sm:p-6 ld-animate-fade-in-up">
+          <CurrencySettingsManager initialGlobalCurrency={settings.globalCurrency} />
+        </GlassSurface>
       ) : (
         <div className="rounded-[24px] border border-rose-300/20 bg-rose-400/[0.055] p-5 text-sm text-rose-100">
           <p className="font-semibold">{getCrmPageErrorCopy(pageError).title}</p>

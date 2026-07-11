@@ -113,7 +113,6 @@ const LEAD_FIELD_OPTIONS = [
   { value: "phone", label: "Phone" },
   { value: "whatsappNumber", label: "WhatsApp Number" },
   { value: "companyName", label: "Company Name" },
-  { value: "jobTitle", label: "Job Title" },
   { value: "region", label: "Region" },
   { value: "state", label: "State" },
   { value: "city", label: "City" },
@@ -126,7 +125,12 @@ interface FormFieldEditorProps {
   formId: string;
   initialFields?: unknown[];
   canEdit?: boolean;
+  customFieldOptions?: Array<{ value: string; label: string }>;
 }
+
+const CREATABLE_FIELD_TYPES = (Object.keys(FIELD_TYPE_LABELS) as FieldType[]).filter(
+  (type) => type !== "file",
+);
 
 function FieldTypeIcon({ type }: { type: FieldType }) {
   const Icon = FIELD_TYPE_ICONS[type] ?? Type;
@@ -140,7 +144,12 @@ function getFieldSummary(field: FormFieldData) {
   return parts.join(" · ");
 }
 
-export function FormFieldEditor({ formId, initialFields = [], canEdit = true }: FormFieldEditorProps) {
+export function FormFieldEditor({
+  formId,
+  initialFields = [],
+  canEdit = true,
+  customFieldOptions = [],
+}: FormFieldEditorProps) {
   const [fields, setFields] = useState<FormFieldData[]>(
     [...(initialFields as FormFieldData[])].sort((a, b) => a.order - b.order)
   );
@@ -266,10 +275,18 @@ export function FormFieldEditor({ formId, initialFields = [], canEdit = true }: 
     try {
       const isNew = field.id.startsWith("temp-");
       const payload = {
-        ...field,
+        fieldType: field.fieldType,
+        label: field.label,
+        placeholder: field.placeholder?.trim() || null,
+        helpText: field.helpText?.trim() || null,
+        isRequired: field.isRequired,
+        isVisible: field.isVisible,
+        order: field.order,
         options: ["select", "checkbox", "radio"].includes(field.fieldType) ? (field.options ?? []) : null,
         validationRules: field.validationRules ?? null,
+        mapsToLeadField: field.mapsToLeadField ?? null,
         showWhen: field.showWhen ? (field.showWhen as unknown as Record<string, unknown>) : null,
+        defaultValue: field.defaultValue ?? null,
       };
 
       if (isNew) {
@@ -278,8 +295,12 @@ export function FormFieldEditor({ formId, initialFields = [], canEdit = true }: 
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(payload),
         });
-        if (!res.ok) throw new Error("Failed to create field");
-        const data = await res.json();
+        const data = (await res.json().catch(() => null)) as
+          | { error?: string; field?: FormFieldData }
+          | null;
+        if (!res.ok || !data?.field) {
+          throw new Error(data?.error ?? "We couldn't create this field.");
+        }
         setFields([...fields, data.field]);
       } else {
         const res = await fetch(`/api/admin/forms/${formId}/fields/${field.id}`, {
@@ -287,9 +308,14 @@ export function FormFieldEditor({ formId, initialFields = [], canEdit = true }: 
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(payload),
         });
-        if (!res.ok) throw new Error("Failed to update field");
-        const data = await res.json();
-        setFields(fields.map((f) => (f.id === field.id ? data.field : f)));
+        const data = (await res.json().catch(() => null)) as
+          | { error?: string; field?: FormFieldData }
+          | null;
+        if (!res.ok || !data?.field) {
+          throw new Error(data?.error ?? "We couldn't update this field.");
+        }
+        const savedField = data.field;
+        setFields(fields.map((current) => (current.id === field.id ? savedField : current)));
       }
       setEditingField(null);
       setIsCreating(false);
@@ -505,8 +531,8 @@ export function FormFieldEditor({ formId, initialFields = [], canEdit = true }: 
               <div className="space-y-5">
                 <div>
                   <label className="mb-2 block text-sm font-medium text-white/90">Field Type</label>
-                  <div className="grid grid-cols-5 gap-2">
-                    {(Object.keys(FIELD_TYPE_LABELS) as FieldType[]).map((type) => {
+                   <div className="grid grid-cols-3 gap-2 sm:grid-cols-5">
+                     {CREATABLE_FIELD_TYPES.map((type) => {
                       const Icon = FIELD_TYPE_ICONS[type];
                       const active = editingField.fieldType === type;
                       return (
@@ -731,6 +757,15 @@ export function FormFieldEditor({ formId, initialFields = [], canEdit = true }: 
                         {opt.label}
                       </option>
                     ))}
+                    {customFieldOptions.length > 0 ? (
+                      <optgroup label="Custom fields">
+                        {customFieldOptions.map((option) => (
+                          <option key={option.value} value={option.value}>
+                            {option.label}
+                          </option>
+                        ))}
+                      </optgroup>
+                    ) : null}
                   </AdminSelect>
                 </div>
 

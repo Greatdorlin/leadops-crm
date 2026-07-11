@@ -1,3 +1,6 @@
+"use client";
+
+import { ResilientImage } from "@/components/ui/ResilientImage";
 import { cn } from "@/lib/cn";
 
 function getInitials(name?: string | null, email?: string | null) {
@@ -29,21 +32,10 @@ export function TeamAvatar({
     lg: "h-14 w-14 text-base",
   }[size];
 
-  if (avatarUrl) {
-    return (
-      // eslint-disable-next-line @next/next/no-img-element
-      <img
-        src={avatarUrl}
-        alt={name || email || "Team member"}
-        className={cn("rounded-full border border-white/16 object-cover shadow-[0_10px_24px_rgba(0,0,0,0.22)]", sizeClass, className)}
-      />
-    );
-  }
-
-  return (
+  const fallback = (
     <span
       className={cn(
-        "inline-flex shrink-0 items-center justify-center rounded-full border border-white/16 bg-[linear-gradient(135deg,var(--ld-color-primary),var(--ld-color-accent))] font-semibold text-white shadow-[0_10px_24px_rgba(0,0,0,0.22)]",
+        "inline-flex shrink-0 items-center justify-center rounded-full border border-white/16 bg-[linear-gradient(135deg,var(--ld-color-primary),var(--ld-color-accent))] font-semibold text-[color:var(--ld-color-on-primary)] shadow-[0_10px_24px_rgba(0,0,0,0.22)]",
         sizeClass,
         className,
       )}
@@ -52,4 +44,21 @@ export function TeamAvatar({
       {getInitials(name, email)}
     </span>
   );
+
+  if (avatarUrl) {
+    return (
+      <ResilientImage
+        src={avatarUrl}
+        alt={name || email || "Team member"}
+        className={cn(
+          "shrink-0 rounded-full border border-white/16 object-cover shadow-[0_10px_24px_rgba(0,0,0,0.22)]",
+          sizeClass,
+          className,
+        )}
+        fallback={fallback}
+      />
+    );
+  }
+
+  return fallback;
 }

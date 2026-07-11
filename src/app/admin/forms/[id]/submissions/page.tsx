@@ -1,15 +1,25 @@
 import Link from "next/link";
-import { ArrowRight, CheckCircle2, Inbox } from "lucide-react";
+import { ArrowLeft, ArrowRight, CheckCircle2, Inbox } from "lucide-react";
 import { EmptyState } from "@/components/admin/EmptyState";
 import { SectionHeader } from "@/components/admin/SectionHeader";
 import { GlassSurface } from "@/components/admin/ui/GlassSurface";
 import { SmoothButton } from "@/components/admin/ui/SmoothButton";
 import { appRoutes } from "@/lib/app-routes";
 import { formatCrmDateTime } from "@/lib/crm/formatters";
-import { listFormFields, listFormSubmissions } from "@/lib/crm/form-builder-store";
+import {
+  getFormResourceCounts,
+  listFormFields,
+  listFormSubmissions,
+} from "@/lib/crm/form-builder-store";
+import {
+  decodeFormSubmissionCursor,
+  encodeFormSubmissionCursor,
+} from "@/lib/crm/form-submission-pagination";
 import type { FormSubmissionRow } from "@/lib/db/schema";
 
 export const dynamic = "force-dynamic";
+
+const PAGE_SIZE = 25;
 
 function formatSubmissionValue(value: unknown): string {
   if (value === null || value === undefined || value === "") {
@@ -80,14 +90,46 @@ function SubmissionStatusBadge({ status }: { status: string }) {
 
 export default async function FormSubmissionsPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const { id } = await params;
-  const [submissions, fields] = await Promise.all([
-    listFormSubmissions(id),
+  const query = await searchParams;
+  const rawCursor = Array.isArray(query.cursor) ? query.cursor[0] : query.cursor;
+  const cursor = decodeFormSubmissionCursor(rawCursor);
+  const rawDirection = Array.isArray(query.direction) ? query.direction[0] : query.direction;
+  const direction = rawDirection === "prev" ? "prev" : "next";
+  const rawPage = Array.isArray(query.page) ? query.page[0] : query.page;
+  const parsedPage = Number.parseInt(rawPage ?? "1", 10);
+  const currentPage = cursor && Number.isFinite(parsedPage) && parsedPage > 0 ? parsedPage : 1;
+
+  const [submissions, fields, countsByForm] = await Promise.all([
+    listFormSubmissions(id, {
+      limit: PAGE_SIZE,
+      cursor: cursor ? rawCursor : undefined,
+      cursorDirection: direction,
+    }),
     listFormFields(id),
+    getFormResourceCounts([id]),
   ]);
+  const totalSubmissions = countsByForm.get(id)?.submissionCount ?? 0;
+  const rangeStart = totalSubmissions === 0 ? 0 : (currentPage - 1) * PAGE_SIZE + 1;
+  const rangeEnd = Math.min(totalSubmissions, rangeStart + submissions.length - 1);
+  const previousCursor = submissions[0]
+    ? encodeFormSubmissionCursor({
+        id: submissions[0].id,
+        createdAt: submissions[0].createdAt.toISOString(),
+      })
+    : null;
+  const nextCursor = submissions.at(-1)
+    ? encodeFormSubmissionCursor({
+        id: submissions.at(-1)!.id,
+        createdAt: submissions.at(-1)!.createdAt.toISOString(),
+      })
+    : null;
+  const submissionsPath = `${appRoutes.form(id)}/submissions`;
 
   const fieldLabelMap = new Map(fields.map((field) => [field.id, field.label]));
 
@@ -95,7 +137,7 @@ export default async function FormSubmissionsPage({
     <div className="space-y-6">
       <SectionHeader
         eyebrow="Submissions"
-        title={`${submissions.length} submission${submissions.length === 1 ? "" : "s"}`}
+        title={`${totalSubmissions} submission${totalSubmissions === 1 ? "" : "s"}`}
         description="Recent form completions, routing outcome, and the lead created from each submission."
       />
 
@@ -183,6 +225,32 @@ export default async function FormSubmissionsPage({
               </GlassSurface>
             );
           })}
+
+          <div className="flex flex-col gap-3 rounded-[20px] border border-white/10 bg-white/[0.035] px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-xs font-medium text-white/55">
+              Showing {rangeStart}-{rangeEnd} of {totalSubmissions}
+            </p>
+            <div className="flex items-center gap-2">
+              {currentPage > 1 && previousCursor ? (
+                <Link
+                  href={`${submissionsPath}?cursor=${encodeURIComponent(previousCursor)}&direction=prev&page=${currentPage - 1}`}
+                  className="admin-button-secondary inline-flex h-9 items-center justify-center gap-1.5 rounded-xl px-3 text-xs font-medium"
+                >
+                  <ArrowLeft className="h-3.5 w-3.5" />
+                  Newer
+                </Link>
+              ) : null}
+              {rangeEnd < totalSubmissions && nextCursor ? (
+                <Link
+                  href={`${submissionsPath}?cursor=${encodeURIComponent(nextCursor)}&direction=next&page=${currentPage + 1}`}
+                  className="admin-button-secondary inline-flex h-9 items-center justify-center gap-1.5 rounded-xl px-3 text-xs font-medium"
+                >
+                  Older
+                  <ArrowRight className="h-3.5 w-3.5" />
+                </Link>
+              ) : null}
+            </div>
+          </div>
         </div>
       )}
     </div>

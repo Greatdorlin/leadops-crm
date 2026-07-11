@@ -1,7 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { useState } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import {
   Download,
   FileUp,
@@ -9,17 +9,41 @@ import {
   Sparkles,
   UserPlus,
   Users2,
+  X,
 } from "lucide-react";
 import { cn } from "@/lib/cn";
 import type { AdminAccessLevel } from "@/lib/admin-permissions";
 import type { CustomFieldDefinitionWithOptions } from "@/lib/crm/custom-field-values";
-import type { CrmStatus } from "@/lib/crm/types";
+import {
+  WORKSPACE_COMPOSER_OPEN_EVENT,
+  type WorkspaceComposerMode,
+} from "@/lib/crm/workspace-composer";
 import { LeadAssignmentForm } from "./LeadAssignmentForm";
 import { LeadCaptureForm } from "./LeadCaptureForm";
 import { LeadImportForm } from "./LeadImportForm";
 import { LeadTaskForm } from "./LeadTaskForm";
 
-type ComposerMode = "task" | "assignment" | "lead" | "import";
+const guidanceDismissedKey = "leadsdesk:composer-guidance-dismissed";
+const guidanceChangedEvent = "leadsdesk:composer-guidance-changed";
+
+function subscribeToGuidancePreference(onChange: () => void) {
+  function handleStorage(event: StorageEvent) {
+    if (event.key === guidanceDismissedKey) {
+      onChange();
+    }
+  }
+
+  window.addEventListener("storage", handleStorage);
+  window.addEventListener(guidanceChangedEvent, onChange);
+  return () => {
+    window.removeEventListener("storage", handleStorage);
+    window.removeEventListener(guidanceChangedEvent, onChange);
+  };
+}
+
+function getGuidancePreference() {
+  return window.localStorage.getItem(guidanceDismissedKey) !== "1";
+}
 
 export function AdminWorkspaceComposer({
   accessLevel,
@@ -28,6 +52,7 @@ export function AdminWorkspaceComposer({
   assigneeOptions,
   defaultAssignedTo = "",
   defaultLeadId,
+  initialMode,
   variant = "hero",
   leadCaptureCustomFields = [],
   leadCaptureStageOptions,
@@ -45,17 +70,53 @@ export function AdminWorkspaceComposer({
   assigneeOptions: Array<{ label: string; value: string }>;
   defaultAssignedTo?: string;
   defaultLeadId?: string;
+  initialMode?: WorkspaceComposerMode;
   variant?: "hero" | "compact";
   leadCaptureCustomFields?: CustomFieldDefinitionWithOptions[];
-  leadCaptureStageOptions?: Array<{ value: CrmStatus; label: string }>;
-  allowedModes?: ComposerMode[];
+  leadCaptureStageOptions?: Array<{
+    value: string;
+    key: string;
+    label: string;
+    stageId?: string;
+  }>;
+  allowedModes?: WorkspaceComposerMode[];
 }) {
-  const defaultModes: ComposerMode[] =
-    accessLevel === "sales_rep" ? ["task", "lead"] : ["lead", "task", "assignment", "import"];
+  const defaultModes: WorkspaceComposerMode[] =
+    accessLevel === "sales_rep" || accessLevel === "affiliate"
+      ? ["task", "lead"]
+      : ["lead", "task", "assignment", "import"];
   const availableModes = (allowedModes?.length ? allowedModes : defaultModes).filter((mode, index, list) => list.indexOf(mode) === index);
-  const [mode, setMode] = useState<ComposerMode>(
-    defaultLeadId && availableModes.includes("task") ? "task" : (availableModes[0] ?? "task"),
+  const availableModeKey = availableModes.join("|");
+  const [mode, setMode] = useState<WorkspaceComposerMode>(
+    initialMode && availableModes.includes(initialMode)
+      ? initialMode
+      : defaultLeadId && availableModes.includes("task")
+        ? "task"
+        : (availableModes[0] ?? "task"),
   );
+  const showGuidance = useSyncExternalStore(
+    subscribeToGuidancePreference,
+    getGuidancePreference,
+    () => false,
+  );
+
+  useEffect(() => {
+    function handleOpen(event: Event) {
+      const requestedMode = (event as CustomEvent<{ mode?: WorkspaceComposerMode }>).detail?.mode;
+      const allowed = availableModeKey.split("|") as WorkspaceComposerMode[];
+      if (requestedMode && allowed.includes(requestedMode)) {
+        setMode(requestedMode);
+      }
+    }
+
+    window.addEventListener(WORKSPACE_COMPOSER_OPEN_EVENT, handleOpen);
+    return () => window.removeEventListener(WORKSPACE_COMPOSER_OPEN_EVENT, handleOpen);
+  }, [availableModeKey]);
+
+  function dismissGuidance() {
+    window.localStorage.setItem(guidanceDismissedKey, "1");
+    window.dispatchEvent(new Event(guidanceChangedEvent));
+  }
 
   const contentByMode = {
     task: {
@@ -133,7 +194,7 @@ export function AdminWorkspaceComposer({
       body: <LeadImportForm assigneeOptions={assigneeOptions} />,
     },
   } satisfies Record<
-    ComposerMode,
+    WorkspaceComposerMode,
     {
       icon: typeof ListTodo;
       tabLabel: string;
@@ -229,25 +290,27 @@ export function AdminWorkspaceComposer({
               <p className="mt-3 max-w-2xl text-sm leading-7 text-white/72">{current.description}</p>
             </div>
 
-            <div className={cn("grid gap-2 sm:grid-cols-3", !isCompact && "xl:min-w-[24rem]")}>
-              {current.highlights.map((highlight) => (
-                <div
-                  key={highlight}
-                  className="rounded-[18px] border border-white/10 bg-white/[0.08] px-4 py-3 text-sm font-medium text-white/84"
-                >
-                  {highlight}
-                </div>
-              ))}
-            </div>
+            {!isCompact ? (
+              <div className="grid gap-2 sm:grid-cols-3 xl:min-w-[24rem]">
+                {current.highlights.map((highlight) => (
+                  <div
+                    key={highlight}
+                    className="rounded-[18px] border border-white/10 bg-white/[0.08] px-4 py-3 text-sm font-medium text-white/84"
+                  >
+                    {highlight}
+                  </div>
+                ))}
+              </div>
+            ) : null}
           </div>
         </div>
 
-        <div className={cn("grid gap-4", isCompact ? "2xl:grid-cols-[minmax(0,1fr)_300px]" : "xl:grid-cols-[minmax(0,1.12fr)_280px]")}>
+        <div className={cn("grid gap-4", !isCompact && "xl:grid-cols-[minmax(0,1.12fr)_280px]")}>
           <div className="rounded-[32px] border border-white/10 bg-black/18 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.07)] sm:p-5">
             {current.body}
           </div>
 
-          <aside className="space-y-4">
+          {!isCompact ? <aside className="space-y-4">
             <div className="ld-glass-card ld-glass-soft rounded-[28px] p-5">
               <div className="flex items-center gap-3">
                 <span className="inline-flex h-10 w-10 items-center justify-center rounded-[16px] border border-[color:var(--ld-color-accent)]/25 bg-[color:var(--ld-color-accent)]/14 text-[color:var(--ld-color-accent)]">
@@ -275,26 +338,36 @@ export function AdminWorkspaceComposer({
               </div>
             </div>
 
-            <div className="ld-glass-card ld-glass-soft rounded-[28px] p-5">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/70">
-                Fast path
-              </p>
-              <div className="mt-4 space-y-3 text-sm leading-6 text-white/70">
-                <p>Keep the queue light by capturing clean contact details first.</p>
-                <p>Assign ownership before moving a lead into the next stage.</p>
-                <p>Use tasks for follow-ups that should not disappear from view.</p>
+            {showGuidance ? (
+              <div className="ld-glass-card ld-glass-soft rounded-[28px] p-5">
+                <div className="flex items-center justify-between gap-3">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/70">
+                    Fast path
+                  </p>
+                  <button
+                    type="button"
+                    onClick={dismissGuidance}
+                    className="ld-focus-ring inline-flex h-8 w-8 items-center justify-center rounded-full border border-white/10 bg-white/[0.06] text-white/70 transition hover:bg-white/[0.1] hover:text-white"
+                    aria-label="Hide action center guidance"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+                <p className="mt-3 text-sm leading-6 text-white/70">
+                  Capture clean contact details, assign an owner, and use tasks for follow-ups.
+                </p>
+                <div className="mt-4 flex flex-wrap gap-2">
+                  <span className="rounded-full border border-white/10 bg-white/[0.07] px-3 py-1.5 text-xs font-semibold text-white/70">
+                    <Download className="mr-1 inline h-3.5 w-3.5" />
+                    Export-ready
+                  </span>
+                  <span className="rounded-full border border-white/10 bg-white/[0.07] px-3 py-1.5 text-xs font-semibold text-white/70">
+                    Shared with tasks
+                  </span>
+                </div>
               </div>
-              <div className="mt-4 flex flex-wrap gap-2">
-                <span className="rounded-full border border-white/10 bg-white/[0.07] px-3 py-1.5 text-xs font-semibold text-white/70">
-                  <Download className="mr-1 inline h-3.5 w-3.5" />
-                  Export-ready
-                </span>
-                <span className="rounded-full border border-white/10 bg-white/[0.07] px-3 py-1.5 text-xs font-semibold text-white/70">
-                  Shared with tasks
-                </span>
-              </div>
-            </div>
-          </aside>
+            ) : null}
+          </aside> : null}
         </div>
       </div>
     </section>

@@ -1,22 +1,23 @@
 import { notifyCrmEvent } from "@/lib/crm/notifications";
 import { leadStore } from "@/lib/storage";
 import { fetchGoogleAdsCampaignMetrics } from "./client";
-import { countMatchedLeadsForCampaign } from "./match-leads";
 
 export async function syncGoogleAdsPerformance(dateFrom?: string, dateTo?: string) {
-  const [batches, leads] = await Promise.all([
-    fetchGoogleAdsCampaignMetrics(dateFrom, dateTo),
-    leadStore.list(),
-  ]);
+  const batches = await fetchGoogleAdsCampaignMetrics(dateFrom, dateTo);
+  const leadCountByCampaign = new Map<string, Promise<number>>();
 
   let stored = 0;
 
   for (const batch of batches) {
     for (const result of batch.results ?? []) {
-      const matchedLeads = countMatchedLeadsForCampaign(leads, {
-        campaignId: result.campaign?.id ?? "",
-        campaignName: result.campaign?.name ?? "",
-      });
+      const campaignId = result.campaign?.id ?? "";
+      const campaignName = result.campaign?.name ?? "";
+      const campaignKey = `${campaignId}:${campaignName}`;
+      const countPromise =
+        leadCountByCampaign.get(campaignKey) ??
+        leadStore.countGoogleAdsCampaignLeads({ campaignId, campaignName });
+      leadCountByCampaign.set(campaignKey, countPromise);
+      const matchedLeads = await countPromise;
 
       await leadStore.upsertAdCampaignMetric({
         provider: "google_ads",

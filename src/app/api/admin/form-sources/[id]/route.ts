@@ -24,7 +24,7 @@ export async function GET(
     return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
   }
 
-  if (!canManageFormSources({ accessLevel: context.accessLevel, role: context.role })) {
+  if (!canManageFormSources(context)) {
     return NextResponse.json({ error: "Forbidden." }, { status: 403 });
   }
 
@@ -46,7 +46,7 @@ export async function PATCH(
     return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
   }
 
-  if (!canManageFormSources({ accessLevel: context.accessLevel, role: context.role })) {
+  if (!canManageFormSources(context)) {
     return NextResponse.json({ error: "Forbidden." }, { status: 403 });
   }
 

@@ -32,7 +32,7 @@ export function PremiumDataTable<T>({
                 <th
                   key={column.key}
                   className={cn(
-                    "sticky top-0 z-10 bg-white/[0.06] backdrop-blur-md border-b border-white/10",
+                    "sticky top-0 z-10 border-b border-white/10 bg-[color:color-mix(in_srgb,var(--ld-color-background)_94%,#060812_6%)] backdrop-blur-md",
                     column.className,
                   )}
                 >

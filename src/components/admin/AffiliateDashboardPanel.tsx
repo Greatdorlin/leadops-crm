@@ -10,7 +10,7 @@ import { PriorityBadge } from "./PriorityBadge";
 import { SourceBadge } from "./SourceBadge";
 import { StatusBadge } from "./StatusBadge";
 
-function formatMoney(value: number, currency = "NGN") {
+function formatMoney(value: number, currency = "USD") {
   return new Intl.NumberFormat("en-US", {
     style: "currency",
     currency,
@@ -18,7 +18,7 @@ function formatMoney(value: number, currency = "NGN") {
   }).format(value);
 }
 
-function formatShortMoney(value: number, currency = "NGN") {
+function formatShortMoney(value: number, currency = "USD") {
   if (Math.abs(value) >= 1_000_000) {
     return `${formatMoney(value / 1_000_000, currency).replace(/\.0+$/, "")}m`;
   }
@@ -32,7 +32,7 @@ function formatShortMoney(value: number, currency = "NGN") {
 
 export function AffiliateDashboardPanel({
   summary,
-  currency = "NGN",
+  currency = "USD",
 }: {
   summary: AffiliateDashboardSummary;
   currency?: string;

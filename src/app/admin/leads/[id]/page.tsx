@@ -42,8 +42,7 @@ import {
   canViewLeadRecord,
   canViewTechnicalLeadContext,
 } from "@/lib/admin-permissions";
-import { normalizeEmail, normalizePhone } from "@/lib/crm/value-normalization";
-import { CRM_STATUSES } from "@/lib/crm/constants";
+import { canAssignLeads } from "@/lib/crm/authz";
 import {
   crmLabelize,
   formatCrmDateTime,
@@ -60,6 +59,7 @@ import { listLeadStages } from "@/lib/crm/lead-stages-admin";
 import { getCrmPageErrorCopy, logCrmPageError } from "@/lib/crm/runtime";
 import type { CrmStatus } from "@/lib/crm/types";
 import { buildAdminLeadDetailView } from "@/lib/crm/view-models";
+import { getCompanySettings } from "@/lib/crm/workspace-settings-server";
 import { leadStore } from "@/lib/storage";
 
 export const dynamic = "force-dynamic";
@@ -67,6 +67,18 @@ export const dynamic = "force-dynamic";
 function buildWhatsAppHref(value?: string | null) {
   const sanitized = value?.replace(/[^\d]/g, "") ?? "";
   return sanitized ? `https://wa.me/${sanitized}` : null;
+}
+
+function formatMoney(value: number | null | undefined, currency: string) {
+  if (value === null || value === undefined) {
+    return "Not set";
+  }
+
+  return new Intl.NumberFormat(undefined, {
+    style: "currency",
+    currency,
+    maximumFractionDigits: 0,
+  }).format(value);
 }
 
 function eventTone(eventType: string) {
@@ -95,9 +107,16 @@ export default async function AdminLeadDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const { session, role, accessLevel, actualAccessLevel, canSwitchAccessViews } =
+  const {
+    session,
+    role,
+    accessLevel,
+    actualAccessLevel,
+    canSwitchAccessViews,
+    permissions,
+  } =
     await getAdminAccessContext(appRoutes.lead(id));
-  const canOpenLeadTrash = canAccessLeadTrash(accessLevel);
+  const canOpenLeadTrash = canAccessLeadTrash(accessLevel, permissions);
   let pageData:
     | {
         lead: NonNullable<Awaited<ReturnType<typeof leadStore.getById>>>;
@@ -105,7 +124,7 @@ export default async function AdminLeadDetailPage({
         notes: Awaited<ReturnType<typeof leadStore.listLeadNotes>>;
         tasks: Awaited<ReturnType<typeof leadStore.listLeadTasks>>;
         events: Awaited<ReturnType<typeof leadStore.listLeadEvents>>;
-        allLeads: Awaited<ReturnType<typeof leadStore.list>>;
+        duplicateCandidates: Awaited<ReturnType<typeof leadStore.listDuplicateLeads>>;
       }
     | null = null;
   let pageError: unknown = null;
@@ -119,7 +138,7 @@ export default async function AdminLeadDetailPage({
 
     if (
       (lead.deletedAt && !canOpenLeadTrash) ||
-      !canViewLeadRecord(accessLevel, lead, session.user?.email)
+      !canViewLeadRecord(accessLevel, lead, session.user?.email, permissions)
     ) {
       notFound();
     }
@@ -128,17 +147,20 @@ export default async function AdminLeadDetailPage({
     let notes: Awaited<ReturnType<typeof leadStore.listLeadNotes>>;
     let tasks: Awaited<ReturnType<typeof leadStore.listLeadTasks>>;
     let events: Awaited<ReturnType<typeof leadStore.listLeadEvents>>;
-    let allLeads: Awaited<ReturnType<typeof leadStore.list>>;
+    let duplicateCandidates: Awaited<ReturnType<typeof leadStore.listDuplicateLeads>>;
 
     try {
-      [users, notes, tasks, events, allLeads] = await Promise.all([
+      [users, notes, tasks, events, duplicateCandidates] = await Promise.all([
         leadStore.listCrmUsers(),
         leadStore.listLeadNotes(id),
         leadStore.listLeadTasks({ leadId: id }),
         leadStore.listLeadEvents(id),
-        leadStore.list(
-          accessLevel === "sales_rep" ? { assignedTo: session.user?.email ?? undefined } : undefined,
-        ),
+        leadStore.listDuplicateLeads({
+          excludeId: lead.id,
+          email: lead.email,
+          whatsappNumber: lead.whatsappNumber,
+          assignedTo: accessLevel === "sales_rep" ? session.user?.email ?? undefined : undefined,
+        }),
       ]);
     } catch (relatedDataError) {
       if (process.env.NODE_ENV === "production") {
@@ -150,7 +172,7 @@ export default async function AdminLeadDetailPage({
       notes = [];
       tasks = [];
       events = [];
-      allLeads = [lead];
+      duplicateCandidates = [];
     }
 
     pageData = {
@@ -159,7 +181,7 @@ export default async function AdminLeadDetailPage({
       notes,
       tasks,
       events,
-      allLeads,
+      duplicateCandidates,
     };
   } catch (error) {
     pageError = error;
@@ -199,41 +221,37 @@ export default async function AdminLeadDetailPage({
     );
   }
 
-  const { lead, users, notes, tasks, events, allLeads } = pageData;
-  const canTrashLead = canSoftDeleteLead(accessLevel) && !lead.deletedAt;
+  const { lead, users, notes, tasks, events, duplicateCandidates } = pageData;
+  const workspaceSettings = await getCompanySettings();
+  const currency = workspaceSettings.globalCurrency;
+  const canTrashLead = canSoftDeleteLead(accessLevel, permissions) && !lead.deletedAt;
   const canRestoreDeletedLead = canOpenLeadTrash && Boolean(lead.deletedAt);
-  const showTechnicalLeadContext = canViewTechnicalLeadContext(accessLevel, role);
+  const showTechnicalLeadContext = canViewTechnicalLeadContext(
+    accessLevel,
+    role,
+    permissions,
+  );
   const showAttributionDetails = accessLevel !== "sales_rep";
+  const canReassignOwner = canAssignLeads({ accessLevel, permissions, role });
   const visibleUsers =
     accessLevel === "sales_rep"
       ? users.filter((user) => user.email === session.user?.email && user.isActive)
       : users.filter((user) => user.isActive);
   const assigneeOptions = visibleUsers.map((user) => ({
-    label: `${user.fullName || user.email} • ${formatCrmRoleLabel(user.role)}`,
+    avatarUrl: user.avatarUrl,
+    detail: formatCrmRoleLabel(user.role),
+    label: user.fullName || user.email,
     value: user.email,
   }));
 
   if (session.user?.email && !assigneeOptions.some((option) => option.value === session.user?.email)) {
     assigneeOptions.unshift({
-      label: `${session.user.email} • Admin access`,
+      avatarUrl: session.user.image,
+      detail: "Admin access",
+      label: session.user.name || session.user.email,
       value: session.user.email,
     });
   }
-
-  const duplicateCandidates = allLeads.filter((candidate) => {
-    if (candidate.id === lead.id) {
-      return false;
-    }
-
-    const sameEmail =
-      normalizeEmail(candidate.email) &&
-      normalizeEmail(candidate.email) === normalizeEmail(lead.email);
-    const samePhone =
-      normalizePhone(candidate.whatsappNumber) &&
-      normalizePhone(candidate.whatsappNumber) === normalizePhone(lead.whatsappNumber);
-
-    return sameEmail || samePhone;
-  });
 
   const nextTask = tasks
     .filter((task) => !task.completedAt)
@@ -276,9 +294,7 @@ export default async function AdminLeadDetailPage({
   editableCustomFields = editableCustomFields.filter(
     (field) => field.showInForm && !field.archived,
   );
-  configuredStageOptions = configuredStageOptions.filter(
-    (stage) => !stage.archived && CRM_STATUSES.includes(stage.key as (typeof CRM_STATUSES)[number]),
-  );
+  configuredStageOptions = configuredStageOptions.filter((stage) => !stage.archived);
   const leadView = buildAdminLeadDetailView(lead, {
     nextFollowUpAt: lead.nextFollowUpAt ?? nextTask?.dueAt ?? null,
     stage: lead.stageId ? readContext.stagesById.get(lead.stageId) ?? null : null,
@@ -289,8 +305,10 @@ export default async function AdminLeadDetailPage({
   });
   const stageOptions = configuredStageOptions.length > 0
     ? configuredStageOptions.map((stage) => ({
-        value: stage.key as CrmStatus,
+        value: stage.id,
+        key: stage.key,
         label: stage.name,
+        stageId: stage.id,
         sortOrder: stage.sortOrder,
         isWon: stage.isWon,
         isLost: stage.isLost,
@@ -338,7 +356,7 @@ export default async function AdminLeadDetailPage({
                 </div>
 
                 <div className="min-w-0">
-                  <h2 className="font-[family:var(--font-heading)] text-[2.4rem] leading-[0.94] tracking-[-0.06em] text-white sm:text-[3.3rem]">
+                  <h2 className="break-words font-[family:var(--font-heading)] text-[2.25rem] leading-[1.08] tracking-[-0.055em] text-white sm:text-[3.2rem] sm:leading-[1.02]">
                     {leadView.leadName}
                   </h2>
                   <p className="mt-3 max-w-[24ch] text-base leading-7 text-white/70 sm:max-w-none sm:text-[1.05rem] [overflow-wrap:anywhere]">
@@ -633,12 +651,18 @@ export default async function AdminLeadDetailPage({
                 ) : (
                   <LeadStatusForm
                     leadId={lead.id}
-                    initialStage={resolveLegacyStageBadge(leadView.stage)}
+                    initialStage={
+                      lead.stageId ??
+                      stageOptions?.find((stage) => stage.key === leadView.stageDisplay.key)?.value ??
+                      resolveLegacyStageBadge(leadView.stage)
+                    }
+                    initialStageKey={leadView.stageDisplay.key ?? resolveLegacyStageBadge(leadView.stage)}
                     initialPriority={lead.priority}
                     initialAssignedTo={lead.assignedTo}
                     initialAssignedToList={lead.assignedToList}
                     initialNextFollowUpAt={leadView.nextFollowUpAt}
                     assigneeOptions={assigneeOptions}
+                    canReassignOwner={canReassignOwner}
                     stageOptions={stageOptions}
                   />
                 )}
@@ -688,11 +712,11 @@ export default async function AdminLeadDetailPage({
                   {[
                     ["Company", leadView.companyName || "Not set"],
                     ["Next follow-up", leadView.nextFollowUpAt ? formatCrmDateTime(leadView.nextFollowUpAt) : "Not scheduled"],
-                    ["Estimated value", leadView.estimatedValue ? `NGN ${leadView.estimatedValue.toLocaleString()}` : "Not set"],
-                    ["Expected value", leadView.expectedValue ? `NGN ${leadView.expectedValue.toLocaleString()}` : "Not set"],
+                    ["Estimated value", formatMoney(leadView.estimatedValue, currency)],
+                    ["Expected value", formatMoney(leadView.expectedValue, currency)],
                     ["Close probability", leadView.closeProbability !== null && leadView.closeProbability !== undefined ? `${leadView.closeProbability}%` : "Not set"],
                     ["Expected close", leadView.expectedCloseDate ? formatCrmDateTime(leadView.expectedCloseDate) : "Not set"],
-                    ["Won value", leadView.wonValue ? `NGN ${leadView.wonValue.toLocaleString()}` : "Not set"],
+                    ["Won value", formatMoney(leadView.wonValue, currency)],
                     ["Lost reason", leadView.lostReason || "Not set"],
                     ["Fit signal", leadView.fitSignalLabel],
                     ["Top interest", leadView.interestLabel],
@@ -716,7 +740,7 @@ export default async function AdminLeadDetailPage({
               <div className="mt-4 space-y-4">
                 <div className="grid gap-4 text-sm text-white/70 md:grid-cols-2 xl:grid-cols-4">
                   {[
-                    ["Pipeline value", opportunityRollup.expectedValue ? `NGN ${opportunityRollup.expectedValue.toLocaleString()}` : "Not set"],
+                    ["Pipeline value", formatMoney(opportunityRollup.expectedValue, currency)],
                     ["Open offers", `${opportunityRollup.activeCount}`],
                     ["Removed from pipeline", `${opportunityRollup.inactiveCount}`],
                     ["Won offers", `${opportunityRollup.wonCount}`],

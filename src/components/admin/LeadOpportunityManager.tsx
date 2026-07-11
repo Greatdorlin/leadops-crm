@@ -7,10 +7,15 @@ import { crmLabelize } from "@/lib/crm/formatters";
 import {
   buildLeadOpportunityRollup,
   LEAD_OPPORTUNITY_STATUSES,
-} from "@/lib/crm/lead-opportunities";
+} from "@/lib/crm/lead-opportunity-contract";
 import type { LeadOpportunityRecord, LeadOpportunityStatus } from "@/lib/crm/types";
 import { AdminSelect } from "./AdminSelect";
 import { InfoTip } from "./ui/InfoTip";
+import { useAdminWorkspaceSettings } from "./AdminWorkspaceSettingsProvider";
+import {
+  resolveQuickScheduleDate,
+  type QuickSchedulePreset,
+} from "@/lib/crm/schedule-presets";
 
 type OpportunityDraft = {
   id?: string;
@@ -44,12 +49,20 @@ function createDraft(input?: LeadOpportunityRecord): OpportunityDraft {
   };
 }
 
-function formatMoney(value?: number | null) {
+function formatMoney(value: number | null | undefined, currency: string) {
   if (value == null) {
-    return "NGN 0";
+    return new Intl.NumberFormat(undefined, {
+      style: "currency",
+      currency,
+      maximumFractionDigits: 0,
+    }).format(0);
   }
 
-  return `NGN ${value.toLocaleString()}`;
+  return new Intl.NumberFormat(undefined, {
+    style: "currency",
+    currency,
+    maximumFractionDigits: 0,
+  }).format(value);
 }
 
 function inputClassName() {
@@ -68,11 +81,15 @@ export function LeadOpportunityManager({
   initialOpportunities: LeadOpportunityRecord[];
 }) {
   const router = useRouter();
+  const workspaceSettings = useAdminWorkspaceSettings();
+  const currency = workspaceSettings.globalCurrency;
   const [opportunities, setOpportunities] = useState<OpportunityDraft[]>(
     initialOpportunities.length > 0 ? initialOpportunities.map((item) => createDraft(item)) : [createDraft()],
   );
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState("");
+  const [createCallTasks, setCreateCallTasks] = useState(true);
+  const [callDuePreset, setCallDuePreset] = useState<QuickSchedulePreset>("tomorrow");
 
   const rollup = useMemo(
     () =>
@@ -142,17 +159,28 @@ export function LeadOpportunityManager({
               isPrimary: item.isPrimary,
             }))
             .filter((item) => item.offerLabel.length > 0),
+          createCallTasksForNewlyQualified: createCallTasks,
+          callTaskDueAt: createCallTasks
+            ? resolveQuickScheduleDate(callDuePreset).toISOString()
+            : null,
         }),
       });
 
-      const payload = (await response.json().catch(() => null)) as { error?: string } | null;
+      const payload = (await response.json().catch(() => null)) as {
+        error?: string;
+        createdCallTaskCount?: number;
+      } | null;
       if (!response.ok) {
         setMessage(payload?.error ?? "We couldn't save these offer opportunities.");
         setIsSaving(false);
         return;
       }
 
-      setMessage("Offer opportunities saved.");
+      setMessage(
+        payload?.createdCallTaskCount
+          ? `Offer tracking saved. ${payload.createdCallTaskCount} call task${payload.createdCallTaskCount === 1 ? "" : "s"} created.`
+          : "Offer opportunities saved.",
+      );
       setIsSaving(false);
       startTransition(() => router.refresh());
     } catch {
@@ -165,7 +193,7 @@ export function LeadOpportunityManager({
     <div className="space-y-4">
       <div className="grid gap-3 md:grid-cols-4">
         {[
-          ["Pipeline value", formatMoney(rollup.expectedValue ?? rollup.estimatedValue)],
+          ["Pipeline value", formatMoney(rollup.expectedValue ?? rollup.estimatedValue, currency)],
           ["Open offers", String(rollup.activeCount)],
           ["Qualified", String(rollup.qualifiedCount)],
           ["Removed", String(rollup.inactiveCount)],
@@ -193,6 +221,45 @@ export function LeadOpportunityManager({
           label="Active, qualified, and on-hold offers count toward pipeline. Lost and unqualified offers stay in history but stop inflating live value."
           align="right"
         />
+      </div>
+
+      <div className="rounded-[22px] border border-white/10 bg-white/[0.045] p-4">
+        <label className="flex items-center justify-between gap-4">
+          <span>
+            <span className="block text-sm font-semibold text-white">Create calls for newly qualified offers</span>
+            <span className="mt-1 block text-xs text-white/60">One owner task per offer, created once.</span>
+          </span>
+          <input
+            type="checkbox"
+            checked={createCallTasks}
+            onChange={(event) => setCreateCallTasks(event.target.checked)}
+            className="admin-toggle shrink-0"
+          />
+        </label>
+        {createCallTasks ? (
+          <div className="mt-3 flex flex-wrap gap-2 border-t border-white/10 pt-3">
+            {([
+              ["later_today", "Today"],
+              ["tomorrow", "Tomorrow"],
+              ["in_3_days", "In 3 days"],
+              ["next_week", "Next week"],
+            ] as Array<[QuickSchedulePreset, string]>).map(([preset, label]) => (
+              <button
+                key={preset}
+                type="button"
+                onClick={() => setCallDuePreset(preset)}
+                className={[
+                  "rounded-full border px-3 py-1.5 text-xs font-semibold transition",
+                  callDuePreset === preset
+                    ? "border-white/22 bg-white/[0.12] text-white"
+                    : "border-white/10 bg-white/[0.045] text-white/64 hover:text-white",
+                ].join(" ")}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        ) : null}
       </div>
 
       <div className="space-y-3">
@@ -374,11 +441,12 @@ export function LeadOpportunityManager({
                   <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/70">
                     Expected value
                   </p>
-                  <p className="mt-2 text-lg font-semibold text-white">{formatMoney(expectedValue)}</p>
+                  <p className="mt-2 text-lg font-semibold text-white">{formatMoney(expectedValue, currency)}</p>
                 </div>
                 <label className="space-y-2 md:col-span-2 xl:col-span-3">
                   <span className="text-xs font-semibold uppercase tracking-[0.16em] text-white/70">
                     {requiresReason ? "Why it dropped out" : "Reason or qualification note"}
+                    {requiresReason ? " *" : ""}
                   </span>
                   <input
                     value={opportunity.reason}
@@ -390,6 +458,8 @@ export function LeadOpportunityManager({
                         ? "Budget is too low for this offer."
                         : "Qualified for the implementation package after discovery."
                     }
+                    required={requiresReason}
+                    aria-required={requiresReason}
                     className={inputClassName()}
                   />
                 </label>
@@ -423,14 +493,14 @@ export function LeadOpportunityManager({
                     Offer value
                   </p>
                   <p className="mt-2 text-sm font-semibold text-white">
-                    {hasValue ? formatMoney(Number(opportunity.estimatedValue)) : "Not set"}
+                    {hasValue ? formatMoney(Number(opportunity.estimatedValue), currency) : "Not set"}
                   </p>
                 </div>
                 <div className="rounded-[18px] border border-white/10 bg-black/10 px-4 py-3">
                   <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/58">
                     Expected value
                   </p>
-                  <p className="mt-2 text-sm font-semibold text-white">{formatMoney(expectedValue)}</p>
+                  <p className="mt-2 text-sm font-semibold text-white">{formatMoney(expectedValue, currency)}</p>
                 </div>
               </div>
             </div>

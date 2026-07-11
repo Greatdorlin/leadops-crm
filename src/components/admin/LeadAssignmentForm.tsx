@@ -2,7 +2,7 @@
 
 import { startTransition, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Check, Search, Sparkles, UserRound } from "lucide-react";
+import { Check, Gauge, Layers3, Search, UserRound } from "lucide-react";
 import { CRM_STATUSES, LEAD_PRIORITIES } from "@/lib/crm/constants";
 import { crmLabelize } from "@/lib/crm/formatters";
 import type { LeadPriority } from "@/lib/crm/types";
@@ -10,6 +10,7 @@ import { cn } from "@/lib/cn";
 import { GlassSurface } from "./ui/GlassSurface";
 import { SmoothButton } from "./ui/SmoothButton";
 import { GradientText } from "./ui/GradientText";
+import type { LeadAssigneeOption } from "./LeadOwnerQuickAssign";
 
 export interface LeadAssignmentOption {
   value: string;
@@ -44,7 +45,7 @@ export function LeadAssignmentForm({
   assigneeOptions,
 }: {
   leadOptions: LeadAssignmentOption[];
-  assigneeOptions: Array<{ label: string; value: string }>;
+  assigneeOptions: LeadAssigneeOption[];
 }) {
   const router = useRouter();
   const [selectedLeadId, setSelectedLeadId] = useState(leadOptions[0]?.value ?? "");
@@ -55,6 +56,21 @@ export function LeadAssignmentForm({
   const [assigneeQuery, setAssigneeQuery] = useState("");
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState("");
+  const [routingByLead, setRoutingByLead] = useState(() =>
+    Object.fromEntries(
+      leadOptions.map((lead) => [
+        lead.value,
+        {
+          assignedTo: lead.assignedTo,
+          stage: lead.stage,
+          priority: lead.priority,
+        },
+      ]),
+    ) as Record<
+      string,
+      { assignedTo: string | null; stage: string; priority: LeadPriority }
+    >,
+  );
 
   const filteredLeadOptions = useMemo(() => {
     if (!leadQuery.trim()) {
@@ -75,7 +91,7 @@ export function LeadAssignmentForm({
 
   function handleLeadChange(nextLeadId: string) {
     setSelectedLeadId(nextLeadId);
-    const selectedLead = leadOptions.find((option) => option.value === nextLeadId);
+    const selectedLead = routingByLead[nextLeadId];
     if (!selectedLead) {
       return;
     }
@@ -95,7 +111,7 @@ export function LeadAssignmentForm({
     setMessage("");
 
     try {
-      const response = await fetch(`/api/admin/leads/${selectedLeadId}`, {
+      const response = await fetch(`/api/admin/leads/${selectedLeadId}/workflow`, {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
@@ -115,6 +131,14 @@ export function LeadAssignmentForm({
       }
 
       setMessage("Lead routing updated.");
+      setRoutingByLead((current) => ({
+        ...current,
+        [selectedLeadId]: {
+          assignedTo: assignedTo || null,
+          stage,
+          priority,
+        },
+      }));
       setIsSaving(false);
       startTransition(() => router.refresh());
     } catch {
@@ -254,7 +278,7 @@ export function LeadAssignmentForm({
       <div className="grid gap-4 lg:grid-cols-2">
         <section className="space-y-3 rounded-[24px] border border-white/10 bg-white/[0.04] p-4">
           <div className="flex items-center gap-2">
-            <Sparkles className="h-4 w-4 text-white/80" />
+            <Layers3 className="h-4 w-4 text-white/80" />
             <p className="text-xs font-semibold uppercase tracking-[0.16em] text-white/70">Stage</p>
           </div>
           <div className="grid gap-2 sm:grid-cols-2">
@@ -281,7 +305,7 @@ export function LeadAssignmentForm({
 
         <section className="space-y-3 rounded-[24px] border border-white/10 bg-white/[0.04] p-4">
           <div className="flex items-center gap-2">
-            <Sparkles className="h-4 w-4 text-violet-200/80" />
+            <Gauge className="h-4 w-4 text-violet-200/80" />
             <p className="text-xs font-semibold uppercase tracking-[0.16em] text-white/70">Priority</p>
           </div>
           <div className="grid gap-2 sm:grid-cols-2">

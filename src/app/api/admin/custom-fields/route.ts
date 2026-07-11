@@ -14,7 +14,7 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
   }
 
-  if (!canManageCustomFields({ accessLevel: context.accessLevel, role: context.role })) {
+  if (!canManageCustomFields(context)) {
     return NextResponse.json({ error: "Forbidden." }, { status: 403 });
   }
 
@@ -30,7 +30,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
   }
 
-  if (!canManageCustomFields({ accessLevel: context.accessLevel, role: context.role })) {
+  if (!canManageCustomFields(context)) {
     return NextResponse.json({ error: "Forbidden." }, { status: 403 });
   }
 

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
-import { ArrowUpDown, Search, ShieldCheck, UsersRound } from "lucide-react";
+import { ArrowUpDown, Search } from "lucide-react";
 import type { AdminAccessLevel } from "@/lib/admin-permissions";
 import { formatAdminAccessLevelLabel } from "@/lib/crm/formatters";
 import { appRoutes } from "@/lib/app-routes";
@@ -348,61 +348,6 @@ export function TeamSettingsWorkspace({
             </GlassCard>
           ) : null}
 
-          <GlassCard glassStyle="soft" className="p-5">
-            <SectionHeader
-              eyebrow="Workspace rules"
-              title="Protection by design"
-              description="The owner and admin controls still protect the workspace while keeping everyday changes simple."
-            />
-            <div className="mt-4 space-y-3">
-              {[
-                "Sales reps can keep their own name and photo current without waiting for admin help.",
-                "Only allowed roles can grant or change access levels.",
-                "Inactive people disappear from assignment choices until they are restored.",
-              ].map((item) => (
-                <div
-                  key={item}
-                  className="flex items-start gap-3 rounded-[20px] border border-white/10 bg-white/[0.045] px-4 py-3"
-                >
-                  <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-white/70" />
-                  <p className="text-sm leading-6 text-white/70">{item}</p>
-                </div>
-              ))}
-            </div>
-          </GlassCard>
-
-          <GlassCard glassStyle="soft" className="p-5">
-            <SectionHeader
-              eyebrow="Scales better"
-              title="Built for a larger team"
-              description="Search, filter, and sort now so this page still works when the roster grows."
-            />
-            <div className="mt-4 grid gap-3">
-              {[
-                {
-                  icon: UsersRound,
-                  title: "Search by person",
-                  copy: "Jump to a teammate quickly by name or email instead of scrolling cards.",
-                },
-                {
-                  icon: ArrowUpDown,
-                  title: "Sort by role or status",
-                  copy: "Bring admins, team leads, or inactive users into view faster when the roster grows.",
-                },
-              ].map((item) => (
-                <div
-                  key={item.title}
-                  className="rounded-[22px] border border-white/10 bg-white/[0.045] p-4"
-                >
-                  <div className="flex items-center gap-3">
-                    <item.icon className="h-4 w-4 text-white/70" />
-                    <p className="text-sm font-semibold text-white">{item.title}</p>
-                  </div>
-                  <p className="mt-2 text-sm leading-6 text-white/70">{item.copy}</p>
-                </div>
-              ))}
-            </div>
-          </GlassCard>
         </div>
       </section>
     </div>

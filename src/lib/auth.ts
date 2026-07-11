@@ -1,6 +1,7 @@
 import type { NextAuthOptions } from "next-auth";
 import GoogleProvider from "next-auth/providers/google";
 import { hasAdminWorkspaceAccess } from "@/lib/admin-directory";
+import { isVerifiedGoogleProfile } from "@/lib/auth-policy";
 
 export const authOptions: NextAuthOptions = {
   secret: process.env.AUTH_SECRET ?? process.env.NEXTAUTH_SECRET,
@@ -21,7 +22,10 @@ export const authOptions: NextAuthOptions = {
         ]
       : [],
   callbacks: {
-    async signIn({ user }) {
+    async signIn({ user, account, profile }) {
+      if (account?.provider !== "google" || !isVerifiedGoogleProfile(profile)) {
+        return false;
+      }
       return hasAdminWorkspaceAccess(user.email);
     },
     async session({ session, token }) {

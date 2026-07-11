@@ -2,11 +2,13 @@ import { NextResponse } from "next/server";
 import { getAdminRequestContext } from "@/lib/admin";
 import { canManageIndustryPresets } from "@/lib/crm/authz";
 import {
-  applyVerticalPreset,
-  getCompanySettings,
   getVerticalPreset,
   industryPresetSchema,
 } from "@/lib/crm/workspace-settings";
+import {
+  applyVerticalPreset,
+  getCompanySettings,
+} from "@/lib/crm/workspace-settings-server";
 
 export async function GET() {
   const context = await getAdminRequestContext();
@@ -25,7 +27,7 @@ export async function PATCH(request: Request) {
     return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
   }
 
-  if (!canManageIndustryPresets({ accessLevel: context.accessLevel, role: context.role })) {
+  if (!canManageIndustryPresets(context)) {
     return NextResponse.json({ error: "Forbidden." }, { status: 403 });
   }
 

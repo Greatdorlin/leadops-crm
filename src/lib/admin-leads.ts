@@ -9,6 +9,8 @@ import type { LeadListFilters } from "@/lib/storage/types";
 
 type QueryLike = URLSearchParams | Record<string, string | string[] | undefined>;
 
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
 function readValue(input: QueryLike, key: string) {
   if (input instanceof URLSearchParams) {
     return input.get(key) ?? undefined;
@@ -29,7 +31,8 @@ export function parseLeadListFilters(input: QueryLike): LeadListFilters {
   const createdTo = readValue(input, "createdTo")?.trim();
 
   return {
-    stageId: stage === "all" ? "all" : isCrmStatus(stage) ? stage : undefined,
+    stageId: stage === "all" ? "all" : stage && UUID_PATTERN.test(stage) ? stage : undefined,
+    status: stage === "all" ? "all" : isCrmStatus(stage) ? stage : undefined,
     source: source === "all" ? "all" : isLeadSource(source) ? source : undefined,
     priority: priority === "all" ? "all" : isLeadPriority(priority) ? priority : undefined,
     leadCustomerType:
@@ -38,7 +41,9 @@ export function parseLeadListFilters(input: QueryLike): LeadListFilters {
         : LEAD_CUSTOMER_TYPES.includes(leadCustomerType as (typeof LEAD_CUSTOMER_TYPES)[number])
           ? (leadCustomerType as (typeof LEAD_CUSTOMER_TYPES)[number])
           : undefined,
-    assignedTo: assignedTo?.trim() ? assignedTo.trim() : undefined,
+    assignedTo:
+      assignedTo?.trim() && assignedTo !== "__unassigned__" ? assignedTo.trim() : undefined,
+    assignment: assignedTo === "__unassigned__" ? "unassigned" : undefined,
     search: search.length > 0 ? search : undefined,
     createdFrom: createdFrom && !Number.isNaN(new Date(createdFrom).getTime()) ? createdFrom : undefined,
     createdTo: createdTo && !Number.isNaN(new Date(createdTo).getTime()) ? createdTo : undefined,

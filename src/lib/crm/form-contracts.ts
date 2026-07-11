@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { CRM_STATUSES, LEAD_CUSTOMER_TYPES, LEAD_PRIORITIES, LEAD_SOURCES } from "@/lib/crm/constants";
 import type { CrmStatus, LeadCustomerType, LeadPriority, LeadSource } from "@/lib/crm/types";
+import { CRM_MIGRATION_SOURCES } from "@/lib/migrations/sources";
 
 function normalizeOptionalString(value: unknown) {
   if (typeof value !== "string") {
@@ -70,6 +71,7 @@ export const adminLeadCaptureInputSchema = z
     firstName: z.string().trim().min(1, "First name is required."),
     leadCustomerType: z.enum(LEAD_CUSTOMER_TYPES).default("direct"),
     stage: z.enum(CRM_STATUSES).default("new"),
+    stageId: z.string().uuid("Choose a valid lead stage.").nullable().optional(),
     priority: z.enum(LEAD_PRIORITIES).default("medium"),
     assignedTo: z.string().trim().email().nullable().optional().or(z.literal("").transform(() => null)),
     source: z.enum(LEAD_SOURCES).default("manual_entry"),
@@ -113,11 +115,35 @@ export const adminLeadFilterInputSchema = z.object({
 
 export type AdminLeadFilterInput = z.infer<typeof adminLeadFilterInputSchema>;
 
-export const adminLeadImportInputSchema = z.object({
-  csvText: z.string().min(1, "CSV text is required."),
-  assignedTo: z.string().trim().email().nullable().optional().or(z.literal("").transform(() => null)),
-  sourceDetail: z.string().trim().nullable().optional(),
-});
+export const adminLeadImportInputSchema = z
+  .object({
+    action: z.enum(["validate", "commit"]).default("validate"),
+    importId: z.string().uuid("Choose a valid staged import.").optional(),
+    csvText: z
+      .string()
+      .max(5_000_000, "Use the background migration path for files over 5 MB.")
+      .default(""),
+    sourceSystem: z.enum(CRM_MIGRATION_SOURCES).default("generic_csv"),
+    sourceFileName: z.string().trim().max(255).nullable().optional(),
+    assignedTo: z.string().trim().email().nullable().optional().or(z.literal("").transform(() => null)),
+    sourceDetail: z.string().trim().nullable().optional(),
+  })
+  .superRefine((value, context) => {
+    if (value.action === "validate" && !value.csvText.trim()) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "CSV text is required.",
+        path: ["csvText"],
+      });
+    }
+    if (value.action === "commit" && !value.importId) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Validate the file before importing it.",
+        path: ["importId"],
+      });
+    }
+  });
 
 export type AdminLeadImportInput = z.infer<typeof adminLeadImportInputSchema>;
 
@@ -167,6 +193,7 @@ export function normalizeAdminLeadCapturePayload(payload: Record<string, unknown
         ? (payload.customFieldValues as Record<string, unknown>)
         : {},
     stage: pickAliasEnum(payload, ["stage"], CRM_STATUSES) ?? "new",
+    stageId: pickAliasString(payload, ["stageId"]),
     priority: pickAliasEnum(payload, ["priority"], LEAD_PRIORITIES) ?? "medium",
     assignedTo: pickAliasString(payload, ["assignedTo"]),
     source: pickAliasEnum(payload, ["source"], LEAD_SOURCES) ?? "manual_entry",
@@ -221,6 +248,10 @@ export function normalizeAdminLeadProfilePayload(payload: Record<string, unknown
 export function normalizeAdminLeadImportPayload(payload: Record<string, unknown>) {
   return adminLeadImportInputSchema.safeParse({
     csvText: typeof payload.csvText === "string" ? payload.csvText : "",
+    action: payload.action,
+    importId: pickAliasString(payload, ["importId"]),
+    sourceSystem: payload.sourceSystem,
+    sourceFileName: pickAliasString(payload, ["sourceFileName"]),
     assignedTo: pickAliasString(payload, ["assignedTo"]),
     sourceDetail: pickAliasString(payload, ["sourceDetail"]),
   });

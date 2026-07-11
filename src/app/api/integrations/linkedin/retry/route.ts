@@ -9,7 +9,7 @@ export async function POST(request: Request) {
   if (!context) {
     return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
   }
-  if (!canManageIntegrationsAccess(context.accessLevel, context.role)) {
+  if (!canManageIntegrationsAccess(context.accessLevel, context.role, context.permissions)) {
     return NextResponse.json({ error: "Forbidden." }, { status: 403 });
   }
 

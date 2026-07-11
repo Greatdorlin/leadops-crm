@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
 import { getAdminRequestContext } from "@/lib/admin";
-import { canManageLeadRecord } from "@/lib/admin-permissions";
+import {
+  canManageLeadRecord,
+  canManageTaskRecord,
+} from "@/lib/admin-permissions";
 import { leadStore } from "@/lib/storage";
 
 export async function PATCH(
@@ -18,13 +21,28 @@ export async function PATCH(
   }
 
   const { taskId } = await params;
-  const existingTask = (await leadStore.listLeadTasks()).find((entry) => entry.id === taskId) ?? null;
+  const existingTask = await leadStore.getLeadTaskById(taskId);
   if (!existingTask) {
     return NextResponse.json({ error: "Task not found." }, { status: 404 });
   }
 
   const lead = await leadStore.getById(existingTask.leadId);
-  if (!lead || lead.deletedAt || !canManageLeadRecord(context.accessLevel, lead, context.session.user?.email)) {
+  if (
+    !lead ||
+    lead.deletedAt ||
+    !canManageTaskRecord(
+      context.accessLevel,
+      existingTask,
+      context.session.user?.email,
+      context.permissions,
+    ) ||
+    !canManageLeadRecord(
+      context.accessLevel,
+      lead,
+      context.session.user?.email,
+      context.permissions,
+    )
+  ) {
     return NextResponse.json({ error: "Forbidden." }, { status: 403 });
   }
 

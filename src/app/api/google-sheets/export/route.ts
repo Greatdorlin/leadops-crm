@@ -4,14 +4,19 @@ import { getAdminRequestContext } from "@/lib/admin";
 import { canManageIntegrationsAccess } from "@/lib/admin-permissions";
 import { isGoogleSheetsConfigured, replaceGoogleSheetRows } from "@/lib/google-sheets/client";
 import { leadEventTypes } from "@/lib/crm/lead-events";
+import {
+  LeadExportLimitError,
+  listLeadsForSynchronousExport,
+} from "@/lib/crm/lead-export-batches";
 import { leadStore } from "@/lib/storage";
+import { getCompanySettings } from "@/lib/crm/workspace-settings-server";
 
 export async function POST() {
   const context = await getAdminRequestContext();
   if (!context) {
     return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
   }
-  if (!canManageIntegrationsAccess(context.accessLevel, context.role)) {
+  if (!canManageIntegrationsAccess(context.accessLevel, context.role, context.permissions)) {
     return NextResponse.json({ error: "Forbidden." }, { status: 403 });
   }
 
@@ -27,8 +32,13 @@ export async function POST() {
   });
 
   try {
-    const leads = await leadStore.list();
-    const values = await buildLeadExportValues(leads);
+    const [leads, workspaceSettings] = await Promise.all([
+      listLeadsForSynchronousExport(leadStore, {}),
+      getCompanySettings(),
+    ]);
+    const values = await buildLeadExportValues(leads, {
+      currency: workspaceSettings.globalCurrency,
+    });
 
     await replaceGoogleSheetRows(values);
 
@@ -63,10 +73,9 @@ export async function POST() {
 
     return NextResponse.json(
       {
-        error:
-          error instanceof Error ? error.message : "Google Sheets export failed.",
+        error: error instanceof Error ? error.message : "Google Sheets export failed.",
       },
-      { status: 500 },
+      { status: error instanceof LeadExportLimitError ? 422 : 500 },
     );
   }
 }

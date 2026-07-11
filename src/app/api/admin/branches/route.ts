@@ -11,7 +11,7 @@ export async function GET() {
     return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
   }
 
-  if (!canManageBranches({ accessLevel: context.accessLevel, role: context.role })) {
+  if (!canManageBranches(context)) {
     return NextResponse.json({ error: "Forbidden." }, { status: 403 });
   }
 

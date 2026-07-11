@@ -8,13 +8,13 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   SlidersHorizontal,
-  Sparkles,
 } from "lucide-react";
 import type { AdminAccessLevel } from "@/lib/admin-permissions";
 import { LeadsDeskWordmark } from "@/components/brand/LeadsDeskWordmark";
 import { cn } from "@/lib/cn";
 import { useAdminWorkspaceSettings } from "@/components/admin/AdminWorkspaceSettingsProvider";
 import type { CrmUserRole } from "@/lib/crm/types";
+import type { PermissionKey } from "@/lib/crm/role-permissions-contract";
 import { appRoutes } from "@/lib/app-routes";
 import { getAdminNavigation } from "./navigation";
 import { TeamAvatar } from "./TeamAvatar";
@@ -27,11 +27,13 @@ function DefaultSidebarFooter({
   userName,
   userEmail,
   avatarUrl,
+  canCustomize,
 }: {
   accessLevel: AdminAccessLevel;
   userName?: string | null;
   userEmail?: string | null;
   avatarUrl?: string | null;
+  canCustomize: boolean;
 }) {
   const isRep = accessLevel === "sales_rep";
   const displayName = userName || userEmail || "My profile";
@@ -44,10 +46,12 @@ function DefaultSidebarFooter({
 
   return (
     <div className={cn("space-y-3", "ld-animate-fade-in-up")}>
-      <Link
-        href={appRoutes.settingsAppearance}
-        className="group relative block"
-      >
+      {canCustomize ? (
+        <Link
+          href={appRoutes.settingsAppearance}
+          prefetch={false}
+          className="group relative block"
+        >
         <GlassSurface
           intensity="soft"
           border
@@ -71,29 +75,8 @@ function DefaultSidebarFooter({
             <ChevronRight className="ml-auto h-4 w-4 text-white/70 transition group-hover:translate-x-0.5 group-hover:text-white" />
           </div>
         </GlassSurface>
-      </Link>
-
-      <GlassSurface
-        intensity="soft"
-        border
-        highlight
-        className="overflow-hidden rounded-[22px] p-3"
-      >
-        <div className="flex items-center gap-2.5">
-          <Sparkles className="h-4 w-4 text-white/80" />
-          <div className="min-w-0">
-            <p className="truncate text-[13px] font-semibold text-white">
-              Today&apos;s focus
-            </p>
-            <p className="truncate text-[11px] text-white/70">
-              {isRep ? "Follow up fast" : "Keep revenue moving"}
-            </p>
-          </div>
-        </div>
-        <div className="mt-3 h-1 overflow-hidden rounded-full bg-white/[0.08]">
-          <span className="block h-full w-[68%] rounded-full bg-[linear-gradient(90deg,var(--ld-color-primary),var(--ld-color-accent))] shadow-[0_0_18px_color-mix(in_srgb,var(--ld-color-primary)_35%,transparent)]" />
-        </div>
-      </GlassSurface>
+        </Link>
+      ) : null}
 
       <SmoothButton
         variant="ghost"
@@ -123,6 +106,7 @@ interface SidebarContentProps {
   activeKey: string;
   accessLevel: AdminAccessLevel;
   role?: CrmUserRole | null;
+  permissions: readonly PermissionKey[];
   footer?: ReactNode;
   collapsed?: boolean;
   companyName?: string;
@@ -137,6 +121,7 @@ function SidebarContent({
   activeKey,
   accessLevel,
   role,
+  permissions,
   footer,
   collapsed = false,
   companyName,
@@ -151,6 +136,7 @@ function SidebarContent({
     accessLevel,
     role,
     workspaceSettings.navigation,
+    permissions,
   );
   const resolvedCompanyName = companyName ?? workspaceSettings.companyName;
 
@@ -195,10 +181,6 @@ function SidebarContent({
           "relative mt-6 min-h-0 flex-1 space-y-1 overflow-y-auto ld-sidebar-nav-scroll",
           collapsed && "w-full",
         )}
-        style={{
-          scrollbarWidth: "thin",
-          scrollbarColor: "rgba(255,255,255,0.15) transparent",
-        }}
       >
         {navigation.map((item, index) => {
           const Icon = item.icon;
@@ -208,6 +190,7 @@ function SidebarContent({
             <Link
               key={item.key}
               href={item.href}
+              prefetch={false}
               title={collapsed ? item.label : undefined}
               aria-current={isActive ? "page" : undefined}
               className={cn(
@@ -262,6 +245,7 @@ function SidebarContent({
           {footer ?? (
             <DefaultSidebarFooter
               accessLevel={accessLevel}
+              canCustomize={permissions.includes("canManageAppearance")}
               userName={userName}
               userEmail={userEmail}
               avatarUrl={userAvatarUrl}
@@ -279,6 +263,7 @@ export function AdminSidebarMobileDrawer({
   activeKey,
   accessLevel,
   role,
+  permissions,
   footer,
   companyName,
   logoUrl,
@@ -291,6 +276,7 @@ export function AdminSidebarMobileDrawer({
   activeKey: string;
   accessLevel: AdminAccessLevel;
   role?: CrmUserRole | null;
+  permissions: readonly PermissionKey[];
   footer?: ReactNode;
   companyName?: string;
   logoUrl?: string | null;
@@ -311,6 +297,7 @@ export function AdminSidebarMobileDrawer({
           activeKey={activeKey}
           accessLevel={accessLevel}
           role={role}
+          permissions={permissions}
           footer={footer}
           collapsed={false}
           companyName={companyName}
@@ -328,6 +315,7 @@ export function AdminSidebar({
   activeKey,
   accessLevel,
   role,
+  permissions,
   footer,
   collapsed = false,
   onToggleCollapse,
@@ -340,6 +328,7 @@ export function AdminSidebar({
   activeKey: string;
   accessLevel: AdminAccessLevel;
   role?: CrmUserRole | null;
+  permissions: readonly PermissionKey[];
   footer?: ReactNode;
   collapsed?: boolean;
   onToggleCollapse?: () => void;
@@ -353,7 +342,7 @@ export function AdminSidebar({
     <aside className="hidden xl:block">
       <div
         className={cn(
-          "admin-sidebar-panel ld-glass-sidebar sticky top-4 flex min-h-[calc(100vh-2rem)] flex-col overflow-hidden rounded-[28px] p-3 text-white shadow-[0_26px_70px_rgba(1,6,18,0.36)] transition-[width,padding,opacity] duration-[350ms]",
+          "admin-sidebar-panel ld-glass-sidebar sticky top-4 flex h-[calc(100vh-2rem)] flex-col overflow-hidden rounded-[28px] p-3 text-white shadow-[0_26px_70px_rgba(1,6,18,0.36)] transition-[width,padding,opacity] duration-[350ms]",
           "ease-[cubic-bezier(0.32,0.72,0,1.02)]",
           collapsed && "items-center px-2.5",
         )}
@@ -366,6 +355,7 @@ export function AdminSidebar({
           activeKey={activeKey}
           accessLevel={accessLevel}
           role={role}
+          permissions={permissions}
           footer={footer}
           collapsed={collapsed}
           companyName={companyName}

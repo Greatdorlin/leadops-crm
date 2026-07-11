@@ -5,6 +5,7 @@ dist/
 node_modules/
 .codex/
 .codex-shots/
+artifacts/
 .env
 .env.local
 .env.production
@@ -15,4 +16,5 @@ npm-debug.log*
 .vercel
 .env*
 server.log
-artifacts/ui-audit/
+*.tsbuildinfo
+*.log

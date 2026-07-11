@@ -2,11 +2,13 @@ import { NextResponse } from "next/server";
 import { getAdminRequestContext } from "@/lib/admin";
 import { canManageNavigationSettings } from "@/lib/crm/authz";
 import {
-  getCompanySettings,
   navigationSettingsSchema,
   resolveNavigationConfig,
-  updateCompanySettings,
 } from "@/lib/crm/workspace-settings";
+import {
+  getCompanySettings,
+  updateCompanySettings,
+} from "@/lib/crm/workspace-settings-server";
 
 export async function GET() {
   const context = await getAdminRequestContext();
@@ -24,7 +26,7 @@ export async function PATCH(request: Request) {
     return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
   }
 
-  if (!canManageNavigationSettings({ accessLevel: context.accessLevel, role: context.role })) {
+  if (!canManageNavigationSettings(context)) {
     return NextResponse.json({ error: "Forbidden." }, { status: 403 });
   }
 

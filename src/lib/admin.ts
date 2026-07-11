@@ -1,5 +1,6 @@
 import { getServerSession } from "next-auth";
 import type { Session } from "next-auth";
+import { cache } from "react";
 import { redirect } from "next/navigation";
 import {
   getInitialAdminName,
@@ -10,7 +11,10 @@ import {
   LOCAL_ADMIN_PREVIEW_NAME,
 } from "@/lib/admin-access";
 import { getStoredAdminUserByEmail, hasAdminWorkspaceAccess } from "@/lib/admin-directory";
-import { resolveAdminAccessLevel } from "@/lib/admin-permissions";
+import {
+  getStoredRoleForAccessLevel,
+  resolveAdminAccessLevel,
+} from "@/lib/admin-permissions";
 import {
   canPreviewAdminAccess,
   getRequestedAdminAccessView,
@@ -18,6 +22,11 @@ import {
 } from "@/lib/admin-view";
 import { authOptions } from "@/lib/auth";
 import { isCrmConfigurationError } from "@/lib/crm/runtime";
+import {
+  DEFAULT_ROLE_PERMISSIONS,
+  listEnabledRolePermissions,
+} from "@/lib/crm/role-permissions";
+import type { PermissionKey } from "@/lib/crm/role-permissions-contract";
 import type { CrmUserRecord } from "@/lib/crm/types";
 import { leadStore } from "@/lib/storage";
 
@@ -35,6 +44,18 @@ function buildLocalPreviewSession(): Session {
     expires: new Date(Date.now() + 8 * 60 * 60 * 1000).toISOString(),
   };
 }
+
+const loadEffectivePermissions = cache(async function loadEffectivePermissions(
+  role: CrmUserRecord["role"],
+): Promise<PermissionKey[]> {
+  try {
+    return await listEnabledRolePermissions(role);
+  } catch (error) {
+    const logger = isCrmConfigurationError(error) ? console.warn : console.error;
+    logger("[admin:role-permissions]", error);
+    return [...DEFAULT_ROLE_PERMISSIONS[role]];
+  }
+});
 
 export async function getAdminSession() {
   if (!isAdminAuthConfigured()) {
@@ -91,12 +112,27 @@ export async function requireAdminSession(callbackPath = "/dashboard") {
 export async function getAdminAccessContext(callbackPath = "/dashboard") {
   const session = await requireAdminSession(callbackPath);
   const crmUser = await getCrmUserByEmail(session.user?.email);
-  const role = crmUser?.role ?? ("admin" satisfies CrmUserRecord["role"]);
+  const isLocalPreview =
+    isLocalAdminPreviewEnabled() &&
+    normalizeEmail(session.user?.email) === normalizeEmail(LOCAL_ADMIN_PREVIEW_EMAIL);
+  const role = crmUser?.role ?? (isLocalPreview ? ("admin" satisfies CrmUserRecord["role"]) : null);
+  if (!role) {
+    redirect(`/login?callbackUrl=${encodeURIComponent(callbackPath)}&error=AccessDenied`);
+  }
   const actualAccessLevel = resolveAdminAccessLevel({
     email: session.user?.email,
     role,
   });
   const requestedAccessLevel = await getRequestedAdminAccessView();
+  const accessLevel = resolveEffectiveAdminAccessLevel({
+    actualAccessLevel,
+    email: session.user?.email,
+    requestedAccessLevel,
+  });
+  const permissionRole = requestedAccessLevel
+    ? getStoredRoleForAccessLevel(accessLevel)
+    : role;
+  const permissions = await loadEffectivePermissions(permissionRole);
 
   return {
     session,
@@ -105,11 +141,8 @@ export async function getAdminAccessContext(callbackPath = "/dashboard") {
     actualAccessLevel,
     requestedAccessLevel,
     canSwitchAccessViews: canPreviewAdminAccess(session.user?.email),
-    accessLevel: resolveEffectiveAdminAccessLevel({
-      actualAccessLevel,
-      email: session.user?.email,
-      requestedAccessLevel,
-    }),
+    accessLevel,
+    permissions,
   };
 }
 
@@ -157,12 +190,27 @@ export async function getAdminRequestContext() {
   }
 
   const crmUser = await getCrmUserByEmail(session.user.email);
-  const role = crmUser?.role ?? ("admin" satisfies CrmUserRecord["role"]);
+  const isLocalPreview =
+    isLocalAdminPreviewEnabled() &&
+    normalizeEmail(session.user.email) === normalizeEmail(LOCAL_ADMIN_PREVIEW_EMAIL);
+  const role = crmUser?.role ?? (isLocalPreview ? ("admin" satisfies CrmUserRecord["role"]) : null);
+  if (!role) {
+    return null;
+  }
   const actualAccessLevel = resolveAdminAccessLevel({
     email: session.user.email,
     role,
   });
   const requestedAccessLevel = await getRequestedAdminAccessView();
+  const accessLevel = resolveEffectiveAdminAccessLevel({
+    actualAccessLevel,
+    email: session.user.email,
+    requestedAccessLevel,
+  });
+  const permissionRole = requestedAccessLevel
+    ? getStoredRoleForAccessLevel(accessLevel)
+    : role;
+  const permissions = await loadEffectivePermissions(permissionRole);
 
   return {
     session,
@@ -171,10 +219,7 @@ export async function getAdminRequestContext() {
     actualAccessLevel,
     requestedAccessLevel,
     canSwitchAccessViews: canPreviewAdminAccess(session.user.email),
-    accessLevel: resolveEffectiveAdminAccessLevel({
-      actualAccessLevel,
-      email: session.user.email,
-      requestedAccessLevel,
-    }),
+    accessLevel,
+    permissions,
   };
 }

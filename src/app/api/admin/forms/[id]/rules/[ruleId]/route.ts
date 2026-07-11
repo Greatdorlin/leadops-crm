@@ -1,11 +1,17 @@
 import { NextResponse } from "next/server";
 import { getAdminRequestContext } from "@/lib/admin";
-import { canManageFormSources } from "@/lib/crm/authz";
+import { canManageForms } from "@/lib/crm/authz";
 import {
   getFormRuleById,
+  listFormFields,
   updateFormRule,
   deleteFormRule,
 } from "@/lib/crm/form-builder-store";
+import { submissionRulePayloadSchema } from "@/lib/crm/form-submission-routing";
+import {
+  FormRuleAdminError,
+  resolveFormRuleActionValue,
+} from "@/lib/crm/form-rule-admin";
 
 export async function PUT(
   request: Request,
@@ -16,13 +22,13 @@ export async function PUT(
     return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
   }
 
-  if (!canManageFormSources(context)) {
+  if (!canManageForms(context)) {
     return NextResponse.json({ error: "Forbidden." }, { status: 403 });
   }
 
-  const { ruleId } = await params;
+  const { id, ruleId } = await params;
   const existing = await getFormRuleById(ruleId);
-  if (!existing) {
+  if (!existing || existing.formId !== id) {
     return NextResponse.json({ error: "Rule not found." }, { status: 404 });
   }
 
@@ -31,21 +37,46 @@ export async function PUT(
     return NextResponse.json({ error: "Invalid request body." }, { status: 400 });
   }
 
-  const updates: Record<string, unknown> = {};
-  if (typeof payload.name === "string") updates.name = payload.name.trim();
-  if (typeof payload.conditionFieldId === "string") updates.conditionFieldId = payload.conditionFieldId.trim();
-  if (typeof payload.conditionOperator === "string") updates.conditionOperator = payload.conditionOperator;
-  if (typeof payload.conditionValue === "string") updates.conditionValue = payload.conditionValue;
-  if (typeof payload.actionType === "string") updates.actionType = payload.actionType.trim();
-  if (typeof payload.actionTarget === "string") updates.actionTarget = payload.actionTarget.trim() || null;
-  if (typeof payload.actionValue === "string") updates.actionValue = payload.actionValue;
-  if (typeof payload.isActive === "boolean") updates.isActive = payload.isActive;
-  if (typeof payload.order === "number") updates.order = payload.order;
+  const parsed = submissionRulePayloadSchema.safeParse({
+    name: existing.name,
+    conditionFieldId: existing.conditionFieldId,
+    conditionOperator: existing.conditionOperator,
+    conditionValue: existing.conditionValue,
+    actionType: existing.actionType,
+    actionTarget: existing.actionTarget,
+    actionValue: existing.actionValue,
+    isActive: existing.isActive,
+    order: existing.order,
+    ...payload,
+  });
+  if (!parsed.success) {
+    return NextResponse.json(
+      { error: parsed.error.issues[0]?.message ?? "Invalid rule." },
+      { status: 400 },
+    );
+  }
+
+  const fields = await listFormFields(id);
+  if (!fields.some((field) => field.id === parsed.data.conditionFieldId)) {
+    return NextResponse.json({ error: "Choose a field from this form." }, { status: 400 });
+  }
 
   try {
-    const rule = await updateFormRule(ruleId, updates as unknown as Parameters<typeof updateFormRule>[1]);
+    const actionValue = await resolveFormRuleActionValue(
+      parsed.data.actionType,
+      parsed.data.actionValue,
+    );
+    const rule = await updateFormRule(ruleId, {
+      ...parsed.data,
+      conditionValue: parsed.data.conditionValue ?? null,
+      actionTarget: parsed.data.actionTarget ?? null,
+      actionValue,
+    });
     return NextResponse.json({ rule });
   } catch (error) {
+    if (error instanceof FormRuleAdminError) {
+      return NextResponse.json({ error: error.message }, { status: 400 });
+    }
     console.error("[form-rule:update]", error);
     return NextResponse.json(
       { error: "We couldn't update this rule right now." },
@@ -63,13 +94,13 @@ export async function DELETE(
     return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
   }
 
-  if (!canManageFormSources(context)) {
+  if (!canManageForms(context)) {
     return NextResponse.json({ error: "Forbidden." }, { status: 403 });
   }
 
-  const { ruleId } = await params;
+  const { id, ruleId } = await params;
   const existing = await getFormRuleById(ruleId);
-  if (!existing) {
+  if (!existing || existing.formId !== id) {
     return NextResponse.json({ error: "Rule not found." }, { status: 404 });
   }
 

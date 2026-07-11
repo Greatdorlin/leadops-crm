@@ -159,7 +159,7 @@ Recommended shape:
 - stronger backup policy
 - monitoring
 - operational runbooks
-- room for workers and async jobs later
+- worker capacity for large imports, exports, and integration synchronization
 
 Use for:
 
@@ -221,7 +221,7 @@ Migration rule:
 - PostgreSQL is the only supported primary database.
 - `DATABASE_URL` is the primary and preferred connection contract.
 - provider-specific env names are compatibility fallbacks only while inherited runtime paths are cleaned up.
-- the current DB client still uses a Neon HTTP driver, but that is an implementation detail, not a product requirement.
+- the runtime uses the provider-neutral Postgres.js driver with prepared statements disabled for pooler compatibility.
 - Core product data must live in normalized tables, not giant JSON blobs.
 - Core lead fields remain real columns.
 - Custom fields use extension tables.
@@ -230,13 +230,12 @@ Migration rule:
 
 ## Storage And Assets
 
-Initial product expectation:
+Initial product behavior:
 
-- company logo and favicon should be stored through a configurable upload strategy later
+- bounded company logos, favicons, backgrounds, and profile images can be saved as image data or storage-backed URLs
 - do not couple file uploads to one cloud provider
 - keep file references as URLs or storage-backed paths, not local absolute machine paths
-
-This phase is documentation only. No upload system is being added yet.
+- production deployments with many or large assets should use an object-storage adapter rather than growing the primary database indefinitely
 
 ## Auth And Security
 

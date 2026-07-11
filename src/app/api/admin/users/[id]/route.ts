@@ -69,7 +69,7 @@ export async function PATCH(
     typeof parsed.data.accessLevel === "string";
 
   if (wantsRosterChange || !isSelfUpdate) {
-    if (!canManageUsers({ accessLevel: context.accessLevel, role: context.role })) {
+    if (!canManageUsers(context)) {
       return NextResponse.json({ error: "Forbidden." }, { status: 403 });
     }
 
@@ -79,6 +79,7 @@ export async function PATCH(
         targetAccessLevel,
         context.session.user?.email,
         targetUser.email,
+        context.permissions,
       )
     ) {
       return NextResponse.json({ error: "You cannot manage this team member." }, { status: 403 });

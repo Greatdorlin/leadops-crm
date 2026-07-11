@@ -7,6 +7,7 @@ export const leadEventTypes = {
   statusChanged: "status_changed",
   leadAssigned: "lead_assigned",
   priorityChanged: "priority_changed",
+  followUpChanged: "follow_up_changed",
   noteAdded: "note_added",
   taskCreated: "task_created",
   taskCompleted: "task_completed",

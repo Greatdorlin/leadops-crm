@@ -10,10 +10,6 @@ import { GlassSurface } from "@/components/admin/ui/GlassSurface";
 import { SectionHeader } from "@/components/admin/SectionHeader";
 import { TeamAvatar } from "@/components/admin/TeamAvatar";
 import { getAdminAccessContext } from "@/lib/admin";
-import {
-  buildTeamPerformance,
-  isTaskOverdue,
-} from "@/lib/admin-insights";
 import { canViewSalesTeam } from "@/lib/admin-permissions";
 import { crmLabelize } from "@/lib/crm/formatters";
 import { getCrmPageErrorCopy, logCrmPageError } from "@/lib/crm/runtime";
@@ -27,29 +23,21 @@ function safeNumber(value: number) {
 }
 
 export default async function AdminTeamPage() {
-  const { role, accessLevel, actualAccessLevel, canSwitchAccessViews } =
+  const { role, accessLevel, actualAccessLevel, canSwitchAccessViews, permissions } =
     await getAdminAccessContext(appRoutes.team);
-  if (!canViewSalesTeam(accessLevel)) {
+  if (!canViewSalesTeam(accessLevel, permissions)) {
     redirect(appRoutes.dashboard);
   }
 
   let pageData:
     | {
-        users: Awaited<ReturnType<typeof leadStore.listCrmUsers>>;
-        leads: Awaited<ReturnType<typeof leadStore.list>>;
-        tasks: Awaited<ReturnType<typeof leadStore.listLeadTasks>>;
+        teamRows: Awaited<ReturnType<typeof leadStore.getTeamPerformance>>;
       }
     | null = null;
   let pageError: unknown = null;
 
   try {
-    const [users, leads, tasks] = await Promise.all([
-      leadStore.listCrmUsers(),
-      leadStore.list(),
-      leadStore.listLeadTasks(),
-    ]);
-
-    pageData = { users, leads, tasks };
+    pageData = { teamRows: await leadStore.getTeamPerformance() };
   } catch (error) {
     pageError = error;
     logCrmPageError("team", error);
@@ -78,9 +66,8 @@ export default async function AdminTeamPage() {
     );
   }
 
-  const { users, leads, tasks } = pageData;
-  const teamRows = buildTeamPerformance(users, leads, tasks);
-  const overdueTasks = tasks.filter((task) => isTaskOverdue(task));
+  const { teamRows } = pageData;
+  const overdueTaskCount = teamRows.reduce((total, row) => total + row.overdueTasks, 0);
   const teamQualifiedLeads = teamRows.reduce((total, row) => total + row.qualifiedLeads, 0);
   const teamConvertedLeads = teamRows.reduce((total, row) => total + row.convertedLeads, 0);
 
@@ -112,12 +99,6 @@ export default async function AdminTeamPage() {
       }
     >
       <div className="space-y-6">
-        <SectionHeader
-          eyebrow="Team overview"
-          title="Sales team"
-          description="See workload, ownership, and follow-up pressure."
-          className="ld-animate-fade-in-up"
-        />
         <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
           <MetricCard
             label="Active reps"
@@ -157,9 +138,9 @@ export default async function AdminTeamPage() {
                 title="Rep performance"
                 description="See who is carrying the queue, where follow-ups are slipping, and who has room for more."
               />
-              <div className="mt-4 overflow-x-auto">
+              <div className="ld-scroll-region mt-4 overflow-x-auto rounded-[22px] border border-white/10 bg-[color:color-mix(in_srgb,var(--ld-color-background)_94%,#060812_6%)]">
                 {teamRows.length > 0 ? (
-                  <table className="w-full text-left text-sm">
+                  <table className="ld-readable-table min-w-[760px] text-left text-sm">
                     <thead className="border-b border-white/10 text-white/60">
                       <tr>
                         {[
@@ -232,9 +213,9 @@ export default async function AdminTeamPage() {
               <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-1">
                 <MetricCard
                   label="Overdue tasks"
-                  value={safeNumber(overdueTasks.length)}
+                  value={safeNumber(overdueTaskCount)}
                   supporting="Tasks that have slipped past their due date."
-                  tone={overdueTasks.length > 0 ? "danger" : "positive"}
+                  tone={overdueTaskCount > 0 ? "danger" : "positive"}
                 />
                 <MetricCard
                   label="Reps with overdue work"

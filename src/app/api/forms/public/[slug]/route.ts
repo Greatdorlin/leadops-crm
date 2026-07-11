@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getPublicFormBySlug } from "@/lib/crm/form-builder-store";
+import { buildPublicFormDefinition, buildPublicFormFields } from "@/lib/crm/public-form";
 
 export async function GET(
   _request: Request,
@@ -15,31 +16,7 @@ export async function GET(
   const { form, fields } = result;
 
   return NextResponse.json({
-    form: {
-      id: form.id,
-      name: form.name,
-      slug: form.slug,
-      description: form.description,
-      successMessage: form.successMessage,
-      redirectUrl: form.redirectUrl,
-      primaryColor: form.primaryColor,
-      accentColor: form.accentColor,
-      logoUrl: form.logoUrl,
-    },
-    fields: fields
-      .filter((f) => f.isVisible)
-      .map((f) => ({
-        id: f.id,
-        fieldType: f.fieldType,
-        label: f.label,
-        placeholder: f.placeholder,
-        helpText: f.helpText,
-        isRequired: f.isRequired,
-        order: f.order,
-        options: f.options,
-        validationRules: f.validationRules,
-        showWhen: f.showWhen,
-        defaultValue: f.defaultValue,
-      })),
+    form: buildPublicFormDefinition(form),
+    fields: buildPublicFormFields(fields),
   });
 }

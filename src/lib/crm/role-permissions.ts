@@ -3,76 +3,15 @@ import { getDb } from "@/lib/db/client";
 import { rolePermissions } from "@/lib/db/schema";
 import type { CrmUserRole } from "@/lib/crm/types";
 import { and, asc, sql } from "drizzle-orm";
+import {
+  DEFAULT_ROLE_PERMISSIONS,
+  PERMISSION_DEFINITIONS,
+  ROLE_PERMISSION_ROLES,
+  type PermissionKey,
+} from "@/lib/crm/role-permissions-contract";
 
-export const PERMISSION_DEFINITIONS = [
-  { key: "canViewLeads", label: "View leads", description: "Access the leads list and detail pages.", category: "Leads" },
-  { key: "canCreateLeads", label: "Create leads", description: "Add new leads manually or via import.", category: "Leads" },
-  { key: "canEditLeads", label: "Edit leads", description: "Update lead details, status, and assignments.", category: "Leads" },
-  { key: "canDeleteLeads", label: "Delete leads", description: "Soft-delete leads to trash.", category: "Leads" },
-  { key: "canAssignLeads", label: "Assign leads", description: "Reassign leads to other team members.", category: "Leads" },
-  { key: "canExportLeads", label: "Export leads", description: "Export lead data to CSV or other formats.", category: "Leads" },
-  { key: "canViewReports", label: "View reports", description: "Access the reports and analytics dashboard.", category: "Reports" },
-  { key: "canManageUsers", label: "Manage team", description: "Add, edit, or deactivate team members.", category: "Team" },
-  { key: "canManageSettings", label: "Manage settings", description: "Change system-wide settings.", category: "Settings" },
-  { key: "canManageIntegrations", label: "Manage integrations", description: "Configure ad platform and webhook integrations.", category: "Settings" },
-  { key: "canManageForms", label: "Manage forms", description: "Create, edit, and embed lead capture forms.", category: "Customization" },
-  { key: "canManageCustomFields", label: "Manage custom fields", description: "Add or edit custom fields on leads.", category: "Customization" },
-  { key: "canManageStages", label: "Manage stages", description: "Add, edit, or reorder lead pipeline stages.", category: "Customization" },
-  { key: "canManageSources", label: "Manage sources", description: "Add or edit lead source definitions.", category: "Customization" },
-  { key: "canManageBranches", label: "Manage branches", description: "Add or edit branch locations.", category: "Customization" },
-  { key: "canManageCurrency", label: "Manage currency", description: "Set global and per-branch currency.", category: "Customization" },
-  { key: "canManageIndustryPresets", label: "Apply industry presets", description: "Apply pre-built vertical configurations.", category: "Customization" },
-  { key: "canManageDashboard", label: "Customize dashboard", description: "Configure dashboard widgets and layouts.", category: "Customization" },
-  { key: "canManageAppearance", label: "Customize appearance", description: "Change colors, logos, and branding.", category: "Customization" },
-  { key: "canManageNavigation", label: "Customize navigation", description: "Show or hide sidebar items.", category: "Customization" },
-  { key: "canManageLeadPreview", label: "Customize lead preview", description: "Choose fields shown on lead cards.", category: "Customization" },
-  { key: "canAccessAffiliateDashboard", label: "Access affiliate dashboard", description: "View affiliate-specific metrics and referrals.", category: "Affiliate" },
-  { key: "canVerifyPayments", label: "Verify payments", description: "Review and approve payment claims.", category: "Finance" },
-  { key: "canReviewApprovals", label: "Review approvals", description: "Approve or reject lead and user requests.", category: "Management" },
-] as const;
-
-export type PermissionKey = (typeof PERMISSION_DEFINITIONS)[number]["key"];
-
-export const DEFAULT_ROLE_PERMISSIONS: Record<CrmUserRole, PermissionKey[]> = {
-  admin: [
-    "canViewLeads", "canCreateLeads", "canEditLeads", "canDeleteLeads", "canAssignLeads",
-    "canExportLeads", "canViewReports", "canManageUsers", "canManageSettings",
-    "canManageIntegrations", "canManageForms", "canManageCustomFields", "canManageStages",
-    "canManageSources", "canManageBranches", "canManageCurrency", "canManageIndustryPresets",
-    "canManageDashboard", "canManageAppearance", "canManageNavigation", "canManageLeadPreview",
-    "canAccessAffiliateDashboard", "canVerifyPayments", "canReviewApprovals",
-  ],
-  manager: [
-    "canViewLeads", "canCreateLeads", "canEditLeads", "canDeleteLeads", "canAssignLeads",
-    "canExportLeads", "canViewReports", "canManageUsers", "canManageSettings",
-    "canManageForms", "canManageCustomFields", "canManageStages", "canManageSources",
-    "canManageBranches", "canManageCurrency", "canManageIndustryPresets",
-    "canManageDashboard", "canManageAppearance", "canManageNavigation", "canManageLeadPreview",
-    "canReviewApprovals",
-  ],
-  ad_manager: [
-    "canViewLeads", "canCreateLeads", "canEditLeads", "canAssignLeads",
-    "canExportLeads", "canViewReports",
-    "canManageForms", "canManageCustomFields", "canManageStages", "canManageSources",
-    "canManageDashboard",
-  ],
-  consultant: [
-    "canViewLeads", "canCreateLeads", "canEditLeads", "canAssignLeads",
-    "canExportLeads", "canViewReports", "canManageUsers",
-    "canManageForms", "canManageCustomFields", "canManageStages", "canManageSources",
-    "canManageDashboard",
-  ],
-  finance: [
-    "canViewLeads", "canEditLeads", "canExportLeads", "canViewReports",
-    "canVerifyPayments",
-  ],
-  affiliate: [
-    "canAccessAffiliateDashboard",
-  ],
-  sales_agent: [
-    "canViewLeads", "canCreateLeads", "canEditLeads",
-  ],
-};
+export { DEFAULT_ROLE_PERMISSIONS, PERMISSION_DEFINITIONS };
+export type { PermissionKey };
 
 export async function seedRolePermissions() {
   const db = getDb();
@@ -105,9 +44,40 @@ export async function getRolePermission(role: CrmUserRole, permission: Permissio
 
 export async function listRolePermissions() {
   const db = getDb();
-  return db.query.rolePermissions.findMany({
+  const rows = await db.query.rolePermissions.findMany({
     orderBy: [asc(rolePermissions.role), asc(rolePermissions.permission)],
   });
+  const rowsByRoleAndPermission = new Map(
+    rows.map((row) => [`${row.role}:${row.permission}`, row]),
+  );
+
+  return ROLE_PERMISSION_ROLES.flatMap((role) =>
+    PERMISSION_DEFINITIONS.map((permission) => {
+      const row = rowsByRoleAndPermission.get(`${role}:${permission.key}`);
+      return {
+        id: row?.id ?? `${role}:${permission.key}`,
+        role,
+        permission: permission.key,
+        enabled:
+          row?.enabled ?? DEFAULT_ROLE_PERMISSIONS[role].includes(permission.key),
+      };
+    }),
+  );
+}
+
+export async function listEnabledRolePermissions(role: CrmUserRole) {
+  const db = getDb();
+  const rows = await db.query.rolePermissions.findMany({
+    where: (permission) => eq(permission.role, role),
+  });
+  const savedState = new Map(rows.map((row) => [row.permission, row.enabled]));
+
+  return PERMISSION_DEFINITIONS
+    .filter((permission) =>
+      savedState.get(permission.key) ??
+      DEFAULT_ROLE_PERMISSIONS[role].includes(permission.key),
+    )
+    .map((permission) => permission.key);
 }
 
 export async function setRolePermission(role: CrmUserRole, permission: PermissionKey, enabled: boolean) {

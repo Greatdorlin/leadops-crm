@@ -1,23 +1,34 @@
 import { NextResponse } from "next/server";
 import { getAdminRequestContext } from "@/lib/admin";
-import { canManageFormSources } from "@/lib/crm/authz";
+import { canManageForms } from "@/lib/crm/authz";
 import {
   listForms,
   createForm,
+  duplicateForm,
 } from "@/lib/crm/form-builder-store";
+import {
+  formCreatePayloadSchema,
+  formDuplicatePayloadSchema,
+} from "@/lib/crm/form-settings-contract";
+import { listLeadStages } from "@/lib/crm/lead-stages-admin";
+import { leadStore } from "@/lib/storage";
 
-function validateAutoQualifyRules(raw: unknown): Record<string, unknown>[] | null {
-  if (!Array.isArray(raw)) return null;
-  const valid = raw.filter((item): item is Record<string, unknown> => {
-    return typeof item === "object" && item !== null;
-  });
-  return valid.length > 0 ? valid : null;
+function hasDatabaseErrorCode(error: unknown, code: string) {
+  let current: unknown = error;
+  for (let depth = 0; depth < 5 && current && typeof current === "object"; depth += 1) {
+    if ((current as { code?: unknown }).code === code) return true;
+    current = (current as { cause?: unknown }).cause;
+  }
+  return false;
 }
 
 export async function GET() {
   const context = await getAdminRequestContext();
   if (!context) {
     return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
+  }
+  if (!canManageForms(context)) {
+    return NextResponse.json({ error: "Forbidden." }, { status: 403 });
   }
 
   const forms = await listForms();
@@ -30,7 +41,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
   }
 
-  if (!canManageFormSources(context)) {
+  if (!canManageForms(context)) {
     return NextResponse.json({ error: "Forbidden." }, { status: 403 });
   }
 
@@ -39,41 +50,77 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Invalid request body." }, { status: 400 });
   }
 
-  const name = typeof payload.name === "string" ? payload.name.trim() : "";
-  const slug = typeof payload.slug === "string" ? payload.slug.trim() : "";
-
-  if (!name) {
-    return NextResponse.json({ error: "Form name is required." }, { status: 400 });
-  }
-  if (!slug) {
-    return NextResponse.json({ error: "Form slug is required." }, { status: 400 });
-  }
-
   try {
+    if (typeof payload.duplicateFromId === "string") {
+      const parsedDuplicate = formDuplicatePayloadSchema.safeParse(payload);
+      if (!parsedDuplicate.success) {
+        return NextResponse.json(
+          { error: parsedDuplicate.error.issues[0]?.message ?? "Invalid duplicate request." },
+          { status: 400 },
+        );
+      }
+      const form = await duplicateForm(parsedDuplicate.data.duplicateFromId, {
+        name: parsedDuplicate.data.name,
+        slug: parsedDuplicate.data.slug,
+      });
+      if (!form) {
+        return NextResponse.json({ error: "Form not found." }, { status: 404 });
+      }
+      return NextResponse.json({ form }, { status: 201 });
+    }
+
+    const parsed = formCreatePayloadSchema.safeParse(payload);
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: parsed.error.issues[0]?.message ?? "Invalid form." },
+        { status: 400 },
+      );
+    }
+    const [stages, owner] = await Promise.all([
+      listLeadStages(),
+      parsed.data.defaultOwnerId
+        ? leadStore.getCrmUserById(parsed.data.defaultOwnerId)
+        : Promise.resolve(null),
+    ]);
+    const defaultStage = stages.find(
+      (stage) =>
+        !stage.archived &&
+        (stage.id === parsed.data.defaultStatus || stage.key === parsed.data.defaultStatus),
+    );
+    if (!defaultStage) {
+      return NextResponse.json({ error: "Choose an active default stage." }, { status: 400 });
+    }
+    if (parsed.data.defaultOwnerId && !owner?.isActive) {
+      return NextResponse.json({ error: "Choose an active default owner." }, { status: 400 });
+    }
+
     const form = await createForm({
-      name,
-      slug,
-      description: typeof payload.description === "string" ? payload.description.trim() : null,
+      name: parsed.data.name,
+      slug: parsed.data.slug,
+      description: parsed.data.description,
       status: "draft",
-      isActive: true,
-      isPublic: payload.isPublic === true,
-      successMessage:
-        typeof payload.successMessage === "string"
-          ? payload.successMessage
-          : "Thank you for your submission.",
-      redirectUrl: typeof payload.redirectUrl === "string" ? payload.redirectUrl.trim() : null,
-      primaryColor: typeof payload.primaryColor === "string" ? payload.primaryColor.trim() : null,
-      accentColor: typeof payload.accentColor === "string" ? payload.accentColor.trim() : null,
-      logoUrl: typeof payload.logoUrl === "string" ? payload.logoUrl.trim() : null,
-      enableAutoQualify: payload.enableAutoQualify === true,
-      autoQualifyRules: validateAutoQualifyRules(payload.autoQualifyRules),
-      defaultStatus: typeof payload.defaultStatus === "string" ? payload.defaultStatus : "new",
-      defaultPriority: typeof payload.defaultPriority === "string" ? payload.defaultPriority : "medium",
-      defaultSource: typeof payload.defaultSource === "string" ? payload.defaultSource : "website_form",
-      defaultOwnerId: typeof payload.defaultOwnerId === "string" ? payload.defaultOwnerId.trim() : null,
+      isActive: false,
+      isPublic: parsed.data.isPublic,
+      successMessage: parsed.data.successMessage,
+      redirectUrl: null,
+      primaryColor: null,
+      accentColor: null,
+      logoUrl: null,
+      enableAutoQualify: false,
+      autoQualifyRules: null,
+      defaultStatus: defaultStage.key,
+      defaultPriority: parsed.data.defaultPriority,
+      defaultSource: parsed.data.defaultSource,
+      defaultOwnerId: parsed.data.defaultOwnerId,
     });
     return NextResponse.json({ form }, { status: 201 });
   } catch (error) {
+    if (hasDatabaseErrorCode(error, "23505")) {
+      return NextResponse.json(
+        { error: "That form URL is already in use. Choose a different slug." },
+        { status: 409 },
+      );
+    }
     console.error("[forms:create]", error);
     return NextResponse.json(
       { error: "We couldn't create this form right now." },

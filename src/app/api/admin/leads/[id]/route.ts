@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { normalizeAdminEmail } from "@/lib/admin-access";
 import { getAdminRequestContext } from "@/lib/admin";
 import { canManageLeadRecord, canViewLeadRecord } from "@/lib/admin-permissions";
+import { canAssignLeads } from "@/lib/crm/authz";
 import { buildLeadAssigneeList } from "@/lib/crm/lead-assignees";
 import { CRM_STATUSES, LEAD_PRIORITIES } from "@/lib/crm/constants";
 import { listCustomFields } from "@/lib/crm/custom-fields-admin";
@@ -85,7 +86,14 @@ export async function GET(
     return NextResponse.json({ error: "Lead not found." }, { status: 404 });
   }
 
-  if (!canViewLeadRecord(context.accessLevel, lead, context.session.user?.email)) {
+  if (
+    !canViewLeadRecord(
+      context.accessLevel,
+      lead,
+      context.session.user?.email,
+      context.permissions,
+    )
+  ) {
     return NextResponse.json({ error: "Forbidden." }, { status: 403 });
   }
 
@@ -163,8 +171,40 @@ export async function PATCH(
     );
   }
 
-  if (!canManageLeadRecord(context.accessLevel, existingLead, context.session.user?.email)) {
+  if (
+    !canManageLeadRecord(
+      context.accessLevel,
+      existingLead,
+      context.session.user?.email,
+      context.permissions,
+    )
+  ) {
     return NextResponse.json({ error: "Forbidden." }, { status: 403 });
+  }
+
+  const existingAssignees = buildLeadAssigneeList({
+    primary: existingLead.assignedTo,
+    all: existingLead.assignedToList,
+  });
+  const nextAssignees = buildLeadAssigneeList({
+    primary:
+      requestedAssignedTo === undefined ? existingLead.assignedTo : requestedAssignedTo,
+    all:
+      requestedAssignedToList === undefined
+        ? existingLead.assignedToList
+        : requestedAssignedToList,
+  });
+  const assignmentChanged =
+    existingAssignees.length !== nextAssignees.length ||
+    existingAssignees.some(
+      (email, index) => normalizeAdminEmail(email) !== normalizeAdminEmail(nextAssignees[index]),
+    );
+
+  if (assignmentChanged && !canAssignLeads(context)) {
+    return NextResponse.json(
+      { error: "You do not have permission to reassign this lead." },
+      { status: 403 },
+    );
   }
 
   if (

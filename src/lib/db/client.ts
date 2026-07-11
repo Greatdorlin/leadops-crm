@@ -1,13 +1,25 @@
-import { neon } from "@neondatabase/serverless";
-import { drizzle } from "drizzle-orm/neon-http";
+import { drizzle, type PostgresJsDatabase } from "drizzle-orm/postgres-js";
+import type { Sql } from "postgres";
 import * as schema from "./schema";
 import { getDatabaseUrl } from "./env";
+import { createPostgresClient } from "./postgres-client";
 
-let dbInstance: ReturnType<typeof drizzle<typeof schema>> | null = null;
+type Database = PostgresJsDatabase<typeof schema>;
+type PostgresClient = Sql;
+
+export type DatabaseExecutor = Pick<
+  Database,
+  "delete" | "insert" | "query" | "select" | "update"
+>;
+
+const globalDatabase = globalThis as typeof globalThis & {
+  __leadsDeskDb?: Database;
+  __leadsDeskPostgres?: PostgresClient;
+};
 
 export function getDb() {
-  if (dbInstance) {
-    return dbInstance;
+  if (globalDatabase.__leadsDeskDb) {
+    return globalDatabase.__leadsDeskDb;
   }
 
   const databaseUrl = getDatabaseUrl();
@@ -15,14 +27,12 @@ export function getDb() {
     throw new Error("Database URL is not configured.");
   }
 
-  try {
-    new URL(databaseUrl);
-  } catch {
-    throw new Error("Database URL is invalid.");
-  }
+  const client =
+    globalDatabase.__leadsDeskPostgres ?? createPostgresClient(databaseUrl);
+  const database = drizzle(client, { schema });
 
-  const client = neon(databaseUrl);
-  dbInstance = drizzle(client, { schema });
+  globalDatabase.__leadsDeskPostgres = client;
+  globalDatabase.__leadsDeskDb = database;
 
-  return dbInstance;
+  return database;
 }

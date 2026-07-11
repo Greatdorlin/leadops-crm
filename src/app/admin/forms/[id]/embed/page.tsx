@@ -1,9 +1,11 @@
 import { notFound } from "next/navigation";
+import { headers } from "next/headers";
 import { Code, ExternalLink } from "lucide-react";
 import { SectionHeader } from "@/components/admin/SectionHeader";
 import { GlassSurface } from "@/components/admin/ui/GlassSurface";
 import { CopyButton } from "@/components/admin/CopyButton";
 import { getFormById } from "@/lib/crm/form-builder-store";
+import { buildFormEmbedCodes } from "@/lib/crm/form-embed-code";
 
 export const dynamic = "force-dynamic";
 
@@ -18,36 +20,19 @@ export default async function FormEmbedPage({
     notFound();
   }
 
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://your-domain.com";
-  const embedUrl = `${baseUrl}/embed/forms/${id}`;
-  const publicUrl = `${baseUrl}/forms/${form.slug}`;
-
-  const iframeCode = `<iframe
-  src="${embedUrl}"
-  width="100%"
-  height="600"
-  frameborder="0"
-  style="border: none; border-radius: 16px;"
-  title="${form.name}"
-></iframe>`;
-
-  const scriptCode = `<div id="leads-desk-form-${id}"></div>
-<script>
-  (function() {
-    var container = document.getElementById("leads-desk-form-${id}");
-    var iframe = document.createElement("iframe");
-    iframe.src = "${embedUrl}";
-    iframe.width = "100%";
-    iframe.height = "600";
-    iframe.frameBorder = "0";
-    iframe.style.border = "none";
-    iframe.style.borderRadius = "16px";
-    iframe.title = "${form.name}";
-    container.appendChild(iframe);
-  })();
-</script>`;
-
-  const directLinkCode = publicUrl;
+  const requestHeaders = await headers();
+  const forwardedHost = requestHeaders.get("x-forwarded-host")?.split(",")[0]?.trim();
+  const host = forwardedHost || requestHeaders.get("host") || "localhost:3000";
+  const forwardedProtocol = requestHeaders.get("x-forwarded-proto")?.split(",")[0]?.trim();
+  const protocol = forwardedProtocol || (process.env.NODE_ENV === "production" ? "https" : "http");
+  const configuredBaseUrl = process.env.NEXT_PUBLIC_APP_URL?.trim().replace(/\/+$/, "");
+  const { formUrl, iframeCode, scriptCode } = buildFormEmbedCodes({
+    formId: form.id,
+    formName: form.name,
+    formSlug: form.slug,
+    baseUrl: configuredBaseUrl || `${protocol}://${host}`,
+  });
+  const directLinkCode = formUrl;
 
   return (
     <div className="space-y-6">

@@ -19,6 +19,8 @@
   --ld-color-primary: #3b82f6;
   --ld-color-primary-strong: #2563eb;
   --ld-color-accent: #8b5cf6;
+  --ld-color-on-primary: #ffffff;
+  --ld-color-on-accent: #ffffff;
   --ld-color-background: #0a0a0f;
   --ld-color-background-soft: #12121a;
   --ld-color-surface: rgba(6, 8, 16, 0.42);
@@ -643,7 +645,7 @@ body {
   border: 1px solid rgba(255, 255, 255, 0.14);
   border-radius: 999px;
   background: linear-gradient(135deg, var(--ld-color-primary), var(--ld-color-accent));
-  color: white;
+  color: var(--ld-color-on-primary);
   padding: 0.55rem 0.9rem;
   font-weight: 700;
 }
@@ -768,11 +770,10 @@ body {
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.10), rgba(255, 255, 255, 0.02) 40%),
     var(--ld-color-primary);
-  color: #ffffff;
+  color: var(--ld-color-on-primary);
   box-shadow:
     0 12px 32px color-mix(in srgb, var(--ld-color-primary) 28%, transparent),
     inset 0 1px 0 rgba(255, 255, 255, 0.18);
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
 }
 
 .admin-button-primary:hover {
@@ -1395,27 +1396,86 @@ body {
 }
 
 .ld-sidebar-nav-scroll::-webkit-scrollbar {
-  width: 5px;
+  width: 8px;
 }
 
 .ld-sidebar-nav-scroll::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.15);
+  border: 2px solid transparent;
   border-radius: 999px;
+  background: rgba(255, 255, 255, 0.22);
+  background-clip: padding-box;
 }
 
 .admin-shell ::-webkit-scrollbar {
-  width: 4px;
+  width: 10px;
+  height: 10px;
+}
+
+.admin-shell ::-webkit-scrollbar-track {
   background: transparent;
 }
 
+.admin-shell ::-webkit-scrollbar-button {
+  display: none;
+  width: 0;
+  height: 0;
+}
+
 .admin-shell ::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.06);
+  border: 3px solid transparent;
   border-radius: 999px;
+  background:
+    linear-gradient(180deg, var(--ld-color-primary), var(--ld-color-accent)) padding-box;
+  box-shadow: 0 0 14px color-mix(in srgb, var(--ld-color-accent) 20%, transparent);
+}
+
+.admin-shell ::-webkit-scrollbar-thumb:hover {
+  background:
+    linear-gradient(180deg, var(--ld-color-accent), var(--ld-color-primary)) padding-box;
 }
 
 .admin-shell {
   scrollbar-width: thin;
-  scrollbar-color: rgba(255, 255, 255, 0.06) transparent;
+  scrollbar-color: color-mix(in srgb, var(--ld-color-accent) 62%, var(--ld-color-primary)) transparent;
+}
+
+.ld-topbar-nav {
+  mask-image: linear-gradient(90deg, transparent, #000 16px, #000 calc(100% - 16px), transparent);
+  scrollbar-width: none;
+}
+
+.ld-topbar-nav::-webkit-scrollbar {
+  display: none;
+}
+
+.ld-scroll-region {
+  overscroll-behavior-inline: contain;
+  scrollbar-gutter: stable;
+}
+
+.ld-scroll-region .ld-readable-table {
+  overflow: visible;
+}
+
+.ld-table-sticky-lead,
+.ld-table-sticky-action {
+  background:
+    linear-gradient(
+      135deg,
+      color-mix(in srgb, var(--ld-color-primary) 5%, transparent),
+      color-mix(in srgb, var(--ld-color-accent) 3%, transparent)
+    ),
+    color-mix(in srgb, var(--ld-color-background) 94%, #060812 6%);
+  backdrop-filter: blur(22px) saturate(1.2);
+  -webkit-backdrop-filter: blur(22px) saturate(1.2);
+}
+
+.ld-table-sticky-lead {
+  box-shadow: 18px 0 26px -24px rgba(0, 0, 0, 0.9);
+}
+
+.ld-table-sticky-action {
+  box-shadow: 18px 0 26px -24px rgba(0, 0, 0, 0.9);
 }
 
 a {
@@ -1444,21 +1504,6 @@ textarea {
 .brand-container {
   max-width: 1200px;
   margin: 0 auto;
-}
-
-.admin-shell ::-webkit-scrollbar {
-  width: 4px;
-  background: transparent;
-}
-
-.admin-shell ::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.06);
-  border-radius: 999px;
-}
-
-.admin-shell {
-  scrollbar-width: thin;
-  scrollbar-color: rgba(255, 255, 255, 0.06) transparent;
 }
 
 @media print {

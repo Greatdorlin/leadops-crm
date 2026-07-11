@@ -375,7 +375,7 @@ export function buildAdminLeadListItem(
     assignedTo: lead.assignedTo,
     assignedToList: lead.assignedToList,
     leadCustomerType,
-    leadCustomerTypeLabel: leadCustomerType === "business" ? "Business lead" : "Direct customer",
+    leadCustomerTypeLabel: leadCustomerType === "business" ? "Company lead" : "Individual lead",
     ownerDisplay: {
       ...readModel.owner,
       label: assignedUserName,

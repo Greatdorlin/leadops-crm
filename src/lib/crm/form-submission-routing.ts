@@ -1,16 +1,157 @@
-export type SubmissionRuleOperator =
-  | "equals"
-  | "not_equals"
-  | "contains"
-  | "greater_than"
-  | "less_than"
-  | "checked"
-  | "unchecked"
-  | "empty"
-  | "not_empty";
+import { z } from "zod";
+
+export const SUBMISSION_RULE_OPERATORS = [
+  "equals",
+  "not_equals",
+  "contains",
+  "greater_than",
+  "less_than",
+  "checked",
+  "unchecked",
+  "empty",
+  "not_empty",
+] as const;
+
+export const SUBMISSION_RULE_ACTIONS = [
+  "set_stage",
+  "set_status",
+  "set_priority",
+  "set_owner",
+  "set_source",
+  "set_opportunity_status",
+  "set_opportunity_value",
+  "create_task",
+  "qualify_offer_and_create_call",
+] as const;
+
+export const OPPORTUNITY_RULE_STATUSES = [
+  "active",
+  "qualified",
+  "unqualified",
+  "lost",
+  "won",
+  "on_hold",
+] as const;
+
+export const AUTOMATION_TASK_DUE_PRESETS = [
+  "later_today",
+  "tomorrow",
+  "in_3_days",
+  "next_week",
+  "none",
+] as const;
+
+export type SubmissionRuleOperator = (typeof SUBMISSION_RULE_OPERATORS)[number];
+export type SubmissionRuleAction = (typeof SUBMISSION_RULE_ACTIONS)[number];
+
+const VALUE_FREE_OPERATORS = new Set<SubmissionRuleOperator>([
+  "checked",
+  "unchecked",
+  "empty",
+  "not_empty",
+]);
+
+export const submissionRulePayloadSchema = z
+  .object({
+    name: z.string().trim().min(1, "Rule name is required.").max(120),
+    conditionFieldId: z.string().uuid("Choose a valid form field."),
+    conditionOperator: z.enum(SUBMISSION_RULE_OPERATORS),
+    conditionValue: z.string().trim().nullable().optional(),
+    actionType: z.enum(SUBMISSION_RULE_ACTIONS),
+    actionTarget: z.string().trim().nullable().optional(),
+    actionValue: z.string().trim().min(1, "Choose the routing value."),
+    isActive: z.boolean().default(true),
+    order: z.coerce.number().int().min(0).default(0),
+  })
+  .superRefine((value, context) => {
+    if (!VALUE_FREE_OPERATORS.has(value.conditionOperator) && !value.conditionValue?.trim()) {
+      context.addIssue({
+        code: "custom",
+        message: "Add a comparison value for this operator.",
+        path: ["conditionValue"],
+      });
+    }
+    if (
+      (value.actionType === "set_opportunity_status" ||
+        value.actionType === "set_opportunity_value" ||
+        value.actionType === "qualify_offer_and_create_call") &&
+      !value.actionTarget?.trim()
+    ) {
+      context.addIssue({
+        code: "custom",
+        message: "Add the offer name this rule should update.",
+        path: ["actionTarget"],
+      });
+    }
+    if (value.actionType === "create_task" && !value.actionTarget?.trim()) {
+      context.addIssue({
+        code: "custom",
+        message: "Add the task title this rule should create.",
+        path: ["actionTarget"],
+      });
+    }
+    if (
+      value.actionType === "set_opportunity_status" &&
+      !OPPORTUNITY_RULE_STATUSES.includes(
+        value.actionValue as (typeof OPPORTUNITY_RULE_STATUSES)[number],
+      )
+    ) {
+      context.addIssue({
+        code: "custom",
+        message: "Choose a valid offer status.",
+        path: ["actionValue"],
+      });
+    }
+    if (
+      value.actionType === "set_opportunity_value" &&
+      (!Number.isFinite(Number(value.actionValue)) || Number(value.actionValue) < 0)
+    ) {
+      context.addIssue({
+        code: "custom",
+        message: "Potential value must be zero or greater.",
+        path: ["actionValue"],
+      });
+    }
+    if (
+      (value.actionType === "create_task" ||
+        value.actionType === "qualify_offer_and_create_call") &&
+      !AUTOMATION_TASK_DUE_PRESETS.includes(
+        value.actionValue as (typeof AUTOMATION_TASK_DUE_PRESETS)[number],
+      )
+    ) {
+      context.addIssue({
+        code: "custom",
+        message: "Choose when the automated task should be due.",
+        path: ["actionValue"],
+      });
+    }
+  });
+
+export const autoQualifyRuleSchema = z
+  .object({
+    fieldId: z.string().uuid("Choose a valid form field."),
+    operator: z.enum(SUBMISSION_RULE_OPERATORS),
+    value: z.string().trim().nullable().optional(),
+    stageKey: z.string().trim().min(1, "Choose a destination stage."),
+    markAsQualified: z.boolean().optional(),
+  })
+  .superRefine((value, context) => {
+    if (!VALUE_FREE_OPERATORS.has(value.operator) && !value.value?.trim()) {
+      context.addIssue({
+        code: "custom",
+        message: "Add a comparison value for this rule.",
+        path: ["value"],
+      });
+    }
+  });
+
+export const autoQualifyRulesSchema = z
+  .array(autoQualifyRuleSchema)
+  .max(20, "Keep automated qualification to twenty rules or fewer.");
 
 export interface SubmissionRuleInput {
   id: string;
+  name?: string;
   isActive: boolean;
   conditionFieldId: string;
   conditionOperator: string;
@@ -28,6 +169,77 @@ export interface SubmissionRuleEvaluation {
     source: string | null;
     stageValue: string | null;
   };
+  opportunityOverrides: Array<{
+    offerLabel: string;
+    status: (typeof OPPORTUNITY_RULE_STATUSES)[number] | null;
+    estimatedValue: number | null;
+    reason: string | null;
+  }>;
+  taskOverrides: Array<{
+    title: string;
+    duePreset: (typeof AUTOMATION_TASK_DUE_PRESETS)[number];
+    sourceRuleId: string;
+  }>;
+}
+
+export function mergeSubmissionRuleEvaluations(
+  ...evaluations: SubmissionRuleEvaluation[]
+): SubmissionRuleEvaluation {
+  const merged: SubmissionRuleEvaluation = {
+    appliedRules: [],
+    leadOverrides: {
+      assignedTo: null,
+      priority: null,
+      source: null,
+      stageValue: null,
+    },
+    opportunityOverrides: [],
+    taskOverrides: [],
+  };
+  const opportunitiesByLabel = new Map<
+    string,
+    SubmissionRuleEvaluation["opportunityOverrides"][number]
+  >();
+
+  for (const evaluation of evaluations) {
+    merged.appliedRules.push(...evaluation.appliedRules);
+    for (const key of Object.keys(merged.leadOverrides) as Array<
+      keyof SubmissionRuleEvaluation["leadOverrides"]
+    >) {
+      if (evaluation.leadOverrides[key] !== null) {
+        merged.leadOverrides[key] = evaluation.leadOverrides[key];
+      }
+    }
+    for (const opportunity of evaluation.opportunityOverrides) {
+      const key = opportunity.offerLabel.trim().toLowerCase();
+      const existing = opportunitiesByLabel.get(key) ?? {
+        offerLabel: opportunity.offerLabel,
+        status: null,
+        estimatedValue: null,
+        reason: null,
+      };
+      opportunitiesByLabel.set(key, {
+        offerLabel: opportunity.offerLabel,
+        status: opportunity.status ?? existing.status,
+        estimatedValue: opportunity.estimatedValue ?? existing.estimatedValue,
+        reason: opportunity.reason ?? existing.reason,
+      });
+    }
+    for (const task of evaluation.taskOverrides) {
+      const duplicate = merged.taskOverrides.some(
+        (existing) =>
+          existing.title.trim().toLowerCase() === task.title.trim().toLowerCase() &&
+          existing.duePreset === task.duePreset,
+      );
+      if (!duplicate) {
+        merged.taskOverrides.push(task);
+      }
+    }
+  }
+
+  merged.opportunityOverrides = [...opportunitiesByLabel.values()];
+
+  return merged;
 }
 
 type AutoQualifyRuleRecord = Record<string, unknown>;
@@ -154,6 +366,11 @@ export function applySubmissionRules(
     source: null,
     stageValue: null,
   };
+  const opportunitiesByLabel = new Map<
+    string,
+    SubmissionRuleEvaluation["opportunityOverrides"][number]
+  >();
+  const taskOverrides: SubmissionRuleEvaluation["taskOverrides"] = [];
 
   for (const rule of rules) {
     if (!rule.isActive || !availableFieldIds.has(rule.conditionFieldId)) {
@@ -191,12 +408,86 @@ export function applySubmissionRules(
       case "set_source":
         leadOverrides.source = rule.actionValue;
         break;
+      case "set_opportunity_status": {
+        const offerLabel = rule.actionTarget?.trim();
+        const status = rule.actionValue as (typeof OPPORTUNITY_RULE_STATUSES)[number] | null;
+        if (!offerLabel || !status || !OPPORTUNITY_RULE_STATUSES.includes(status)) {
+          break;
+        }
+        const key = offerLabel.toLowerCase();
+        const existing = opportunitiesByLabel.get(key) ?? {
+          offerLabel,
+          status: null,
+          estimatedValue: null,
+          reason: null,
+        };
+        opportunitiesByLabel.set(key, {
+          ...existing,
+          status,
+          reason:
+            status === "lost" || status === "unqualified"
+              ? `Automated qualification rule: ${rule.name?.trim() || rule.id}`
+              : existing.reason,
+        });
+        break;
+      }
+      case "set_opportunity_value": {
+        const offerLabel = rule.actionTarget?.trim();
+        const estimatedValue = Number(rule.actionValue);
+        if (!offerLabel || !Number.isFinite(estimatedValue) || estimatedValue < 0) {
+          break;
+        }
+        const key = offerLabel.toLowerCase();
+        const existing = opportunitiesByLabel.get(key) ?? {
+          offerLabel,
+          status: null,
+          estimatedValue: null,
+          reason: null,
+        };
+        opportunitiesByLabel.set(key, { ...existing, estimatedValue });
+        break;
+      }
+      case "create_task": {
+        const title = rule.actionTarget?.trim();
+        const duePreset = rule.actionValue as (typeof AUTOMATION_TASK_DUE_PRESETS)[number];
+        if (!title || !AUTOMATION_TASK_DUE_PRESETS.includes(duePreset)) {
+          break;
+        }
+        taskOverrides.push({ title, duePreset, sourceRuleId: rule.id });
+        break;
+      }
+      case "qualify_offer_and_create_call": {
+        const offerLabel = rule.actionTarget?.trim();
+        const duePreset = rule.actionValue as (typeof AUTOMATION_TASK_DUE_PRESETS)[number];
+        if (!offerLabel || !AUTOMATION_TASK_DUE_PRESETS.includes(duePreset)) {
+          break;
+        }
+        const key = offerLabel.toLowerCase();
+        const existing = opportunitiesByLabel.get(key) ?? {
+          offerLabel,
+          status: null,
+          estimatedValue: null,
+          reason: null,
+        };
+        opportunitiesByLabel.set(key, { ...existing, status: "qualified", reason: null });
+        taskOverrides.push({
+          title: `Call about ${offerLabel}`,
+          duePreset,
+          sourceRuleId: rule.id,
+        });
+        break;
+      }
       default:
         break;
     }
   }
 
-  return { appliedRules, leadOverrides };
+  return {
+    appliedRules,
+    leadOverrides,
+    opportunityOverrides: [...opportunitiesByLabel.values()],
+    taskOverrides,
+  };
 }
 
 export function normalizeAutoQualifyRules(raw: unknown): SubmissionRuleInput[] {
@@ -228,6 +519,7 @@ export function normalizeAutoQualifyRules(raw: unknown): SubmissionRuleInput[] {
     return [
       {
         id: `auto-qualify-${index}`,
+        name: `Auto qualification ${index + 1}`,
         isActive: true,
         conditionFieldId: fieldId,
         conditionOperator: operator,

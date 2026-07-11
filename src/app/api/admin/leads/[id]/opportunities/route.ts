@@ -2,10 +2,12 @@ import { NextResponse } from "next/server";
 import { getAdminRequestContext } from "@/lib/admin";
 import { canManageLeadRecord, canViewLeadRecord } from "@/lib/admin-permissions";
 import {
+  LeadOpportunityInputError,
   listLeadOpportunities,
   normalizeLeadOpportunityPayload,
   replaceLeadOpportunities,
 } from "@/lib/crm/lead-opportunities";
+import { notifyLeadOffersQualified } from "@/lib/crm/notification-events";
 import { leadStore } from "@/lib/storage";
 
 export async function GET(
@@ -23,7 +25,14 @@ export async function GET(
     return NextResponse.json({ error: "Lead not found." }, { status: 404 });
   }
 
-  if (!canViewLeadRecord(context.accessLevel, lead, context.session.user?.email)) {
+  if (
+    !canViewLeadRecord(
+      context.accessLevel,
+      lead,
+      context.session.user?.email,
+      context.permissions,
+    )
+  ) {
     return NextResponse.json({ error: "Forbidden." }, { status: 403 });
   }
 
@@ -62,16 +71,52 @@ export async function PUT(
     );
   }
 
-  if (!canManageLeadRecord(context.accessLevel, lead, context.session.user?.email)) {
+  if (
+    !canManageLeadRecord(
+      context.accessLevel,
+      lead,
+      context.session.user?.email,
+      context.permissions,
+    )
+  ) {
     return NextResponse.json({ error: "Forbidden." }, { status: 403 });
   }
 
-  const saved = await replaceLeadOpportunities(id, parsed.data.opportunities);
-  const refreshedLead = await leadStore.getById(id);
+  try {
+    const saved = await replaceLeadOpportunities(id, parsed.data.opportunities, {
+      createCallTasksForNewlyQualified: parsed.data.createCallTasksForNewlyQualified,
+      callTaskDueAt: parsed.data.callTaskDueAt,
+      assignedTo: lead.assignedTo,
+      createdBy: context.session.user?.email ?? null,
+    });
+    const refreshedLead = await leadStore.getById(id);
 
-  return NextResponse.json({
-    opportunities: saved.opportunities,
-    rollup: saved.rollup,
-    lead: refreshedLead,
-  });
+    try {
+      await notifyLeadOffersQualified({
+        recipientUserId: refreshedLead?.assignedUserId ?? null,
+        leadId: id,
+        leadName: `${refreshedLead?.firstName || "Lead"} ${refreshedLead?.lastName || ""}`.trim(),
+        offerLabels: saved.newlyQualifiedOfferLabels,
+      });
+    } catch (notificationError) {
+      console.error("[lead-opportunities:notification]", notificationError);
+    }
+
+    return NextResponse.json({
+      opportunities: saved.opportunities,
+      rollup: saved.rollup,
+      lead: refreshedLead,
+      createdCallTaskCount: saved.createdCallTaskCount,
+    });
+  } catch (error) {
+    if (error instanceof LeadOpportunityInputError) {
+      return NextResponse.json({ error: error.message }, { status: 400 });
+    }
+
+    console.error("[lead-opportunities:update]", error);
+    return NextResponse.json(
+      { error: "We could not save these opportunities right now." },
+      { status: 500 },
+    );
+  }
 }

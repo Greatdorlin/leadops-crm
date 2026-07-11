@@ -24,6 +24,28 @@ test("lead capture payload accepts customFieldValues", () => {
   }
 });
 
+test("lead capture payload accepts a configured stage id", () => {
+  const stageId = "11111111-1111-4111-8111-111111111111";
+  const parsed = normalizeAdminLeadCapturePayload({
+    firstName: "Ada",
+    email: "ada@example.com",
+    stageId,
+  });
+
+  assert.equal(parsed.success, true);
+  if (parsed.success) {
+    assert.equal(parsed.data.stageId, stageId);
+  }
+  assert.equal(
+    normalizeAdminLeadCapturePayload({
+      firstName: "Ada",
+      email: "ada@example.com",
+      stageId: "not-a-stage-id",
+    }).success,
+    false,
+  );
+});
+
 test("lead profile payload accepts customFieldValues", () => {
   const parsed = normalizeAdminLeadProfilePayload({
     firstName: "Ada",

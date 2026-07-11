@@ -1,7 +1,12 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import type { CustomFieldDefinitionWithOptions } from "./custom-field-values";
-import { parseCsvText, parseLeadImportCsv, resolveCustomFieldHeaderMatch } from "./csv";
+import {
+  analyzeLeadImportCsv,
+  parseCsvText,
+  parseLeadImportCsv,
+  resolveCustomFieldHeaderMatch,
+} from "./csv";
 
 test("parseCsvText keeps quoted commas and line breaks intact", () => {
   const rows = parseCsvText(
@@ -126,4 +131,27 @@ test("custom field header matching prefers label or key aliases", () => {
 
   assert.equal(resolveCustomFieldHeaderMatch("Property Type", definitions)?.id, "field-1");
   assert.equal(resolveCustomFieldHeaderMatch("property_type", definitions)?.id, "field-1");
+});
+
+test("CRM migration analysis preserves every source cell and isolates invalid rows", () => {
+  const analysis = analyzeLeadImportCsv(
+    [
+      "Record ID,Full Name,Email,Company,Amount,Unmapped legacy field",
+      "hs-1,Ada Lovelace,ada@example.com,Analytical Engines,\"NGN 250,000\",keep this",
+      "hs-2,No Contact,,,,preserve this too",
+    ].join("\n"),
+  );
+
+  assert.equal(analysis.rows.length, 2);
+  assert.equal(analysis.rows[0]?.sourceRecordId, "hs-1");
+  assert.equal(analysis.rows[0]?.parsedRow?.companyName, "Analytical Engines");
+  assert.deepEqual(analysis.rows[0]?.rawPayload, {
+    headers: ["Record ID", "Full Name", "Email", "Company", "Amount", "Unmapped legacy field"],
+    values: ["hs-1", "Ada Lovelace", "ada@example.com", "Analytical Engines", "NGN 250,000", "keep this"],
+  });
+  assert.match(analysis.rows[1]?.error ?? "", /email or WhatsApp/i);
+  assert.equal(
+    (analysis.rows[1]?.rawPayload.values as string[] | undefined)?.at(-1),
+    "preserve this too",
+  );
 });

@@ -2,8 +2,10 @@ import { NextResponse } from "next/server";
 import { getAdminRequestContext } from "@/lib/admin";
 import { canManageAdminSettings } from "@/lib/crm/authz";
 import { listRolePermissions, setRolePermission, resetRolePermissionsToDefaults } from "@/lib/crm/role-permissions";
-import type { PermissionKey } from "@/lib/crm/role-permissions";
-import type { CrmUserRole } from "@/lib/crm/types";
+import {
+  isPermissionKey,
+  isPermissionRole,
+} from "@/lib/crm/role-permissions-contract";
 
 export async function GET() {
   const context = await getAdminRequestContext();
@@ -44,19 +46,26 @@ export async function POST(request: Request) {
   if (action === "reset") {
     try {
       await resetRolePermissionsToDefaults();
-      return NextResponse.json({ success: true });
+      return NextResponse.json({ success: true, permissions: await listRolePermissions() });
     } catch (error) {
       console.error("[api:role-permissions] reset error:", error);
       return NextResponse.json({ error: "Failed to reset permissions." }, { status: 500 });
     }
   }
 
-  const role = body.role as CrmUserRole | undefined;
-  const permission = body.permission as PermissionKey | undefined;
-  const enabled = body.enabled as boolean | undefined;
+  const role = body.role;
+  const permission = body.permission;
+  const enabled = body.enabled;
 
-  if (!role || !permission || typeof enabled !== "boolean") {
+  if (!isPermissionRole(role) || !isPermissionKey(permission) || typeof enabled !== "boolean") {
     return NextResponse.json({ error: "Missing role, permission, or enabled." }, { status: 400 });
+  }
+
+  if (role === "admin" && !enabled) {
+    return NextResponse.json(
+      { error: "Owner permissions cannot be disabled." },
+      { status: 400 },
+    );
   }
 
   try {

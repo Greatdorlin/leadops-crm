@@ -1,10 +1,11 @@
 import { NextResponse } from "next/server";
 import { getAdminRequestContext } from "@/lib/admin";
-import { canManageFormSources } from "@/lib/crm/authz";
+import { canManageForms } from "@/lib/crm/authz";
 import { getFormById } from "@/lib/crm/form-builder-store";
+import { buildFormEmbedCodes } from "@/lib/crm/form-embed-code";
 
 export async function GET(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
   const context = await getAdminRequestContext();
@@ -12,7 +13,7 @@ export async function GET(
     return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
   }
 
-  if (!canManageFormSources(context)) {
+  if (!canManageForms(context)) {
     return NextResponse.json({ error: "Forbidden." }, { status: 403 });
   }
 
@@ -22,42 +23,18 @@ export async function GET(
     return NextResponse.json({ error: "Form not found." }, { status: 404 });
   }
 
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "";
-  const formUrl = `${baseUrl}/forms/${form.slug}`;
-  
-  const iframeCode = `<iframe
-  src="${formUrl}"
-  width="100%"
-  height="600"
-  frameborder="0"
-  style="border: none; border-radius: 12px;"
-  title="${form.name}"
-></iframe>`;
-
-  const scriptCode = `<script>
-  (function() {
-    var d = document;
-    var f = d.createElement('iframe');
-    f.src = '${formUrl}';
-    f.width = '100%';
-    f.height = '600';
-    f.frameBorder = '0';
-    f.style.border = 'none';
-    f.style.borderRadius = '12px';
-    f.title = '${form.name}';
-    var c = d.currentScript;
-    if (c && c.parentNode) c.parentNode.insertBefore(f, c);
-  })();
-</script>`;
-
-  const wordpressCode = `[iframe src="${formUrl}" width="100%" height="600" frameborder="0" style="border:none;border-radius:12px;" title="${form.name}"]`;
+  const configuredBaseUrl = process.env.NEXT_PUBLIC_APP_URL?.trim().replace(/\/+$/, "");
+  const baseUrl = configuredBaseUrl || new URL(request.url).origin;
+  const codes = buildFormEmbedCodes({
+    formId: form.id,
+    formName: form.name,
+    formSlug: form.slug,
+    baseUrl,
+  });
 
   return NextResponse.json({
     formId: id,
     formSlug: form.slug,
-    formUrl,
-    iframeCode,
-    scriptCode,
-    wordpressCode,
+    ...codes,
   });
 }

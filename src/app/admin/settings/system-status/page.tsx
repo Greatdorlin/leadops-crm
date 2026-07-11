@@ -9,7 +9,7 @@ import { getAdminAccessContext } from "@/lib/admin";
 import { appRoutes } from "@/lib/app-routes";
 import { isAdminAuthConfigured, isLocalAdminPreviewEnabled } from "@/lib/admin-access";
 import { canViewSystemStatus } from "@/lib/crm/authz";
-import { getCompanySettings } from "@/lib/crm/workspace-settings";
+import { getCompanySettings } from "@/lib/crm/workspace-settings-server";
 import { hasDatabaseUrl } from "@/lib/db/env";
 
 export const dynamic = "force-dynamic";
@@ -19,10 +19,10 @@ function yesNo(value: boolean) {
 }
 
 export default async function SystemStatusPage() {
-  const { role, accessLevel, actualAccessLevel, canSwitchAccessViews } =
+  const { role, accessLevel, actualAccessLevel, canSwitchAccessViews, permissions } =
     await getAdminAccessContext(appRoutes.settingsSystemStatus);
 
-  if (!canViewSystemStatus({ accessLevel, role })) {
+  if (!canViewSystemStatus({ accessLevel, permissions, role })) {
     redirect(appRoutes.settings);
   }
 
@@ -38,23 +38,20 @@ export default async function SystemStatusPage() {
       canSwitchAccessViews={canSwitchAccessViews}
       title="System Status"
       description="See environment readiness without exposing secrets."
-      actions={<AdminSignOutButton />}
+      actions={
+        <>
+          <Link
+            href={appRoutes.settings}
+            prefetch={false}
+            className="admin-button-secondary inline-flex h-10 items-center justify-center rounded-full px-4 text-sm font-medium"
+          >
+            Back to settings
+          </Link>
+          <AdminSignOutButton />
+        </>
+      }
     >
       <div className="space-y-6">
-        <SectionHeader
-          eyebrow="System"
-          title="Workspace status"
-          description="Database connection is configured during deployment. Secrets stay outside the app."
-          actions={
-            <Link
-              href={appRoutes.settings}
-              className="admin-button-secondary inline-flex h-11 items-center justify-center rounded-2xl px-5 text-sm font-medium"
-            >
-              Back to settings
-            </Link>
-          }
-        />
-
         <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
           <MetricCard label="Database URL" value={yesNo(hasDatabaseUrl())} supporting="Configured at deployment level." tone={hasDatabaseUrl() ? "positive" : "warning"} />
           <MetricCard label="Auth setup" value={yesNo(isAdminAuthConfigured())} supporting="Google auth vars and initial admin." tone={isAdminAuthConfigured() ? "positive" : "warning"} />

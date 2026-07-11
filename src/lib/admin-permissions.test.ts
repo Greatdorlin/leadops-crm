@@ -2,8 +2,10 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   canAccessLeadTrash,
+  canAssignTasksToOthers,
   canManageSettings,
   canManageTeamMember,
+  canManageTaskRecord,
   canManageIntegrationsAccess,
   canSoftDeleteLead,
   getGrantableAccessLevels,
@@ -47,6 +49,7 @@ test("legacy roles map cleanly into the new access experiences", () => {
   assert.equal(resolveAdminAccessLevel({ role: "finance" }), "finance");
   assert.equal(resolveAdminAccessLevel({ role: "affiliate" }), "affiliate");
   assert.equal(resolveAdminAccessLevel({ role: "sales_agent" }), "sales_rep");
+  assert.equal(resolveAdminAccessLevel({}), "sales_rep");
 });
 
 test("neutral permission helpers keep owner and admin export access", () => {
@@ -228,6 +231,42 @@ test("finance navigation excludes broad reports and settings by default", () => 
 
 test("ad manager keeps integration access without full admin settings", () => {
   assert.equal(canManageIntegrationsAccess("general_admin", "ad_manager"), true);
+});
+
+test("configured permissions govern task assignment and completion", () => {
+  assert.equal(canAssignTasksToOthers("general_admin", []), false);
+  assert.equal(canAssignTasksToOthers("sales_rep", ["canAssignLeads"]), true);
+
+  const task = {
+    id: "task-1",
+    leadId: "lead-1",
+    title: "Follow up",
+    description: null,
+    dueAt: null,
+    completedAt: null,
+    assignedTo: "rep@example.com",
+    createdBy: "manager@example.com",
+    createdAt: new Date().toISOString(),
+  };
+
+  assert.equal(
+    canManageTaskRecord(
+      "sales_rep",
+      task,
+      "rep@example.com",
+      ["canViewLeads"],
+    ),
+    false,
+  );
+  assert.equal(
+    canManageTaskRecord(
+      "sales_rep",
+      task,
+      "rep@example.com",
+      ["canViewLeads", "canEditLeads"],
+    ),
+    true,
+  );
 });
 
 test("sales manager can open settings but only grant sales rep access", () => {

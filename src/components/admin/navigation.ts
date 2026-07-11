@@ -17,6 +17,7 @@ import {
 import type { NavigationCustomizationConfig, NavigationItemKey } from "@/lib/crm/workspace-settings";
 import { resolveNavigationItems } from "@/lib/crm/workspace-settings";
 import type { CrmUserRole } from "@/lib/crm/types";
+import type { PermissionKey } from "@/lib/crm/role-permissions-contract";
 import { appRoutes } from "@/lib/app-routes";
 
 export interface AdminNavigationItem {
@@ -118,8 +119,35 @@ export function getAdminNavigation(
   accessLevel: AdminAccessLevel,
   role?: CrmUserRole | null,
   config?: NavigationCustomizationConfig,
+  permissions?: readonly PermissionKey[],
 ) {
-  const visibleKeys = new Set<string>(getVisibleAdminNavKeys(accessLevel, role));
+  const configuredPermissions = permissions ? new Set<PermissionKey>(permissions) : null;
+  const settingsPermissions: PermissionKey[] = [
+    "canManageSettings",
+    "canManageUsers",
+    "canManageCustomFields",
+    "canManageStages",
+    "canManageSources",
+    "canManageBranches",
+    "canManageCurrency",
+    "canManageIndustryPresets",
+    "canManageDashboard",
+    "canManageAppearance",
+    "canManageNavigation",
+    "canManageLeadPreview",
+  ];
+  const visibleKeys = configuredPermissions
+      ? new Set<string>([
+        "dashboard",
+        "notifications",
+        ...(configuredPermissions.has("canViewLeads") ? ["leads", "tasks"] : []),
+        ...(configuredPermissions.has("canManageForms") ? ["forms"] : []),
+        ...(configuredPermissions.has("canManageUsers") || configuredPermissions.has("canViewReports") ? ["team"] : []),
+        ...(configuredPermissions.has("canViewReports") ? ["reports"] : []),
+        ...(configuredPermissions.has("canManageIntegrations") ? ["integrations"] : []),
+        ...(settingsPermissions.some((permission) => configuredPermissions.has(permission)) ? ["settings"] : []),
+      ])
+    : new Set<string>(getVisibleAdminNavKeys(accessLevel, role));
 
   const visibleItems = adminNavigation
     .filter((item) => visibleKeys.has(item.key))

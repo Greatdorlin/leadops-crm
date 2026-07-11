@@ -1,67 +1,96 @@
-import { and, asc, eq, inArray, isNull } from "drizzle-orm";
+import { and, asc, eq, inArray, isNull, sql } from "drizzle-orm";
 import { z } from "zod";
 import { getDb } from "@/lib/db/client";
-import { leadOpportunities } from "@/lib/db/schema";
-import { updateLeadSalesCommandFields } from "@/lib/crm/sales-command";
-import type { LeadOpportunityRecord, LeadOpportunityStatus } from "@/lib/crm/types";
+import { leadEvents, leadOpportunities, leadTasks, leads } from "@/lib/db/schema";
+import { leadEventTypes } from "@/lib/crm/lead-events";
+import {
+  buildLeadOpportunityRollup,
+  calculateExpectedValue,
+  LEAD_OPPORTUNITY_STATUSES,
+  type LeadOpportunityRollup,
+} from "@/lib/crm/lead-opportunity-contract";
+import type { LeadOpportunityRecord } from "@/lib/crm/types";
 
-export const LEAD_OPPORTUNITY_STATUSES = [
-  "active",
-  "qualified",
-  "unqualified",
-  "lost",
-  "won",
-  "on_hold",
-] as const;
+export { buildLeadOpportunityRollup, LEAD_OPPORTUNITY_STATUSES };
+export type { LeadOpportunityRollup };
 
-const PIPELINE_OPPORTUNITY_STATUSES = new Set<LeadOpportunityStatus>([
-  "active",
-  "qualified",
-  "on_hold",
-]);
+const leadOpportunityInputSchema = z
+  .object({
+    id: z.string().uuid().optional(),
+    offerLabel: z.string().trim().min(1, "Add an offer name before saving."),
+    status: z.enum(LEAD_OPPORTUNITY_STATUSES),
+    estimatedValue: z.coerce.number().nonnegative().nullable().optional(),
+    closeProbability: z.coerce.number().min(0).max(100).nullable().optional(),
+    expectedCloseDate: z
+      .string()
+      .trim()
+      .nullable()
+      .optional()
+      .refine((value) => !value || Number.isFinite(new Date(value).getTime()), "Expected close date is invalid."),
+    reason: z.string().trim().nullable().optional(),
+    notes: z.string().trim().nullable().optional(),
+    isPrimary: z.boolean().optional().default(false),
+  })
+  .superRefine((value, context) => {
+    if (
+      (value.status === "lost" || value.status === "unqualified") &&
+      !value.reason?.trim()
+    ) {
+      context.addIssue({
+        code: "custom",
+        message: "Add a reason when an offer is lost or unqualified.",
+        path: ["reason"],
+      });
+    }
+  });
 
-const WON_OPPORTUNITY_STATUSES = new Set<LeadOpportunityStatus>(["won"]);
+export const leadOpportunityListSchema = z
+  .object({
+    opportunities: z
+      .array(leadOpportunityInputSchema)
+      .max(20, "Keep opportunity tracking focused to twenty offers or fewer per lead."),
+    createCallTasksForNewlyQualified: z.boolean().optional().default(false),
+    callTaskDueAt: z.string().datetime({ offset: true }).nullable().optional(),
+  })
+  .superRefine((value, context) => {
+    const seenIds = new Set<string>();
+    const seenLabels = new Set<string>();
+    value.opportunities.forEach((opportunity, index) => {
+      const normalizedLabel = opportunity.offerLabel.trim().toLowerCase();
+      if (seenLabels.has(normalizedLabel)) {
+        context.addIssue({
+          code: "custom",
+          message: "Each offer name can only appear once per lead.",
+          path: ["opportunities", index, "offerLabel"],
+        });
+      }
+      seenLabels.add(normalizedLabel);
 
-const leadOpportunityInputSchema = z.object({
-  id: z.string().uuid().optional(),
-  offerLabel: z.string().trim().min(1, "Add an offer name before saving."),
-  status: z.enum(LEAD_OPPORTUNITY_STATUSES),
-  estimatedValue: z.coerce.number().nonnegative().nullable().optional(),
-  closeProbability: z.coerce.number().min(0).max(100).nullable().optional(),
-  expectedCloseDate: z.string().trim().nullable().optional(),
-  reason: z.string().trim().nullable().optional(),
-  notes: z.string().trim().nullable().optional(),
-  isPrimary: z.boolean().optional().default(false),
-});
+      if (!opportunity.id) {
+        return;
+      }
+      if (seenIds.has(opportunity.id)) {
+        context.addIssue({
+          code: "custom",
+          message: "Each saved opportunity can only appear once.",
+          path: ["opportunities", index, "id"],
+        });
+      }
+      seenIds.add(opportunity.id);
+    });
+  });
 
-export const leadOpportunityListSchema = z.object({
-  opportunities: z
-    .array(leadOpportunityInputSchema)
-    .max(20, "Keep opportunity tracking focused to twenty offers or fewer per lead."),
-});
+export class LeadOpportunityInputError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "LeadOpportunityInputError";
+  }
+}
 
 export type AdminLeadOpportunityInput = z.infer<typeof leadOpportunityInputSchema>;
 
-export interface LeadOpportunityRollup {
-  estimatedValue: number | null;
-  expectedValue: number | null;
-  closeProbability: number | null;
-  wonValue: number | null;
-  expectedCloseDate: string | null;
-  lostReason: string | null;
-  activeCount: number;
-  qualifiedCount: number;
-  inactiveCount: number;
-  wonCount: number;
-  summaryLabel: string;
-}
-
 export interface LeadOpportunitySummary extends LeadOpportunityRollup {
   leadId: string;
-}
-
-function roundMoney(value: number) {
-  return Number.parseFloat(value.toFixed(2));
 }
 
 function toIsoString(value: Date | string | null | undefined) {
@@ -75,19 +104,6 @@ function toIsoString(value: Date | string | null | undefined) {
 function normalizeOptionalString(value: string | null | undefined) {
   const normalized = value?.trim();
   return normalized ? normalized : null;
-}
-
-function calculateExpectedValue(estimatedValue?: number | null, closeProbability?: number | null) {
-  if (
-    estimatedValue === null ||
-    estimatedValue === undefined ||
-    closeProbability === null ||
-    closeProbability === undefined
-  ) {
-    return null;
-  }
-
-  return roundMoney((estimatedValue * closeProbability) / 100);
 }
 
 function mapLeadOpportunityRecord(
@@ -109,112 +125,6 @@ function mapLeadOpportunityRecord(
     archivedAt: toIsoString(row.archivedAt),
     createdAt: toIsoString(row.createdAt) ?? new Date(0).toISOString(),
     updatedAt: toIsoString(row.updatedAt) ?? new Date(0).toISOString(),
-  };
-}
-
-function buildSummaryLabel(input: {
-  activeCount: number;
-  qualifiedCount: number;
-  inactiveCount: number;
-  wonCount: number;
-}) {
-  const parts = [
-    input.activeCount > 0 ? `${input.activeCount} active` : null,
-    input.qualifiedCount > 0 ? `${input.qualifiedCount} qualified` : null,
-    input.wonCount > 0 ? `${input.wonCount} won` : null,
-    input.inactiveCount > 0 ? `${input.inactiveCount} removed from pipeline` : null,
-  ].filter(Boolean);
-
-  return parts.length > 0 ? parts.join(" • ") : "No offer opportunities yet";
-}
-
-export function buildLeadOpportunityRollup(
-  opportunities: Array<
-    Pick<
-      LeadOpportunityRecord,
-      | "status"
-      | "estimatedValue"
-      | "expectedValue"
-      | "closeProbability"
-      | "expectedCloseDate"
-      | "reason"
-    >
-  >,
-): LeadOpportunityRollup {
-  let estimatedValueTotal = 0;
-  let expectedValueTotal = 0;
-  let wonValueTotal = 0;
-  let activeCount = 0;
-  let qualifiedCount = 0;
-  let inactiveCount = 0;
-  let wonCount = 0;
-  let earliestExpectedCloseDate: string | null = null;
-  let primaryInactiveReason: string | null = null;
-
-  for (const opportunity of opportunities) {
-    const expectedValue =
-      opportunity.expectedValue ??
-      calculateExpectedValue(opportunity.estimatedValue, opportunity.closeProbability);
-
-    if (PIPELINE_OPPORTUNITY_STATUSES.has(opportunity.status)) {
-      activeCount += 1;
-      if (opportunity.status === "qualified") {
-        qualifiedCount += 1;
-      }
-
-      estimatedValueTotal += opportunity.estimatedValue ?? 0;
-      expectedValueTotal += expectedValue ?? opportunity.estimatedValue ?? 0;
-
-      if (
-        opportunity.expectedCloseDate &&
-        (!earliestExpectedCloseDate ||
-          new Date(opportunity.expectedCloseDate).getTime() <
-            new Date(earliestExpectedCloseDate).getTime())
-      ) {
-        earliestExpectedCloseDate = opportunity.expectedCloseDate;
-      }
-
-      continue;
-    }
-
-    if (WON_OPPORTUNITY_STATUSES.has(opportunity.status)) {
-      wonCount += 1;
-      wonValueTotal += expectedValue ?? opportunity.estimatedValue ?? 0;
-      continue;
-    }
-
-    inactiveCount += 1;
-    if (!primaryInactiveReason && opportunity.reason) {
-      primaryInactiveReason = opportunity.reason;
-    }
-  }
-
-  const estimatedValue = estimatedValueTotal > 0 ? roundMoney(estimatedValueTotal) : null;
-  const expectedValue = expectedValueTotal > 0 ? roundMoney(expectedValueTotal) : null;
-  const wonValue = wonValueTotal > 0 ? roundMoney(wonValueTotal) : null;
-  const closeProbability =
-    estimatedValue && expectedValue
-      ? Math.max(0, Math.min(100, Math.round((expectedValue / estimatedValue) * 100)))
-      : null;
-
-  return {
-    estimatedValue,
-    expectedValue,
-    closeProbability,
-    wonValue,
-    expectedCloseDate: earliestExpectedCloseDate,
-    lostReason:
-      activeCount === 0 && wonCount === 0 && inactiveCount > 0 ? primaryInactiveReason : null,
-    activeCount,
-    qualifiedCount,
-    inactiveCount,
-    wonCount,
-    summaryLabel: buildSummaryLabel({
-      activeCount,
-      qualifiedCount,
-      inactiveCount,
-      wonCount,
-    }),
   };
 }
 
@@ -286,76 +196,100 @@ export async function listLeadOpportunitySummariesByLeadIds(leadIds: string[]) {
   return summaryByLeadId;
 }
 
-async function syncLeadOpportunityRollup(
-  leadId: string,
-  opportunities: LeadOpportunityRecord[],
-) {
-  const rollup = buildLeadOpportunityRollup(opportunities.filter((item) => !item.archivedAt));
-  await updateLeadSalesCommandFields(leadId, {
-    estimatedValue: rollup.estimatedValue,
-    closeProbability: rollup.closeProbability,
-    expectedCloseDate: rollup.expectedCloseDate,
-    wonValue: rollup.wonValue,
-    lostReason: rollup.lostReason,
-  });
-
-  return rollup;
-}
-
 export async function replaceLeadOpportunities(
   leadId: string,
   input: AdminLeadOpportunityInput[],
+  options: {
+    createCallTasksForNewlyQualified?: boolean;
+    callTaskDueAt?: string | null;
+    assignedTo?: string | null;
+    createdBy?: string | null;
+  } = {},
 ) {
   const db = getDb();
 
-  const existingRows = await db
-    .select()
-    .from(leadOpportunities)
-    .where(eq(leadOpportunities.leadId, leadId))
-    .orderBy(asc(leadOpportunities.sortOrder), asc(leadOpportunities.createdAt));
-  const existingById = new Map(existingRows.map((row) => [row.id, row]));
-  const seenIds = new Set<string>();
+  return db.transaction(async (transaction) => {
+    await transaction.execute(sql`select ${leads.id} from ${leads} where ${leads.id} = ${leadId} for update`);
 
-  let primaryAssigned = false;
-  const normalizedInput = input.map((item, index) => {
-    const isPrimary = item.isPrimary && !primaryAssigned;
-    if (isPrimary) {
-      primaryAssigned = true;
+    const existingRows = await transaction
+      .select()
+      .from(leadOpportunities)
+      .where(eq(leadOpportunities.leadId, leadId))
+      .orderBy(asc(leadOpportunities.sortOrder), asc(leadOpportunities.createdAt));
+    const existingById = new Map(existingRows.map((row) => [row.id, row]));
+    const seenIds = new Set<string>();
+    const newlyQualifiedOfferLabels: string[] = [];
+
+    let primaryAssigned = false;
+    const normalizedInput = input.map((item, index) => {
+      const isPrimary = item.isPrimary && !primaryAssigned;
+      if (isPrimary) {
+        primaryAssigned = true;
+      }
+
+      return {
+        id: item.id,
+        offerLabel: item.offerLabel.trim(),
+        status: item.status,
+        estimatedValue: item.estimatedValue ?? null,
+        closeProbability:
+          item.closeProbability === undefined || item.closeProbability === null
+            ? null
+            : Math.max(0, Math.min(100, Math.round(item.closeProbability))),
+        expectedCloseDate: normalizeOptionalString(item.expectedCloseDate),
+        reason: normalizeOptionalString(item.reason),
+        notes: normalizeOptionalString(item.notes),
+        isPrimary,
+        sortOrder: index,
+      };
+    });
+
+    if (!primaryAssigned && normalizedInput.length > 0) {
+      normalizedInput[0] = {
+        ...normalizedInput[0],
+        isPrimary: true,
+      };
     }
 
-    return {
-      id: item.id,
-      offerLabel: item.offerLabel.trim(),
-      status: item.status,
-      estimatedValue: item.estimatedValue ?? null,
-      closeProbability:
-        item.closeProbability === undefined || item.closeProbability === null
-          ? null
-          : Math.max(0, Math.min(100, Math.round(item.closeProbability))),
-      expectedCloseDate: normalizeOptionalString(item.expectedCloseDate),
-      reason: normalizeOptionalString(item.reason),
-      notes: normalizeOptionalString(item.notes),
-      isPrimary,
-      sortOrder: index,
-    };
-  });
+    for (const item of normalizedInput) {
+      const expectedValue =
+        calculateExpectedValue(item.estimatedValue, item.closeProbability) ?? item.estimatedValue;
 
-  if (!primaryAssigned && normalizedInput.length > 0) {
-    normalizedInput[0] = {
-      ...normalizedInput[0],
-      isPrimary: true,
-    };
-  }
+      if (item.id && !existingById.has(item.id)) {
+        throw new LeadOpportunityInputError("An opportunity does not belong to this lead.");
+      }
 
-  for (const item of normalizedInput) {
-    const expectedValue =
-      calculateExpectedValue(item.estimatedValue, item.closeProbability) ?? item.estimatedValue;
+      const previousStatus = item.id ? existingById.get(item.id)?.status ?? null : null;
+      if (item.status === "qualified" && previousStatus !== "qualified") {
+        newlyQualifiedOfferLabels.push(item.offerLabel);
+      }
 
-    if (item.id && existingById.has(item.id)) {
-      seenIds.add(item.id);
-      await db
-        .update(leadOpportunities)
-        .set({
+      if (item.id) {
+        seenIds.add(item.id);
+        await transaction
+          .update(leadOpportunities)
+          .set({
+            offerLabel: item.offerLabel,
+            status: item.status,
+            estimatedValue: item.estimatedValue?.toFixed(2) ?? null,
+            expectedValue: expectedValue?.toFixed(2) ?? null,
+            closeProbability: item.closeProbability,
+            expectedCloseDate: item.expectedCloseDate ? new Date(item.expectedCloseDate) : null,
+            reason: item.reason,
+            notes: item.notes,
+            isPrimary: item.isPrimary,
+            sortOrder: item.sortOrder,
+            archivedAt: null,
+            updatedAt: new Date(),
+          })
+          .where(eq(leadOpportunities.id, item.id));
+        continue;
+      }
+
+      const [created] = await transaction
+        .insert(leadOpportunities)
+        .values({
+          leadId,
           offerLabel: item.offerLabel,
           status: item.status,
           estimatedValue: item.estimatedValue?.toFixed(2) ?? null,
@@ -366,49 +300,80 @@ export async function replaceLeadOpportunities(
           notes: item.notes,
           isPrimary: item.isPrimary,
           sortOrder: item.sortOrder,
-          archivedAt: null,
-          updatedAt: new Date(),
         })
-        .where(eq(leadOpportunities.id, item.id));
-      continue;
+        .returning({ id: leadOpportunities.id });
+
+      seenIds.add(created.id);
     }
 
-    const [created] = await db
-      .insert(leadOpportunities)
-      .values({
+    const staleIds = existingRows.filter((row) => !seenIds.has(row.id)).map((row) => row.id);
+    if (staleIds.length > 0) {
+      await transaction
+        .update(leadOpportunities)
+        .set({
+          archivedAt: new Date(),
+          isPrimary: false,
+          updatedAt: new Date(),
+        })
+        .where(inArray(leadOpportunities.id, staleIds));
+    }
+
+    if (options.createCallTasksForNewlyQualified && newlyQualifiedOfferLabels.length > 0) {
+      const dueAt = options.callTaskDueAt ? new Date(options.callTaskDueAt) : null;
+      const tasksToCreate = newlyQualifiedOfferLabels.map((offerLabel) => ({
         leadId,
-        offerLabel: item.offerLabel,
-        status: item.status,
-        estimatedValue: item.estimatedValue?.toFixed(2) ?? null,
-        expectedValue: expectedValue?.toFixed(2) ?? null,
-        closeProbability: item.closeProbability,
-        expectedCloseDate: item.expectedCloseDate ? new Date(item.expectedCloseDate) : null,
-        reason: item.reason,
-        notes: item.notes,
-        isPrimary: item.isPrimary,
-        sortOrder: item.sortOrder,
-      })
-      .returning({ id: leadOpportunities.id });
+        title: `Call about ${offerLabel}`,
+        description: null,
+        dueAt,
+        assignedTo: options.assignedTo ?? null,
+        createdBy: options.createdBy ?? null,
+      }));
+      await transaction.insert(leadTasks).values(tasksToCreate);
+      await transaction.insert(leadEvents).values(
+        tasksToCreate.map((task) => ({
+          leadId,
+          eventType: leadEventTypes.taskCreated,
+          eventData: {
+            title: task.title,
+            dueAt: options.callTaskDueAt ?? null,
+            assignedTo: task.assignedTo,
+            trigger: "offer_qualified",
+          },
+          createdBy: options.createdBy ?? null,
+        })),
+      );
+    }
 
-    seenIds.add(created.id);
-  }
+    const rows = await transaction
+      .select()
+      .from(leadOpportunities)
+      .where(and(eq(leadOpportunities.leadId, leadId), isNull(leadOpportunities.archivedAt)))
+      .orderBy(asc(leadOpportunities.sortOrder), asc(leadOpportunities.createdAt));
+    const opportunities = rows
+      .map(mapLeadOpportunityRecord)
+      .sort((left, right) => (left.isPrimary === right.isPrimary ? left.sortOrder - right.sortOrder : left.isPrimary ? -1 : 1));
+    const rollup = buildLeadOpportunityRollup(opportunities);
 
-  const staleIds = existingRows.filter((row) => !seenIds.has(row.id)).map((row) => row.id);
-  if (staleIds.length > 0) {
-    await db
-      .update(leadOpportunities)
+    await transaction
+      .update(leads)
       .set({
-        archivedAt: new Date(),
-        isPrimary: false,
+        estimatedValue: rollup.estimatedValue?.toFixed(2) ?? null,
+        expectedValue: rollup.expectedValue?.toFixed(2) ?? null,
+        closeProbability: rollup.closeProbability,
+        expectedCloseDate: rollup.expectedCloseDate ? new Date(rollup.expectedCloseDate) : null,
+        wonValue: rollup.wonValue?.toFixed(2) ?? null,
+        lostReason: rollup.lostReason,
         updatedAt: new Date(),
+        lastActivityAt: new Date(),
       })
-      .where(inArray(leadOpportunities.id, staleIds));
-  }
+      .where(eq(leads.id, leadId));
 
-  const opportunities = await listLeadOpportunities(leadId);
-  const rollup = await syncLeadOpportunityRollup(leadId, opportunities);
-  return {
-    opportunities,
-    rollup,
-  };
+    return {
+      opportunities,
+      rollup,
+      newlyQualifiedOfferLabels,
+      createdCallTaskCount:
+        options.createCallTasksForNewlyQualified ? newlyQualifiedOfferLabels.length : 0,
+    };
+  });
 }

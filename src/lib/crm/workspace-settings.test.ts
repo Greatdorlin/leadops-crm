@@ -57,6 +57,7 @@ test("theme settings resolve safely and generate CSS variables", () => {
   assert.equal(variables["--color-primary"], "#112233");
   assert.equal(variables["--color-sidebar"], "#050b18");
   assert.equal(variables["--ld-color-primary"], "#112233");
+  assert.equal(variables["--ld-color-on-primary"], "#ffffff");
   assert.equal(variables["--ld-color-sidebar"], "color-mix(in srgb, #050b18 84%, transparent)");
   assert.equal(variables["--radius-ui"], "18px");
   assert.equal(variables["--font-scale"], "1.1");
@@ -76,17 +77,17 @@ test("appearance settings validation rejects malformed colors and keeps concise 
     companyName: "Leads Desk",
     primaryColor: "#123abc",
     accentColor: "#f4b400",
-    backgroundColor: "#f6efe6",
-    surfaceColor: "#ffffff",
-    cardColor: "#ffffff",
+    backgroundColor: "#07111f",
+    surfaceColor: "#0c1a2d",
+    cardColor: "#0f2138",
     sidebarColor: "#0b1438",
-    textColor: "#0f172a",
-    borderColor: "#d8e2f0",
+    textColor: "#f8fafc",
+    borderColor: "#243b5a",
     borderRadius: 24,
     fontScale: 1,
     fontPreset: "brand",
     density: "comfortable",
-    themeMode: "light",
+    themeMode: "dark",
     designStyle: "modern",
     glassEnabled: false,
     glassOpacity: 72,
@@ -102,9 +103,40 @@ test("appearance settings validation rejects malformed colors and keeps concise 
     ...DEFAULT_WORKSPACE_APPEARANCE,
     borderRadius: 4,
   });
+  const invalidLightPalette = appearanceSettingsSchema.safeParse({
+    ...DEFAULT_WORKSPACE_APPEARANCE,
+    backgroundColor: "#ffffff",
+    surfaceColor: "#f8fafc",
+    cardColor: "#ffffff",
+    textColor: "#0f172a",
+    themeMode: "light",
+  });
+  const invalidColor = appearanceSettingsSchema.safeParse({
+    ...DEFAULT_WORKSPACE_APPEARANCE,
+    primaryColor: "blue",
+  });
 
   assert.equal(valid.success, true);
   assert.equal(invalid.success, false);
+  assert.equal(invalidLightPalette.success, false);
+  assert.equal(invalidColor.success, false);
+});
+
+test("theme CSS variables fall back before unsafe stored colors can reduce contrast", () => {
+  const variables = buildThemeCssVariables({
+    ...DEFAULT_WORKSPACE_APPEARANCE,
+    backgroundColor: "#ffffff",
+    surfaceColor: "#ffffff",
+    cardColor: "#ffffff",
+    sidebarColor: "#ffffff",
+    textColor: "#ffffff",
+    primaryColor: "#fbbf24",
+  });
+
+  assert.equal(variables["--ld-color-background"], DEFAULT_WORKSPACE_APPEARANCE.backgroundColor);
+  assert.equal(variables["--ld-color-card"], `color-mix(in srgb, ${DEFAULT_WORKSPACE_APPEARANCE.cardColor} 62%, transparent)`);
+  assert.equal(variables["--ld-color-text"], "#ffffff");
+  assert.equal(variables["--ld-color-on-primary"], "#000000");
 });
 
 test("logo resolution and font presets stay runtime safe", () => {
@@ -116,6 +148,13 @@ test("logo resolution and font presets stay runtime safe", () => {
       loginBackgroundUrl: "data:image/webp;base64,aGVsbG8=",
     }).success,
     true,
+  );
+  assert.equal(
+    appearanceSettingsSchema.safeParse({
+      ...DEFAULT_WORKSPACE_APPEARANCE,
+      logoUrl: "javascript:alert(1)",
+    }).success,
+    false,
   );
   assert.equal(
     resolveBrandLogo({

@@ -3,10 +3,12 @@ import { getAdminRequestContext } from "@/lib/admin";
 import { canManageDashboardSettings } from "@/lib/crm/authz";
 import {
   dashboardCustomizationSchema,
-  getCompanySettings,
   resolveDashboardConfig,
-  updateCompanySettings,
 } from "@/lib/crm/workspace-settings";
+import {
+  getCompanySettings,
+  updateCompanySettings,
+} from "@/lib/crm/workspace-settings-server";
 
 export async function GET() {
   const context = await getAdminRequestContext();
@@ -24,7 +26,7 @@ export async function PATCH(request: Request) {
     return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
   }
 
-  if (!canManageDashboardSettings({ accessLevel: context.accessLevel, role: context.role })) {
+  if (!canManageDashboardSettings(context)) {
     return NextResponse.json({ error: "Forbidden." }, { status: 403 });
   }
 

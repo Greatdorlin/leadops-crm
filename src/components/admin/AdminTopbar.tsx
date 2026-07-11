@@ -7,7 +7,9 @@ import { useSyncExternalStore } from "react";
 import type { AdminAccessLevel } from "@/lib/admin-permissions";
 import { cn } from "@/lib/cn";
 import type { CrmUserRole } from "@/lib/crm/types";
+import type { PermissionKey } from "@/lib/crm/role-permissions-contract";
 import { SmoothButton } from "./ui/SmoothButton";
+import { InfoTip } from "./ui/InfoTip";
 import { useAdminWorkspaceSettings } from "./AdminWorkspaceSettingsProvider";
 import { getAdminNavigation } from "./navigation";
 
@@ -52,6 +54,7 @@ export function AdminTopbar({
   activeNav,
   accessLevel,
   role,
+  permissions,
   canSwitchAccessViews,
   title,
   description,
@@ -61,6 +64,7 @@ export function AdminTopbar({
   activeNav: string;
   accessLevel: AdminAccessLevel;
   role?: CrmUserRole | null;
+  permissions: readonly PermissionKey[];
   actualAccessLevel?: AdminAccessLevel;
   canSwitchAccessViews?: boolean;
   title: string;
@@ -69,7 +73,12 @@ export function AdminTopbar({
   searchSlot?: ReactNode;
 }) {
   const workspaceSettings = useAdminWorkspaceSettings();
-  const navigation = getAdminNavigation(accessLevel, role, workspaceSettings.navigation);
+  const navigation = getAdminNavigation(
+    accessLevel,
+    role,
+    workspaceSettings.navigation,
+    permissions,
+  );
   const isCollapsed = useSyncExternalStore(
     subscribeTopbarCollapse,
     getTopbarCollapseSnapshot,
@@ -77,6 +86,7 @@ export function AdminTopbar({
   );
   const canCollapse = Boolean(searchSlot || canSwitchAccessViews);
   const isDashboard = activeNav === "dashboard";
+  const useDescriptionTip = Boolean(description && description.length > 48);
 
   function updateCollapseState(nextValue: boolean) {
     window.localStorage.setItem(TOPBAR_COLLAPSE_KEY, nextValue ? "1" : "0");
@@ -91,23 +101,28 @@ export function AdminTopbar({
         )}
       >
         <div className={cn("relative flex flex-col gap-3", isDashboard && "gap-2")}>
-          <div className={cn("flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between", isDashboard && "xl:gap-5")}>
+          <div className={cn("flex flex-col gap-4 2xl:flex-row 2xl:items-center 2xl:justify-between", isDashboard && "2xl:gap-5")}>
             <div className="min-w-0 max-w-3xl ld-animate-fade-in-up">
               <div className="flex items-center gap-3">
                 <div className="min-w-0">
-                  <h1 className="font-[family:var(--font-heading)] text-[1.85rem] leading-[0.98] tracking-[-0.05em] text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.3)] sm:text-[2.2rem]">
-                    {title}
-                  </h1>
-                  {!isCollapsed && description ? (
+                  <div className="flex items-center gap-2.5">
+                    <h1 className="break-words font-[family:var(--font-heading)] text-[1.72rem] leading-[1.08] tracking-[-0.045em] text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.3)] sm:text-[2.15rem] sm:leading-[1.03]">
+                      {title}
+                    </h1>
+                    {!isCollapsed && useDescriptionTip && description ? (
+                      <InfoTip label={description} align="left" />
+                    ) : null}
+                  </div>
+                  {!isCollapsed && description && !useDescriptionTip ? (
                     <p className="mt-1.5 text-sm leading-relaxed text-white/70 sm:text-[15px]">{description}</p>
                   ) : null}
                 </div>
               </div>
             </div>
 
-            <div className={cn("flex w-full flex-col gap-3 xl:w-auto xl:min-w-[420px]", isDashboard && "xl:min-w-[720px] 2xl:min-w-[820px]")}>
+            <div className={cn("flex w-full min-w-0 flex-col gap-3 2xl:w-auto 2xl:min-w-[420px]", isDashboard && "2xl:min-w-[min(720px,58vw)]")}>
               {actions || canCollapse ? (
-                <div className="flex flex-wrap items-center justify-start gap-3 xl:justify-end">
+                <div className="flex flex-wrap items-center justify-start gap-3 2xl:justify-end">
                   {actions}
                   {canCollapse ? (
                     <SmoothButton
@@ -131,7 +146,7 @@ export function AdminTopbar({
           </div>
 
           {!isCollapsed ? (
-            <nav className="ld-glass ld-glass-soft flex gap-2 overflow-x-auto rounded-2xl p-1.5 xl:hidden">
+            <nav className="ld-topbar-nav ld-glass ld-glass-soft hidden gap-2 overflow-x-auto rounded-2xl p-1.5 md:flex xl:hidden">
               {navigation.map((item) => {
                 const isActive = item.key === activeNav;
 
@@ -139,6 +154,7 @@ export function AdminTopbar({
                   <Link
                     key={item.key}
                     href={item.href}
+                    prefetch={false}
                     className={cn(
                       "ld-animate-fade-in inline-flex shrink-0 items-center rounded-full border px-4 py-2 text-sm font-medium transition duration-200",
                       isActive

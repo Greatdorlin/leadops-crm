@@ -4,8 +4,8 @@ import { useState } from "react";
 import Link from "next/link";
 import {
   Copy,
-  Trash2,
   Archive,
+  RotateCcw,
   Edit,
   FileText,
   ListChecks,
@@ -53,65 +53,76 @@ function FormStatusBadge({ status }: { status: string }) {
 
 function FormCard({
   form,
-  onDelete,
-  onArchive,
+  onStatusChange,
   onDuplicate,
   canManage,
 }: {
   form: FormWithCounts;
-  onDelete: (id: string) => void;
-  onArchive: (id: string) => void;
+  onStatusChange: (id: string, status: "draft" | "archived") => void;
   onDuplicate: (id: string) => void;
   canManage: boolean;
 }) {
-  const [deleting, setDeleting] = useState(false);
   const [archiving, setArchiving] = useState(false);
+  const [restoring, setRestoring] = useState(false);
   const [duplicating, setDuplicating] = useState(false);
-
-  async function handleDelete() {
-    if (!confirm(`Delete "${form.name}"? This cannot be undone.`)) return;
-    setDeleting(true);
-    try {
-      const res = await fetch(`/api/admin/forms/${form.id}`, { method: "DELETE" });
-      if (res.ok) onDelete(form.id);
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setDeleting(false);
-    }
-  }
+  const [error, setError] = useState<string | null>(null);
 
   async function handleArchive() {
     setArchiving(true);
+    setError(null);
     try {
       const res = await fetch(`/api/admin/forms/${form.id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status: "archived" }),
       });
-      if (res.ok) onArchive(form.id);
-    } catch (e) {
-      console.error(e);
+      const payload = (await res.json().catch(() => null)) as { error?: string } | null;
+      if (!res.ok) throw new Error(payload?.error ?? "We couldn't archive this form.");
+      onStatusChange(form.id, "archived");
+    } catch (error) {
+      setError(error instanceof Error ? error.message : "We couldn't archive this form.");
     } finally {
       setArchiving(false);
     }
   }
 
+  async function handleRestore() {
+    setRestoring(true);
+    setError(null);
+    try {
+      const res = await fetch(`/api/admin/forms/${form.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "draft", isActive: false }),
+      });
+      const payload = (await res.json().catch(() => null)) as { error?: string } | null;
+      if (!res.ok) throw new Error(payload?.error ?? "We couldn't restore this form.");
+      onStatusChange(form.id, "draft");
+    } catch (error) {
+      setError(error instanceof Error ? error.message : "We couldn't restore this form.");
+    } finally {
+      setRestoring(false);
+    }
+  }
+
   async function handleDuplicate() {
     setDuplicating(true);
+    setError(null);
     try {
       const res = await fetch(`/api/admin/forms`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          duplicateFromId: form.id,
           name: `${form.name} (Copy)`,
           slug: `${form.slug}-copy-${Date.now()}`,
-          description: form.description,
         }),
       });
-      if (res.ok) onDuplicate(form.id);
-    } catch (e) {
-      console.error(e);
+      const payload = (await res.json().catch(() => null)) as { error?: string } | null;
+      if (!res.ok) throw new Error(payload?.error ?? "We couldn't duplicate this form.");
+      onDuplicate(form.id);
+    } catch (error) {
+      setError(error instanceof Error ? error.message : "We couldn't duplicate this form.");
     } finally {
       setDuplicating(false);
     }
@@ -195,20 +206,22 @@ function FormCard({
                 <Archive className="h-3.5 w-3.5" />
                 Archive
               </SmoothButton>
-            ) : null}
-            <SmoothButton
-              variant="danger"
-              size="sm"
-              loading={deleting}
-              onClick={handleDelete}
-              className="h-9 gap-1.5 rounded-xl px-3 text-xs"
-            >
-              <Trash2 className="h-3.5 w-3.5" />
-              Delete
-            </SmoothButton>
+            ) : (
+              <SmoothButton
+                variant="ghost"
+                size="sm"
+                loading={restoring}
+                onClick={handleRestore}
+                className="h-9 gap-1.5 rounded-xl px-3 text-xs"
+              >
+                <RotateCcw className="h-3.5 w-3.5" />
+                Restore as draft
+              </SmoothButton>
+            )}
           </>
         ) : null}
       </div>
+      {error ? <p className="mt-3 text-xs font-medium text-rose-200">{error}</p> : null}
     </AnimatedCard>
   );
 }
@@ -225,13 +238,13 @@ export function FormListGrid({
   const [forms, setForms] = useState<FormWithCounts[]>(initialForms);
   const canManage = canManageForms({ accessLevel, role });
 
-  function handleDelete(id: string) {
-    setForms((prev) => prev.filter((f) => f.id !== id));
-  }
-
-  function handleArchive(id: string) {
+  function handleStatusChange(id: string, status: "draft" | "archived") {
     setForms((prev) =>
-      prev.map((f) => (f.id === id ? { ...f, status: "archived" } : f))
+      prev.map((f) =>
+        f.id === id
+          ? { ...f, status, isActive: false, isPublic: status === "archived" ? false : f.isPublic }
+          : f,
+      ),
     );
   }
 
@@ -265,7 +278,7 @@ export function FormListGrid({
 
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h2 className="font-[family:var(--font-heading)] text-[1.55rem] leading-[1.02] tracking-[-0.05em] text-white">
+          <h2 className="break-words font-[family:var(--font-heading)] text-[1.55rem] leading-[1.1] tracking-[-0.045em] text-white">
             All forms
           </h2>
           <p className="mt-1 text-sm text-white/70">Manage forms, fields, and submission rules.</p>
@@ -302,8 +315,7 @@ export function FormListGrid({
             <FormCard
               key={form.id}
               form={form}
-              onDelete={handleDelete}
-              onArchive={handleArchive}
+              onStatusChange={handleStatusChange}
               onDuplicate={handleDuplicate}
               canManage={canManage}
             />

@@ -6,6 +6,7 @@ import { ChevronDown } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { SmoothButton } from "./ui/SmoothButton";
 import { GradientText } from "./ui/GradientText";
+import { InfoTip } from "./ui/InfoTip";
 
 export function AdminCollapsibleSection({
   eyebrow,
@@ -27,6 +28,7 @@ export function AdminCollapsibleSection({
   children: ReactNode;
 }) {
   const [isOpen, setIsOpen] = useState(defaultOpen);
+  const useDescriptionTip = Boolean(description && description.length > 48);
 
   return (
     <section
@@ -46,15 +48,18 @@ export function AdminCollapsibleSection({
               {eyebrow}
             </p>
           ) : null}
-          <h2
-            className={cn(
-              "mt-2 min-w-0 max-w-2xl font-[family:var(--font-heading)] leading-[1.02] tracking-[-0.05em] text-white transition-all duration-200",
-              isOpen ? "text-[1.45rem] sm:text-[1.65rem]" : "text-[1.25rem] sm:text-[1.38rem]",
-            )}
-          >
-            <GradientText variant="subtle">{title}</GradientText>
-          </h2>
-          {description && isOpen ? (
+          <div className="mt-2 flex items-center gap-2.5">
+            <h2
+              className={cn(
+                "min-w-0 max-w-2xl break-words font-[family:var(--font-heading)] leading-[1.12] tracking-[-0.045em] text-white transition-all duration-200",
+                isOpen ? "text-[1.45rem] sm:text-[1.65rem]" : "text-[1.25rem] sm:text-[1.38rem]",
+              )}
+            >
+              <GradientText variant="subtle">{title}</GradientText>
+            </h2>
+            {description && useDescriptionTip ? <InfoTip label={description} align="left" /> : null}
+          </div>
+          {description && isOpen && !useDescriptionTip ? (
             <p className="mt-2 min-w-0 max-w-2xl text-sm leading-6 text-white/70">{description}</p>
           ) : null}
         </div>

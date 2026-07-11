@@ -16,6 +16,7 @@ Vercel is an optional deployment path for Leads Desk. It is not required, and th
 - `AUTH_SECRET`
 - `AUTH_GOOGLE_ID`
 - `AUTH_GOOGLE_SECRET`
+- `NEXTAUTH_URL`
 - `INITIAL_ADMIN_EMAIL`
 - `INITIAL_ADMIN_NAME`
 - `NEXT_PUBLIC_APP_URL`
@@ -28,18 +29,21 @@ Optional:
 
 1. Import the private repo into Vercel.
 2. Set the production environment variables.
-3. Point `DATABASE_URL` to an external Postgres instance.
+3. Point `DATABASE_URL` to an external PostgreSQL instance. Neon, Supabase Postgres, and other managed PostgreSQL providers use the same contract.
 4. Deploy the app.
-5. Apply the schema from a trusted terminal:
+5. Apply journaled migrations from a trusted release terminal before promoting the deployment:
 
 ```bash
-npm run db:push
+npm ci
+npm run db:migrate
 npm run db:seed:defaults:full
 ```
 
 ## Important Notes
 
 - Vercel does not replace the need for Postgres backups.
+- Use the provider's pooled connection URL for serverless traffic and keep SSL enabled.
+- Do not run `db:push` against production.
 - Leads Desk should not use Vercel-specific database env names as the primary contract.
 - Production auth must be fully configured. Dev preview access is not allowed in production.
 

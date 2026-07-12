@@ -1,3 +1,5 @@
+"use client";
+
 import { cn } from "@/lib/cn";
 
 export interface BarChartDatum {
@@ -61,23 +63,29 @@ export function HorizontalBarChart({
               </div>
             )}
             <div
-              className="relative overflow-hidden rounded-full bg-white/[0.06]"
-              style={{ height: barHeight }}
+              className="group relative rounded-full outline-none"
+              tabIndex={0}
+              role="img"
+              aria-label={`${datum.label}: ${datum.value}${datum.meta ? `. ${datum.meta}` : ""}`}
             >
-              <div
-                className={cn(
-                  "absolute inset-y-0 left-0 rounded-full",
-                  animate && "ld-animate-grow-x"
-                )}
-                style={{
-                  width: `${percent}%`,
-                  background: `linear-gradient(90deg, ${color}cc, ${color})`,
-                  boxShadow: `0 0 12px ${color}44`,
-                  animationDelay: animate ? `${index * 80}ms` : undefined,
-                }}
-                aria-label={`${datum.label}: ${datum.value}`}
-                role="img"
-              />
+              <div className="relative overflow-hidden rounded-full bg-white/[0.06]" style={{ height: barHeight }}>
+                <div
+                  className={cn(
+                    "absolute inset-y-0 left-0 rounded-full transition-[filter,transform] duration-200 group-hover:brightness-125 group-focus-visible:brightness-125",
+                    animate && "ld-animate-grow-x"
+                  )}
+                  style={{
+                    width: `${percent}%`,
+                    background: `linear-gradient(90deg, ${color}cc, ${color})`,
+                    boxShadow: `0 0 12px ${color}44`,
+                    animationDelay: animate ? `${index * 80}ms` : undefined,
+                  }}
+                />
+              </div>
+              <span className="pointer-events-none absolute bottom-[calc(100%+8px)] left-1/2 z-20 w-max max-w-64 -translate-x-1/2 rounded-xl border border-white/12 bg-[#070b18]/95 px-3 py-2 text-xs font-semibold text-white opacity-0 shadow-xl backdrop-blur-xl transition group-hover:opacity-100 group-focus-visible:opacity-100">
+                {datum.label}: {datum.value.toLocaleString()}
+                {datum.meta ? <span className="ml-1 font-normal text-white/60">• {datum.meta}</span> : null}
+              </span>
             </div>
             {showMeta && datum.meta && (
               <span className="text-xs text-white/50">{datum.meta}</span>
@@ -129,8 +137,11 @@ export function VerticalBarChart({
         return (
           <div
             key={datum.label}
-            className="flex flex-1 flex-col items-center gap-2"
+            className="group relative flex flex-1 flex-col items-center gap-2 outline-none"
             style={{ maxWidth: barWidth }}
+            tabIndex={0}
+            role="img"
+            aria-label={`${datum.label}: ${datum.value}${datum.meta ? `. ${datum.meta}` : ""}`}
           >
             {showValues && (
               <span className="text-xs font-semibold text-white/80">
@@ -138,12 +149,11 @@ export function VerticalBarChart({
               </span>
             )}
             <div
-              className="relative w-full overflow-hidden rounded-t-xl bg-white/[0.06]"
-              style={{ minHeight: 80 }}
+              className="relative h-40 w-full overflow-hidden rounded-t-xl bg-white/[0.06]"
             >
               <div
                 className={cn(
-                  "absolute bottom-0 left-0 right-0 rounded-t-xl",
+                  "absolute bottom-0 left-0 right-0 rounded-t-xl transition-[filter] duration-200 group-hover:brightness-125 group-focus-visible:brightness-125",
                   animate && "ld-animate-grow-y"
                 )}
                 style={{
@@ -152,10 +162,12 @@ export function VerticalBarChart({
                   boxShadow: `0 -4px 20px ${color}33`,
                   animationDelay: animate ? `${index * 80}ms` : undefined,
                 }}
-                aria-label={`${datum.label}: ${datum.value}`}
-                role="img"
               />
             </div>
+            <span className="pointer-events-none absolute bottom-[calc(100%+8px)] left-1/2 z-20 w-max max-w-56 -translate-x-1/2 rounded-xl border border-white/12 bg-[#070b18]/95 px-3 py-2 text-xs font-semibold text-white opacity-0 shadow-xl backdrop-blur-xl transition group-hover:opacity-100 group-focus-visible:opacity-100">
+              {datum.label}: {datum.value.toLocaleString()}
+              {datum.meta ? <span className="ml-1 font-normal text-white/60">• {datum.meta}</span> : null}
+            </span>
             {showLabels && (
               <span className="min-w-0 truncate text-center text-xs font-medium text-white/70">
                 {datum.label}

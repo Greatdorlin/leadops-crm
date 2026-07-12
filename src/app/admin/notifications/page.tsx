@@ -3,6 +3,7 @@ import { AdminShell } from "@/components/admin/AdminShell";
 import { AdminSignOutButton } from "@/components/admin/AdminSignOutButton";
 import { NotificationInbox } from "@/components/admin/NotificationInbox";
 import { getAdminAccessContext } from "@/lib/admin";
+import { isLocalAdminPreviewEmail } from "@/lib/admin-access";
 import { appRoutes } from "@/lib/app-routes";
 import {
   countUnreadNotifications,
@@ -24,7 +25,7 @@ export default async function AdminNotificationsPage({
 }: {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
-  const { crmUser, role, accessLevel, actualAccessLevel, canSwitchAccessViews } =
+  const { session, crmUser, role, accessLevel, actualAccessLevel, canSwitchAccessViews } =
     await getAdminAccessContext(appRoutes.notifications);
   const params = await searchParams;
   const rawCategory = Array.isArray(params.category) ? params.category[0] : params.category;
@@ -32,15 +33,60 @@ export default async function AdminNotificationsPage({
   const category = parseNotificationCategory(rawCategory);
   const includeGlobal = hasRoleAtLeast({ accessLevel, role }, "admin");
 
-  const notificationPage = crmUser?.id
-    ? await listUserNotifications(crmUser.id, {
+  const isDevelopmentPreview = isLocalAdminPreviewEmail(session.user?.email);
+  const now = new Date();
+  const demoNotifications = [
+    {
+      id: "demo-notification-assigned",
+      type: "new_lead_assigned" as const,
+      channel: "in_app" as const,
+      recipientUserId: null,
+      leadId: "demo-lead-1",
+      title: "New lead assigned",
+      message: "Ada Okafor is ready for a first response.",
+      status: "sent" as const,
+      createdAt: new Date(now.getTime() - 12 * 60 * 1000).toISOString(),
+      readAt: null,
+    },
+    {
+      id: "demo-notification-qualified",
+      type: "lead_offer_qualified" as const,
+      channel: "in_app" as const,
+      recipientUserId: null,
+      leadId: "demo-lead-2",
+      title: "Offer qualified",
+      message: "A product-specific opportunity is ready for follow-up.",
+      status: "sent" as const,
+      createdAt: new Date(now.getTime() - 48 * 60 * 1000).toISOString(),
+      readAt: null,
+    },
+    {
+      id: "demo-notification-intake",
+      type: "webhook_lead_captured" as const,
+      channel: "in_app" as const,
+      recipientUserId: null,
+      leadId: null,
+      title: "Website lead captured",
+      message: "A mapped form submission created a new lead.",
+      status: "read" as const,
+      createdAt: new Date(now.getTime() - 3 * 60 * 60 * 1000).toISOString(),
+      readAt: new Date(now.getTime() - 2 * 60 * 60 * 1000).toISOString(),
+    },
+  ];
+  const allowedDemoTypes = new Set(notificationTypesForCategory(category));
+  const notificationPage = isDevelopmentPreview
+    ? demoNotifications.filter(
+        (notification) => category === "all" || allowedDemoTypes.has(notification.type),
+      )
+    : crmUser?.id
+      ? await listUserNotifications(crmUser.id, {
         includeGlobal,
         includeRead: true,
         types: notificationTypesForCategory(category),
         cursor: rawCursor,
         limit: PAGE_SIZE + 1,
       })
-    : [];
+      : [];
   const hasNextPage = notificationPage.length > PAGE_SIZE;
   const notifications = notificationPage.slice(0, PAGE_SIZE);
   const lastNotification = notifications.at(-1);
@@ -50,9 +96,11 @@ export default async function AdminNotificationsPage({
         id: lastNotification.id,
       })
     : null;
-  const unreadCount = crmUser?.id
-    ? await countUnreadNotifications(crmUser.id, { includeGlobal })
-    : 0;
+  const unreadCount = isDevelopmentPreview
+    ? demoNotifications.filter((notification) => !notification.readAt).length
+    : crmUser?.id
+      ? await countUnreadNotifications(crmUser.id, { includeGlobal })
+      : 0;
 
   return (
     <AdminShell

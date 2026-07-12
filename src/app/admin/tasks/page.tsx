@@ -7,13 +7,12 @@ import { ErrorState } from "@/components/admin/ErrorState";
 import { AdminSignOutButton } from "@/components/admin/AdminSignOutButton";
 import { AdminSelect } from "@/components/admin/AdminSelect";
 import { FilterBar } from "@/components/admin/FilterBar";
-import { MetricCard } from "@/components/admin/MetricCard";
 import { GlassSurface } from "@/components/admin/ui/GlassSurface";
 import { SmoothButton } from "@/components/admin/ui/SmoothButton";
-import { QueueStatChip } from "@/components/admin/QueueStatChip";
 import { SectionHeader } from "@/components/admin/SectionHeader";
 import { TaskQueueTable } from "@/components/admin/TaskQueueTable";
 import { getAdminAccessContext } from "@/lib/admin";
+import { isLocalAdminPreviewEmail } from "@/lib/admin-access";
 import { isDateToday, isTaskOverdue } from "@/lib/admin-insights";
 import { canAssignTasksToOthers } from "@/lib/admin-permissions";
 import { canEditLeads, canViewLeads } from "@/lib/crm/authz";
@@ -82,8 +81,18 @@ function buildDevelopmentTaskData() {
         assignedTo: "sarah@local.leadsdesk.test",
         createdBy: "preview@local.leadsdesk.test",
         createdAt: now.toISOString(),
+        lead: {
+          id: lead.id,
+          firstName: lead.firstName,
+          lastName: lead.lastName,
+          companyName: lead.companyName,
+          state: lead.state,
+          country: lead.country,
+          region: lead.region,
+          city: lead.city,
+        },
       },
-    ] as Awaited<ReturnType<typeof leadStore.listLeadTasks>>,
+    ] as Awaited<ReturnType<typeof leadStore.listLeadTaskQueue>>,
     leads: [lead] as Awaited<ReturnType<typeof leadStore.list>>,
   };
 }
@@ -139,16 +148,20 @@ export default async function AdminTasksPage({
   let pageData:
     | {
         users: Awaited<ReturnType<typeof leadStore.listCrmUsers>>;
-        tasks: Awaited<ReturnType<typeof leadStore.listLeadTasks>>;
+        tasks: Awaited<ReturnType<typeof leadStore.listLeadTaskQueue>>;
         leads: Awaited<ReturnType<typeof leadStore.list>>;
       }
     | null = null;
   let pageError: unknown = null;
 
-  try {
+  const usingDevelopmentDemoData = isLocalAdminPreviewEmail(session.user?.email);
+
+  if (usingDevelopmentDemoData) {
+    pageData = buildDevelopmentTaskData();
+  } else try {
     const [users, tasks, leads] = await Promise.all([
       leadStore.listCrmUsers(),
-      leadStore.listLeadTasks({
+      leadStore.listLeadTaskQueue({
         assignedTo:
           accessLevel === "sales_rep"
             ? session.user?.email ?? undefined
@@ -160,12 +173,12 @@ export default async function AdminTasksPage({
         overdueOnly: view === "overdue",
         dueAfter: view === "today" ? new Date(new Date().setHours(0, 0, 0, 0)) : undefined,
         dueBefore: view === "today" ? new Date(new Date().setHours(23, 59, 59, 999)) : undefined,
-        limit: 200,
+        limit: 100,
       }),
       leadStore.list(
         accessLevel === "sales_rep"
-          ? { assignedTo: session.user?.email ?? undefined, limit: 200 }
-          : { limit: 200 },
+          ? { assignedTo: session.user?.email ?? undefined, limit: 60 }
+          : { limit: 60 },
       ),
     ]);
 
@@ -181,12 +194,14 @@ export default async function AdminTasksPage({
   const errorCopy = pageError ? getCrmPageErrorCopy(pageError) : null;
   let leadCaptureCustomFields = [] as Awaited<ReturnType<typeof listCustomFields>>;
 
-  try {
-    leadCaptureCustomFields = (await listCustomFields()).filter(
-      (field) => field.showInForm && !field.archived,
-    );
-  } catch (error) {
-    logCrmPageError("tasks-custom-fields", error);
+  if (!usingDevelopmentDemoData) {
+    try {
+      leadCaptureCustomFields = (await listCustomFields()).filter(
+        (field) => field.showInForm && !field.archived,
+      );
+    } catch (error) {
+      logCrmPageError("tasks-custom-fields", error);
+    }
   }
 
   if (!pageData) {
@@ -229,7 +244,6 @@ export default async function AdminTasksPage({
           value: user.email,
         }));
   const leadNamesById = buildLeadDisplayNameMap(pageData.leads);
-  const leadStateById = Object.fromEntries(pageData.leads.map((lead) => [lead.id, lead.state]));
   const leadOptions = pageData.leads.map((lead) => ({
     value: lead.id,
     label: `${leadNamesById[lead.id] || "Lead"} • ${lead.state ? `${formatLeadStateLabel(lead.state)} • ` : ""}${lead.email || lead.whatsappNumber || "No contact yet"}`.trim(),
@@ -252,6 +266,17 @@ export default async function AdminTasksPage({
   const todayCount = pageData.tasks.filter((task) => isDateToday(task.dueAt) && !task.completedAt).length;
   const completedCount = pageData.tasks.filter((task) => Boolean(task.completedAt)).length;
   const linkedLeadCount = new Set(pageData.tasks.map((task) => task.leadId)).size;
+  const myOpenTaskCount = pageData.tasks.filter(
+    (task) =>
+      task.assignedTo?.toLowerCase() === session.user?.email?.toLowerCase() &&
+      !task.completedAt,
+  ).length;
+  const taskStats = [
+    { label: "Visible", value: pageData.tasks.length, icon: ListTodo, tone: "text-cyan-200 bg-cyan-300/10 border-cyan-300/20" },
+    { label: "Overdue", value: overdueCount, icon: CircleAlert, tone: "text-rose-200 bg-rose-300/10 border-rose-300/20" },
+    { label: "Today", value: todayCount, icon: AlarmClockCheck, tone: "text-amber-200 bg-amber-300/10 border-amber-300/20" },
+    { label: "Leads", value: linkedLeadCount, icon: Users2, tone: "text-emerald-200 bg-emerald-300/10 border-emerald-300/20" },
+  ];
 
   return (
     <AdminShell
@@ -336,71 +361,42 @@ export default async function AdminTasksPage({
           </div>
         </FilterBar>
 
-        <section className="space-y-6 ld-animate-fade-in-up">
-          <GlassSurface as="section" className="rounded-[28px] p-5 sm:p-6">
-            <div className="grid gap-3 sm:grid-cols-2 2xl:grid-cols-4">
-              <QueueStatChip
-                label="Visible tasks"
-                value={pageData.tasks.length}
-                hint="Tasks inside the current view."
-                icon={ListTodo}
-                tone="accent"
-              />
-              <QueueStatChip
-                label="Overdue"
-                value={overdueCount}
-                hint="Follow-ups that need a catch-up today."
-                icon={CircleAlert}
-                tone={overdueCount > 0 ? "danger" : "positive"}
-              />
-              <QueueStatChip
-                label="Due today"
-                value={todayCount}
-                hint="Tasks scheduled for today."
-                icon={AlarmClockCheck}
-                tone="warning"
-              />
-              <QueueStatChip
-                label="Linked leads"
-                value={linkedLeadCount}
-                hint="Lead records represented in this queue."
-                icon={Users2}
-              />
+        <section className="space-y-5 ld-animate-fade-in-up">
+          <GlassSurface as="section" className="rounded-[24px] p-2.5 sm:p-3">
+            <div className="grid grid-cols-2 gap-2 lg:grid-cols-4">
+              {taskStats.map((stat) => (
+                <div
+                  key={stat.label}
+                  className="flex min-w-0 items-center gap-3 rounded-[18px] border border-white/10 bg-white/[0.045] px-3 py-3"
+                >
+                  <span className={`inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-[13px] border ${stat.tone}`}>
+                    <stat.icon className="h-4 w-4" />
+                  </span>
+                  <div className="min-w-0">
+                    <p className="truncate text-[11px] font-semibold uppercase tracking-[0.14em] text-white/60">
+                      {stat.label}
+                    </p>
+                    <p className="mt-0.5 text-xl font-semibold tracking-[-0.04em] text-white">
+                      {stat.value}
+                    </p>
+                  </div>
+                </div>
+              ))}
             </div>
           </GlassSurface>
-
-          {canEditTasks ? (
-            <div id="task-action-center">
-              <AdminWorkspaceComposer
-                accessLevel={accessLevel}
-                leadOptions={leadOptions}
-                assignmentLeadOptions={assignmentLeadOptions}
-                assigneeOptions={assigneeOptions}
-                defaultAssignedTo={
-                  canAssignOtherTasks ? "" : session.user?.email ?? ""
-                }
-                defaultLeadId={defaultLeadId}
-                variant="compact"
-                leadCaptureCustomFields={leadCaptureCustomFields}
-                allowedModes={["task"]}
-              />
-            </div>
-          ) : null}
         </section>
 
-        <section className="grid gap-6 xl:grid-cols-12">
-          <div className="space-y-6 xl:col-span-8">
+        <section className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_300px]">
+          <div className="min-w-0">
             <GlassSurface as="section" className="rounded-[28px] p-5 sm:p-6 ld-animate-fade-in-up">
               <SectionHeader
                 eyebrow="Work queue"
                 title={formatTaskView(view)}
-                description="Every task stays tied to its lead so the next action and handoff remain obvious."
+                description="Tasks stay linked to their lead."
               />
               <div className="mt-4">
                 <TaskQueueTable
                   tasks={pageData.tasks}
-                  leadNamesById={leadNamesById}
-                  leadStateById={leadStateById}
                   emptyTitle="No tasks match this view"
                   emptyDescription="Create a task from the action center to keep follow-up work visible."
                   canCompleteTasks={canEditTasks}
@@ -409,63 +405,46 @@ export default async function AdminTasksPage({
             </GlassSurface>
           </div>
 
-          <div className="space-y-6 xl:col-span-4">
+          <div className="min-w-0">
             <GlassSurface as="section" className="rounded-[28px] p-5 ld-animate-fade-in-up">
               <SectionHeader
                 eyebrow={accessLevel === "sales_rep" ? "My task health" : "Queue health"}
-                title={accessLevel === "sales_rep" ? "Today at a glance" : "Task coverage"}
-                description={
-                  accessLevel === "sales_rep"
-                    ? "The small numbers that tell you what to clear first."
-                    : "Quick signals for balancing the current follow-up load."
-                }
+                title="At a glance"
               />
-              <div className="mt-4 grid gap-3">
-                <MetricCard
-                  label="Open tasks"
-                  value={openTasks.length}
-                  supporting="Tasks still waiting to be closed."
-                />
-                <MetricCard
-                  label="Completed"
-                  value={completedCount}
-                  supporting="Tasks already finished in this view."
-                  tone="positive"
-                />
-                <MetricCard
-                  label="My open tasks"
-                  value={
-                    pageData.tasks.filter(
-                      (task) =>
-                        task.assignedTo?.toLowerCase() === session.user?.email?.toLowerCase() &&
-                        !task.completedAt,
-                    ).length
-                  }
-                  supporting="Visible open tasks assigned to you."
-                />
-                <MetricCard
-                  label="Overdue"
-                  value={overdueCount}
-                  supporting="Work that needs immediate attention."
-                  tone="danger"
-                />
-              </div>
-            </GlassSurface>
-
-            <GlassSurface as="section" className="rounded-[28px] p-5 ld-animate-fade-in-up">
-              <SectionHeader
-                eyebrow="Completed work"
-                title="Recently closed"
-                description="A quick count so the queue doesn't feel endless."
-              />
-              <div className="mt-4 rounded-[22px] border border-white/10 bg-white/[0.05] px-4 py-3 text-sm text-white/70">
-                {completedCount > 0
-                  ? `${completedCount} task${completedCount === 1 ? "" : "s"} already completed in this view.`
-                  : "No completed tasks in this view yet."}
+              <div className="mt-4 divide-y divide-white/10 overflow-hidden rounded-[20px] border border-white/10 bg-white/[0.04]">
+                {[
+                  { label: "Open", value: openTasks.length },
+                  { label: "Mine", value: myOpenTaskCount },
+                  { label: "Completed", value: completedCount },
+                  { label: "Overdue", value: overdueCount, danger: overdueCount > 0 },
+                ].map((item) => (
+                  <div key={item.label} className="flex items-center justify-between gap-4 px-4 py-3.5">
+                    <span className="text-sm text-white/68">{item.label}</span>
+                    <span className={item.danger ? "font-semibold text-rose-200" : "font-semibold text-white"}>
+                      {item.value}
+                    </span>
+                  </div>
+                ))}
               </div>
             </GlassSurface>
           </div>
         </section>
+
+        {canEditTasks ? (
+          <div id="task-action-center" className="scroll-mt-24">
+            <AdminWorkspaceComposer
+              accessLevel={accessLevel}
+              leadOptions={leadOptions}
+              assignmentLeadOptions={assignmentLeadOptions}
+              assigneeOptions={assigneeOptions}
+              defaultAssignedTo={canAssignOtherTasks ? "" : session.user?.email ?? ""}
+              defaultLeadId={defaultLeadId}
+              variant="compact"
+              leadCaptureCustomFields={leadCaptureCustomFields}
+              allowedModes={["task"]}
+            />
+          </div>
+        ) : null}
       </div>
     </AdminShell>
   );

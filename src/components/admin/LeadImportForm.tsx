@@ -14,15 +14,19 @@ type FailedRow = { rowNumber: number; error: string };
 
 export function LeadImportForm({
   assigneeOptions,
+  initialSourceSystem = "generic_csv",
 }: {
   assigneeOptions: Array<{ label: string; value: string }>;
+  initialSourceSystem?: CrmMigrationSource;
 }) {
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [sourceSystem, setSourceSystem] = useState<CrmMigrationSource>("generic_csv");
+  const [sourceSystem, setSourceSystem] = useState<CrmMigrationSource>(initialSourceSystem);
   const [sourceFileName, setSourceFileName] = useState("");
   const [assignedTo, setAssignedTo] = useState("");
-  const [sourceDetail, setSourceDetail] = useState("crm_migration");
+  const [sourceDetail, setSourceDetail] = useState(
+    initialSourceSystem === "generic_csv" ? "crm_migration" : `${initialSourceSystem}_migration`,
+  );
   const [csvText, setCsvText] = useState("");
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState("");
@@ -202,7 +206,9 @@ export function LeadImportForm({
           <AdminSelect
             value={sourceSystem}
             onChange={(event) => {
-              setSourceSystem(event.target.value as CrmMigrationSource);
+              const nextSource = event.target.value as CrmMigrationSource;
+              setSourceSystem(nextSource);
+              setSourceDetail(nextSource === "generic_csv" ? "crm_migration" : `${nextSource}_migration`);
               resetStagedResult();
             }}
             className="h-11"

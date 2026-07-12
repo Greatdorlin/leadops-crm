@@ -8,6 +8,7 @@ import { ConnectorCatalog } from "@/components/admin/ConnectorCatalog";
 import { MetricCard } from "@/components/admin/MetricCard";
 import { SectionHeader } from "@/components/admin/SectionHeader";
 import { getAdminAccessContext } from "@/lib/admin";
+import { isLocalAdminPreviewEmail } from "@/lib/admin-access";
 import { canManageIntegrations } from "@/lib/crm/authz";
 import {
   formatIntegrationProviderLabel,
@@ -138,7 +139,7 @@ function inferFallbackStatus(provider: IntegrationProvider): IntegrationRecord["
 }
 
 export default async function AdminIntegrationsPage() {
-  const { role, accessLevel, actualAccessLevel, canSwitchAccessViews, permissions } =
+  const { session, role, accessLevel, actualAccessLevel, canSwitchAccessViews, permissions } =
     await getAdminAccessContext(appRoutes.integrations);
   if (!canManageIntegrations(accessLevel, role, permissions)) {
     redirect(appRoutes.dashboard);
@@ -151,7 +152,9 @@ export default async function AdminIntegrationsPage() {
     | null = null;
   let pageError: unknown = null;
 
-  try {
+  if (isLocalAdminPreviewEmail(session.user?.email)) {
+    pageData = { integrations: [], jobs: [] };
+  } else try {
     const [integrations, jobs] = await Promise.all([
       leadStore.listIntegrations(),
       leadStore.listSyncJobs({ limit: 20 }),

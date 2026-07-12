@@ -1,7 +1,6 @@
 "use client";
 
-import { startTransition, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRef, useState } from "react";
 import { CalendarClock, Check, ChevronDown, LoaderCircle, X } from "lucide-react";
 import { cn } from "@/lib/cn";
 import {
@@ -47,7 +46,6 @@ export function LeadFollowUpQuickChange({
   initialLabel: string;
   leadId: string;
 }) {
-  const router = useRouter();
   const buttonRef = useRef<HTMLButtonElement>(null);
   const [followUpAt, setFollowUpAt] = useState(initialFollowUpAt);
   const [savedFollowUpAt, setSavedFollowUpAt] = useState(initialFollowUpAt);
@@ -96,7 +94,6 @@ export function LeadFollowUpQuickChange({
       setMessage(nextValue ? "Follow-up scheduled." : "Follow-up cleared.");
       setIsSaving(false);
       setIsOpen(false);
-      startTransition(() => router.refresh());
     } catch {
       setFollowUpAt(previous);
       setExactValue(toLocalDateTimeInputValue(previous));

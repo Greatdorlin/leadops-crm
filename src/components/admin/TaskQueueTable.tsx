@@ -3,11 +3,11 @@ import { CheckCircle2, Clock3 } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { formatCrmDateTime, formatLeadStateLabel } from "@/lib/crm/formatters";
 import { appRoutes } from "@/lib/app-routes";
-import type { LeadTaskRecord } from "@/lib/crm/types";
+import type { LeadTaskQueueRecord } from "@/lib/storage/types";
 import { EmptyState } from "./EmptyState";
 import { LeadTaskCompleteButton } from "./LeadTaskCompleteButton";
 
-function getTaskState(task: LeadTaskRecord) {
+function getTaskState(task: LeadTaskQueueRecord) {
   if (task.completedAt) {
     return {
       label: "Completed",
@@ -34,17 +34,22 @@ function getTaskState(task: LeadTaskRecord) {
   };
 }
 
+function getTaskLeadName(task: LeadTaskQueueRecord) {
+  const personName = `${task.lead.firstName} ${task.lead.lastName}`.trim();
+  return personName || task.lead.companyName || "Lead";
+}
+
+function getTaskLeadLocation(task: LeadTaskQueueRecord) {
+  return task.lead.state || task.lead.city || task.lead.region || task.lead.country;
+}
+
 export function TaskQueueTable({
   tasks,
-  leadNamesById,
-  leadStateById = {},
   emptyTitle,
   emptyDescription,
   canCompleteTasks = true,
 }: {
-  tasks: LeadTaskRecord[];
-  leadNamesById: Record<string, string>;
-  leadStateById?: Record<string, string | null | undefined>;
+  tasks: LeadTaskQueueRecord[];
   emptyTitle: string;
   emptyDescription: string;
   canCompleteTasks?: boolean;
@@ -58,6 +63,7 @@ export function TaskQueueTable({
       {tasks.map((task) => {
         const state = getTaskState(task);
         const StateIcon = state.icon;
+        const leadLocation = getTaskLeadLocation(task);
 
         return (
           <article
@@ -86,10 +92,10 @@ export function TaskQueueTable({
               <dl className="grid gap-3 text-sm">
                 <div>
                   <dt className="text-[11px] font-semibold uppercase tracking-[0.14em] text-white/70">Lead</dt>
-                  <dd className="mt-1 text-white">{leadNamesById[task.leadId] || "Lead"}</dd>
+                  <dd className="mt-1 text-white">{getTaskLeadName(task)}</dd>
                   <p className="mt-1 text-xs uppercase tracking-[0.14em] text-white/70">
-                    {leadStateById[task.leadId]
-                      ? formatLeadStateLabel(leadStateById[task.leadId])
+                    {leadLocation
+                      ? formatLeadStateLabel(leadLocation)
                       : "Region not captured yet"}
                   </p>
                 </div>

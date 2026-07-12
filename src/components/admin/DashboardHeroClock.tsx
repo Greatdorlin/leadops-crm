@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
 
 function formatDashboardDate(date: Date, timeZone: string) {
-  return new Intl.DateTimeFormat(undefined, {
+  return new Intl.DateTimeFormat("en-US", {
     weekday: "short",
     month: "short",
     day: "numeric",
@@ -31,13 +31,15 @@ function resolveGreeting(date: Date, timeZone: string) {
 }
 
 export function DashboardHeroClock({
+  initialNowIso,
   name,
   nameClassName,
 }: {
+  initialNowIso: string;
   name: string;
   nameClassName?: string;
 }) {
-  const [now, setNow] = useState<Date>(() => new Date());
+  const [now, setNow] = useState<Date>(() => new Date(initialNowIso));
   const isHydrated = useSyncExternalStore(
     () => () => {},
     () => true,

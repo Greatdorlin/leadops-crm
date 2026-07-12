@@ -14,6 +14,7 @@ import {
 import { cn } from "@/lib/cn";
 import type { AdminAccessLevel } from "@/lib/admin-permissions";
 import type { CustomFieldDefinitionWithOptions } from "@/lib/crm/custom-field-values";
+import type { CrmMigrationSource } from "@/lib/migrations/sources";
 import {
   WORKSPACE_COMPOSER_OPEN_EVENT,
   type WorkspaceComposerMode,
@@ -56,6 +57,7 @@ export function AdminWorkspaceComposer({
   variant = "hero",
   leadCaptureCustomFields = [],
   leadCaptureStageOptions,
+  initialMigrationSource,
   allowedModes,
 }: {
   accessLevel: AdminAccessLevel;
@@ -79,6 +81,7 @@ export function AdminWorkspaceComposer({
     label: string;
     stageId?: string;
   }>;
+  initialMigrationSource?: CrmMigrationSource;
   allowedModes?: WorkspaceComposerMode[];
 }) {
   const defaultModes: WorkspaceComposerMode[] =
@@ -191,7 +194,12 @@ export function AdminWorkspaceComposer({
         "Bulk lead uploads from outside tools.",
         "Cleaning up older lead lists quickly.",
       ],
-      body: <LeadImportForm assigneeOptions={assigneeOptions} />,
+      body: (
+        <LeadImportForm
+          assigneeOptions={assigneeOptions}
+          initialSourceSystem={initialMigrationSource}
+        />
+      ),
     },
   } satisfies Record<
     WorkspaceComposerMode,

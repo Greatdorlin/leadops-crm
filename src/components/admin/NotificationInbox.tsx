@@ -62,7 +62,13 @@ export function NotificationInbox({
 
   return (
     <div className="space-y-4">
-      <div className="ld-glass-card ld-glass-soft flex flex-col gap-3 rounded-[24px] p-2 sm:flex-row sm:items-center sm:justify-between">
+      <div className="ld-glass-card ld-glass-soft flex flex-col gap-3 rounded-[24px] p-3 sm:p-4">
+        <div className="flex items-center justify-between gap-3 px-1">
+          <h2 className="text-base font-semibold tracking-[-0.02em] text-white">Recent activity</h2>
+          <span className="inline-flex w-fit shrink-0 rounded-full border border-white/12 bg-white/[0.07] px-3 py-1.5 text-xs font-semibold text-white/76">
+            {unreadCount} unread
+          </span>
+        </div>
         <nav className="flex min-w-0 gap-1 overflow-x-auto" aria-label="Notification categories">
           {notificationCategoryOptions.map((category) => {
             const isActive = category.value === activeCategory;
@@ -87,9 +93,6 @@ export function NotificationInbox({
             );
           })}
         </nav>
-        <span className="mx-2 inline-flex w-fit shrink-0 rounded-full border border-white/12 bg-white/[0.07] px-3 py-1.5 text-xs font-semibold text-white/76">
-          {unreadCount} unread
-        </span>
       </div>
 
       {notifications.length === 0 ? (

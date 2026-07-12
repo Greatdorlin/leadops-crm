@@ -25,7 +25,7 @@ const availabilityMeta: Record<ConnectorAvailability, { label: string; className
 
 function connectorHref(id: string, availability: ConnectorAvailability) {
   if (availability === "mapped_import") {
-    return `${appRoutes.leads}?composer=import#lead-action-center`;
+    return `${appRoutes.leads}?composer=import&migrationSource=${encodeURIComponent(id)}#lead-action-center`;
   }
 
   const routes: Record<string, string> = {

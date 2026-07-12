@@ -2,13 +2,15 @@ import type { ReactNode } from "react";
 import { AdminAuthorizationProvider } from "@/components/admin/AdminAuthorizationProvider";
 import { AdminWorkspaceSettingsProvider } from "@/components/admin/AdminWorkspaceSettingsProvider";
 import { getAdminRequestContext } from "@/lib/admin";
+import { isLocalAdminPreviewEmail } from "@/lib/admin-access";
+import { resolveStoredWorkspaceSettings } from "@/lib/crm/workspace-settings";
 import { getCompanySettings } from "@/lib/crm/workspace-settings-server";
 
 export default async function AdminLayout({ children }: { children: ReactNode }) {
-  const [settings, authorization] = await Promise.all([
-    getCompanySettings(),
-    getAdminRequestContext(),
-  ]);
+  const authorization = await getAdminRequestContext();
+  const settings = isLocalAdminPreviewEmail(authorization?.session.user?.email)
+    ? resolveStoredWorkspaceSettings(null)
+    : await getCompanySettings();
 
   return (
     <AdminWorkspaceSettingsProvider initialSettings={settings}>

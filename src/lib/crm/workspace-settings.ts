@@ -58,7 +58,11 @@ export const DASHBOARD_WIDGET_KEYS = [
   "recent_intake",
   "team_performance",
   "target_progress",
+  "pipeline_overview",
   "my_tasks",
+  "lead_trend",
+  "recent_leads",
+  "quick_actions",
 ] as const;
 
 export const NAVIGATION_ITEM_KEYS = [

@@ -101,7 +101,11 @@ export function DonutChart({
               style={{
                 animationDelay: animate ? `${index * 120}ms` : undefined,
               }}
-            />
+              tabIndex={0}
+              aria-label={`${datum.label}: ${datum.value.toLocaleString()} (${(segmentPercent * 100).toFixed(1)}%)`}
+            >
+              <title>{`${datum.label}: ${datum.value.toLocaleString()} (${(segmentPercent * 100).toFixed(1)}%)`}</title>
+            </circle>
           );
         })}
       </svg>

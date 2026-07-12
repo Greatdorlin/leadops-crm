@@ -7,15 +7,17 @@ import { LeadStageManager } from "@/components/admin/LeadStageManager";
 import { MetricCard } from "@/components/admin/MetricCard";
 import { SectionHeader } from "@/components/admin/SectionHeader";
 import { getAdminAccessContext } from "@/lib/admin";
+import { isLocalAdminPreviewEmail } from "@/lib/admin-access";
 import { appRoutes } from "@/lib/app-routes";
 import { canManageLeadStages } from "@/lib/crm/authz";
 import { listLeadStages } from "@/lib/crm/lead-stages-admin";
 import { getCrmPageErrorCopy, logCrmPageError } from "@/lib/crm/runtime";
+import { DEFAULT_LEADS_DESK_STAGE_ROWS } from "@/lib/db/defaults";
 
 export const dynamic = "force-dynamic";
 
 export default async function AdminLeadStagesPage() {
-  const { role, accessLevel, actualAccessLevel, canSwitchAccessViews, permissions } =
+  const { session, role, accessLevel, actualAccessLevel, canSwitchAccessViews, permissions } =
     await getAdminAccessContext(appRoutes.settingsStages);
 
   if (!canManageLeadStages({ accessLevel, permissions, role })) {
@@ -25,7 +27,16 @@ export default async function AdminLeadStagesPage() {
   let stages = null;
   let pageError: unknown = null;
 
-  try {
+  if (isLocalAdminPreviewEmail(session.user?.email)) {
+    const timestamp = new Date().toISOString();
+    stages = DEFAULT_LEADS_DESK_STAGE_ROWS.map((stage) => ({
+      id: `demo-stage-${stage.key}`,
+      ...stage,
+      archived: false,
+      createdAt: timestamp,
+      updatedAt: timestamp,
+    }));
+  } else try {
     stages = await listLeadStages({ includeArchived: true });
   } catch (error) {
     pageError = error;

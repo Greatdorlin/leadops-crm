@@ -22,7 +22,11 @@ const widgetLabels: Record<DashboardWidgetKey, string> = {
   recent_intake: "Recent Intake",
   team_performance: "Team Performance",
   target_progress: "Target Progress",
+  pipeline_overview: "Pipeline Overview",
   my_tasks: "My Tasks",
+  lead_trend: "Lead and Revenue Trend",
+  recent_leads: "Recent Leads",
+  quick_actions: "Quick Actions",
 };
 
 export function DashboardSettingsManager({

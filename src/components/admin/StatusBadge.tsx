@@ -22,14 +22,17 @@ const fallbackStyle = { bg: "bg-white/10", border: "border-white/20", text: "tex
 export function StatusBadge({
   status,
   label,
+  color,
   className,
 }: {
   status: CrmStatus;
   label?: string;
+  color?: string | null;
   className?: string;
 }) {
   const style = statusStyleMap[status] ?? fallbackStyle;
   const isActive = status === "converted" || status === "qualified";
+  const customColor = color && /^#[0-9a-f]{6}$/i.test(color) ? color : null;
 
   return (
     <span
@@ -40,9 +43,22 @@ export function StatusBadge({
         style.text,
         className,
       )}
-      style={isActive && style.glow ? { boxShadow: style.glow } : undefined}
+      style={
+        customColor
+          ? {
+              backgroundColor: `color-mix(in srgb, ${customColor} 15%, transparent)`,
+              borderColor: `color-mix(in srgb, ${customColor} 42%, transparent)`,
+              boxShadow: `0 0 12px color-mix(in srgb, ${customColor} 18%, transparent)`,
+            }
+          : isActive && style.glow
+            ? { boxShadow: style.glow }
+            : undefined
+      }
     >
-      <span className={cn("h-1.5 w-1.5 shrink-0 rounded-full", style.dot)} />
+      <span
+        className={cn("h-1.5 w-1.5 shrink-0 rounded-full", style.dot)}
+        style={customColor ? { backgroundColor: customColor } : undefined}
+      />
       {label || crmLabelize(status)}
     </span>
   );

@@ -20,9 +20,9 @@ import { SearchInput } from "@/components/admin/SearchInput";
 import { SourceBadge } from "@/components/admin/SourceBadge";
 import { StatusBadge } from "@/components/admin/StatusBadge";
 import { AdminAccessViewSwitcher } from "@/components/admin/AdminAccessViewSwitcher";
-import { TimelineItem } from "@/components/admin/TimelineItem";
 import { cn } from "@/lib/cn";
 import { getAdminAccessContext } from "@/lib/admin";
+import { isLocalAdminPreviewEmail } from "@/lib/admin-access";
 import {
   isDateToday,
   isTaskOverdue,
@@ -38,11 +38,10 @@ import { buildLeadDisplayNameMap } from "@/lib/crm/lead-identity";
 import {
   crmLabelize,
   formatCrmDateTime,
-  formatLeadEventLabel,
   formatLeadStateLabel,
-  formatLeadSourceLabel,
 } from "@/lib/crm/formatters";
 import { listLeadIntakeEvents } from "@/lib/crm/intake-runtime";
+import { listLeadStages } from "@/lib/crm/lead-stages-admin";
 import { buildAffiliateDashboardSummary } from "@/lib/crm/affiliate-dashboard";
 import { getCrmPageErrorCopy, logCrmPageError } from "@/lib/crm/runtime";
 import {
@@ -55,6 +54,7 @@ import {
   DASHBOARD_WIDGET_KEYS,
   resolveDashboardConfig,
   resolveDashboardWidgetOrder,
+  resolveStoredWorkspaceSettings,
   type DashboardWidgetKey,
 } from "@/lib/crm/workspace-settings";
 import { getCompanySettings } from "@/lib/crm/workspace-settings-server";
@@ -62,22 +62,6 @@ import type { CrmStatus, LeadRecord } from "@/lib/crm/types";
 import { leadStore } from "@/lib/storage";
 
 export const dynamic = "force-dynamic";
-
-const crmOptions = [
-  "all",
-  "new",
-  "contacted",
-  "qualified",
-  "consultation_booked",
-  "application_started",
-  "documents_pending",
-  "payment_pending",
-  "converted",
-  "lost",
-  "unresponsive",
-  "unqualified",
-  "closed",
-] as const;
 
 const sourceOptions = [
   "all",
@@ -98,38 +82,6 @@ const priorityOptions = ["all", "low", "medium", "high", "urgent"] as const;
 function readStageFilter(input: Record<string, string | string[] | undefined>) {
   const raw = Array.isArray(input.stage) ? input.stage[0] : input.stage;
   return raw?.trim() ? raw : undefined;
-}
-
-function eventTone(eventType: string) {
-  if (eventType.includes("failed") || eventType.includes("lost")) {
-    return "danger" as const;
-  }
-
-  if (eventType.includes("qualified") || eventType.includes("converted")) {
-    return "success" as const;
-  }
-
-  if (eventType.includes("task") || eventType.includes("note")) {
-    return "accent" as const;
-  }
-
-  if (eventType.includes("status")) {
-    return "warning" as const;
-  }
-
-  return "neutral" as const;
-}
-
-async function listDashboardLeadEvents(leadId: string) {
-  try {
-    return await leadStore.listLeadEvents(leadId);
-  } catch (error) {
-    console.warn("[crm:dashboard] Activity feed unavailable for lead.", {
-      leadId,
-      error,
-    });
-    return [];
-  }
 }
 
 function safeNumber(value: number) {
@@ -209,10 +161,6 @@ function getFirstNameLabel(value?: string | null) {
   return trimmed.split(/\s+/)[0] ?? trimmed;
 }
 
-function resolveLeadStageBadge(stageId?: string | null): CrmStatus {
-  return (stageId ?? "new") as CrmStatus;
-}
-
 function createDemoLead(
   index: number,
   overrides: Partial<LeadRecord> & {
@@ -247,7 +195,7 @@ function createDemoLead(
     postalCode: null,
     companyName: null,
     sourceId: null,
-    stageId: overrides.crmStatus,
+    stageId: `demo-stage-${overrides.crmStatus}`,
     campaignId: null,
     campaignLabel: null,
     assignedUserId: null,
@@ -462,6 +410,24 @@ function buildDevelopmentDashboardData() {
     isActive: true,
     archived: false,
   } as Awaited<ReturnType<typeof getActiveGlobalSalesTarget>>;
+  const timestamp = now.toISOString();
+  const stages = [
+    { id: "demo-stage-new", key: "new", name: "New", color: "#60a5fa", sortOrder: 0, isWon: false, isLost: false, archived: false, createdAt: timestamp, updatedAt: timestamp },
+    { id: "demo-stage-contacted", key: "contacted", name: "Contacted", color: "#f59e0b", sortOrder: 1, isWon: false, isLost: false, archived: false, createdAt: timestamp, updatedAt: timestamp },
+    { id: "demo-stage-qualified", key: "qualified", name: "Qualified", color: "#10b981", sortOrder: 2, isWon: false, isLost: false, archived: false, createdAt: timestamp, updatedAt: timestamp },
+    { id: "demo-stage-converted", key: "converted", name: "Converted", color: "#22c55e", sortOrder: 3, isWon: true, isLost: false, archived: false, createdAt: timestamp, updatedAt: timestamp },
+    { id: "demo-stage-lost", key: "lost", name: "Lost", color: "#f43f5e", sortOrder: 4, isWon: false, isLost: true, archived: false, createdAt: timestamp, updatedAt: timestamp },
+  ] as Awaited<ReturnType<typeof listLeadStages>>;
+  const demoLeadTrend = [2, 3, 1, 4, 5, 3, 6, 4, 7, 5, 8, 6, 9, 7];
+  const trend = demoLeadTrend.map((leadCount, index) => {
+    const date = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+    date.setUTCDate(date.getUTCDate() - (demoLeadTrend.length - index - 1));
+    return {
+      date: date.toISOString().slice(0, 10),
+      leads: leadCount,
+      wonValue: index % 4 === 2 ? (index + 2) * 85000 : index % 5 === 0 ? 125000 : 0,
+    };
+  }) as Awaited<ReturnType<typeof leadStore.getDashboardTrend>>;
 
   return {
     leads,
@@ -471,6 +437,8 @@ function buildDevelopmentDashboardData() {
     integrations: [] as Awaited<ReturnType<typeof leadStore.listIntegrations>>,
     intakeEvents,
     activeTarget,
+    stages,
+    trend,
   };
 }
 
@@ -517,12 +485,20 @@ export default async function AdminPage({
         integrations: Awaited<ReturnType<typeof leadStore.listIntegrations>>;
         intakeEvents: Awaited<ReturnType<typeof listLeadIntakeEvents>>;
         activeTarget: Awaited<ReturnType<typeof getActiveGlobalSalesTarget>>;
+        stages: Awaited<ReturnType<typeof listLeadStages>>;
+        trend: Awaited<ReturnType<typeof leadStore.getDashboardTrend>>;
       }
     | null = null;
   let usingDevelopmentDemoData = false;
 
-  try {
-    const [leads, stats, salesAggregate, tasks, users, integrations, intakeEvents, activeTarget] = await Promise.all([
+  if (isLocalAdminPreviewEmail(session.user?.email)) {
+    pageData = {
+      ...buildDevelopmentDashboardData(),
+      salesAggregate: null,
+    };
+    usingDevelopmentDemoData = true;
+  } else try {
+    const [leads, stats, salesAggregate, tasks, users, integrations, intakeEvents, activeTarget, stages, trend] = await Promise.all([
       leadStore.list({
         ...scopedFilters,
         limit: 120,
@@ -539,6 +515,8 @@ export default async function AdminPage({
       showTechnicalSummary ? leadStore.listIntegrations() : Promise.resolve([]),
       showIntakeFeed ? listLeadIntakeEvents({ limit: 8 }) : Promise.resolve([]),
       getActiveGlobalSalesTarget(),
+      listLeadStages(),
+      leadStore.getDashboardTrend(scopedFilters, 14),
     ]);
 
     pageData = {
@@ -550,6 +528,8 @@ export default async function AdminPage({
       integrations,
       intakeEvents,
       activeTarget,
+      stages,
+      trend,
     };
   } catch (error) {
     pageError = error;
@@ -599,7 +579,7 @@ export default async function AdminPage({
     );
   }
 
-  const { leads, stats, salesAggregate, tasks, users, integrations, intakeEvents, activeTarget } = pageData;
+  const { leads, stats, salesAggregate, tasks, users, integrations, intakeEvents, activeTarget, stages, trend } = pageData;
   const openTasks = tasks.filter((task) => !task.completedAt);
   const leadNameById = buildLeadDisplayNameMap(leads);
   const focusedTasks = openTasks
@@ -617,35 +597,6 @@ export default async function AdminPage({
   const leadStateById = Object.fromEntries(
     leads.map((lead) => [lead.id, lead.state]),
   );
-  const activityFeed = usingDevelopmentDemoData
-    ? leads.slice(0, 5).map((lead, index) => ({
-        lead,
-        event: {
-          id: `demo-event-${index + 1}`,
-          leadId: lead.id,
-          eventType: index === 0 ? "lead_created" : index === 1 ? "stage_changed" : "follow_up_due",
-          eventData:
-            index === 1
-              ? { to: formatLeadStateLabel(lead.state) }
-              : { preview: index === 0 ? "New demo lead captured." : "Follow-up queued for today." },
-          createdBy: lead.assignedTo ?? "Demo workspace",
-          createdAt: lead.lastActivityAt,
-        },
-      }))
-    : (
-        await Promise.all(
-          leads.slice(0, 8).map(async (lead) => {
-            const events = await listDashboardLeadEvents(lead.id);
-            return events.slice(0, 3).map((event) => ({
-              event,
-              lead,
-            }));
-          }),
-        )
-      )
-        .flat()
-        .sort((left, right) => new Date(right.event.createdAt).getTime() - new Date(left.event.createdAt).getTime())
-        .slice(0, 6);
   const hasFilters = Boolean(
     filters.search ||
       (selectedStage && selectedStage !== "all") ||
@@ -658,14 +609,22 @@ export default async function AdminPage({
     .sort((left, right) => new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime())
     .slice(0, 5);
   const recentLeadNameById = buildLeadDisplayNameMap(recentLeads);
-  const activityLeadNameById = buildLeadDisplayNameMap(activityFeed.map(({ lead }) => lead));
-  const workspaceSettings = await getCompanySettings();
+  const workspaceSettings = usingDevelopmentDemoData
+    ? resolveStoredWorkspaceSettings(null)
+    : await getCompanySettings();
   const dashboardConfig = resolveDashboardConfig(workspaceSettings.dashboard);
   const visibleDashboardWidgetKeys = resolveDashboardWidgetOrder(
     DASHBOARD_WIDGET_KEYS.map((id) => ({ id })),
     dashboardConfig,
   ).map((item) => item.id);
   const visibleDashboardWidgetSet = new Set<DashboardWidgetKey>(visibleDashboardWidgetKeys);
+  const salesDashboardWidgetKeys = visibleDashboardWidgetKeys.filter(
+    (key) => key !== "my_tasks" && key !== "recent_leads" && key !== "quick_actions",
+  );
+  const nextActionWidgetOrder = visibleDashboardWidgetKeys.filter(
+    (key) => key === "my_tasks" || key === "recent_leads" || key === "quick_actions",
+  );
+  const stageById = new Map(stages.map((stage) => [stage.id, stage]));
   const salesDashboardSummary = salesAggregate
     ? mergeSalesDashboardSummary(salesAggregate, { intakeEvents, activeTarget })
     : buildSalesDashboardSummary({
@@ -718,7 +677,9 @@ export default async function AdminPage({
               </span>
               <span className="text-xs font-semibold uppercase tracking-[0.14em] text-white/70">Filters</span>
               {selectedStage && selectedStage !== "all" ? (
-                <span className="rounded-full border border-white/10 bg-white/[0.06] px-2.5 py-0.5 text-xs text-white/80">{crmLabelize(selectedStage)}</span>
+                <span className="rounded-full border border-white/10 bg-white/[0.06] px-2.5 py-0.5 text-xs text-white/80">
+                  {stages.find((stage) => stage.id === selectedStage)?.name ?? crmLabelize(selectedStage)}
+                </span>
               ) : null}
               {filters.source && filters.source !== "all" ? (
                 <span className="rounded-full border border-white/10 bg-white/[0.06] px-2.5 py-0.5 text-xs text-white/80">{crmLabelize(filters.source)}</span>
@@ -738,9 +699,10 @@ export default async function AdminPage({
                   defaultValue={selectedStage ?? "all"}
                   className="h-11"
                 >
-                  {crmOptions.map((option) => (
-                    <option key={option} value={option}>
-                      {crmLabelize(option)}
+                  <option value="all">All stages</option>
+                  {stages.filter((stage) => !stage.archived).map((stage) => (
+                    <option key={stage.id} value={stage.id}>
+                      {stage.name}
                     </option>
                   ))}
                 </AdminSelect>
@@ -798,7 +760,11 @@ export default async function AdminPage({
         <GlassSurface as="section" intensity="soft" border={true} className="px-4 py-5 sm:px-6 sm:py-6 ld-animate-fade-in-up">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
             <div className="max-w-3xl">
-              <DashboardHeroClock name={welcomeName} nameClassName="text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.3)]" />
+              <DashboardHeroClock
+                initialNowIso={new Date().toISOString()}
+                name={welcomeName}
+                nameClassName="text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.3)]"
+              />
               <p className="mt-2 text-sm leading-6 text-white/70">
                 Here&apos;s what needs attention today.
               </p>
@@ -839,7 +805,7 @@ export default async function AdminPage({
             summary={affiliateDashboardSummary}
             currency={salesDashboardSummary.target?.currency ?? workspaceSettings.globalCurrency}
           />
-        ) : accessLevel === "sales_rep" ? null : (
+        ) : accessLevel === "sales_rep" || salesDashboardWidgetKeys.length === 0 ? null : (
           <>
             <SectionHeader
               eyebrow="Performance"
@@ -849,6 +815,16 @@ export default async function AdminPage({
             <div className="ld-animate-fade-in-up">
               <SalesCommandOverview
                 summary={salesDashboardSummary}
+                stageDefinitions={stages
+                  .filter((stage) => !stage.archived)
+                  .map((stage) => ({
+                    id: stage.id,
+                    key: stage.key,
+                    name: stage.name,
+                    color: stage.color,
+                    sortOrder: stage.sortOrder,
+                  }))}
+                trendData={trend}
                 visibleWidgets={visibleDashboardWidgetKeys}
                 workspaceCurrency={workspaceSettings.globalCurrency}
               />
@@ -856,21 +832,19 @@ export default async function AdminPage({
           </>
         )}
 
-        <SectionHeader
-          eyebrow="Workspace"
-          title="Next actions"
-          description="Tasks, leads, and lanes that need attention now."
-        />
-        <AdminDashboardWidgetDeck
-          initialOrder={
-            visibleDashboardWidgetSet.has("my_tasks")
-              ? ["tasks", "leads", "quick-actions"]
-              : ["leads", "quick-actions", "tasks"]
-          }
-          persistKey={null}
+        {nextActionWidgetOrder.length > 0 ? (
+          <>
+            <SectionHeader
+              eyebrow="Workspace"
+              title="Next actions"
+              description="Tasks, leads, and lanes that need attention now."
+            />
+            <AdminDashboardWidgetDeck
+          initialOrder={nextActionWidgetOrder}
+          persistKey={`ld-dashboard-next-actions-v2:${accessLevel}`}
           widgets={[
             {
-              id: "tasks",
+              id: "my_tasks",
               step: "1",
               stepLabel: "Start here",
               eyebrow: "Tasks to handle",
@@ -921,7 +895,7 @@ export default async function AdminPage({
                 ),
             },
             {
-              id: "leads",
+              id: "recent_leads",
               step: "2",
               stepLabel: "Review next",
               eyebrow: "Recent leads",
@@ -963,7 +937,11 @@ export default async function AdminPage({
                         </div>
                         <div className="mt-3 flex flex-wrap items-center gap-2">
                           <SourceBadge source={lead.source} />
-                          <StatusBadge status={resolveLeadStageBadge(lead.stageId)} />
+                          <StatusBadge
+                            status={(stageById.get(lead.stageId ?? "")?.key ?? lead.crmStatus) as CrmStatus}
+                            label={stageById.get(lead.stageId ?? "")?.name ?? crmLabelize(lead.crmStatus)}
+                            color={stageById.get(lead.stageId ?? "")?.color}
+                          />
                           <PriorityBadge priority={lead.priority} />
                         </div>
                       </Link>
@@ -977,7 +955,7 @@ export default async function AdminPage({
                 ),
             },
             {
-              id: "quick-actions",
+              id: "quick_actions",
               step: "3",
               stepLabel: "Jump in",
               eyebrow: "Operational lanes",
@@ -1016,91 +994,50 @@ export default async function AdminPage({
                 </div>
               ),
             },
-          ].filter((widget) => {
-            if (widget.id === "tasks") {
-              return visibleDashboardWidgetSet.has("my_tasks");
-            }
-
-            return true;
-          })}
-        />
-
-        <section
-          className={cn(
-            "grid gap-6",
-            showTechnicalSummary && "xl:grid-cols-[minmax(0,1fr)_340px]",
+          ].filter((widget) =>
+            visibleDashboardWidgetSet.has(widget.id as DashboardWidgetKey),
           )}
-        >
+            />
+          </>
+        ) : null}
+
+        {showTechnicalSummary ? (
           <AdminCollapsibleSection
-            eyebrow="Recent activity"
-            title="Latest updates"
-            description="Status changes, notes, and follow-up movement."
+            eyebrow="Connected tools"
+            title="Tool status"
+            description="Live connection health."
           >
-            <div className="space-y-3">
-              {activityFeed.length > 0 ? (
-                activityFeed.map(({ event, lead }) => (
-                  <TimelineItem
-                    key={event.id}
-                    title={`${formatLeadEventLabel(event.eventType)} • ${activityLeadNameById[lead.id] || `${lead.firstName || "Lead"} ${lead.lastName}`.trim()}`.trim()}
-                    description={
-                      typeof event.eventData?.preview === "string"
-                        ? event.eventData.preview
-                        : typeof event.eventData?.to === "string"
-                          ? `Updated to ${crmLabelize(event.eventData.to)}`
-                          : lead.email || lead.whatsappNumber || "Lead activity recorded."
-                    }
-                    meta={event.createdBy || formatLeadSourceLabel(lead.source)}
-                    timestamp={event.createdAt}
-                    tone={eventTone(event.eventType)}
+            <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+              <MetricCard
+                label="Tool issues"
+                value={safeNumber(stats.failedIntegrations)}
+                supporting={
+                  stats.failedIntegrations > 0
+                    ? "One or more connected tools still need attention."
+                    : "No connection issue is currently flagged."
+                }
+                tone={stats.failedIntegrations > 0 ? "danger" : "positive"}
+              />
+              {integrations.length > 0 ? (
+                integrations.slice(0, 3).map((integration) => (
+                  <IntegrationHealthCard
+                    key={integration.id}
+                    integration={integration}
+                    href={appRoutes.integration(integration.provider.replaceAll("_", "-"))}
                   />
                 ))
               ) : (
-                <EmptyState
-                  title="No recent activity yet"
-                  description="Notes, task updates, and stage changes will show up here."
-                />
+                <div className="md:col-span-2 xl:col-span-3">
+                  <EmptyState
+                    title="No connected tools yet"
+                    description="Connected tools will show up here once setup is saved."
+                    icon={PlugZap}
+                  />
+                </div>
               )}
             </div>
           </AdminCollapsibleSection>
-
-          {showTechnicalSummary ? (
-            <div className="space-y-6">
-              <AdminCollapsibleSection
-                eyebrow="Connected tools"
-                title="Tool status"
-                description="Live connection health."
-              >
-                <div className="grid gap-3">
-                  <MetricCard
-                    label="Tool issues"
-                    value={safeNumber(stats.failedIntegrations)}
-                    supporting={
-                      stats.failedIntegrations > 0
-                        ? "One or more connected tools still need attention."
-                        : "No connection issue is currently flagged."
-                    }
-                    tone={stats.failedIntegrations > 0 ? "danger" : "positive"}
-                  />
-                  {integrations.length > 0 ? (
-                    integrations.slice(0, 3).map((integration) => (
-                      <IntegrationHealthCard
-                        key={integration.id}
-                        integration={integration}
-                        href={appRoutes.integration(integration.provider.replaceAll("_", "-"))}
-                      />
-                    ))
-                  ) : (
-                    <EmptyState
-                      title="No connected tools yet"
-                      description="Connected tools will show up here once setup is saved."
-                      icon={PlugZap}
-                    />
-                  )}
-                </div>
-              </AdminCollapsibleSection>
-            </div>
-          ) : null}
-        </section>
+        ) : null}
       </div>
     </AdminShell>
   );

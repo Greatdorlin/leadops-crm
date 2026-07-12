@@ -5,6 +5,7 @@ import {
   getAdminAllowedEmails,
   getLeadExportAllowedEmails,
   isEmailDomainAllowed,
+  isLocalAdminPreviewEmail,
   isLocalAdminPreviewEnabled,
 } from "./admin-access";
 
@@ -122,6 +123,19 @@ test("local admin preview remains available outside production", () => {
   setNodeEnvForTest("development");
 
   assert.equal(isLocalAdminPreviewEnabled(), true);
+
+  setNodeEnvForTest(previousNodeEnv);
+});
+
+test("local preview identity is exact and never enabled in production", () => {
+  const previousNodeEnv = process.env.NODE_ENV;
+  setNodeEnvForTest("development");
+
+  assert.equal(isLocalAdminPreviewEmail("PREVIEW@local.leadsdesk.test"), true);
+  assert.equal(isLocalAdminPreviewEmail("owner@example.com"), false);
+
+  setNodeEnvForTest("production");
+  assert.equal(isLocalAdminPreviewEmail("preview@local.leadsdesk.test"), false);
 
   setNodeEnvForTest(previousNodeEnv);
 });

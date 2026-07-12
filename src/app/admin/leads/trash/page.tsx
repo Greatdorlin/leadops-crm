@@ -13,6 +13,7 @@ import { listCustomFields } from "@/lib/crm/custom-fields-admin";
 import { getTableVisibleCustomFields } from "@/lib/crm/custom-field-values";
 import { getCrmPageErrorCopy, logCrmPageError } from "@/lib/crm/runtime";
 import { buildAdminLeadListItem } from "@/lib/crm/view-models";
+import { decodeLeadCursor, encodeLeadCursor } from "@/lib/crm/lead-pagination";
 import { resolveLeadPreviewConfig } from "@/lib/crm/workspace-settings";
 import { getCompanySettings } from "@/lib/crm/workspace-settings-server";
 import { leadStore } from "@/lib/storage";
@@ -31,8 +32,39 @@ function safeNumber(value: number) {
   return new Intl.NumberFormat().format(value);
 }
 
-function buildTrashHref(page: number) {
-  return page > 1 ? `${appRoutes.leadsTrash}?page=${page}` : appRoutes.leadsTrash;
+function readCursor(input: Record<string, string | string[] | undefined>) {
+  const rawCursor = Array.isArray(input.cursor) ? input.cursor[0] : input.cursor;
+  const rawDirection = Array.isArray(input.direction) ? input.direction[0] : input.direction;
+  const value = decodeLeadCursor(rawCursor);
+
+  return value && rawCursor
+    ? {
+        cursor: rawCursor,
+        direction: rawDirection === "prev" ? ("prev" as const) : ("next" as const),
+      }
+    : null;
+}
+
+function buildTrashHref({
+  cursor,
+  direction,
+  page,
+}: {
+  cursor?: string;
+  direction?: "next" | "prev";
+  page: number;
+}) {
+  const query = new URLSearchParams();
+  if (page > 1) {
+    query.set("page", String(page));
+  }
+  if (cursor) {
+    query.set("cursor", cursor);
+    query.set("direction", direction ?? "next");
+  }
+
+  const serialized = query.toString();
+  return serialized ? `${appRoutes.leadsTrash}?${serialized}` : appRoutes.leadsTrash;
 }
 
 export default async function AdminLeadTrashPage({
@@ -64,7 +96,8 @@ export default async function AdminLeadTrashPage({
   }
 
   const params = await searchParams;
-  const requestedPage = readPage(params);
+  const cursorState = readCursor(params);
+  const requestedPage = cursorState ? readPage(params) : 1;
   let pageData:
     | {
         leads: Awaited<ReturnType<typeof leadStore.list>>;
@@ -75,12 +108,11 @@ export default async function AdminLeadTrashPage({
 
   try {
     const totalLeads = await leadStore.countLeads({ recordState: "trashed" });
-    const totalPages = Math.max(1, Math.ceil(totalLeads / PAGE_SIZE));
-    const page = Math.min(requestedPage, totalPages);
     const leads = await leadStore.list({
       recordState: "trashed",
       limit: PAGE_SIZE,
-      offset: (page - 1) * PAGE_SIZE,
+      cursor: cursorState?.cursor,
+      cursorDirection: cursorState?.direction,
     });
 
     pageData = { leads, totalLeads };
@@ -115,6 +147,12 @@ export default async function AdminLeadTrashPage({
   const { leads, totalLeads } = pageData;
   const totalPages = Math.max(1, Math.ceil(totalLeads / PAGE_SIZE));
   const currentPage = Math.min(requestedPage, totalPages);
+  const previousCursor = leads[0]
+    ? encodeLeadCursor({ id: leads[0].id, updatedAt: leads[0].updatedAt })
+    : undefined;
+  const nextCursor = leads.at(-1)
+    ? encodeLeadCursor({ id: leads.at(-1)!.id, updatedAt: leads.at(-1)!.updatedAt })
+    : undefined;
   const [customFields, workspaceSettings] = await Promise.all([
     listCustomFields(),
     getCompanySettings(),
@@ -174,13 +212,13 @@ export default async function AdminLeadTrashPage({
               <LeadLifecycleButton
                 leadId={lead.id}
                 action="restore"
-                className="inline-flex h-10 items-center justify-center rounded-full border border-emerald-300/20/24 bg-emerald-300/12 px-4 text-sm font-medium text-emerald-100 transition hover:border-emerald-100/40 hover:bg-emerald-300/18"
+                className="inline-flex h-10 items-center justify-center rounded-full border border-emerald-300/24 bg-emerald-300/12 px-4 text-sm font-medium text-emerald-100 transition hover:border-emerald-100/40 hover:bg-emerald-300/18"
               />
               <LeadLifecycleButton
                 leadId={lead.id}
                 action="delete"
                 onSuccessHref={appRoutes.leadsTrash}
-                className="inline-flex h-10 items-center justify-center rounded-full border border-rose-300/20/24 bg-rose-300/12 px-4 text-sm font-medium text-rose-100 transition hover:border-rose-100/40 hover:bg-rose-300/18"
+                className="inline-flex h-10 items-center justify-center rounded-full border border-rose-300/24 bg-rose-300/12 px-4 text-sm font-medium text-rose-100 transition hover:border-rose-100/40 hover:bg-rose-300/18"
               />
             </>
           )}
@@ -192,7 +230,11 @@ export default async function AdminLeadTrashPage({
           </p>
           <div className="flex flex-wrap gap-2">
             <Link
-              href={buildTrashHref(Math.max(1, currentPage - 1))}
+              href={buildTrashHref({
+                cursor: previousCursor,
+                direction: "prev",
+                page: Math.max(1, currentPage - 1),
+              })}
               aria-disabled={currentPage <= 1}
               className={[
                 "admin-button-secondary inline-flex h-10 items-center justify-center rounded-full px-4 text-sm font-medium",
@@ -203,7 +245,11 @@ export default async function AdminLeadTrashPage({
               Previous
             </Link>
             <Link
-              href={buildTrashHref(Math.min(totalPages, currentPage + 1))}
+              href={buildTrashHref({
+                cursor: nextCursor,
+                direction: "next",
+                page: Math.min(totalPages, currentPage + 1),
+              })}
               aria-disabled={currentPage >= totalPages}
               className={[
                 "admin-button-primary inline-flex h-10 items-center justify-center rounded-full px-4 text-sm font-semibold",

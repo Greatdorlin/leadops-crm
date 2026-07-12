@@ -1,7 +1,6 @@
 "use client";
 
-import { startTransition, useId, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useId, useRef, useState } from "react";
 import { Check, ChevronDown, LoaderCircle, X } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { ResponsivePopover } from "./ResponsivePopover";
@@ -33,7 +32,6 @@ export function LeadWorkflowQuickSelect({
   pickerDescription: string;
   testId: string;
 }) {
-  const router = useRouter();
   const listboxId = useId();
   const buttonRef = useRef<HTMLButtonElement>(null);
   const [value, setValue] = useState(initialValue);
@@ -78,7 +76,6 @@ export function LeadWorkflowQuickSelect({
       setSavedValue(nextValue);
       setMessage(`${field === "stageId" ? "Stage" : "Priority"} updated.`);
       setIsSaving(false);
-      startTransition(() => router.refresh());
     } catch {
       setValue(previousValue);
       setHasError(true);

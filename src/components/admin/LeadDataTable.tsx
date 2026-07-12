@@ -153,7 +153,11 @@ function resolvePreviewFieldValue(
           stageOptions={stageOptions}
         />
       ) : (
-        <StatusBadge status={resolveLegacyStageBadge(lead.stage)} label={lead.stageLabel} />
+        <StatusBadge
+          status={resolveLegacyStageBadge(lead.stage)}
+          label={lead.stageLabel}
+          color={lead.stageDisplay.color}
+        />
       );
     case "owner":
       return interactiveWorkflow ? (
@@ -282,7 +286,7 @@ export function LeadDataTable({
             )}
             style={{ animationDelay: `${Math.min(index * 50, 400)}ms` }}
           >
-            <div className="flex items-start justify-between gap-3">
+            <div className="flex flex-col items-stretch gap-3 sm:flex-row sm:items-start sm:justify-between">
               <div className="min-w-0">
                 <Link
                   href={appRoutes.lead(lead.id)}
@@ -295,18 +299,24 @@ export function LeadDataTable({
                   {lead.interestLabel}
                 </p>
               </div>
-              {interactiveWorkflow ? (
-                <LeadStatusQuickChange
-                  key={`${lead.id}-${lead.lastActivityAt}-mobile-stage`}
-                  leadId={lead.id}
-                  initialStageId={lead.stageDisplay.id}
-                  initialStageLabel={lead.stageLabel}
-                  initialStageColor={lead.stageDisplay.color}
-                  stageOptions={stageOptions}
-                />
-              ) : (
-                <StatusBadge status={resolveLegacyStageBadge(lead.stage)} label={lead.stageLabel} className="shrink-0" />
-              )}
+              <div className="min-w-0 self-start">
+                {interactiveWorkflow ? (
+                  <LeadStatusQuickChange
+                    key={`${lead.id}-${lead.lastActivityAt}-mobile-stage`}
+                    leadId={lead.id}
+                    initialStageId={lead.stageDisplay.id}
+                    initialStageLabel={lead.stageLabel}
+                    initialStageColor={lead.stageDisplay.color}
+                    stageOptions={stageOptions}
+                  />
+                ) : (
+                  <StatusBadge
+                    status={resolveLegacyStageBadge(lead.stage)}
+                    label={lead.stageLabel}
+                    color={lead.stageDisplay.color}
+                  />
+                )}
+              </div>
             </div>
 
             <div className="mt-3 flex flex-wrap gap-2">
@@ -341,7 +351,7 @@ export function LeadDataTable({
                   {lead.phone || "No phone yet"}
                 </p>
               </div>
-              <div className="grid grid-cols-2 gap-3 text-xs uppercase tracking-[0.14em] text-white/70">
+              <div className="grid gap-3 text-xs uppercase tracking-[0.14em] text-white/70 sm:grid-cols-2">
                 <div>
                   <p>Category</p>
                   <p className="mt-1 text-sm font-medium normal-case tracking-normal text-white/76">

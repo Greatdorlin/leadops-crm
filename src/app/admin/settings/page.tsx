@@ -28,6 +28,7 @@ import { ErrorState } from "@/components/admin/ErrorState";
 import { GlassCard } from "@/components/admin/GlassCard";
 import { InfoTip } from "@/components/admin/ui/InfoTip";
 import { getAdminAccessContext } from "@/lib/admin";
+import { isLocalAdminPreviewEmail } from "@/lib/admin-access";
 import { canEditTeamAccess } from "@/lib/admin-permissions";
 import {
   canManageAppearanceSettings,
@@ -157,7 +158,9 @@ export default async function AdminSettingsPage() {
     | null = null;
   let pageError: unknown = null;
 
-  try {
+  if (isLocalAdminPreviewEmail(session.user?.email)) {
+    pageData = buildDevelopmentSettingsData();
+  } else try {
     const [users, integrations] = await Promise.all([
       leadStore.listCrmUsers(),
       canOpenIntegrations ? leadStore.listIntegrations() : Promise.resolve([]),

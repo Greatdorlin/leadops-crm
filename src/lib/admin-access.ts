@@ -115,3 +115,10 @@ export function isAdminAuthConfigured() {
 export function isLocalAdminPreviewEnabled() {
   return process.env.NODE_ENV !== "production";
 }
+
+export function isLocalAdminPreviewEmail(email?: string | null) {
+  return (
+    isLocalAdminPreviewEnabled() &&
+    normalizeAdminEmail(email ?? "") === normalizeAdminEmail(LOCAL_ADMIN_PREVIEW_EMAIL)
+  );
+}

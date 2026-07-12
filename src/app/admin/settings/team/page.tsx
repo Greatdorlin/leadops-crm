@@ -5,6 +5,7 @@ import { AdminSignOutButton } from "@/components/admin/AdminSignOutButton";
 import { ErrorState } from "@/components/admin/ErrorState";
 import { TeamSettingsWorkspace } from "@/components/admin/TeamSettingsWorkspace";
 import { getAdminAccessContext } from "@/lib/admin";
+import { isLocalAdminPreviewEmail } from "@/lib/admin-access";
 import {
   canManageTeamMember,
   canManageTeamRoster,
@@ -72,7 +73,9 @@ export default async function AdminSettingsTeamPage() {
   let users: Awaited<ReturnType<typeof leadStore.listCrmUsers>> | null = null;
   let pageError: unknown = null;
 
-  try {
+  if (isLocalAdminPreviewEmail(session.user?.email)) {
+    users = buildDevelopmentTeamData();
+  } else try {
     users = await leadStore.listCrmUsers();
   } catch (error) {
     pageError = error;

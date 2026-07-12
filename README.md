@@ -24,6 +24,7 @@ Production schema changes use `npm run db:migrate`. `npm run db:push` is for dis
 ## Deployment
 
 - [Vercel with managed Postgres](./DEPLOY_VERCEL.md)
+- [Netlify with managed Postgres](./DEPLOY_NETLIFY.md)
 - [VPS with Docker Compose](./DEPLOY_VPS.md)
 - [Coolify](./DEPLOY_COOLIFY.md)
 - [Backup and restore](./BACKUP_AND_RESTORE.md)

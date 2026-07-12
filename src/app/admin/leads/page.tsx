@@ -14,6 +14,7 @@ import { ResponsiveFilterFields } from "@/components/admin/ResponsiveFilterField
 import { SearchInput } from "@/components/admin/SearchInput";
 import { AdminWorkspaceComposer } from "@/components/admin/AdminWorkspaceComposer";
 import { getAdminAccessContext } from "@/lib/admin";
+import { isLocalAdminPreviewEmail } from "@/lib/admin-access";
 import { parseLeadListFilters } from "@/lib/admin-leads";
 import { loadAdminLeadReadContext } from "@/lib/crm/admin-read-context";
 import { listCustomFields } from "@/lib/crm/custom-fields-admin";
@@ -45,6 +46,7 @@ import { crmLabelize, formatCrmRoleLabel } from "@/lib/crm/formatters";
 import { getCrmPageErrorCopy, logCrmPageError } from "@/lib/crm/runtime";
 import { buildAdminLeadListItem } from "@/lib/crm/view-models";
 import { appRoutes } from "@/lib/app-routes";
+import { isCrmMigrationSource } from "@/lib/migrations/sources";
 import { leadStore } from "@/lib/storage";
 
 export const dynamic = "force-dynamic";
@@ -328,6 +330,9 @@ export default async function AdminLeadsPage({
 
   const params = await searchParams;
   const requestedComposer = Array.isArray(params.composer) ? params.composer[0] : params.composer;
+  const requestedMigrationSource = Array.isArray(params.migrationSource)
+    ? params.migrationSource[0]
+    : params.migrationSource;
   const filters = parseLeadListFilters(params);
   const selectedStage =
     readStageFilter(params) ??
@@ -349,7 +354,16 @@ export default async function AdminLeadsPage({
       }
     | null = null;
 
-  try {
+  if (isLocalAdminPreviewEmail(session.user?.email)) {
+    usingDevelopmentDemoData = true;
+    pageData = {
+      leads: [],
+      totalLeads: buildDevelopmentLeadRows().length,
+      users: buildDevelopmentUsers(),
+      stages: buildDevelopmentStages(),
+      trashCount: 0,
+    };
+  } else try {
     const totalLeads = await leadStore.countLeads(scopedFilters);
     const showTrashFolder = canAccessLeadTrash(accessLevel, permissions);
     const [leads, users, stages] = await Promise.all([
@@ -778,6 +792,11 @@ export default async function AdminLeadsPage({
             assigneeOptions={assigneeOptions}
             defaultAssignedTo={accessLevel === "sales_rep" ? session.user?.email ?? "" : ""}
             initialMode={requestedComposer === "import" && canImportLeads ? "import" : "lead"}
+            initialMigrationSource={
+              isCrmMigrationSource(requestedMigrationSource)
+                ? requestedMigrationSource
+                : undefined
+            }
             variant="compact"
             leadCaptureCustomFields={leadCaptureCustomFields}
             leadCaptureStageOptions={stages.filter((stage) => !stage.archived).map((stage) => ({

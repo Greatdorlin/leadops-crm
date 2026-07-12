@@ -155,6 +155,21 @@ export interface LeadTaskListFilters {
   limit?: number;
 }
 
+export interface LeadTaskQueueLeadRecord {
+  id: string;
+  firstName: string;
+  lastName: string;
+  companyName: string | null;
+  state: string | null;
+  country: string | null;
+  region: string | null;
+  city: string | null;
+}
+
+export interface LeadTaskQueueRecord extends LeadTaskRecord {
+  lead: LeadTaskQueueLeadRecord;
+}
+
 export interface LeadProfileUpdateInput {
   firstName?: string;
   lastName?: string | null;
@@ -295,6 +310,12 @@ export interface SourceReportItem {
   highPriorityCount: number;
 }
 
+export interface DashboardTrendPoint {
+  date: string;
+  leads: number;
+  wonValue: number;
+}
+
 export interface LeadDistributionReport {
   interestReport: Array<{ label: string; value: number }>;
   locationReport: Array<{ label: string; value: number }>;
@@ -349,6 +370,7 @@ export interface LeadStorage {
   addLeadTask(input: LeadTaskCreateInput): Promise<LeadTaskRecord>;
   getLeadTaskById(taskId: string): Promise<LeadTaskRecord | null>;
   listLeadTasks(filters?: LeadTaskListFilters): Promise<LeadTaskRecord[]>;
+  listLeadTaskQueue(filters?: LeadTaskListFilters): Promise<LeadTaskQueueRecord[]>;
   completeLeadTask(taskId: string, completedBy?: string | null): Promise<LeadTaskRecord | null>;
   assignLead(id: string, assignedTo: string | null, changedBy?: string | null): Promise<LeadRecord | null>;
   assignLeadOwners(
@@ -386,6 +408,7 @@ export interface LeadStorage {
   upsertAdCampaignMetric(input: AdCampaignMetricUpsertInput): Promise<AdCampaignMetricRecord>;
   listAdCampaignMetrics(filters?: AdCampaignMetricListFilters): Promise<AdCampaignMetricRecord[]>;
   getDashboardStats(filters?: LeadListFilters): Promise<CrmDashboardStats>;
+  getDashboardTrend(filters?: LeadListFilters, days?: number): Promise<DashboardTrendPoint[]>;
   getSalesPipelineAggregate(filters?: LeadListFilters): Promise<SalesPipelineAggregate>;
   getTeamPerformance(): Promise<TeamPerformanceRow[]>;
   getLeadDistributionReport(filters?: LeadListFilters): Promise<LeadDistributionReport>;

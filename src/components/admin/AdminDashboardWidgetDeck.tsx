@@ -1,7 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
 import {
   ArrowRight,
@@ -17,6 +17,7 @@ import { SmoothButton } from "@/components/admin/ui/SmoothButton";
 import { InfoTip } from "@/components/admin/ui/InfoTip";
 
 const STORAGE_KEY = "ld-admin-dashboard-widgets-v1";
+const ORDER_CHANGE_EVENT = "leads-desk:dashboard-order-change";
 
 type DashboardWidget = {
   id: string;
@@ -46,6 +47,38 @@ function reorderList(order: string[], movingId: string, targetId: string) {
   return next;
 }
 
+function subscribeToStoredOrder(onStoreChange: () => void) {
+  window.addEventListener("storage", onStoreChange);
+  window.addEventListener(ORDER_CHANGE_EVENT, onStoreChange);
+
+  return () => {
+    window.removeEventListener("storage", onStoreChange);
+    window.removeEventListener(ORDER_CHANGE_EVENT, onStoreChange);
+  };
+}
+
+function readStoredOrder(persistKey: string | null) {
+  return persistKey ? window.localStorage.getItem(persistKey) : null;
+}
+
+function normalizeStoredOrder(savedOrder: string | null, fallbackOrder: string[]) {
+  if (!savedOrder) {
+    return fallbackOrder;
+  }
+
+  try {
+    const parsed = JSON.parse(savedOrder) as unknown;
+    if (!Array.isArray(parsed) || parsed.some((item) => typeof item !== "string")) {
+      return fallbackOrder;
+    }
+
+    const normalized = parsed.filter((id) => fallbackOrder.includes(id));
+    return normalized.length === fallbackOrder.length ? normalized : fallbackOrder;
+  } catch {
+    return fallbackOrder;
+  }
+}
+
 export function AdminDashboardWidgetDeck({
   widgets,
   initialOrder,
@@ -56,33 +89,16 @@ export function AdminDashboardWidgetDeck({
   persistKey?: string | null;
 }) {
   const defaultOrder = useMemo(() => widgets.map((widget) => widget.id), [widgets]);
-  const [order, setOrder] = useState(() => {
-    if (typeof window === "undefined") {
-      return initialOrder?.length ? initialOrder : defaultOrder;
-    }
-
-    if (!persistKey) {
-      return initialOrder?.length ? initialOrder : defaultOrder;
-    }
-
-    const saved = window.localStorage.getItem(persistKey);
-    if (!saved) {
-      return initialOrder?.length ? initialOrder : defaultOrder;
-    }
-
-    try {
-      const parsed = JSON.parse(saved) as string[];
-      const normalized = parsed.filter((id) => defaultOrder.includes(id));
-      return normalized.length === defaultOrder.length
-        ? normalized
-        : initialOrder?.length
-          ? initialOrder
-          : defaultOrder;
-    } catch {
-      window.localStorage.removeItem(persistKey);
-      return initialOrder?.length ? initialOrder : defaultOrder;
-    }
-  });
+  const fallbackOrder = initialOrder?.length ? initialOrder : defaultOrder;
+  const storedOrder = useSyncExternalStore(
+    subscribeToStoredOrder,
+    () => readStoredOrder(persistKey),
+    () => null,
+  );
+  const [memoryOrder, setMemoryOrder] = useState(fallbackOrder);
+  const order = persistKey
+    ? normalizeStoredOrder(storedOrder, fallbackOrder)
+    : memoryOrder;
   const [openState, setOpenState] = useState<Record<string, boolean>>(() =>
     widgets.reduce<Record<string, boolean>>((accumulator, widget) => {
       accumulator[widget.id] = widget.defaultOpen ?? true;
@@ -91,13 +107,20 @@ export function AdminDashboardWidgetDeck({
   );
   const [draggingId, setDraggingId] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (!persistKey) {
+  function updateOrder(updater: (current: string[]) => string[]) {
+    const nextOrder = updater(order);
+    if (nextOrder === order) {
       return;
     }
 
-    window.localStorage.setItem(persistKey, JSON.stringify(order));
-  }, [order, persistKey]);
+    if (persistKey) {
+      window.localStorage.setItem(persistKey, JSON.stringify(nextOrder));
+      window.dispatchEvent(new Event(ORDER_CHANGE_EVENT));
+      return;
+    }
+
+    setMemoryOrder(nextOrder);
+  }
 
   const orderedWidgets = order
     .map((id) => widgets.find((widget) => widget.id === id))
@@ -113,17 +136,18 @@ export function AdminDashboardWidgetDeck({
   } as const;
 
   return (
-    <section className="relative overflow-hidden rounded-[40px] ld-animate-fade-in-up">
-      <div className="pointer-events-none absolute inset-0 hidden xl:block bg-[radial-gradient(circle_at_18%_18%,rgba(139,92,246,0.18),transparent_28%),radial-gradient(circle_at_82%_16%,color-mix(in_srgb,var(--ld-color-primary)_12%,transparent),transparent_30%),linear-gradient(180deg,rgba(255,255,255,0.06),rgba(255,255,255,0))]" />
+    <section className="relative min-w-0 rounded-[32px] ld-animate-fade-in-up">
+      <div className="pointer-events-none absolute inset-0 hidden overflow-hidden rounded-[32px] xl:block bg-[radial-gradient(circle_at_18%_18%,rgba(139,92,246,0.18),transparent_28%),radial-gradient(circle_at_82%_16%,color-mix(in_srgb,var(--ld-color-primary)_12%,transparent),transparent_30%),linear-gradient(180deg,rgba(255,255,255,0.06),rgba(255,255,255,0))]" />
 
-      <div className="relative mb-4 flex flex-wrap items-center justify-between gap-3 px-1">
-        <div>
-          <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-white/70">
-            Workspace layout
+      <div className="ld-glass ld-glass-soft relative mb-4 flex flex-wrap items-center justify-between gap-3 rounded-[22px] border-white/10 px-4 py-3 sm:px-5">
+        <div className="flex min-w-0 items-center gap-2.5">
+          <p className="truncate text-sm font-semibold text-white">
+            Arrange dashboard
           </p>
-          <p className="mt-1 text-sm text-white/70">
-            Collapse or reorder sections to match the day.
-          </p>
+          <InfoTip
+            label="Move, collapse, or reset these cards. Your order is saved on this device."
+            align="left"
+          />
         </div>
 
         <SmoothButton
@@ -132,9 +156,11 @@ export function AdminDashboardWidgetDeck({
           size="sm"
           icon={<RotateCcw className="h-4 w-4" />}
           onClick={() => {
-            setOrder(defaultOrder);
             if (persistKey) {
               window.localStorage.removeItem(persistKey);
+              window.dispatchEvent(new Event(ORDER_CHANGE_EVENT));
+            } else {
+              setMemoryOrder(fallbackOrder);
             }
           }}
         >
@@ -142,7 +168,7 @@ export function AdminDashboardWidgetDeck({
         </SmoothButton>
       </div>
 
-      <div className="grid gap-5 xl:grid-cols-12">
+      <div className="grid items-start gap-5 xl:grid-cols-12">
         {orderedWidgets.map((widget, index) => {
           const isOpen = openState[widget.id] ?? true;
           const useDescriptionTip = widget.description.length > 48;
@@ -167,11 +193,11 @@ export function AdminDashboardWidgetDeck({
                   return;
                 }
 
-                setOrder((current) => reorderList(current, draggingId, widget.id));
+                updateOrder((current) => reorderList(current, draggingId, widget.id));
                 setDraggingId(null);
               }}
               className={cn(
-                "relative overflow-hidden rounded-[34px] p-5 shadow-[0_24px_70px_rgba(0,0,0,0.18)] before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:h-32 before:opacity-95",
+                "relative self-start overflow-hidden rounded-[34px] p-5 shadow-[0_24px_70px_rgba(0,0,0,0.18)] before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:h-32 before:opacity-95",
                 accentClass,
                 slotClass,
                 draggingId === widget.id && "cursor-grabbing ring-2 ring-[color:var(--ld-color-accent)]/60",
@@ -224,7 +250,7 @@ export function AdminDashboardWidgetDeck({
 
                     <button
                       type="button"
-                      onClick={() => setOrder((current) => {
+                      onClick={() => updateOrder((current) => {
                         if (isFirst) {
                           return current;
                         }
@@ -241,7 +267,7 @@ export function AdminDashboardWidgetDeck({
                     </button>
                     <button
                       type="button"
-                      onClick={() => setOrder((current) => {
+                      onClick={() => updateOrder((current) => {
                         if (isLast) {
                           return current;
                         }
@@ -257,7 +283,7 @@ export function AdminDashboardWidgetDeck({
                       <MoveDown className="h-4 w-4" />
                     </button>
                     <span
-                      className="ld-floating-control inline-flex h-11 w-11 cursor-grab items-center justify-center rounded-full text-white/70"
+                      className="ld-floating-control hidden h-11 w-11 cursor-grab items-center justify-center rounded-full text-white/70 sm:inline-flex"
                       aria-label="Drag widget"
                       title="Drag to reorder"
                     >

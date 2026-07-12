@@ -1,6 +1,7 @@
 import Link from "next/link";
 import {
   AlertTriangle,
+  CalendarDays,
   CircleDollarSign,
   Inbox,
   Target,
@@ -10,9 +11,11 @@ import {
 import type { SalesDashboardSummary } from "@/lib/crm/sales-metrics";
 import { formatCrmDateTime } from "@/lib/crm/formatters";
 import type { DashboardWidgetKey } from "@/lib/crm/workspace-settings";
+import type { DashboardTrendPoint } from "@/lib/storage/types";
 import { appRoutes } from "@/lib/app-routes";
 import { AdminCollapsibleSection } from "./AdminCollapsibleSection";
 import { DashboardTargetCelebration } from "./DashboardTargetCelebration";
+import { DashboardPulseChart } from "./DashboardPulseChart";
 import { EmptyState } from "./EmptyState";
 import { PremiumMetricCard } from "./PremiumMetricCard";
 import { InfoTip } from "./ui/InfoTip";
@@ -129,6 +132,18 @@ function Sparkline({ tone = "accent" }: { tone?: "accent" | "success" | "warning
   );
 }
 
+function normalizeStageColor(value?: string | null) {
+  return value && /^#[0-9a-f]{6}$/i.test(value) ? value : null;
+}
+
+type StageDefinition = {
+  id: string;
+  key: string;
+  name: string;
+  color: string | null;
+  sortOrder: number;
+};
+
 function CompactProgressRow({
   label,
   value,
@@ -174,10 +189,14 @@ function CompactProgressRow({
 
 export function SalesCommandOverview({
   summary,
+  stageDefinitions = [],
+  trendData = [],
   visibleWidgets,
   workspaceCurrency = "USD",
 }: {
   summary: SalesDashboardSummary;
+  stageDefinitions?: StageDefinition[];
+  trendData?: DashboardTrendPoint[];
   visibleWidgets?: DashboardWidgetKey[];
   workspaceCurrency?: string;
 }) {
@@ -185,7 +204,40 @@ export function SalesCommandOverview({
   const showAll = widgetSet.size === 0;
   const showWidget = (key: DashboardWidgetKey) => showAll || widgetSet.has(key);
   const currency = summary.target?.currency ?? workspaceCurrency;
-  const stageMax = Math.max(...summary.stagePerformance.map((stage) => stage.totalLeads), 1);
+  const claimedStageRows = new Set<number>();
+  const configuredStagePerformance = stageDefinitions.map((definition) => {
+    const rowIndex = summary.stagePerformance.findIndex((row, index) => {
+      if (claimedStageRows.has(index)) {
+        return false;
+      }
+
+      return (
+        row.id === definition.id ||
+        row.key === definition.key ||
+        row.label.trim().toLowerCase() === definition.name.trim().toLowerCase()
+      );
+    });
+    const row = rowIndex >= 0 ? summary.stagePerformance[rowIndex] : null;
+    if (rowIndex >= 0) {
+      claimedStageRows.add(rowIndex);
+    }
+
+    return {
+      id: definition.id,
+      key: definition.key,
+      label: definition.name,
+      color: definition.color,
+      sortOrder: definition.sortOrder,
+      totalLeads: row?.totalLeads ?? 0,
+      wonValue: row?.wonValue ?? 0,
+      pipelineValue: row?.pipelineValue ?? 0,
+    };
+  });
+  const stagePerformance = [
+    ...configuredStagePerformance,
+    ...summary.stagePerformance.filter((_, index) => !claimedStageRows.has(index)),
+  ];
+  const stageMax = Math.max(...stagePerformance.map((stage) => stage.totalLeads), 1);
   const sourceMax = Math.max(...summary.topSources.map((source) => source.totalLeads), 1);
   const targetProgress = summary.target?.progressPercent ?? 0;
   const topMetricCards = [
@@ -209,6 +261,17 @@ export function SalesCommandOverview({
           icon: Inbox,
           tone: "default" as const,
           spark: "info" as const,
+        }
+      : null,
+    showWidget("leads_this_month")
+      ? {
+          key: "leads_this_month",
+          label: "This Month",
+          value: summary.leadsThisMonth,
+          trend: { direction: "up" as const, label: "New this month" },
+          icon: CalendarDays,
+          tone: "default" as const,
+          spark: "accent" as const,
         }
       : null,
     showWidget("overdue_follow_ups")
@@ -253,25 +316,29 @@ export function SalesCommandOverview({
   const showTargetProgress = showWidget("target_progress");
   const showTeamPerformance = showWidget("team_performance");
   const showAttentionSummary = showWidget("overdue_follow_ups") || showWidget("conversion_rate");
+  const showLeadTrend = showWidget("lead_trend");
+  const showPipelineOverview = showWidget("pipeline_overview");
   const salesTargetHref = `${appRoutes.settingsSalesTargets}#create-target`;
 
   return (
     <div className="space-y-6">
-      <DashboardTargetCelebration
-        target={
-          summary.target
-            ? {
-                id: summary.target.id,
-                name: summary.target.name,
-                progressPercent: summary.target.progressPercent,
-                wonValueLabel: formatMoney(summary.target.wonValue, summary.target.currency),
-              }
-            : null
-        }
-      />
+      {showTargetProgress ? (
+        <DashboardTargetCelebration
+          target={
+            summary.target
+              ? {
+                  id: summary.target.id,
+                  name: summary.target.name,
+                  progressPercent: summary.target.progressPercent,
+                  wonValueLabel: formatMoney(summary.target.wonValue, summary.target.currency),
+                }
+              : null
+          }
+        />
+      ) : null}
 
       {topMetricCards.length > 0 ? (
-        <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
+        <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-[repeat(auto-fit,minmax(190px,1fr))]">
           {topMetricCards.map((card) => (
             <PremiumMetricCard
               key={card.key}
@@ -287,7 +354,12 @@ export function SalesCommandOverview({
         </section>
       ) : null}
 
-      <AdminCollapsibleSection
+      {showLeadTrend && trendData.length > 0 ? (
+        <DashboardPulseChart currency={currency} data={trendData} />
+      ) : null}
+
+      {showPipelineOverview ? (
+        <AdminCollapsibleSection
         eyebrow="Pipeline"
         title="Live pipeline"
         actions={
@@ -376,13 +448,20 @@ export function SalesCommandOverview({
                   {summary.conversionRate}% conversion
                 </span>
                 <span className="rounded-full border border-white/10 bg-white/[0.075] px-3 py-1 text-xs font-semibold text-white/70">
-                  {summary.stagePerformance.length} live stages
+                  {stagePerformance.length} live stages
                 </span>
               </div>
             </div>
 
-            <div className="mt-6 grid min-h-[230px] items-end gap-3 sm:grid-cols-3 lg:grid-cols-5">
-              {summary.stagePerformance.slice(0, 5).map((stage, index) => {
+            <div className="ld-scroll-region mt-6 overflow-x-auto pb-2">
+              <div
+                className="grid min-h-[230px] items-end gap-3"
+                style={{
+                  gridTemplateColumns: `repeat(${Math.max(stagePerformance.length, 1)}, minmax(148px, 1fr))`,
+                  minWidth: `max(100%, ${Math.max(stagePerformance.length, 1) * 160}px)`,
+                }}
+              >
+              {stagePerformance.map((stage, index) => {
                 const percent = getPercent(stage.totalLeads, stageMax);
                 const barHeight = 42 + Math.round((percent / 100) * 118);
                 const barGradients = [
@@ -392,13 +471,26 @@ export function SalesCommandOverview({
                   { from: "color-mix(in srgb, var(--ld-color-primary) 40%, var(--ld-color-accent))", to: "color-mix(in srgb, var(--ld-color-accent) 80%, var(--ld-color-primary))" },
                   { from: "color-mix(in srgb, var(--ld-color-accent) 40%, var(--ld-color-primary))", to: "color-mix(in srgb, var(--ld-color-primary) 80%, var(--ld-color-accent))" },
                 ];
-                const gradient = barGradients[index % barGradients.length];
+                const fallbackGradient = barGradients[index % barGradients.length];
+                const stageColor = normalizeStageColor(stage.color);
+                const gradient = stageColor
+                  ? {
+                      from: `color-mix(in srgb, ${stageColor} 72%, white)`,
+                      to: stageColor,
+                    }
+                  : fallbackGradient;
 
                 return (
-                  <div key={stage.label} className="grid h-full min-h-[204px] grid-rows-[1fr_auto] gap-3">
+                  <div
+                    key={stage.label}
+                    className="group relative grid h-full min-h-[204px] min-w-0 grid-rows-[1fr_auto] gap-3 outline-none"
+                    tabIndex={0}
+                    role="img"
+                    aria-label={`${stage.label}: ${stage.totalLeads} leads, ${formatShortMoney(stage.pipelineValue, currency)} pipeline`}
+                  >
                     <div className="flex items-end rounded-[18px] border border-white/[0.06] bg-white/[0.035] p-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
                       <div
-                        className="w-full min-h-12 rounded-[14px] shadow-[0_18px_42px_rgba(0,0,0,0.25),inset_0_1px_0_rgba(255,255,255,0.2)]"
+                        className="min-h-12 w-full rounded-[14px] shadow-[0_18px_42px_rgba(0,0,0,0.25),inset_0_1px_0_rgba(255,255,255,0.2)] transition-[filter,transform] duration-200 group-hover:brightness-110 group-focus-visible:brightness-110"
                         style={{
                           height: `${barHeight}px`,
                           background: `linear-gradient(180deg, ${gradient.from}, ${gradient.to})`,
@@ -406,7 +498,7 @@ export function SalesCommandOverview({
                       />
                     </div>
                     <div className="min-w-0">
-                      <p className="truncate text-sm font-semibold text-white">{stage.label}</p>
+                      <p className="min-h-10 text-sm font-semibold leading-5 text-white [overflow-wrap:anywhere]">{stage.label}</p>
                       <p className="mt-1 text-[1.65rem] font-semibold leading-none tracking-[-0.05em] text-white">
                         {stage.totalLeads}
                       </p>
@@ -414,21 +506,28 @@ export function SalesCommandOverview({
                         {formatShortMoney(stage.pipelineValue, currency)}
                       </p>
                     </div>
+                    <span className="pointer-events-none absolute left-1/2 top-2 z-20 w-max max-w-56 -translate-x-1/2 rounded-xl border border-white/12 bg-[#070b18]/95 px-3 py-2 text-center text-xs text-white opacity-0 shadow-xl backdrop-blur-xl transition group-hover:opacity-100 group-focus-visible:opacity-100">
+                      <strong>{stage.totalLeads}</strong> leads
+                      <span className="text-white/45"> • </span>
+                      {formatShortMoney(stage.pipelineValue, currency)}
+                    </span>
                   </div>
                 );
               })}
-              {summary.stagePerformance.length === 0 ? (
-                <div className="sm:col-span-3 lg:col-span-5">
+              {stagePerformance.length === 0 ? (
+                <div className="col-span-full">
                   <EmptyState
                     title="No stage data yet"
                     description="Stage performance appears once leads move through your pipeline."
                   />
                 </div>
               ) : null}
+              </div>
             </div>
           </div>
         </div>
-      </AdminCollapsibleSection>
+        </AdminCollapsibleSection>
+      ) : null}
 
       <section className="grid gap-6 xl:grid-cols-12">
         <div className="space-y-6 xl:col-span-7">

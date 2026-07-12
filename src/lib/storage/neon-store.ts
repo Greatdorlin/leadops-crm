@@ -66,6 +66,7 @@ import type {
   AdCampaignMetricUpsertInput,
   CampaignReportItem,
   CrmDashboardStats,
+  DashboardTrendPoint,
   CrmUserUpsertInput,
   ExternalLeadUpsertInput,
   ExternalLeadUpsertResult,
@@ -81,6 +82,7 @@ import type {
   LeadSourcePayloadCreateInput,
   LeadTaskCreateInput,
   LeadTaskListFilters,
+  LeadTaskQueueRecord,
   LeadWorkflowUpdateInput,
   LeadStorage,
   SourceReportItem,
@@ -528,6 +530,60 @@ function buildLeadListConditions(filters: LeadListFilters) {
   }
 
   return conditions;
+}
+
+function buildLeadTaskFilterConditions(filters: LeadTaskListFilters) {
+  if (filters.leadIds?.length === 0) {
+    return null;
+  }
+
+  const taskConditions: SQL[] = [];
+  const leadScopeFilters: LeadListFilters = {
+    recordState: filters.leadRecordState ?? "active",
+  };
+
+  if (filters.leadId) {
+    taskConditions.push(eq(leadTasks.leadId, filters.leadId));
+  }
+
+  if (filters.leadIds) {
+    taskConditions.push(inArray(leadTasks.leadId, filters.leadIds));
+  }
+
+  if (filters.assignedTo?.trim()) {
+    taskConditions.push(eq(leadTasks.assignedTo, filters.assignedTo.trim()));
+  }
+
+  if (filters.completion === "open") {
+    taskConditions.push(isNull(leadTasks.completedAt));
+  }
+
+  if (filters.completion === "completed") {
+    taskConditions.push(isNotNull(leadTasks.completedAt));
+  }
+
+  if (filters.dueAfter) {
+    taskConditions.push(gte(leadTasks.dueAt, new Date(filters.dueAfter)));
+  }
+
+  if (filters.dueBefore) {
+    taskConditions.push(lte(leadTasks.dueAt, new Date(filters.dueBefore)));
+  }
+
+  if (filters.overdueOnly) {
+    taskConditions.push(
+      and(isNull(leadTasks.completedAt), lte(leadTasks.dueAt, new Date())) as SQL,
+    );
+  }
+
+  if (filters.stageId) {
+    leadScopeFilters.stageId = filters.stageId;
+  }
+
+  return {
+    leadConditions: buildLeadListConditions(leadScopeFilters),
+    taskConditions,
+  };
 }
 
 export class NeonLeadStore implements LeadStorage {
@@ -1051,58 +1107,23 @@ export class NeonLeadStore implements LeadStorage {
 
   async listLeadTasks(filters: LeadTaskListFilters = {}) {
     const db = this.getDatabase();
-    const conditions: SQL[] = [];
-    const leadScopeFilters: LeadListFilters = {
-      recordState: filters.leadRecordState ?? "active",
-    };
-
-    if (filters.leadId) {
-      conditions.push(eq(leadTasks.leadId, filters.leadId));
+    const filterConditions = buildLeadTaskFilterConditions(filters);
+    if (!filterConditions) {
+      return [];
     }
 
-    if (filters.leadIds) {
-      if (filters.leadIds.length === 0) {
-        return [];
-      }
-      conditions.push(inArray(leadTasks.leadId, filters.leadIds));
-    }
-
-    if (filters.assignedTo?.trim()) {
-      conditions.push(eq(leadTasks.assignedTo, filters.assignedTo.trim()));
-    }
-
-    if (filters.completion === "open") {
-      conditions.push(isNull(leadTasks.completedAt));
-    }
-
-    if (filters.completion === "completed") {
-      conditions.push(sql`${leadTasks.completedAt} is not null`);
-    }
-
-    if (filters.dueAfter) {
-      conditions.push(gte(leadTasks.dueAt, new Date(filters.dueAfter)));
-    }
-
-    if (filters.dueBefore) {
-      conditions.push(lte(leadTasks.dueAt, new Date(filters.dueBefore)));
-    }
-
-    if (filters.overdueOnly) {
-      conditions.push(and(isNull(leadTasks.completedAt), lte(leadTasks.dueAt, new Date())) as SQL);
-    }
-
-    if (filters.stageId) {
-      leadScopeFilters.stageId = filters.stageId;
-    }
-
-    const leadScopeConditions = buildLeadListConditions(leadScopeFilters);
+    const conditions = [...filterConditions.taskConditions];
     conditions.push(
       inArray(
         leadTasks.leadId,
         db
           .select({ id: leads.id })
           .from(leads)
-          .where(leadScopeConditions.length > 0 ? and(...leadScopeConditions) : undefined),
+          .where(
+            filterConditions.leadConditions.length > 0
+              ? and(...filterConditions.leadConditions)
+              : undefined,
+          ),
       ),
     );
 
@@ -1113,6 +1134,56 @@ export class NeonLeadStore implements LeadStorage {
     });
 
     return records.map(mapLeadTaskRecord);
+  }
+
+  async listLeadTaskQueue(
+    filters: LeadTaskListFilters = {},
+  ): Promise<LeadTaskQueueRecord[]> {
+    const db = this.getDatabase();
+    const filterConditions = buildLeadTaskFilterConditions(filters);
+    if (!filterConditions) {
+      return [];
+    }
+
+    const records = await db
+      .select({
+        task: {
+          id: leadTasks.id,
+          leadId: leadTasks.leadId,
+          title: leadTasks.title,
+          description: leadTasks.description,
+          dueAt: leadTasks.dueAt,
+          completedAt: leadTasks.completedAt,
+          assignedTo: leadTasks.assignedTo,
+          createdBy: leadTasks.createdBy,
+          createdAt: leadTasks.createdAt,
+        },
+        lead: {
+          id: leads.id,
+          firstName: leads.firstName,
+          lastName: leads.lastName,
+          companyName: leads.companyName,
+          state: leads.state,
+          country: leads.country,
+          region: leads.region,
+          city: leads.city,
+        },
+      })
+      .from(leadTasks)
+      .innerJoin(leads, eq(leadTasks.leadId, leads.id))
+      .where(
+        and(
+          ...filterConditions.taskConditions,
+          ...filterConditions.leadConditions,
+        ),
+      )
+      .orderBy(asc(leadTasks.completedAt), asc(leadTasks.dueAt), desc(leadTasks.createdAt))
+      .limit(Math.min(Math.max(filters.limit ?? 100, 1), 200));
+
+    return records.map((record) => ({
+      ...mapLeadTaskRecord(record.task),
+      lead: record.lead,
+    }));
   }
 
   async getLeadTaskById(taskId: string) {
@@ -1984,6 +2055,76 @@ export class NeonLeadStore implements LeadStorage {
     return stats;
   }
 
+  async getDashboardTrend(
+    filters: LeadListFilters = {},
+    days = 14,
+  ): Promise<DashboardTrendPoint[]> {
+    const db = this.getDatabase();
+    const dayCount = Math.min(Math.max(Math.trunc(days), 7), 90);
+    const today = new Date();
+    const todayUtc = new Date(
+      Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate()),
+    );
+    const firstDay = new Date(todayUtc);
+    firstDay.setUTCDate(firstDay.getUTCDate() - (dayCount - 1));
+    const conditions = buildLeadListConditions(filters);
+    const createdDay = sql<string>`to_char(
+      date_trunc('day', ${leads.createdAt} at time zone 'UTC'),
+      'YYYY-MM-DD'
+    )`;
+    const wonDay = sql<string>`to_char(
+      date_trunc('day', ${leads.wonAt} at time zone 'UTC'),
+      'YYYY-MM-DD'
+    )`;
+
+    const [createdRows, wonRows] = await Promise.all([
+      db
+        .select({
+          date: createdDay,
+          leads: sql<number>`count(*)::int`,
+        })
+        .from(leads)
+        .where(and(...conditions, gte(leads.createdAt, firstDay)))
+        .groupBy(createdDay)
+        .orderBy(createdDay),
+      db
+        .select({
+          date: wonDay,
+          wonValue: sql<number>`coalesce(sum(
+            coalesce(${leads.wonValue}, ${leads.expectedValue}, ${leads.estimatedValue}, 0)
+          ), 0)`,
+        })
+        .from(leads)
+        .where(
+          and(
+            ...conditions,
+            isNotNull(leads.wonAt),
+            gte(leads.wonAt, firstDay),
+          ),
+        )
+        .groupBy(wonDay)
+        .orderBy(wonDay),
+    ]);
+
+    const leadsByDate = new Map(
+      createdRows.map((row) => [row.date, Number(row.leads ?? 0)]),
+    );
+    const wonValueByDate = new Map(
+      wonRows.map((row) => [row.date, Number(row.wonValue ?? 0)]),
+    );
+
+    return Array.from({ length: dayCount }, (_, index) => {
+      const date = new Date(firstDay);
+      date.setUTCDate(firstDay.getUTCDate() + index);
+      const dateKey = date.toISOString().slice(0, 10);
+      return {
+        date: dateKey,
+        leads: leadsByDate.get(dateKey) ?? 0,
+        wonValue: wonValueByDate.get(dateKey) ?? 0,
+      };
+    });
+  }
+
   async getSalesPipelineAggregate(filters: LeadListFilters = {}) {
     const db = this.getDatabase();
     const conditions = buildLeadListConditions(filters);
@@ -2075,7 +2216,11 @@ export class NeonLeadStore implements LeadStorage {
         .groupBy(leads.source),
       db
         .select({
+          id: leadStages.id,
+          key: leadStages.key,
           label: stageLabel,
+          color: leadStages.color,
+          sortOrder: leadStages.sortOrder,
           totalLeads: sql<number>`count(*)`,
           wonValue,
           pipelineValue,
@@ -2083,7 +2228,13 @@ export class NeonLeadStore implements LeadStorage {
         .from(leads)
         .leftJoin(leadStages, eq(leads.stageId, leadStages.id))
         .where(where)
-        .groupBy(stageLabel),
+        .groupBy(
+          leadStages.id,
+          leadStages.key,
+          stageLabel,
+          leadStages.color,
+          leadStages.sortOrder,
+        ),
       db
         .select({
           assignedUserId: leads.assignedUserId,
@@ -2145,13 +2296,30 @@ export class NeonLeadStore implements LeadStorage {
         .slice(0, 5),
       stagePerformance: stageRows
         .map((row) => ({
+          id: row.id,
+          key: row.key,
           label: row.label,
+          color: row.color,
+          sortOrder: row.sortOrder,
           totalLeads: Number(row.totalLeads),
           wonValue: Number(row.wonValue),
           pipelineValue: Number(row.pipelineValue),
         }))
-        .sort((left, right) => right.totalLeads - left.totalLeads)
-        .slice(0, 6),
+        .sort((left, right) => {
+          if (left.sortOrder !== null && right.sortOrder !== null) {
+            return left.sortOrder - right.sortOrder;
+          }
+
+          if (left.sortOrder !== null) {
+            return -1;
+          }
+
+          if (right.sortOrder !== null) {
+            return 1;
+          }
+
+          return right.totalLeads - left.totalLeads;
+        }),
       repPerformance: repRows
         .map((row) => {
           const user =

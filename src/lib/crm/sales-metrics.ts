@@ -19,7 +19,11 @@ export interface SourcePerformanceSummaryRow {
 }
 
 export interface StagePerformanceSummaryRow {
+  id?: string | null;
+  key?: string | null;
   label: string;
+  color?: string | null;
+  sortOrder?: number | null;
   totalLeads: number;
   wonValue: number;
   pipelineValue: number;
@@ -218,11 +222,16 @@ export function buildStagePerformanceSummary(leads: LeadRecord[]) {
   const grouped = new Map<string, StagePerformanceSummaryRow>();
 
   for (const lead of leads) {
+    const groupKey = lead.stageId ?? lead.crmStatus;
     const label = crmLabelize(lead.crmStatus);
     const current =
-      grouped.get(label) ??
+      grouped.get(groupKey) ??
       {
+        id: lead.stageId ?? null,
+        key: lead.crmStatus,
         label,
+        color: null,
+        sortOrder: null,
         totalLeads: 0,
         wonValue: 0,
         pipelineValue: 0,
@@ -233,7 +242,7 @@ export function buildStagePerformanceSummary(leads: LeadRecord[]) {
       current.wonValue += getLeadWonValue(lead);
     }
     current.pipelineValue += getLeadPipelineValue(lead);
-    grouped.set(label, current);
+    grouped.set(groupKey, current);
   }
 
   return [...grouped.values()]
@@ -319,7 +328,7 @@ export function buildSalesDashboardSummary(input: {
     wonValue,
     conversionRate,
     topSources: buildSourcePerformanceSummary(input.leads).slice(0, 5),
-    stagePerformance: buildStagePerformanceSummary(input.leads).slice(0, 6),
+    stagePerformance: buildStagePerformanceSummary(input.leads),
     repPerformance: buildRepPerformanceSummary(input.users, input.leads, input.tasks).slice(0, 6),
   };
 

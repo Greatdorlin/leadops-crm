@@ -1,7 +1,6 @@
 "use client";
 
-import { startTransition, useId, useMemo, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useId, useMemo, useRef, useState } from "react";
 import { Check, ChevronDown, LoaderCircle, Search, X } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { ResponsivePopover } from "./ResponsivePopover";
@@ -25,7 +24,6 @@ export function LeadOwnerQuickAssign({
   assigneeOptions: LeadAssigneeOption[];
   variant?: "stacked" | "compact";
 }) {
-  const router = useRouter();
   const listboxId = useId();
   const buttonRef = useRef<HTMLButtonElement>(null);
   const [assignedTo, setAssignedTo] = useState(initialAssignedTo ?? "");
@@ -86,7 +84,6 @@ export function LeadOwnerQuickAssign({
       setSavedAssignedTo(nextAssignedTo);
       setMessage("Owner updated.");
       setIsSaving(false);
-      startTransition(() => router.refresh());
     } catch {
       setAssignedTo(previousAssignedTo);
       setHasError(true);

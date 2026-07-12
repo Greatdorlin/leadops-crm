@@ -4,21 +4,25 @@ import { AdminShell } from "@/components/admin/AdminShell";
 import { AdminSignOutButton } from "@/components/admin/AdminSignOutButton";
 import { DashboardSettingsManager } from "@/components/admin/DashboardSettingsManager";
 import { getAdminAccessContext } from "@/lib/admin";
+import { isLocalAdminPreviewEmail } from "@/lib/admin-access";
 import { appRoutes } from "@/lib/app-routes";
 import { canManageDashboardSettings } from "@/lib/crm/authz";
+import { resolveStoredWorkspaceSettings } from "@/lib/crm/workspace-settings";
 import { getCompanySettings } from "@/lib/crm/workspace-settings-server";
 
 export const dynamic = "force-dynamic";
 
 export default async function DashboardSettingsPage() {
-  const { role, accessLevel, actualAccessLevel, canSwitchAccessViews, permissions } =
+  const { session, role, accessLevel, actualAccessLevel, canSwitchAccessViews, permissions } =
     await getAdminAccessContext(appRoutes.settingsDashboard);
 
   if (!canManageDashboardSettings({ accessLevel, permissions, role })) {
     redirect(appRoutes.settings);
   }
 
-  const settings = await getCompanySettings();
+  const settings = isLocalAdminPreviewEmail(session.user?.email)
+    ? resolveStoredWorkspaceSettings(null)
+    : await getCompanySettings();
 
   return (
     <AdminShell

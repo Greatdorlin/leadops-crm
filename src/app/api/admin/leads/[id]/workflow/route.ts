@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { after, NextResponse } from "next/server";
 import { getAdminRequestContext } from "@/lib/admin";
 import { normalizeAdminEmail } from "@/lib/admin-access";
 import { canManageLeadRecord } from "@/lib/admin-permissions";
@@ -230,36 +230,46 @@ export async function PATCH(
     const leadName = `${updatedLead.firstName || "Lead"} ${updatedLead.lastName || ""}`.trim();
     const notificationOwnerId = updatedLead.assignedUserId ?? null;
 
-    try {
+    after(async () => {
+      const notificationJobs: Promise<unknown>[] = [];
+
       if (primaryOwnerChanged) {
-        await notifyNewLeadAssigned({
-          leadId: id,
-          recipientUserId: notificationOwnerId,
-          leadName,
-        });
+        notificationJobs.push(
+          notifyNewLeadAssigned({
+            leadId: id,
+            recipientUserId: notificationOwnerId,
+            leadName,
+          }),
+        );
       }
 
       if (stageChanged && selectedStage) {
-        await notifyLeadStageChanged({
-          recipientUserId: notificationOwnerId,
-          leadId: id,
-          leadName,
-          stageLabel: selectedStage.name,
-        });
+        notificationJobs.push(
+          notifyLeadStageChanged({
+            recipientUserId: notificationOwnerId,
+            leadId: id,
+            leadName,
+            stageLabel: selectedStage.name,
+          }),
+        );
 
         if (updatedLead.wonAt) {
-          await notifyLeadMarkedWon({
-            recipientUserId: notificationOwnerId,
-            leadId: id,
-            leadName,
-          });
+          notificationJobs.push(
+            notifyLeadMarkedWon({
+              recipientUserId: notificationOwnerId,
+              leadId: id,
+              leadName,
+            }),
+          );
         } else if (updatedLead.lostAt) {
-          await notifyLeadMarkedLost({
-            recipientUserId: notificationOwnerId,
-            leadId: id,
-            leadName,
-            reasonLabel: updatedLead.lostReason,
-          });
+          notificationJobs.push(
+            notifyLeadMarkedLost({
+              recipientUserId: notificationOwnerId,
+              leadId: id,
+              leadName,
+              reasonLabel: updatedLead.lostReason,
+            }),
+          );
         }
       }
 
@@ -268,24 +278,33 @@ export async function PATCH(
         const dueLabel = new Date(updatedLead.nextFollowUpAt).toLocaleString();
 
         if (followUpState === "due_today") {
-          await notifyFollowUpDue({
-            recipientUserId: notificationOwnerId,
-            leadId: id,
-            leadName,
-            dueLabel,
-          });
+          notificationJobs.push(
+            notifyFollowUpDue({
+              recipientUserId: notificationOwnerId,
+              leadId: id,
+              leadName,
+              dueLabel,
+            }),
+          );
         } else if (followUpState === "overdue") {
-          await notifyFollowUpOverdue({
-            recipientUserId: notificationOwnerId,
-            leadId: id,
-            leadName,
-            dueLabel,
-          });
+          notificationJobs.push(
+            notifyFollowUpOverdue({
+              recipientUserId: notificationOwnerId,
+              leadId: id,
+              leadName,
+              dueLabel,
+            }),
+          );
         }
       }
-    } catch (notificationError) {
-      console.error("[lead-workflow:notification]", notificationError);
-    }
+
+      const notificationResults = await Promise.allSettled(notificationJobs);
+      for (const result of notificationResults) {
+        if (result.status === "rejected") {
+          console.error("[lead-workflow:notification]", result.reason);
+        }
+      }
+    });
 
     return NextResponse.json({
       lead: updatedLead,

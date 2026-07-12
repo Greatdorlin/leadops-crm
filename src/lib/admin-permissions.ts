@@ -2,6 +2,7 @@ import { isMasterAdminEmail, normalizeAdminEmail } from "@/lib/admin-access";
 import { buildLeadAssigneeList, leadHasAssignee } from "@/lib/crm/lead-assignees";
 import type {
   CrmUserRole,
+  CrmUserRecord,
   LeadRecord,
   LeadTaskRecord,
 } from "@/lib/crm/types";
@@ -32,6 +33,29 @@ type AdminNavKey =
 
 function normalizeEmail(value?: string | null) {
   return value ? normalizeAdminEmail(value) : "";
+}
+
+function leadMatchesStoredScope(lead: LeadRecord, user?: CrmUserRecord | null) {
+  if (!user || user.accessScope === "all") {
+    return true;
+  }
+
+  if (user.accessScope === "own") {
+    return leadHasAssignee(
+      buildLeadAssigneeList({ primary: lead.assignedTo, all: lead.assignedToList }).join("|"),
+      user.email,
+    );
+  }
+
+  if (user.accessScope === "branch") {
+    return Boolean(user.branchId && lead.branchId === user.branchId);
+  }
+
+  if (user.accessScope === "department") {
+    return Boolean(user.departmentId && lead.departmentId === user.departmentId);
+  }
+
+  return Boolean(user.teamId && lead.teamId === user.teamId);
 }
 
 function getConfiguredPermission(
@@ -308,8 +332,13 @@ export function canViewLeadRecord(
   lead: LeadRecord,
   currentUserEmail?: string | null,
   permissions?: readonly PermissionKey[],
+  currentUser?: CrmUserRecord | null,
 ) {
   if (getConfiguredPermission(permissions, "canViewLeads") === false) {
+    return false;
+  }
+
+  if (!leadMatchesStoredScope(lead, currentUser)) {
     return false;
   }
 
@@ -331,6 +360,7 @@ export function canManageLeadRecord(
   lead: LeadRecord,
   currentUserEmail?: string | null,
   permissions?: readonly PermissionKey[],
+  currentUser?: CrmUserRecord | null,
 ) {
   if (getConfiguredPermission(permissions, "canEditLeads") === false) {
     return false;
@@ -340,7 +370,7 @@ export function canManageLeadRecord(
     return false;
   }
 
-  return canViewLeadRecord(accessLevel, lead, currentUserEmail, permissions);
+  return canViewLeadRecord(accessLevel, lead, currentUserEmail, permissions, currentUser);
 }
 
 export function canManageTeamMember(
@@ -402,17 +432,34 @@ export function scopeLeadListFilters(
   filters: LeadListFilters,
   accessLevel: AdminAccessLevel,
   currentUserEmail?: string | null,
+  currentUser?: CrmUserRecord | null,
 ): LeadListFilters {
-  if (accessLevel !== "sales_rep" && accessLevel !== "affiliate") {
+  const email = normalizeEmail(currentUserEmail);
+  const scopedFilters = { ...filters };
+  if (accessLevel === "sales_rep" || accessLevel === "affiliate" || currentUser?.accessScope === "own") {
+    delete scopedFilters.assignment;
+    return { ...scopedFilters, assignedTo: email || currentUser?.email || undefined };
+  }
+
+  if (!currentUser || currentUser.accessScope === "all") {
     return filters;
   }
 
-  const email = normalizeEmail(currentUserEmail);
-  const scopedFilters = { ...filters };
-  delete scopedFilters.assignment;
+  const scopeId =
+    currentUser.accessScope === "branch"
+      ? currentUser.branchId
+      : currentUser.accessScope === "department"
+        ? currentUser.departmentId
+        : currentUser.teamId;
+  if (!scopeId) {
+    return { ...scopedFilters, scopeDenied: true };
+  }
+
   return {
     ...scopedFilters,
-    assignedTo: email || undefined,
+    ...(currentUser.accessScope === "branch" ? { branchId: scopeId } : {}),
+    ...(currentUser.accessScope === "department" ? { departmentId: scopeId } : {}),
+    ...(currentUser.accessScope === "team" ? { teamId: scopeId } : {}),
   };
 }
 

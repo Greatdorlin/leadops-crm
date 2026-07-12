@@ -6,11 +6,17 @@ import { formatAdminAccessLevelLabel } from "@/lib/crm/formatters";
 import type { AdminAccessLevel } from "@/lib/admin-permissions";
 import { AdminSelect } from "./AdminSelect";
 import { TeamAvatar } from "./TeamAvatar";
+import { LeadAccessScopeFields, type ScopeOption } from "./LeadAccessScopeFields";
+import type { LeadAccessScope } from "@/lib/crm/types";
 
 export function TeamAccessForm({
   grantableAccessLevels,
+  branches = [], departments = [], teams = [],
 }: {
   grantableAccessLevels: AdminAccessLevel[];
+  branches?: ScopeOption[];
+  departments?: ScopeOption[];
+  teams?: ScopeOption[];
 }) {
   const defaultAccessLevel =
     grantableAccessLevels.find((level) => level === "general_admin") ??
@@ -23,6 +29,8 @@ export function TeamAccessForm({
   const [avatarUrl, setAvatarUrl] = useState("");
   const [accessLevel, setAccessLevel] = useState<AdminAccessLevel>(defaultAccessLevel);
   const [isActive, setIsActive] = useState(true);
+  const [accessScope, setAccessScope] = useState<LeadAccessScope>("own");
+  const [scopeId, setScopeId] = useState("");
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState("");
 
@@ -73,6 +81,10 @@ export function TeamAccessForm({
           avatarUrl,
           accessLevel,
           isActive,
+          accessScope,
+          branchId: accessScope === "branch" ? scopeId : null,
+          departmentId: accessScope === "department" ? scopeId : null,
+          teamId: accessScope === "team" ? scopeId : null,
         }),
       });
 
@@ -88,6 +100,8 @@ export function TeamAccessForm({
       setAvatarUrl("");
       setAccessLevel(defaultAccessLevel);
       setIsActive(true);
+      setAccessScope("own");
+      setScopeId("");
       setMessage("Team access saved.");
       setIsSaving(false);
       router.refresh();
@@ -131,7 +145,7 @@ export function TeamAccessForm({
         ) : null}
         <p className="text-xs text-white/70">Max 2MB.</p>
       </div>
-      <div className="grid gap-3 lg:grid-cols-[1fr_1fr_0.8fr_auto]">
+      <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
         <input
           type="text"
           value={fullName}
@@ -157,6 +171,15 @@ export function TeamAccessForm({
             </option>
           ))}
         </AdminSelect>
+        <LeadAccessScopeFields
+          accessScope={accessScope}
+          onAccessScopeChange={setAccessScope}
+          scopeId={scopeId}
+          onScopeIdChange={setScopeId}
+          branches={branches}
+          departments={departments}
+          teams={teams}
+        />
         <button
           type="button"
           disabled={isSaving}

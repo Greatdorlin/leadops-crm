@@ -51,6 +51,7 @@ export async function GET(request: Request) {
       },
       context.accessLevel,
       context.session.user.email,
+      context.crmUser,
     );
 
     const [leads, workspaceSettings] = await Promise.all([

@@ -5,6 +5,7 @@ import { AdminSignOutButton } from "@/components/admin/AdminSignOutButton";
 import { ErrorState } from "@/components/admin/ErrorState";
 import { FormListGrid } from "@/components/admin/FormListGrid";
 import { getAdminAccessContext } from "@/lib/admin";
+import { isLocalAdminPreviewEmail } from "@/lib/admin-access";
 import { canAccessFormsWorkspace } from "@/lib/admin-permissions";
 import { appRoutes } from "@/lib/app-routes";
 import { getCrmPageErrorCopy, logCrmPageError } from "@/lib/crm/runtime";
@@ -12,6 +13,7 @@ import {
   getFormResourceCounts,
   listForms,
 } from "@/lib/crm/form-builder-store";
+import { buildDemoForms } from "@/lib/crm/demo-data";
 
 export const dynamic = "force-dynamic";
 
@@ -22,6 +24,7 @@ export default async function AdminFormsPage() {
     actualAccessLevel,
     canSwitchAccessViews,
     permissions,
+    session,
   } = await getAdminAccessContext(appRoutes.forms);
 
   if (!canAccessFormsWorkspace(accessLevel, role, permissions)) {
@@ -31,7 +34,9 @@ export default async function AdminFormsPage() {
   let formsWithCounts: (Awaited<ReturnType<typeof listForms>>[number] & { fieldCount: number; submissionCount: number })[] = [];
   let pageError: unknown = null;
 
-  try {
+  if (isLocalAdminPreviewEmail(session.user?.email)) {
+    formsWithCounts = buildDemoForms();
+  } else try {
     const forms = await listForms({ includeArchived: true });
     const counts = await getFormResourceCounts(forms.map((form) => form.id));
     formsWithCounts = forms.map((form) => ({
@@ -91,6 +96,7 @@ export default async function AdminFormsPage() {
         initialForms={formsWithCounts}
         accessLevel={accessLevel}
         role={role}
+        demoMode={isLocalAdminPreviewEmail(session.user?.email)}
       />
     </AdminShell>
   );

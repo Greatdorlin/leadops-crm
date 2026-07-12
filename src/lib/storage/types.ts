@@ -29,6 +29,10 @@ export interface LeadListFilters {
   assignment?: "unassigned";
   assignedTo?: string;
   assignedUserId?: string;
+  branchId?: string;
+  departmentId?: string;
+  teamId?: string;
+  scopeDenied?: boolean;
   search?: string;
   createdFrom?: string | Date;
   createdTo?: string | Date;
@@ -146,6 +150,7 @@ export interface LeadTaskListFilters {
   leadId?: string;
   leadIds?: string[];
   assignedTo?: string;
+  leadAssignedTo?: string;
   stageId?: string;
   completion?: "all" | "open" | "completed";
   leadRecordState?: "active" | "trashed" | "all";
@@ -153,6 +158,10 @@ export interface LeadTaskListFilters {
   dueAfter?: string | Date;
   overdueOnly?: boolean;
   limit?: number;
+  branchId?: string;
+  departmentId?: string;
+  teamId?: string;
+  scopeDenied?: boolean;
 }
 
 export interface LeadTaskQueueLeadRecord {
@@ -339,6 +348,10 @@ export interface CrmUserUpsertInput {
   role: CrmUserRecord["role"];
   isActive?: boolean;
   avatarUrl?: string | null;
+  accessScope?: CrmUserRecord["accessScope"];
+  branchId?: string | null;
+  departmentId?: string | null;
+  teamId?: string | null;
 }
 
 export interface IntegrationUpsertInput {
@@ -410,9 +423,9 @@ export interface LeadStorage {
   getDashboardStats(filters?: LeadListFilters): Promise<CrmDashboardStats>;
   getDashboardTrend(filters?: LeadListFilters, days?: number): Promise<DashboardTrendPoint[]>;
   getSalesPipelineAggregate(filters?: LeadListFilters): Promise<SalesPipelineAggregate>;
-  getTeamPerformance(): Promise<TeamPerformanceRow[]>;
+  getTeamPerformance(filters?: LeadListFilters): Promise<TeamPerformanceRow[]>;
   getLeadDistributionReport(filters?: LeadListFilters): Promise<LeadDistributionReport>;
-  getSourceReport(): Promise<SourceReportItem[]>;
+  getSourceReport(filters?: LeadListFilters): Promise<SourceReportItem[]>;
   getCampaignReport(): Promise<CampaignReportItem[]>;
   countGoogleAdsCampaignLeads(input: { campaignId: string; campaignName: string }): Promise<number>;
   listCrmUsers(): Promise<CrmUserRecord[]>;

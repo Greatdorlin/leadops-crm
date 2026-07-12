@@ -30,6 +30,7 @@ export async function POST(
       lead,
       context.session.user?.email,
       context.permissions,
+      context.crmUser,
     )
   ) {
     return NextResponse.json({ error: "Forbidden." }, { status: 403 });

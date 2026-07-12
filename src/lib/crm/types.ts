@@ -23,6 +23,7 @@ export type LeadOpportunityStatus =
   | "won"
   | "on_hold";
 export type CrmUserRole = (typeof CRM_USER_ROLES)[number];
+export type LeadAccessScope = "all" | "branch" | "department" | "team" | "own";
 export type SyncState = (typeof SYNC_STATES)[number];
 export type IntegrationProvider = (typeof INTEGRATION_PROVIDERS)[number];
 export type IntegrationStatus = (typeof INTEGRATION_STATUSES)[number];
@@ -131,6 +132,10 @@ export interface CrmUserRecord {
   role: CrmUserRole;
   isActive: boolean;
   avatarUrl?: string | null;
+  accessScope: LeadAccessScope;
+  branchId: string | null;
+  departmentId: string | null;
+  teamId: string | null;
   createdAt: string;
   updatedAt: string;
 }

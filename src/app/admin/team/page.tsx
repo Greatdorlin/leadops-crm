@@ -10,8 +10,10 @@ import { GlassSurface } from "@/components/admin/ui/GlassSurface";
 import { SectionHeader } from "@/components/admin/SectionHeader";
 import { TeamAvatar } from "@/components/admin/TeamAvatar";
 import { getAdminAccessContext } from "@/lib/admin";
+import { isLocalAdminPreviewEmail } from "@/lib/admin-access";
 import { canViewSalesTeam } from "@/lib/admin-permissions";
 import { crmLabelize } from "@/lib/crm/formatters";
+import { buildDemoTeamPerformance } from "@/lib/crm/demo-data";
 import { getCrmPageErrorCopy, logCrmPageError } from "@/lib/crm/runtime";
 import { appRoutes } from "@/lib/app-routes";
 import { leadStore } from "@/lib/storage";
@@ -23,7 +25,7 @@ function safeNumber(value: number) {
 }
 
 export default async function AdminTeamPage() {
-  const { role, accessLevel, actualAccessLevel, canSwitchAccessViews, permissions } =
+  const { role, accessLevel, actualAccessLevel, canSwitchAccessViews, permissions, session } =
     await getAdminAccessContext(appRoutes.team);
   if (!canViewSalesTeam(accessLevel, permissions)) {
     redirect(appRoutes.dashboard);
@@ -36,7 +38,9 @@ export default async function AdminTeamPage() {
     | null = null;
   let pageError: unknown = null;
 
-  try {
+  if (isLocalAdminPreviewEmail(session.user?.email)) {
+    pageData = { teamRows: buildDemoTeamPerformance() };
+  } else try {
     pageData = { teamRows: await leadStore.getTeamPerformance() };
   } catch (error) {
     pageError = error;

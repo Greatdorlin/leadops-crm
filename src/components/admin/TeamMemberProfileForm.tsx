@@ -6,6 +6,8 @@ import { formatAdminAccessLevelLabel } from "@/lib/crm/formatters";
 import type { AdminAccessLevel } from "@/lib/admin-permissions";
 import { AdminSelect } from "./AdminSelect";
 import { TeamAvatar } from "./TeamAvatar";
+import { LeadAccessScopeFields, type ScopeOption } from "./LeadAccessScopeFields";
+import type { LeadAccessScope } from "@/lib/crm/types";
 
 export function TeamMemberProfileForm({
   userId,
@@ -18,6 +20,11 @@ export function TeamMemberProfileForm({
   canEditAccess = false,
   canEditActive = false,
   compact = false,
+  accessScope: initialAccessScope = "own",
+  branchId,
+  departmentId,
+  teamId,
+  branches = [], departments = [], teams = [],
 }: {
   userId: string;
   fullName: string;
@@ -29,6 +36,13 @@ export function TeamMemberProfileForm({
   canEditAccess?: boolean;
   canEditActive?: boolean;
   compact?: boolean;
+  accessScope?: LeadAccessScope;
+  branchId?: string | null;
+  departmentId?: string | null;
+  teamId?: string | null;
+  branches?: ScopeOption[];
+  departments?: ScopeOption[];
+  teams?: ScopeOption[];
 }) {
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -36,6 +50,10 @@ export function TeamMemberProfileForm({
   const [avatarUrl, setAvatarUrl] = useState(initialAvatarUrl ?? "");
   const [accessLevel, setAccessLevel] = useState<AdminAccessLevel>(initialAccessLevel);
   const [isActive, setIsActive] = useState(initialIsActive);
+  const [accessScope, setAccessScope] = useState<LeadAccessScope>(initialAccessScope);
+  const [scopeId, setScopeId] = useState(
+    initialAccessScope === "branch" ? branchId ?? "" : initialAccessScope === "department" ? departmentId ?? "" : initialAccessScope === "team" ? teamId ?? "" : "",
+  );
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState("");
 
@@ -85,6 +103,12 @@ export function TeamMemberProfileForm({
           avatarUrl,
           ...(canEditAccess ? { accessLevel } : {}),
           ...(canEditActive ? { isActive } : {}),
+          ...(canEditAccess ? {
+            accessScope,
+            branchId: accessScope === "branch" ? scopeId : null,
+            departmentId: accessScope === "department" ? scopeId : null,
+            teamId: accessScope === "team" ? scopeId : null,
+          } : {}),
         }),
       });
 
@@ -181,6 +205,18 @@ export function TeamMemberProfileForm({
                 ))}
             </AdminSelect>
           </label>
+        ) : null}
+
+        {canEditAccess ? (
+          <LeadAccessScopeFields
+            accessScope={accessScope}
+            onAccessScopeChange={setAccessScope}
+            scopeId={scopeId}
+            onScopeIdChange={setScopeId}
+            branches={branches}
+            departments={departments}
+            teams={teams}
+          />
         ) : null}
 
         {canEditActive ? (

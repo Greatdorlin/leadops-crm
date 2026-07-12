@@ -32,6 +32,20 @@ const crmUserUpdateSchema = z.object({
   avatarUrl: avatarImageSchema.nullable().optional(),
   accessLevel: z.enum(ADMIN_ACCESS_LEVELS).optional(),
   isActive: z.boolean().optional(),
+  accessScope: z.enum(["all", "branch", "department", "team", "own"]).optional(),
+  branchId: z.string().uuid().nullable().optional(),
+  departmentId: z.string().uuid().nullable().optional(),
+  teamId: z.string().uuid().nullable().optional(),
+}).superRefine((value, context) => {
+  if (value.accessScope === "branch" && !value.branchId) {
+    context.addIssue({ code: "custom", message: "Choose a branch.", path: ["branchId"] });
+  }
+  if (value.accessScope === "department" && !value.departmentId) {
+    context.addIssue({ code: "custom", message: "Choose a department.", path: ["departmentId"] });
+  }
+  if (value.accessScope === "team" && !value.teamId) {
+    context.addIssue({ code: "custom", message: "Choose a team.", path: ["teamId"] });
+  }
 });
 
 export async function PATCH(
@@ -66,7 +80,11 @@ export async function PATCH(
   });
   const wantsRosterChange =
     typeof parsed.data.isActive === "boolean" ||
-    typeof parsed.data.accessLevel === "string";
+    typeof parsed.data.accessLevel === "string" ||
+    typeof parsed.data.accessScope === "string" ||
+    parsed.data.branchId !== undefined ||
+    parsed.data.departmentId !== undefined ||
+    parsed.data.teamId !== undefined;
 
   if (wantsRosterChange || !isSelfUpdate) {
     if (!canManageUsers(context)) {
@@ -107,6 +125,19 @@ export async function PATCH(
       parsed.data.avatarUrl === undefined
         ? targetUser.avatarUrl ?? null
         : parsed.data.avatarUrl?.trim() || null,
+    accessScope: parsed.data.accessScope ?? targetUser.accessScope,
+    branchId:
+      (parsed.data.accessScope ?? targetUser.accessScope) === "branch"
+        ? parsed.data.branchId === undefined ? targetUser.branchId : parsed.data.branchId
+        : null,
+    departmentId:
+      (parsed.data.accessScope ?? targetUser.accessScope) === "department"
+        ? parsed.data.departmentId === undefined ? targetUser.departmentId : parsed.data.departmentId
+        : null,
+    teamId:
+      (parsed.data.accessScope ?? targetUser.accessScope) === "team"
+        ? parsed.data.teamId === undefined ? targetUser.teamId : parsed.data.teamId
+        : null,
   });
 
   if (!updated) {

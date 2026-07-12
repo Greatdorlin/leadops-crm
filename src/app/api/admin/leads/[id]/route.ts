@@ -92,6 +92,7 @@ export async function GET(
       lead,
       context.session.user?.email,
       context.permissions,
+      context.crmUser,
     )
   ) {
     return NextResponse.json({ error: "Forbidden." }, { status: 403 });
@@ -177,6 +178,7 @@ export async function PATCH(
       existingLead,
       context.session.user?.email,
       context.permissions,
+      context.crmUser,
     )
   ) {
     return NextResponse.json({ error: "Forbidden." }, { status: 403 });

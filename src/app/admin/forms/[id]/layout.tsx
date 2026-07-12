@@ -8,6 +8,7 @@ import { FormTabNav } from "@/components/admin/FormTabNav";
 import { FormDetailProvider } from "@/components/admin/FormDetailProvider";
 import { GlassSurface } from "@/components/admin/ui/GlassSurface";
 import { getAdminAccessContext } from "@/lib/admin";
+import { isLocalAdminPreviewEmail } from "@/lib/admin-access";
 import { canAccessFormsWorkspace } from "@/lib/admin-permissions";
 import { appRoutes } from "@/lib/app-routes";
 import {
@@ -15,6 +16,7 @@ import {
   listFormFields,
 } from "@/lib/crm/form-builder-store";
 import { getCrmPageErrorCopy, logCrmPageError } from "@/lib/crm/runtime";
+import { buildDemoForms } from "@/lib/crm/demo-data";
 
 export const dynamic = "force-dynamic";
 
@@ -26,7 +28,7 @@ export default async function FormDetailLayout({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const { role, accessLevel, actualAccessLevel, canSwitchAccessViews, permissions } =
+  const { role, accessLevel, actualAccessLevel, canSwitchAccessViews, permissions, session } =
     await getAdminAccessContext(appRoutes.form(id));
 
   if (!canAccessFormsWorkspace(accessLevel, role, permissions)) {
@@ -37,7 +39,9 @@ export default async function FormDetailLayout({
   let pageError: unknown = null;
   let fields: Awaited<ReturnType<typeof listFormFields>> = [];
 
-  try {
+  if (isLocalAdminPreviewEmail(session.user?.email) && id.startsWith("demo-form-")) {
+    form = buildDemoForms().find((item) => item.id === id) ?? null;
+  } else try {
     form = await getFormById(id);
     if (form) {
       fields = await listFormFields(id);
@@ -102,7 +106,13 @@ export default async function FormDetailLayout({
             </div>
           </div>
           <div className="mt-5">
-            <FormTabNav formId={id} />
+            {id.startsWith("demo-form-") ? (
+              <div className="inline-flex rounded-full border border-sky-300/20 bg-sky-400/10 px-3 py-1.5 text-xs font-semibold text-sky-100">
+                Demo form overview
+              </div>
+            ) : (
+              <FormTabNav formId={id} />
+            )}
           </div>
         </section>
 

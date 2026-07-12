@@ -14,6 +14,8 @@ import { TeamAccessForm } from "./TeamAccessForm";
 import { TeamAvatar } from "./TeamAvatar";
 import { TeamMemberAccessButton } from "./TeamMemberAccessButton";
 import { TeamMemberProfileForm } from "./TeamMemberProfileForm";
+import type { ScopeOption } from "./LeadAccessScopeFields";
+import type { LeadAccessScope } from "@/lib/crm/types";
 
 type TeamSettingsMember = {
   id: string;
@@ -23,6 +25,10 @@ type TeamSettingsMember = {
   accessLevel: AdminAccessLevel;
   isActive: boolean;
   canManageMember: boolean;
+  accessScope: LeadAccessScope;
+  branchId: string | null;
+  departmentId: string | null;
+  teamId: string | null;
 };
 
 export function TeamSettingsWorkspace({
@@ -31,6 +37,7 @@ export function TeamSettingsWorkspace({
   canGrantAccess,
   canEditRoster,
   grantableAccessLevels,
+  branches, departments, teams,
 }: {
   currentUser:
     | {
@@ -45,6 +52,9 @@ export function TeamSettingsWorkspace({
   canGrantAccess: boolean;
   canEditRoster: boolean;
   grantableAccessLevels: AdminAccessLevel[];
+  branches: ScopeOption[];
+  departments: ScopeOption[];
+  teams: ScopeOption[];
 }) {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<"active" | "inactive" | "all">("active");
@@ -274,6 +284,13 @@ export function TeamSettingsWorkspace({
                     canEditAccess={canEditRoster && member.canManageMember}
                     canEditActive={canEditRoster && member.canManageMember}
                     compact
+                    accessScope={member.accessScope}
+                    branchId={member.branchId}
+                    departmentId={member.departmentId}
+                    teamId={member.teamId}
+                    branches={branches}
+                    departments={departments}
+                    teams={teams}
                   />
 
                   {canEditRoster && member.canManageMember ? (
@@ -343,7 +360,12 @@ export function TeamSettingsWorkspace({
                 description="Add a new person with the right access level and optional profile photo."
               />
               <div className="mt-4">
-                <TeamAccessForm grantableAccessLevels={grantableAccessLevels} />
+                <TeamAccessForm
+                  grantableAccessLevels={grantableAccessLevels}
+                  branches={branches}
+                  departments={departments}
+                  teams={teams}
+                />
               </div>
             </GlassCard>
           ) : null}

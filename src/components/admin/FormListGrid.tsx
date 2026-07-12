@@ -56,11 +56,13 @@ function FormCard({
   onStatusChange,
   onDuplicate,
   canManage,
+  demoMode,
 }: {
   form: FormWithCounts;
   onStatusChange: (id: string, status: "draft" | "archived") => void;
   onDuplicate: (id: string) => void;
   canManage: boolean;
+  demoMode: boolean;
 }) {
   const [archiving, setArchiving] = useState(false);
   const [restoring, setRestoring] = useState(false);
@@ -172,7 +174,7 @@ function FormCard({
           <Edit className="h-3.5 w-3.5" />
           Edit
         </Link>
-        {form.isPublic && form.status === "active" ? (
+        {form.isPublic && form.status === "active" && !demoMode ? (
           <Link
             href={`/forms/${form.slug}`}
             target="_blank"
@@ -230,10 +232,12 @@ export function FormListGrid({
   initialForms,
   accessLevel,
   role,
+  demoMode = false,
 }: {
   initialForms: FormWithCounts[];
   accessLevel: AdminAccessLevel;
   role?: CrmUserRole | null;
+  demoMode?: boolean;
 }) {
   const [forms, setForms] = useState<FormWithCounts[]>(initialForms);
   const canManage = canManageForms({ accessLevel, role });
@@ -283,7 +287,7 @@ export function FormListGrid({
           </h2>
           <p className="mt-1 text-sm text-white/70">Manage forms, fields, and submission rules.</p>
         </div>
-        {canManage ? (
+        {canManage && !demoMode ? (
           <Link
             href={appRoutes.formsNew}
             className="admin-button-primary inline-flex h-11 shrink-0 items-center justify-center rounded-2xl px-5 text-sm font-semibold"
@@ -318,6 +322,7 @@ export function FormListGrid({
               onStatusChange={handleStatusChange}
               onDuplicate={handleDuplicate}
               canManage={canManage}
+              demoMode={demoMode}
             />
           ))}
         </div>

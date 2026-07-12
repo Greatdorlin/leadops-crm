@@ -87,6 +87,10 @@ function buildDevelopmentUsers() {
     role: "sales_agent" as const,
     isActive: true,
     avatarUrl: null,
+    accessScope: "own" as const,
+    branchId: null,
+    departmentId: null,
+    teamId: null,
     createdAt: timestamp,
     updatedAt: timestamp,
   }));
@@ -323,6 +327,7 @@ export default async function AdminLeadsPage({
     actualAccessLevel,
     canSwitchAccessViews,
     permissions,
+    crmUser,
   } = await getAdminAccessContext(appRoutes.leads);
   if (!canViewLeads({ accessLevel, permissions, role })) {
     redirect(appRoutes.dashboard);
@@ -339,7 +344,7 @@ export default async function AdminLeadsPage({
     (filters.stageId === "all" || filters.status === "all"
       ? "all"
       : filters.stageId ?? filters.status);
-  const scopedFilters = scopeLeadListFilters(filters, accessLevel, session.user?.email);
+  const scopedFilters = scopeLeadListFilters(filters, accessLevel, session.user?.email, crmUser);
   const cursorState = readCursor(params);
   const requestedPage = cursorState ? readPage(params) : 1;
   let pageError: unknown = null;

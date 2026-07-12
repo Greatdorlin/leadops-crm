@@ -8,9 +8,11 @@ import { GlassSurface } from "@/components/admin/ui/GlassSurface";
 import { SalesCommandReports } from "@/components/admin/SalesCommandReports";
 import { SectionHeader } from "@/components/admin/SectionHeader";
 import { getAdminAccessContext } from "@/lib/admin";
+import { isLocalAdminPreviewEmail } from "@/lib/admin-access";
 import {
   canAccessReports,
   canManageIntegrationsAccess,
+  scopeLeadListFilters,
 } from "@/lib/admin-permissions";
 import { appRoutes } from "@/lib/app-routes";
 import {
@@ -26,6 +28,128 @@ import { leadStore } from "@/lib/storage";
 
 export const dynamic = "force-dynamic";
 
+function buildDevelopmentReportsData() {
+  const now = new Date();
+  const monthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
+  const monthEnd = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 0));
+  const intakeEvents = [
+    {
+      id: "demo-intake-report-1",
+      status: "lead_created" as const,
+      sourceName: "Executive consultation form",
+      leadId: "demo-lead-1",
+      leadName: "Aurelia Systems",
+      errorMessage: null,
+      normalizedSummary: [{ label: "Interest", value: "Enterprise sales operations" }],
+      rawPayload: null,
+      createdAt: new Date(now.getTime() - 32 * 60 * 1000).toISOString(),
+    },
+    {
+      id: "demo-intake-report-2",
+      status: "lead_created" as const,
+      sourceName: "Meta lead campaign",
+      leadId: "demo-lead-2",
+      leadName: "Vertex Labs",
+      errorMessage: null,
+      normalizedSummary: [{ label: "Interest", value: "Growth implementation" }],
+      rawPayload: null,
+      createdAt: new Date(now.getTime() - 3 * 60 * 60 * 1000).toISOString(),
+    },
+  ];
+
+  return {
+    leadDistribution: {
+      interestReport: [
+        { label: "Enterprise implementation", value: 18 },
+        { label: "Revenue operations", value: 14 },
+        { label: "Advisory package", value: 9 },
+        { label: "Team enablement", value: 7 },
+      ],
+      locationReport: [
+        { label: "Lagos", value: 16 },
+        { label: "London", value: 11 },
+        { label: "Accra", value: 8 },
+        { label: "Toronto", value: 6 },
+      ],
+    },
+    stats: {
+      totalLeads: 56,
+      newLeadsToday: 8,
+      unassignedLeads: 3,
+      followUpsDueToday: 9,
+      capturedLeads: 56,
+      consultationReadyLeads: 17,
+      highPriorityLeads: 12,
+      failedIntegrations: 0,
+      facebookLeadsThisWeek: 14,
+      websiteLeadsThisWeek: 19,
+      senderSyncStatus: { success: 53, pending: 3, failed: 0, notConfigured: 0, skipped: 0 },
+    },
+    salesAggregate: {
+      totalLeads: 56,
+      newLeads: 18,
+      leadsThisMonth: 41,
+      overdueFollowUps: 4,
+      dueTodayFollowUps: 9,
+      stuckLeads: 5,
+      wonLeads: 9,
+      lostLeads: 4,
+      pipelineValue: 18400000,
+      wonValue: 7300000,
+      conversionRate: 16.1,
+      topSources: [
+        { label: "Website form", totalLeads: 19, wonLeads: 4, wonValue: 3100000, pipelineValue: 6100000, conversionRate: 21.1 },
+        { label: "Facebook lead ads", totalLeads: 14, wonLeads: 2, wonValue: 1700000, pipelineValue: 4700000, conversionRate: 14.3 },
+        { label: "Referral", totalLeads: 11, wonLeads: 2, wonValue: 1600000, pipelineValue: 3900000, conversionRate: 18.2 },
+        { label: "LinkedIn lead forms", totalLeads: 7, wonLeads: 1, wonValue: 900000, pipelineValue: 2400000, conversionRate: 14.3 },
+      ],
+      stagePerformance: [
+        { id: "demo-stage-new", key: "new", label: "New", color: "#60a5fa", sortOrder: 0, totalLeads: 18, wonValue: 0, pipelineValue: 2800000 },
+        { id: "demo-stage-contacted", key: "contacted", label: "Contacted", color: "#a78bfa", sortOrder: 1, totalLeads: 13, wonValue: 0, pipelineValue: 4300000 },
+        { id: "demo-stage-qualified", key: "qualified", label: "Qualified", color: "#22d3ee", sortOrder: 2, totalLeads: 12, wonValue: 0, pipelineValue: 7300000 },
+        { id: "demo-stage-won", key: "converted", label: "Won", color: "#34d399", sortOrder: 3, totalLeads: 9, wonValue: 7300000, pipelineValue: 0 },
+        { id: "demo-stage-lost", key: "lost", label: "Lost", color: "#fb7185", sortOrder: 4, totalLeads: 4, wonValue: 0, pipelineValue: 0 },
+      ],
+      repPerformance: [
+        { id: "demo-user-sarah", label: "Sarah Kim", assignedLeads: 21, overdueFollowUps: 1, wonLeads: 4, wonValue: 3200000, pipelineValue: 6400000, conversionRate: 19 },
+        { id: "demo-user-james", label: "James Lee", assignedLeads: 18, overdueFollowUps: 2, wonLeads: 3, wonValue: 2400000, pipelineValue: 5900000, conversionRate: 16.7 },
+        { id: "demo-user-priya", label: "Priya Shah", assignedLeads: 14, overdueFollowUps: 1, wonLeads: 2, wonValue: 1700000, pipelineValue: 4700000, conversionRate: 14.3 },
+      ],
+    },
+    teamRows: [
+      { id: "demo-user-sarah", email: "sarah@example.com", fullName: "Sarah Kim", role: "sales_agent" as const, accessLevel: "sales_rep" as const, assignedLeads: 21, openTasks: 8, overdueTasks: 1, dueTodayTasks: 3, completedTasks: 34, contactedLeads: 17, qualifiedLeads: 9, convertedLeads: 4, highPriorityLeads: 5, lastActivityAt: now.toISOString() },
+      { id: "demo-user-james", email: "james@example.com", fullName: "James Lee", role: "sales_agent" as const, accessLevel: "sales_rep" as const, assignedLeads: 18, openTasks: 7, overdueTasks: 2, dueTodayTasks: 4, completedTasks: 29, contactedLeads: 14, qualifiedLeads: 8, convertedLeads: 3, highPriorityLeads: 4, lastActivityAt: now.toISOString() },
+      { id: "demo-user-priya", email: "priya@example.com", fullName: "Priya Shah", role: "sales_agent" as const, accessLevel: "sales_rep" as const, assignedLeads: 14, openTasks: 5, overdueTasks: 1, dueTodayTasks: 2, completedTasks: 26, contactedLeads: 12, qualifiedLeads: 6, convertedLeads: 2, highPriorityLeads: 3, lastActivityAt: now.toISOString() },
+    ],
+    sourceReport: [
+      { source: "website_form" as const, leadCount: 19, qualifiedCount: 11, convertedCount: 4, highPriorityCount: 5 },
+      { source: "facebook_lead_ads" as const, leadCount: 14, qualifiedCount: 7, convertedCount: 2, highPriorityCount: 4 },
+      { source: "referral" as const, leadCount: 11, qualifiedCount: 7, convertedCount: 2, highPriorityCount: 2 },
+    ],
+    campaignReport: [
+      { provider: "google_ads" as const, campaignId: "demo-search", campaignName: "High-intent search", spend: "NGN 620,000", clicks: 842, impressions: 19300, leads: 27, conversions: 6, costPerLead: "NGN 22,963" },
+      { provider: "facebook" as const, campaignId: "demo-meta", campaignName: "Executive growth campaign", spend: "NGN 410,000", clicks: 1160, impressions: 42800, leads: 31, conversions: 5, costPerLead: "NGN 13,226" },
+    ],
+    intakeEvents,
+    activeTarget: {
+      id: "demo-target",
+      name: "Monthly revenue target",
+      scope: "global" as const,
+      scopeId: null,
+      period: "monthly" as const,
+      targetValue: 12000000,
+      currency: "NGN",
+      startDate: monthStart.toISOString().slice(0, 10),
+      endDate: monthEnd.toISOString().slice(0, 10),
+      isActive: true,
+      archived: false,
+      createdAt: monthStart.toISOString(),
+      updatedAt: now.toISOString(),
+    },
+    workspaceCurrency: "NGN",
+  };
+}
+
 export default async function AdminReportsPage() {
   const {
     session,
@@ -34,6 +158,7 @@ export default async function AdminReportsPage() {
     actualAccessLevel,
     canSwitchAccessViews,
     permissions,
+    crmUser,
   } =
     await getAdminAccessContext(appRoutes.reports);
   if (!canAccessReports(accessLevel, permissions)) {
@@ -58,18 +183,20 @@ export default async function AdminReportsPage() {
     | null = null;
   let pageError: unknown = null;
 
-  try {
-    const reportFilters = showPersonalOnly
-      ? { assignedTo: session.user?.email ?? undefined }
-      : {};
+  if (isLocalAdminPreviewEmail(session.user?.email)) {
+    pageData = buildDevelopmentReportsData();
+  } else try {
+    const reportFilters = scopeLeadListFilters({}, accessLevel, session.user?.email, crmUser);
     const [leadDistribution, stats, salesAggregate, teamRows, sourceReport, campaignReport, intakeEvents, activeTarget, workspaceSettings] = await Promise.all([
       leadStore.getLeadDistributionReport(reportFilters),
       leadStore.getDashboardStats(reportFilters),
       leadStore.getSalesPipelineAggregate(reportFilters),
-      leadStore.getTeamPerformance(),
-      showSourceAndCampaignReports ? leadStore.getSourceReport() : Promise.resolve([]),
+      leadStore.getTeamPerformance(reportFilters),
+      showSourceAndCampaignReports ? leadStore.getSourceReport(reportFilters) : Promise.resolve([]),
       showSourceAndCampaignReports ? leadStore.getCampaignReport() : Promise.resolve([]),
-      showPersonalOnly ? Promise.resolve([]) : listLeadIntakeEvents({ limit: 8 }),
+      accessLevel === "master_admin" || accessLevel === "general_admin"
+        ? listLeadIntakeEvents({ limit: 8 })
+        : Promise.resolve([]),
       getActiveGlobalSalesTarget(),
       getCompanySettings(),
     ]);
@@ -88,6 +215,9 @@ export default async function AdminReportsPage() {
   } catch (error) {
     pageError = error;
     logCrmPageError("reports", error);
+    if (process.env.NODE_ENV !== "production") {
+      pageData = buildDevelopmentReportsData();
+    }
   }
 
   if (!pageData) {

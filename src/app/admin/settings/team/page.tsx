@@ -16,6 +16,9 @@ import { canManageUsers } from "@/lib/crm/authz";
 import { getCrmPageErrorCopy, logCrmPageError } from "@/lib/crm/runtime";
 import { appRoutes } from "@/lib/app-routes";
 import { leadStore } from "@/lib/storage";
+import { getDb } from "@/lib/db/client";
+import { branches, departments, teams } from "@/lib/db/schema";
+import { asc, eq } from "drizzle-orm";
 
 export const dynamic = "force-dynamic";
 
@@ -29,6 +32,10 @@ function buildDevelopmentTeamData() {
       role: "admin",
       isActive: true,
       avatarUrl: null,
+      accessScope: "all",
+      branchId: null,
+      departmentId: null,
+      teamId: null,
       createdAt: now,
       updatedAt: now,
     },
@@ -39,6 +46,10 @@ function buildDevelopmentTeamData() {
       role: "manager",
       isActive: true,
       avatarUrl: null,
+      accessScope: "team",
+      branchId: null,
+      departmentId: null,
+      teamId: null,
       createdAt: now,
       updatedAt: now,
     },
@@ -49,6 +60,10 @@ function buildDevelopmentTeamData() {
       role: "sales_agent",
       isActive: true,
       avatarUrl: null,
+      accessScope: "own",
+      branchId: null,
+      departmentId: null,
+      teamId: null,
       createdAt: now,
       updatedAt: now,
     },
@@ -72,11 +87,20 @@ export default async function AdminSettingsTeamPage() {
 
   let users: Awaited<ReturnType<typeof leadStore.listCrmUsers>> | null = null;
   let pageError: unknown = null;
+  let branchOptions: Array<{ id: string; name: string }> = [];
+  let departmentOptions: Array<{ id: string; name: string }> = [];
+  let teamOptions: Array<{ id: string; name: string }> = [];
 
   if (isLocalAdminPreviewEmail(session.user?.email)) {
     users = buildDevelopmentTeamData();
   } else try {
-    users = await leadStore.listCrmUsers();
+    const db = getDb();
+    [users, branchOptions, departmentOptions, teamOptions] = await Promise.all([
+      leadStore.listCrmUsers(),
+      db.select({ id: branches.id, name: branches.name }).from(branches).where(eq(branches.archived, false)).orderBy(asc(branches.name)),
+      db.select({ id: departments.id, name: departments.name }).from(departments).where(eq(departments.archived, false)).orderBy(asc(departments.name)),
+      db.select({ id: teams.id, name: teams.name }).from(teams).where(eq(teams.archived, false)).orderBy(asc(teams.name)),
+    ]);
   } catch (error) {
     pageError = error;
     logCrmPageError("settings-team", error);
@@ -135,6 +159,10 @@ export default async function AdminSettingsTeamPage() {
         user.email,
         permissions,
       ),
+      accessScope: user.accessScope,
+      branchId: user.branchId,
+      departmentId: user.departmentId,
+      teamId: user.teamId,
     };
   });
 
@@ -181,6 +209,9 @@ export default async function AdminSettingsTeamPage() {
         canGrantAccess={canGrantAccess}
         canEditRoster={canEditRoster}
         grantableAccessLevels={grantableAccessLevels}
+        branches={branchOptions}
+        departments={departmentOptions}
+        teams={teamOptions}
       />
     </AdminShell>
   );

@@ -257,6 +257,10 @@ function mapCrmUserRecord(row: typeof crmUsers.$inferSelect): CrmUserRecord {
     role: row.role,
     isActive: row.isActive,
     avatarUrl: row.avatarUrl,
+    accessScope: row.accessScope as CrmUserRecord["accessScope"],
+    branchId: row.branchId,
+    departmentId: row.departmentId,
+    teamId: row.teamId,
     createdAt: toIsoString(row.createdAt) ?? new Date(0).toISOString(),
     updatedAt: toIsoString(row.updatedAt) ?? new Date(0).toISOString(),
   };
@@ -459,6 +463,10 @@ function buildLeadStatusFilterCondition(status: NonNullable<LeadListFilters["sta
 function buildLeadListConditions(filters: LeadListFilters) {
   const conditions: SQL[] = [];
 
+  if (filters.scopeDenied) {
+    conditions.push(sql`false`);
+  }
+
   if (filters.recordState === "trashed") {
     conditions.push(isNotNull(leads.deletedAt));
   } else if (filters.recordState !== "all") {
@@ -518,6 +526,18 @@ function buildLeadListConditions(filters: LeadListFilters) {
     conditions.push(eq(leads.assignedUserId, filters.assignedUserId.trim()));
   }
 
+  if (filters.branchId?.trim()) {
+    conditions.push(eq(leads.branchId, filters.branchId.trim()));
+  }
+
+  if (filters.departmentId?.trim()) {
+    conditions.push(eq(leads.departmentId, filters.departmentId.trim()));
+  }
+
+  if (filters.teamId?.trim()) {
+    conditions.push(eq(leads.teamId, filters.teamId.trim()));
+  }
+
   if (filters.assignment === "unassigned") {
     conditions.push(sql`nullif(trim(coalesce(${leads.assignedTo}, '')), '') is null`);
   }
@@ -540,6 +560,11 @@ function buildLeadTaskFilterConditions(filters: LeadTaskListFilters) {
   const taskConditions: SQL[] = [];
   const leadScopeFilters: LeadListFilters = {
     recordState: filters.leadRecordState ?? "active",
+    branchId: filters.branchId,
+    departmentId: filters.departmentId,
+    teamId: filters.teamId,
+    scopeDenied: filters.scopeDenied,
+    assignedTo: filters.leadAssignedTo,
   };
 
   if (filters.leadId) {
@@ -2345,7 +2370,7 @@ export class NeonLeadStore implements LeadStorage {
     };
   }
 
-  async getTeamPerformance() {
+  async getTeamPerformance(filters: LeadListFilters = {}) {
     const db = this.getDatabase();
     const ownerEmail = sql<string | null>`nullif(
       lower(trim(split_part(coalesce(${leads.assignedTo}, ''), '|', 1))),
@@ -2354,6 +2379,7 @@ export class NeonLeadStore implements LeadStorage {
     const taskOwnerEmail = sql<string | null>`nullif(lower(trim(coalesce(${leadTasks.assignedTo}, ''))), '')`;
     const todayStart = startOfDay();
     const todayEnd = endOfDay();
+    const leadScopeConditions = buildLeadListConditions({ ...filters, recordState: "active" });
 
     const [users, leadRows, taskRows] = await Promise.all([
       db.query.crmUsers.findMany({
@@ -2381,7 +2407,7 @@ export class NeonLeadStore implements LeadStorage {
         .from(leads)
         .where(
           and(
-            isNull(leads.deletedAt),
+            ...leadScopeConditions,
             or(isNotNull(leads.assignedUserId), sql`${ownerEmail} is not null`),
           ),
         )
@@ -2409,7 +2435,7 @@ export class NeonLeadStore implements LeadStorage {
         .innerJoin(leads, eq(leadTasks.leadId, leads.id))
         .where(
           and(
-            isNull(leads.deletedAt),
+            ...leadScopeConditions,
             sql`${taskOwnerEmail} is not null`,
           ),
         )
@@ -2537,9 +2563,9 @@ export class NeonLeadStore implements LeadStorage {
       });
   }
 
-  async getSourceReport() {
+  async getSourceReport(filters: LeadListFilters = {}) {
     const db = this.getDatabase();
-    const conditions = buildLeadListConditions({ recordState: "active" });
+    const conditions = buildLeadListConditions({ ...filters, recordState: "active" });
     const rows = await db
       .select({
         source: leads.source,
@@ -2726,6 +2752,7 @@ export class NeonLeadStore implements LeadStorage {
       throw new Error("CRM user email is required.");
     }
 
+    const defaultScope = input.role === "admin" ? "all" : input.role === "manager" ? "team" : "own";
     const [record] = await db
       .insert(crmUsers)
       .values({
@@ -2734,6 +2761,10 @@ export class NeonLeadStore implements LeadStorage {
         role: input.role,
         isActive: input.isActive ?? true,
         avatarUrl: input.avatarUrl ?? null,
+        accessScope: input.accessScope ?? defaultScope,
+        branchId: input.branchId ?? null,
+        departmentId: input.departmentId ?? null,
+        teamId: input.teamId ?? null,
       })
       .onConflictDoUpdate({
         target: crmUsers.email,
@@ -2742,6 +2773,10 @@ export class NeonLeadStore implements LeadStorage {
           role: input.role,
           isActive: input.isActive ?? true,
           avatarUrl: input.avatarUrl ?? null,
+          ...(input.accessScope !== undefined ? { accessScope: input.accessScope } : {}),
+          ...(input.branchId !== undefined ? { branchId: input.branchId } : {}),
+          ...(input.departmentId !== undefined ? { departmentId: input.departmentId } : {}),
+          ...(input.teamId !== undefined ? { teamId: input.teamId } : {}),
           updatedAt: new Date(),
         },
       })

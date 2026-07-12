@@ -35,6 +35,7 @@ import { StatusBadge } from "@/components/admin/StatusBadge";
 import { TaskCard } from "@/components/admin/TaskCard";
 import { TimelineItem } from "@/components/admin/TimelineItem";
 import { getAdminAccessContext } from "@/lib/admin";
+import { isLocalAdminPreviewEmail } from "@/lib/admin-access";
 import { appRoutes } from "@/lib/app-routes";
 import {
   canAccessLeadTrash,
@@ -59,6 +60,7 @@ import { listLeadStages } from "@/lib/crm/lead-stages-admin";
 import { getCrmPageErrorCopy, logCrmPageError } from "@/lib/crm/runtime";
 import type { CrmStatus } from "@/lib/crm/types";
 import { buildAdminLeadDetailView } from "@/lib/crm/view-models";
+import { buildDemoLeadDetail } from "@/lib/crm/demo-data";
 import { getBranchCurrency, getCompanySettings } from "@/lib/crm/workspace-settings-server";
 import { leadStore } from "@/lib/storage";
 
@@ -114,6 +116,7 @@ export default async function AdminLeadDetailPage({
     actualAccessLevel,
     canSwitchAccessViews,
     permissions,
+    crmUser,
   } =
     await getAdminAccessContext(appRoutes.lead(id));
   const canOpenLeadTrash = canAccessLeadTrash(accessLevel, permissions);
@@ -129,7 +132,9 @@ export default async function AdminLeadDetailPage({
     | null = null;
   let pageError: unknown = null;
 
-  try {
+  if (isLocalAdminPreviewEmail(session.user?.email) && id.startsWith("demo-lead-")) {
+    pageData = buildDemoLeadDetail(id);
+  } else try {
     const lead = await leadStore.getById(id);
 
     if (!lead) {
@@ -138,7 +143,7 @@ export default async function AdminLeadDetailPage({
 
     if (
       (lead.deletedAt && !canOpenLeadTrash) ||
-      !canViewLeadRecord(accessLevel, lead, session.user?.email, permissions)
+      !canViewLeadRecord(accessLevel, lead, session.user?.email, permissions, crmUser)
     ) {
       notFound();
     }

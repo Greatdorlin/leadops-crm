@@ -7,6 +7,7 @@ import {
   canManageTeamMember,
   canManageTaskRecord,
   canManageIntegrationsAccess,
+  canViewLeadRecord,
   canSoftDeleteLead,
   getGrantableAccessLevels,
   getVisibleAdminNavKeys,
@@ -22,6 +23,24 @@ import {
   canManageUsers,
   canVerifyPaymentClaims,
 } from "@/lib/crm/authz";
+import type { CrmUserRecord, LeadRecord } from "@/lib/crm/types";
+
+function scopedUser(overrides: Partial<CrmUserRecord>): CrmUserRecord {
+  return {
+    id: "user-1",
+    email: "manager@example.com",
+    fullName: "Manager",
+    role: "manager",
+    isActive: true,
+    accessScope: "all",
+    branchId: null,
+    departmentId: null,
+    teamId: null,
+    createdAt: new Date(0).toISOString(),
+    updatedAt: new Date(0).toISOString(),
+    ...overrides,
+  };
+}
 
 test("initial admin email always resolves to master access", () => {
   const previousInitialAdminEmail = process.env.INITIAL_ADMIN_EMAIL;
@@ -231,6 +250,30 @@ test("finance navigation excludes broad reports and settings by default", () => 
 
 test("ad manager keeps integration access without full admin settings", () => {
   assert.equal(canManageIntegrationsAccess("general_admin", "ad_manager"), true);
+});
+
+test("manager list and record access fail closed outside the stored branch scope", () => {
+  const manager = scopedUser({ accessScope: "branch", branchId: "branch-a" });
+  assert.deepEqual(
+    scopeLeadListFilters({ search: "Ada" }, "lead_sales_rep", manager.email, manager),
+    { search: "Ada", branchId: "branch-a" },
+  );
+  assert.equal(
+    canViewLeadRecord(
+      "lead_sales_rep",
+      { branchId: "branch-b" } as LeadRecord,
+      manager.email,
+      undefined,
+      manager,
+    ),
+    false,
+  );
+
+  const incompleteScope = scopedUser({ accessScope: "team", teamId: null });
+  assert.deepEqual(
+    scopeLeadListFilters({}, "lead_sales_rep", incompleteScope.email, incompleteScope),
+    { scopeDenied: true },
+  );
 });
 
 test("configured permissions govern task assignment and completion", () => {

@@ -7,11 +7,13 @@ import { IntakeEventTable } from "@/components/admin/IntakeEventTable";
 import { MetricCard } from "@/components/admin/MetricCard";
 import { SectionHeader } from "@/components/admin/SectionHeader";
 import { getAdminAccessContext } from "@/lib/admin";
+import { isLocalAdminPreviewEmail } from "@/lib/admin-access";
 import { appRoutes } from "@/lib/app-routes";
 import { canViewIntakeLogs, resolveRole } from "@/lib/crm/authz";
 import { listFormSources } from "@/lib/crm/form-sources-admin";
 import { listLeadIntakeEvents } from "@/lib/crm/intake-runtime";
 import { getCrmPageErrorCopy, logCrmPageError } from "@/lib/crm/runtime";
+import { buildDemoIntakeData } from "@/lib/crm/demo-data";
 
 export const dynamic = "force-dynamic";
 
@@ -22,7 +24,7 @@ export default async function AdminIntakePage({
 }: {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
-  const { role, accessLevel, actualAccessLevel, canSwitchAccessViews, permissions } =
+  const { role, accessLevel, actualAccessLevel, canSwitchAccessViews, permissions, session } =
     await getAdminAccessContext(appRoutes.intake);
 
   if (!canViewIntakeLogs({ accessLevel, permissions, role })) {
@@ -39,7 +41,17 @@ export default async function AdminIntakePage({
   let events = null;
   let pageError: unknown = null;
 
-  try {
+  if (isLocalAdminPreviewEmail(session.user?.email)) {
+    const demo = buildDemoIntakeData();
+    sources = demo.sources;
+    events = demo.events.filter((event) => {
+      if (status !== "all" && event.status !== status) return false;
+      if (formSourceId && !demo.sources.some((source) => source.id === formSourceId && source.name === event.sourceName)) return false;
+      if (dateFrom && event.createdAt < new Date(dateFrom).toISOString()) return false;
+      if (dateTo && event.createdAt > new Date(`${dateTo}T23:59:59.999Z`).toISOString()) return false;
+      return true;
+    });
+  } else try {
     [sources, events] = await Promise.all([
       listFormSources({ includeInactive: true }),
       listLeadIntakeEvents({

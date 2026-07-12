@@ -106,6 +106,10 @@ export function buildTeamPerformance(
       fullName: email,
       role: "sales_agent",
       isActive: true,
+      accessScope: "own",
+      branchId: null,
+      departmentId: null,
+      teamId: null,
       createdAt: new Date(0).toISOString(),
       updatedAt: new Date(0).toISOString(),
     }));

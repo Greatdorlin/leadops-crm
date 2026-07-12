@@ -31,6 +31,15 @@ const crmUserSchema = z.object({
   accessLevel: z.enum(ADMIN_ACCESS_LEVELS),
   isActive: z.boolean().optional(),
   avatarUrl: avatarImageSchema.optional(),
+  accessScope: z.enum(["all", "branch", "department", "team", "own"]).default("own"),
+  branchId: z.string().uuid().nullable().optional(),
+  departmentId: z.string().uuid().nullable().optional(),
+  teamId: z.string().uuid().nullable().optional(),
+}).superRefine((value, context) => {
+  const requiredId = value.accessScope === "branch" ? value.branchId : value.accessScope === "department" ? value.departmentId : value.accessScope === "team" ? value.teamId : true;
+  if (!requiredId) {
+    context.addIssue({ code: "custom", message: "Choose the workspace scope before saving.", path: ["accessScope"] });
+  }
 });
 
 export async function POST(request: Request) {
@@ -76,6 +85,10 @@ export async function POST(request: Request) {
     ),
     isActive: lockedAsMaster ? true : parsed.data.isActive ?? true,
     avatarUrl: parsed.data.avatarUrl?.trim() || null,
+    accessScope: lockedAsMaster ? "all" : parsed.data.accessScope,
+    branchId: parsed.data.accessScope === "branch" ? parsed.data.branchId ?? null : null,
+    departmentId: parsed.data.accessScope === "department" ? parsed.data.departmentId ?? null : null,
+    teamId: parsed.data.accessScope === "team" ? parsed.data.teamId ?? null : null,
   });
 
   return NextResponse.json({ user });

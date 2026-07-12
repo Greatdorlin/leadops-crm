@@ -463,7 +463,7 @@ export default async function AdminPage({
     (filters.stageId === "all" || filters.status === "all"
       ? "all"
       : filters.stageId ?? filters.status);
-  const scopedFilters = scopeLeadListFilters(filters, accessLevel, session.user?.email);
+  const scopedFilters = scopeLeadListFilters(filters, accessLevel, session.user?.email, crmUser);
   const showTeamViews = canViewSalesTeam(accessLevel, permissions);
   const showTechnicalSummary = canManageIntegrationsAccess(
     accessLevel,
@@ -509,6 +509,11 @@ export default async function AdminPage({
       leadStore.getSalesPipelineAggregate(scopedFilters),
       leadStore.listLeadTasks({
         assignedTo: usePersonalTaskScope ? session.user?.email ?? undefined : undefined,
+        leadAssignedTo: scopedFilters.assignedTo,
+        branchId: scopedFilters.branchId,
+        departmentId: scopedFilters.departmentId,
+        teamId: scopedFilters.teamId,
+        scopeDenied: scopedFilters.scopeDenied,
         limit: 500,
       }),
       showTeamViews ? leadStore.listCrmUsers() : Promise.resolve([]),

@@ -4,7 +4,6 @@ import { AlertTriangle } from "lucide-react";
 export function ErrorState({
   title,
   description,
-  details,
   action,
 }: {
   title: string;
@@ -19,16 +18,6 @@ export function ErrorState({
       </span>
       <h3 className="mt-4 text-lg font-semibold text-white">{title}</h3>
       <p className="mx-auto mt-2 max-w-2xl text-sm leading-6 text-white/70">{description}</p>
-      {details ? (
-        <details className="mx-auto mt-4 max-w-3xl rounded-2xl border border-rose-300/20/18 bg-black/20 p-4 text-left">
-          <summary className="cursor-pointer text-sm font-semibold text-rose-100">
-            Development details
-          </summary>
-          <pre className="mt-3 overflow-x-auto whitespace-pre-wrap break-words text-xs leading-5 text-white/70">
-            {details}
-          </pre>
-        </details>
-      ) : null}
       {action ? <div className="mt-5 flex justify-center">{action}</div> : null}
     </div>
   );

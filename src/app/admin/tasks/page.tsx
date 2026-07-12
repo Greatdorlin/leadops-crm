@@ -14,7 +14,7 @@ import { TaskQueueTable } from "@/components/admin/TaskQueueTable";
 import { getAdminAccessContext } from "@/lib/admin";
 import { isLocalAdminPreviewEmail } from "@/lib/admin-access";
 import { isDateToday, isTaskOverdue } from "@/lib/admin-insights";
-import { canAssignTasksToOthers } from "@/lib/admin-permissions";
+import { canAssignTasksToOthers, scopeLeadListFilters } from "@/lib/admin-permissions";
 import { canEditLeads, canViewLeads } from "@/lib/crm/authz";
 import { listCustomFields } from "@/lib/crm/custom-fields-admin";
 import { buildLeadDisplayNameMap } from "@/lib/crm/lead-identity";
@@ -129,6 +129,7 @@ export default async function AdminTasksPage({
     actualAccessLevel,
     canSwitchAccessViews,
     permissions,
+    crmUser,
   } = await getAdminAccessContext(appRoutes.tasks);
   if (!canViewLeads({ accessLevel, permissions, role })) {
     redirect(appRoutes.dashboard);
@@ -159,6 +160,7 @@ export default async function AdminTasksPage({
   if (usingDevelopmentDemoData) {
     pageData = buildDevelopmentTaskData();
   } else try {
+    const leadScope = scopeLeadListFilters({}, accessLevel, session.user?.email, crmUser);
     const [users, tasks, leads] = await Promise.all([
       leadStore.listCrmUsers(),
       leadStore.listLeadTaskQueue({
@@ -174,12 +176,13 @@ export default async function AdminTasksPage({
         dueAfter: view === "today" ? new Date(new Date().setHours(0, 0, 0, 0)) : undefined,
         dueBefore: view === "today" ? new Date(new Date().setHours(23, 59, 59, 999)) : undefined,
         limit: 100,
+        branchId: leadScope.branchId,
+        departmentId: leadScope.departmentId,
+        teamId: leadScope.teamId,
+        scopeDenied: leadScope.scopeDenied,
+        leadAssignedTo: leadScope.assignedTo,
       }),
-      leadStore.list(
-        accessLevel === "sales_rep"
-          ? { assignedTo: session.user?.email ?? undefined, limit: 60 }
-          : { limit: 60 },
-      ),
+      leadStore.list({ ...leadScope, limit: 60 }),
     ]);
 
     pageData = { users, tasks, leads };

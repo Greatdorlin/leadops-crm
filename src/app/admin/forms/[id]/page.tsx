@@ -13,6 +13,7 @@ import {
   listFormFields,
   listFormRules,
 } from "@/lib/crm/form-builder-store";
+import { buildDemoForms } from "@/lib/crm/demo-data";
 
 function FormStatusBadge({ status }: { status: string }) {
   const style =
@@ -46,16 +47,21 @@ export default async function FormOverviewPage({
 }) {
   const { id } = await params;
 
-  const form = await getFormById(id);
+  const demoForm = id.startsWith("demo-form-")
+    ? buildDemoForms().find((item) => item.id === id) ?? null
+    : null;
+  const form = demoForm ?? await getFormById(id);
   if (!form) {
     notFound();
   }
 
-  const [fields, rules, countsByForm] = await Promise.all([
-    listFormFields(id),
-    listFormRules(id),
-    getFormResourceCounts([id]),
-  ]);
+  const [fields, rules, countsByForm] = demoForm
+    ? [[], [], new Map([[id, { fieldCount: demoForm.fieldCount, submissionCount: demoForm.submissionCount }]])] as const
+    : await Promise.all([
+        listFormFields(id),
+        listFormRules(id),
+        getFormResourceCounts([id]),
+      ]);
   const submissionCount = countsByForm.get(id)?.submissionCount ?? 0;
 
   const publicUrl = `/forms/${form.slug}`;

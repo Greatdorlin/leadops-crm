@@ -603,6 +603,10 @@ export const crmUsers = pgTable(
     fullName: text("full_name").notNull().default(""),
     avatarUrl: text("avatar_url"),
     role: crmUserRoleEnum("role").$type<CrmUserRole>().notNull().default("sales_agent"),
+    accessScope: text("access_scope").notNull().default("own"),
+    branchId: uuid("branch_id"),
+    departmentId: uuid("department_id"),
+    teamId: uuid("team_id"),
     isActive: boolean("is_active").notNull().default(false),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
@@ -611,6 +615,9 @@ export const crmUsers = pgTable(
     emailUnique: uniqueIndex("crm_users_email_unique").on(table.email),
     roleIdx: index("crm_users_role_idx").on(table.role),
     isActiveIdx: index("crm_users_is_active_idx").on(table.isActive),
+    branchIdx: index("crm_users_branch_id_idx").on(table.branchId),
+    departmentIdx: index("crm_users_department_id_idx").on(table.departmentId),
+    teamIdx: index("crm_users_team_id_idx").on(table.teamId),
   }),
 );
 

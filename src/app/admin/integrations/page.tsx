@@ -204,7 +204,7 @@ export default async function AdminIntegrationsPage() {
       actualAccessLevel={actualAccessLevel}
       canSwitchAccessViews={canSwitchAccessViews}
       title="Integrations"
-      description="Monitor connected tools, lead imports, recent activity, and setup coverage."
+      description="Connect lead sources, marketing tools, imports, and outbound systems."
       actions={<AdminSignOutButton />}
     >
       <div className="space-y-6">
@@ -235,9 +235,9 @@ export default async function AdminIntegrationsPage() {
                 supporting="Connections still missing setup details."
               />
               <MetricCard
-                label="Recent activity"
+                label="Sync runs"
                 value={pageData.jobs.length}
-                supporting="Imports, exports, retries, and refreshes."
+                supporting="Recent connector jobs and retries."
                 tone="accent"
               />
             </section>
@@ -273,7 +273,7 @@ export default async function AdminIntegrationsPage() {
 
             <section className="admin-surface rounded-[24px] p-5">
               <SectionHeader
-                eyebrow="Recent activity"
+                eyebrow="Operations"
                 title="Sync history"
                 description="A quick record of imports, exports, retries, and performance refreshes."
               />

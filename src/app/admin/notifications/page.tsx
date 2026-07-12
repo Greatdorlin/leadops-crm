@@ -41,7 +41,7 @@ export default async function AdminNotificationsPage({
       type: "new_lead_assigned" as const,
       channel: "in_app" as const,
       recipientUserId: null,
-      leadId: "demo-lead-1",
+      leadId: "demo-lead-aurelia",
       title: "New lead assigned",
       message: "Ada Okafor is ready for a first response.",
       status: "sent" as const,
@@ -53,7 +53,7 @@ export default async function AdminNotificationsPage({
       type: "lead_offer_qualified" as const,
       channel: "in_app" as const,
       recipientUserId: null,
-      leadId: "demo-lead-2",
+      leadId: "demo-lead-vertex",
       title: "Offer qualified",
       message: "A product-specific opportunity is ready for follow-up.",
       status: "sent" as const,
@@ -129,6 +129,7 @@ export default async function AdminNotificationsPage({
         unreadCount={unreadCount}
         activeCategory={category}
         nextCursor={nextCursor}
+        demoMode={isDevelopmentPreview}
       />
     </AdminShell>
   );

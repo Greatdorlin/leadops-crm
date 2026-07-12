@@ -18,11 +18,13 @@ export function NotificationInbox({
   unreadCount,
   activeCategory,
   nextCursor,
+  demoMode = false,
 }: {
   initialNotifications: NotificationEventRecord[];
   unreadCount: number;
   activeCategory: NotificationCategory;
   nextCursor: string | null;
+  demoMode?: boolean;
 }) {
   const router = useRouter();
   const [notifications, setNotifications] = useState(initialNotifications);
@@ -140,7 +142,7 @@ export function NotificationInbox({
                     Open lead
                   </Link>
                 ) : null}
-                {!notification.readAt ? (
+                {!notification.readAt && !demoMode ? (
                   <button
                     type="button"
                     disabled={pendingId === notification.id}

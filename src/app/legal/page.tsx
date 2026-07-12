@@ -4,7 +4,7 @@ export default function LegalPage() {
   return (
     <LegalPageLayout
       title="Legal Information"
-      description="This page provides a placeholder overview of the legal disclosures that support the Leads Desk workspace."
+      description="Important information about operating a private Leads Desk workspace."
       sections={[
         {
           heading: "Service scope",
@@ -15,6 +15,11 @@ export default function LegalPage() {
           heading: "Use of the service",
           body:
             "Customers are responsible for collecting, storing, and using lead data lawfully, and for reviewing their own business processes, exports, and downstream actions.",
+        },
+        {
+          heading: "Deployment responsibility",
+          body:
+            "Each organization controls its deployment, database, authorized users, integrations, and retention settings. Contractual terms for a specific installation should be documented in the applicable order or service agreement.",
         },
       ]}
     />

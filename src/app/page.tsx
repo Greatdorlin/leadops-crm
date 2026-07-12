@@ -143,7 +143,7 @@ export default function HomePage() {
               What it covers
             </p>
             <h2 className="mt-3 font-[family:var(--font-heading)] text-[2.35rem] font-bold leading-[0.92] tracking-[-0.04em] text-[#101052] sm:text-[3.35rem]">
-              A clean commercial placeholder for the Leads Desk rebuild.
+              One focused system from first contact to closed outcome.
             </h2>
           </div>
 

@@ -4,7 +4,7 @@ export default function TermsPage() {
   return (
     <LegalPageLayout
       title="Terms of Service"
-      description="These placeholder terms explain the basic expectations for using the Leads Desk workspace."
+      description="The basic operating terms for an organization using a Leads Desk workspace."
       sections={[
         {
           heading: "Workspace use",
@@ -15,6 +15,11 @@ export default function TermsPage() {
           heading: "Customer responsibility",
           body:
             "You are responsible for the accuracy of the data you enter, the users you authorize, and the policies you apply to communication, retention, and export activity.",
+        },
+        {
+          heading: "Acceptable use",
+          body:
+            "Do not use the workspace to collect data unlawfully, bypass access controls, distribute harmful content, or contact people without the permissions required in the regions where you operate.",
         },
       ]}
     />

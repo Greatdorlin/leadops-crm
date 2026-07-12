@@ -43,6 +43,16 @@ function getTaskLeadLocation(task: LeadTaskQueueRecord) {
   return task.lead.state || task.lead.city || task.lead.region || task.lead.country;
 }
 
+function formatTaskOwner(value?: string | null) {
+  if (!value) return "Unassigned";
+  const localPart = value.split("@")[0] ?? value;
+  return localPart
+    .split(/[._-]+/)
+    .filter(Boolean)
+    .map((part) => `${part.charAt(0).toUpperCase()}${part.slice(1)}`)
+    .join(" ");
+}
+
 export function TaskQueueTable({
   tasks,
   emptyTitle,
@@ -77,11 +87,11 @@ export function TaskQueueTable({
               </span>
             </div>
 
-            <div className="mt-4 grid gap-4 lg:grid-cols-[minmax(0,1.15fr)_minmax(180px,0.82fr)] xl:grid-cols-[minmax(0,1.2fr)_minmax(180px,0.8fr)_minmax(180px,0.8fr)_auto] xl:items-start">
+            <div className="mt-4 grid gap-4 md:grid-cols-[minmax(0,1.15fr)_minmax(170px,0.75fr)] xl:grid-cols-[minmax(0,1.2fr)_minmax(170px,0.75fr)_minmax(170px,0.72fr)_auto] xl:items-start">
               <div className="min-w-0">
                 <p className="text-lg font-semibold leading-tight text-white">{task.title}</p>
                 {task.description ? (
-                  <p className="mt-2 max-w-2xl text-sm leading-7 text-white/70">{task.description}</p>
+                  <p className="mt-2 line-clamp-2 max-w-2xl text-sm leading-6 text-white/70">{task.description}</p>
                 ) : (
                   <p className="mt-2 text-sm leading-7 text-white/70">
                     Keep the next step visible so the handoff stays clean.
@@ -101,7 +111,7 @@ export function TaskQueueTable({
                 </div>
                 <div>
                   <dt className="text-[11px] font-semibold uppercase tracking-[0.14em] text-white/70">Owner</dt>
-                  <dd className="mt-1 break-words text-white/72">{task.assignedTo || "Unassigned"}</dd>
+                  <dd className="mt-1 text-white/72" title={task.assignedTo || undefined}>{formatTaskOwner(task.assignedTo)}</dd>
                 </div>
               </dl>
 

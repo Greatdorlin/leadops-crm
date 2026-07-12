@@ -29,30 +29,41 @@ const views = ["today", "overdue", "my", "all", "completed"] as const;
 
 function buildDevelopmentTaskData() {
   const now = new Date();
-  const lead = {
-    id: "demo-task-lead",
-    firstName: "Michael",
-    lastName: "Anderson",
-    email: "michael@vertexlabs.example",
-    whatsappNumber: "+1 (415) 555-0198",
-    state: "San Francisco",
-    country: "United States",
-    region: "California",
-    city: "San Francisco",
-    companyName: "Vertex Labs",
-    assignedTo: "sarah@local.leadsdesk.test",
-    stageId: null,
-    priority: "high",
-  } as Awaited<ReturnType<typeof leadStore.list>>[number];
-  const dueToday = new Date(now);
-  dueToday.setHours(16, 0, 0, 0);
+  const makeDueDate = (dayOffset: number, hour: number) => {
+    const dueAt = new Date(now);
+    dueAt.setDate(dueAt.getDate() + dayOffset);
+    dueAt.setHours(hour, 0, 0, 0);
+    return dueAt.toISOString();
+  };
+  const leads = [
+    { id: "demo-lead-aurelia", firstName: "Aurelia", lastName: "Hart", email: "aurelia@aureliastudio.demo", whatsappNumber: "+234 803 555 0142", state: "Lagos", country: "Nigeria", region: "Lagos", city: "Lagos", companyName: "Aurelia Studio", assignedTo: "ada@auroragrowth.demo", stageId: "qualified", priority: "high" },
+    { id: "demo-lead-vertex", firstName: "Ibrahim", lastName: "Musa", email: "ibrahim@vertexlogistics.demo", whatsappNumber: "+234 806 555 0188", state: "Abuja", country: "Nigeria", region: "FCT", city: "Abuja", companyName: "Vertex Logistics", assignedTo: "malik@auroragrowth.demo", stageId: "contacted", priority: "urgent" },
+    { id: "demo-lead-northwind", firstName: "Grace", lastName: "Mensah", email: "grace@northwindhealth.demo", whatsappNumber: "+233 24 555 0194", state: "Greater Accra", country: "Ghana", region: "Greater Accra", city: "Accra", companyName: "Northwind Health", assignedTo: "zara@auroragrowth.demo", stageId: "consultation_booked", priority: "high" },
+  ] as Awaited<ReturnType<typeof leadStore.list>>;
+  const leadById = Object.fromEntries(leads.map((lead) => [lead.id, lead]));
+  const task = (
+    id: string,
+    leadId: string,
+    title: string,
+    description: string,
+    dueAt: string,
+    assignedTo: string,
+    completedAt: string | null = null,
+  ) => {
+    const lead = leadById[leadId];
+    return {
+      id, leadId, title, description, dueAt, completedAt, assignedTo,
+      createdBy: "preview@local.leadsdesk.test", createdAt: now.toISOString(),
+      lead: { id: lead.id, firstName: lead.firstName, lastName: lead.lastName, companyName: lead.companyName, state: lead.state, country: lead.country, region: lead.region, city: lead.city },
+    };
+  };
 
   return {
     users: [
       {
         id: "demo-user-sarah",
-        email: "sarah@local.leadsdesk.test",
-        fullName: "Sarah Kim",
+        email: "ada@auroragrowth.demo",
+        fullName: "Ada Okafor",
         role: "manager",
         isActive: true,
         avatarUrl: null,
@@ -61,8 +72,8 @@ function buildDevelopmentTaskData() {
       },
       {
         id: "demo-user-james",
-        email: "james@local.leadsdesk.test",
-        fullName: "James Lee",
+        email: "malik@auroragrowth.demo",
+        fullName: "Malik Bello",
         role: "sales_agent",
         isActive: true,
         avatarUrl: null,
@@ -71,29 +82,14 @@ function buildDevelopmentTaskData() {
       },
     ] as Awaited<ReturnType<typeof leadStore.listCrmUsers>>,
     tasks: [
-      {
-        id: "demo-task-follow-up",
-        leadId: lead.id,
-        title: "Follow up with Vertex Labs",
-        description: "Confirm timeline and decision maker before the proposal call.",
-        dueAt: dueToday.toISOString(),
-        completedAt: null,
-        assignedTo: "sarah@local.leadsdesk.test",
-        createdBy: "preview@local.leadsdesk.test",
-        createdAt: now.toISOString(),
-        lead: {
-          id: lead.id,
-          firstName: lead.firstName,
-          lastName: lead.lastName,
-          companyName: lead.companyName,
-          state: lead.state,
-          country: lead.country,
-          region: lead.region,
-          city: lead.city,
-        },
-      },
+      task("demo-task-1", "demo-lead-vertex", "Confirm proposal decision makers", "Validate budget ownership and invite the operations director to the proposal review.", makeDueDate(-1, 15), "malik@auroragrowth.demo"),
+      task("demo-task-2", "demo-lead-aurelia", "Prepare advisory discovery call", "Review qualification answers and frame the three highest-value discovery questions.", makeDueDate(0, 11), "ada@auroragrowth.demo"),
+      task("demo-task-3", "demo-lead-northwind", "Send consultation recap", "Share agreed outcomes, implementation timeline, and the next commercial step.", makeDueDate(0, 16), "zara@auroragrowth.demo"),
+      task("demo-task-4", "demo-lead-vertex", "Review procurement requirements", "Confirm onboarding documentation before commercial approval.", makeDueDate(1, 10), "malik@auroragrowth.demo"),
+      task("demo-task-5", "demo-lead-aurelia", "Share tailored service options", "Send the two offers Aurelia currently qualifies for with clear next steps.", makeDueDate(2, 14), "ada@auroragrowth.demo"),
+      task("demo-task-6", "demo-lead-northwind", "Complete qualification notes", "Capture the confirmed timeline and stakeholder requirements.", makeDueDate(-2, 13), "zara@auroragrowth.demo", makeDueDate(-2, 12)),
     ] as Awaited<ReturnType<typeof leadStore.listLeadTaskQueue>>,
-    leads: [lead] as Awaited<ReturnType<typeof leadStore.list>>,
+    leads,
   };
 }
 
@@ -402,7 +398,7 @@ export default async function AdminTasksPage({
                   tasks={pageData.tasks}
                   emptyTitle="No tasks match this view"
                   emptyDescription="Create a task from the action center to keep follow-up work visible."
-                  canCompleteTasks={canEditTasks}
+                  canCompleteTasks={canEditTasks && !usingDevelopmentDemoData}
                 />
               </div>
             </GlassSurface>

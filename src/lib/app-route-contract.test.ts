@@ -46,4 +46,3 @@ test("every clean workspace route has a Next.js page entry", () => {
     assert.equal(existsSync(pagePath), true, `${route} is missing ${pagePath}`);
   }
 });
-

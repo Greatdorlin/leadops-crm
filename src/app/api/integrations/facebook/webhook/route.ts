@@ -5,6 +5,7 @@ import {
   verifyFacebookChallenge,
   verifyFacebookWebhookSignature,
 } from "@/lib/integrations/facebook/verify";
+import { readBoundedBody } from "@/lib/http/bounded-body";
 
 export async function GET(request: Request) {
   const challenge = verifyFacebookChallenge(new URL(request.url).searchParams);
@@ -16,7 +17,11 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
-  const rawBody = await request.text();
+  const body = await readBoundedBody(request);
+  if (!body.ok) {
+    return NextResponse.json({ error: body.error }, { status: body.status });
+  }
+  const rawBody = body.text;
   const signatureHeader = request.headers.get("x-hub-signature-256");
 
   if (!verifyFacebookWebhookSignature(rawBody, signatureHeader)) {

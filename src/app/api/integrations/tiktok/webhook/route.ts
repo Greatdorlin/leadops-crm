@@ -2,16 +2,18 @@ import { after, NextResponse } from "next/server";
 import { normalizeEnvValue } from "@/lib/env-utils";
 import { processTikTokPayload } from "@/lib/integrations/tiktok/process-payload";
 import { leadStore } from "@/lib/storage";
+import { readBoundedJsonObject } from "@/lib/http/bounded-body";
 
 function getTikTokWebhookSecret() {
   return normalizeEnvValue(process.env.TIKTOK_WEBHOOK_SECRET);
 }
 
 export async function POST(request: Request) {
-  const payload = (await request.json().catch(() => null)) as Record<string, unknown> | null;
-  if (!payload) {
-    return NextResponse.json({ error: "Invalid JSON payload." }, { status: 400 });
+  const body = await readBoundedJsonObject(request);
+  if (!body.ok) {
+    return NextResponse.json({ error: body.error }, { status: body.status });
   }
+  const payload = body.value;
 
   const expectedSecret = getTikTokWebhookSecret();
   const requestUrl = new URL(request.url);

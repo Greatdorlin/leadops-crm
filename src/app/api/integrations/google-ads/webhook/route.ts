@@ -2,12 +2,14 @@ import { after, NextResponse } from "next/server";
 import { getGoogleAdsWebhookKey } from "@/lib/integrations/google-ads/client";
 import { processGoogleAdsPayload } from "@/lib/integrations/google-ads/process-payload";
 import { leadStore } from "@/lib/storage";
+import { readBoundedJsonObject } from "@/lib/http/bounded-body";
 
 export async function POST(request: Request) {
-  const payload = (await request.json().catch(() => null)) as Record<string, unknown> | null;
-  if (!payload) {
-    return NextResponse.json({ error: "Invalid JSON payload." }, { status: 400 });
+  const body = await readBoundedJsonObject(request);
+  if (!body.ok) {
+    return NextResponse.json({ error: body.error }, { status: body.status });
   }
+  const payload = body.value;
 
   const expectedKey = getGoogleAdsWebhookKey();
   const providedKey =

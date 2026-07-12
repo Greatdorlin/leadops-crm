@@ -5,6 +5,7 @@ import {
   verifyLinkedInSignature,
 } from "@/lib/integrations/linkedin/verify";
 import { leadStore } from "@/lib/storage";
+import { readBoundedBody } from "@/lib/http/bounded-body";
 
 export async function GET(request: Request) {
   const challengeCode = new URL(request.url).searchParams.get("challengeCode")?.trim() ?? "";
@@ -16,7 +17,11 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
-  const rawBody = await request.text();
+  const body = await readBoundedBody(request);
+  if (!body.ok) {
+    return NextResponse.json({ error: body.error }, { status: body.status });
+  }
+  const rawBody = body.text;
   const signature = request.headers.get("x-li-signature");
 
   if (!verifyLinkedInSignature(rawBody, signature)) {

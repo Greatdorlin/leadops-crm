@@ -3,6 +3,7 @@ import { notifyCrmEvent } from "@/lib/crm/notifications";
 import { leadEventTypes } from "@/lib/crm/lead-events";
 import { leadStore } from "@/lib/storage";
 import { z } from "zod";
+import { readBoundedJsonObject } from "@/lib/http/bounded-body";
 
 const websiteLeadSchema = z
   .object({
@@ -93,8 +94,11 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
   }
 
-  const payload = (await request.json().catch(() => null)) as Record<string, unknown> | null;
-  const parsed = websiteLeadSchema.safeParse(payload);
+  const body = await readBoundedJsonObject(request);
+  if (!body.ok) {
+    return NextResponse.json({ error: body.error }, { status: body.status });
+  }
+  const parsed = websiteLeadSchema.safeParse(body.value);
 
   if (!parsed.success) {
     return NextResponse.json({ error: "Invalid website lead payload." }, { status: 400 });

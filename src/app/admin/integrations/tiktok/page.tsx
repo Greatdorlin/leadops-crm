@@ -6,6 +6,7 @@ import { EmptyState } from "@/components/admin/EmptyState";
 import { MetricCard } from "@/components/admin/MetricCard";
 import { SectionHeader } from "@/components/admin/SectionHeader";
 import { getAdminAccessContext } from "@/lib/admin";
+import { isLocalAdminPreviewEmail } from "@/lib/admin-access";
 import { canManageIntegrations } from "@/lib/crm/authz";
 import { formatCrmDateTime } from "@/lib/crm/formatters";
 import { getCrmPageErrorCopy, logCrmPageError } from "@/lib/crm/runtime";
@@ -17,7 +18,7 @@ import { appRoutes } from "@/lib/app-routes";
 export const dynamic = "force-dynamic";
 
 export default async function AdminTikTokIntegrationPage() {
-  const { role, accessLevel, actualAccessLevel, canSwitchAccessViews, permissions } =
+  const { session, role, accessLevel, actualAccessLevel, canSwitchAccessViews, permissions } =
     await getAdminAccessContext(appRoutes.integration("tiktok"));
   if (!canManageIntegrations(accessLevel, role, permissions)) {
     redirect(appRoutes.dashboard);
@@ -32,7 +33,9 @@ export default async function AdminTikTokIntegrationPage() {
     | null = null;
   let pageError: unknown = null;
 
-  try {
+  if (isLocalAdminPreviewEmail(session.user?.email)) {
+    pageData = { tiktokLeadCount: 15, recentTikTokLeads: [], failedPayloads: [] };
+  } else try {
     const [tiktokLeadCount, recentTikTokLeads, failedPayloads] = await Promise.all([
       leadStore.countLeads({ source: "tiktok_lead_ads" }),
       leadStore.list({ source: "tiktok_lead_ads", limit: 1 }),
@@ -100,6 +103,7 @@ export default async function AdminTikTokIntegrationPage() {
                 description="Retry failed TikTok webhook payloads without losing the original submission details."
                 actions={
                   <AdminActionButton
+                    previewMode={isLocalAdminPreviewEmail(session.user?.email)}
                     endpoint="/api/integrations/tiktok/retry"
                     label="Retry failed lead imports"
                   />
@@ -125,6 +129,7 @@ export default async function AdminTikTokIntegrationPage() {
                           <p className="mt-2 text-sm text-white/60">{payload.errorMessage || "Unknown error"}</p>
                         </div>
                         <AdminActionButton
+                          previewMode={isLocalAdminPreviewEmail(session.user?.email)}
                           endpoint="/api/integrations/tiktok/retry"
                           body={{ payloadId: payload.id }}
                           label="Retry this import"

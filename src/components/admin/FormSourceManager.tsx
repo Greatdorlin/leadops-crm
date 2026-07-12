@@ -647,9 +647,11 @@ function FormSourceEditor({
 export function FormSourceManager({
   initialSources,
   referenceData,
+  demoMode = false,
 }: {
   initialSources: AdminFormSourceRecord[];
   referenceData: FormSourceAdminReferenceData;
+  demoMode?: boolean;
 }) {
   const router = useRouter();
   const [newSource, setNewSource] = useState<SourceDraft>(createEmptySourceDraft());
@@ -671,6 +673,10 @@ export function FormSourceManager({
   );
 
   async function createSource() {
+    if (demoMode) {
+      setNewMessage("Demo mode: connect a database to save this source.");
+      return;
+    }
     setNewSaving(true);
     setNewMessage("");
     try {
@@ -699,6 +705,11 @@ export function FormSourceManager({
   async function saveSource(sourceId: string) {
     const draft = drafts[sourceId];
     if (!draft) {
+      return;
+    }
+
+    if (demoMode) {
+      setMessages((current) => ({ ...current, [sourceId]: "Demo mode: connect a database to save changes." }));
       return;
     }
 
@@ -739,6 +750,11 @@ export function FormSourceManager({
       return;
     }
 
+    if (demoMode) {
+      setMessages((current) => ({ ...current, [sourceId]: "Demo mode: connect a database to save mappings." }));
+      return;
+    }
+
     setSavingMappingsById((current) => ({ ...current, [sourceId]: true }));
     setMessages((current) => ({ ...current, [sourceId]: "" }));
 
@@ -771,6 +787,10 @@ export function FormSourceManager({
   }
 
   async function toggleArchive(sourceId: string, action: "archive" | "restore") {
+    if (demoMode) {
+      setMessages((current) => ({ ...current, [sourceId]: `Demo mode: connect a database to ${action} sources.` }));
+      return;
+    }
     setSavingById((current) => ({ ...current, [sourceId]: true }));
     setMessages((current) => ({ ...current, [sourceId]: "" }));
 

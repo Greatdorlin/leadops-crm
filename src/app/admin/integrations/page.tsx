@@ -253,7 +253,7 @@ export default async function AdminIntegrationsPage() {
                   <div key={card.integration.provider} className="space-y-3">
                     <IntegrationHealthCard integration={card.integration} href={card.href} />
                     {card.action ? (
-                      <AdminActionButton endpoint={card.action.endpoint} label={card.action.label} />
+                      <AdminActionButton endpoint={card.action.endpoint} label={card.action.label} previewMode={isLocalAdminPreviewEmail(session.user?.email)} />
                     ) : null}
                   </div>
                 ))}

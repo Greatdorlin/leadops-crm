@@ -6,6 +6,7 @@ import { EmptyState } from "@/components/admin/EmptyState";
 import { MetricCard } from "@/components/admin/MetricCard";
 import { SectionHeader } from "@/components/admin/SectionHeader";
 import { getAdminAccessContext } from "@/lib/admin";
+import { isLocalAdminPreviewEmail } from "@/lib/admin-access";
 import { canManageIntegrations } from "@/lib/crm/authz";
 import {
   formatCrmDateTime,
@@ -21,7 +22,7 @@ import { appRoutes } from "@/lib/app-routes";
 export const dynamic = "force-dynamic";
 
 export default async function AdminGoogleSheetsIntegrationPage() {
-  const { role, accessLevel, actualAccessLevel, canSwitchAccessViews, permissions } =
+  const { session, role, accessLevel, actualAccessLevel, canSwitchAccessViews, permissions } =
     await getAdminAccessContext(appRoutes.integration("google-sheets"));
   if (!canManageIntegrations(accessLevel, role, permissions)) {
     redirect(appRoutes.dashboard);
@@ -29,7 +30,9 @@ export default async function AdminGoogleSheetsIntegrationPage() {
   let jobs: Awaited<ReturnType<typeof leadStore.listSyncJobs>> = [];
   let pageError: unknown = null;
 
-  try {
+  if (isLocalAdminPreviewEmail(session.user?.email)) {
+    jobs = [];
+  } else try {
     jobs = await leadStore.listSyncJobs({ provider: "google_sheets", limit: 20 });
   } catch (error) {
     pageError = error;
@@ -93,8 +96,8 @@ export default async function AdminGoogleSheetsIntegrationPage() {
                 description="Use these controls to pull worksheet rows in or send the current lead list back out."
                 actions={
                   <div className="flex flex-wrap gap-3">
-                    <AdminActionButton endpoint="/api/google-sheets/import" label="Import rows" />
-                    <AdminActionButton endpoint="/api/google-sheets/export" label="Export leads" variant="primary" />
+                    <AdminActionButton endpoint="/api/google-sheets/import" label="Import rows" previewMode={isLocalAdminPreviewEmail(session.user?.email)} />
+                    <AdminActionButton endpoint="/api/google-sheets/export" label="Export leads" variant="primary" previewMode={isLocalAdminPreviewEmail(session.user?.email)} />
                   </div>
                 }
               />

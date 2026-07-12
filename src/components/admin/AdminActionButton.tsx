@@ -9,18 +9,25 @@ export function AdminActionButton({
   loadingLabel,
   body,
   variant = "secondary",
+  previewMode = false,
 }: {
   endpoint: string;
   label: string;
   loadingLabel?: string;
   body?: Record<string, unknown>;
   variant?: "primary" | "secondary";
+  previewMode?: boolean;
 }) {
   const router = useRouter();
   const [isRunning, setIsRunning] = useState(false);
   const [message, setMessage] = useState("");
 
   async function runAction() {
+    if (previewMode) {
+      setMessage("Demo mode: connect credentials to run this action.");
+      return;
+    }
+
     setIsRunning(true);
     setMessage("");
 

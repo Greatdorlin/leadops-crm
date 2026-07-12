@@ -7,6 +7,7 @@ import { FormSourceManager } from "@/components/admin/FormSourceManager";
 import { MetricCard } from "@/components/admin/MetricCard";
 import { SectionHeader } from "@/components/admin/SectionHeader";
 import { getAdminAccessContext } from "@/lib/admin";
+import { isLocalAdminPreviewEmail } from "@/lib/admin-access";
 import { appRoutes } from "@/lib/app-routes";
 import { canManageFormSources } from "@/lib/crm/authz";
 import {
@@ -14,11 +15,12 @@ import {
   listFormSources,
 } from "@/lib/crm/form-sources-admin";
 import { getCrmPageErrorCopy, logCrmPageError } from "@/lib/crm/runtime";
+import { buildDemoIntakeData } from "@/lib/crm/demo-data";
 
 export const dynamic = "force-dynamic";
 
 export default async function AdminFormSourcesPage() {
-  const { role, accessLevel, actualAccessLevel, canSwitchAccessViews, permissions } =
+  const { session, role, accessLevel, actualAccessLevel, canSwitchAccessViews, permissions } =
     await getAdminAccessContext(appRoutes.settingsFormSources);
 
   if (!canManageFormSources({ accessLevel, permissions, role })) {
@@ -29,7 +31,18 @@ export default async function AdminFormSourcesPage() {
   let referenceData = null;
   let pageError: unknown = null;
 
-  try {
+  const demoMode = isLocalAdminPreviewEmail(session.user?.email);
+  if (demoMode) {
+    sources = buildDemoIntakeData().sources;
+    referenceData = {
+      stages: [{ id: "demo-stage-new", name: "New" }, { id: "demo-stage-qualified", name: "Qualified" }],
+      users: [{ id: "demo-user-ada", label: "Ada Okafor" }, { id: "demo-user-malik", label: "Malik Bello" }],
+      teams: [{ id: "demo-team-inbound", name: "Inbound sales" }],
+      branches: [{ id: "demo-branch-lagos", name: "Lagos HQ" }],
+      departments: [{ id: "demo-department-sales", name: "Sales" }],
+      customFields: [],
+    };
+  } else try {
     [sources, referenceData] = await Promise.all([
       listFormSources({ includeInactive: true, includeMappings: true }),
       getFormSourceAdminReferenceData(),
@@ -88,7 +101,7 @@ export default async function AdminFormSourcesPage() {
               description="Save each source once, then keep its field mappings aligned with your lead workflow."
             />
             <div className="mt-5">
-              <FormSourceManager initialSources={sources} referenceData={referenceData} />
+              <FormSourceManager initialSources={sources} referenceData={referenceData} demoMode={demoMode} />
             </div>
           </section>
         </div>

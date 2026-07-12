@@ -19,6 +19,7 @@ export interface ConnectorDefinition {
 
 export const connectorRegistry: ConnectorDefinition[] = [
   { id: "website_forms", label: "Website forms", category: "lead_capture", availability: "available", connectionMethod: "webhook", description: "Built-in forms and signed webhooks." },
+  { id: "custom_webhook", label: "Custom webhook", category: "lead_capture", availability: "available", connectionMethod: "webhook", description: "Map fields from any system that can send JSON." },
   { id: "meta_lead_ads", label: "Meta Lead Ads", category: "lead_capture", availability: "available", connectionMethod: "webhook", description: "Facebook and Instagram lead capture." },
   { id: "google_ads", label: "Google Ads", category: "lead_capture", availability: "available", connectionMethod: "api_key", description: "Lead intake and campaign attribution." },
   { id: "tiktok", label: "TikTok", category: "lead_capture", availability: "available", connectionMethod: "webhook", description: "Signed lead webhook intake." },
@@ -34,7 +35,7 @@ export const connectorRegistry: ConnectorDefinition[] = [
   { id: "custom_email", label: "Custom email platform", category: "email_marketing", availability: "adapter_ready", connectionMethod: "webhook", description: "Provider-neutral outbound event contract." },
   { id: "whatsapp_business", label: "WhatsApp Business", category: "communication", availability: "planned", connectionMethod: "oauth2", description: "Planned messaging connector; not presented as connected." },
   { id: "google_sheets", label: "Google Sheets", category: "reporting", availability: "available", connectionMethod: "service_account", description: "Controlled lead export." },
-  { id: "zapier_make", label: "Zapier / Make", category: "automation", availability: "adapter_ready", connectionMethod: "webhook", description: "Generic signed inbound and outbound webhooks." },
+  { id: "zapier_make", label: "Zapier / Make", category: "automation", availability: "adapter_ready", connectionMethod: "webhook", description: "Signed inbound webhooks are ready; outbound actions require an adapter." },
 ];
 
 export function listConnectorsByCategory(category: ConnectorCategory) {

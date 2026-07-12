@@ -5,6 +5,7 @@ import { GlassCard } from "@/components/admin/GlassCard";
 import { AnimatedCard } from "@/components/admin/ui/AnimatedCard";
 import { TeamMemberProfileForm } from "@/components/admin/TeamMemberProfileForm";
 import { getAdminAccessContext } from "@/lib/admin";
+import { isLocalAdminPreviewEmail } from "@/lib/admin-access";
 import { resolveAdminAccessLevel } from "@/lib/admin-permissions";
 import { appRoutes } from "@/lib/app-routes";
 
@@ -13,6 +14,15 @@ export const dynamic = "force-dynamic";
 export default async function AdminProfilePage() {
   const { session, crmUser, role, accessLevel, actualAccessLevel, canSwitchAccessViews } =
     await getAdminAccessContext(appRoutes.profile);
+  const demoMode = isLocalAdminPreviewEmail(session.user?.email);
+  const profile = crmUser ?? (demoMode ? {
+    id: "demo-profile-user",
+    fullName: session.user?.name || "Demo workspace owner",
+    email: session.user?.email || "preview@local.leadsdesk.test",
+    avatarUrl: session.user?.image ?? null,
+    role: "admin" as const,
+    isActive: true,
+  } : null);
 
   return (
     <AdminShell
@@ -24,21 +34,22 @@ export default async function AdminProfilePage() {
       title="My profile"
       description="Name, photo, and workspace identity."
       actions={<AdminSignOutButton />}
-      userName={crmUser?.fullName || session.user?.name}
-      userEmail={crmUser?.email || session.user?.email}
-      userAvatarUrl={crmUser?.avatarUrl}
+      userName={profile?.fullName || session.user?.name}
+      userEmail={profile?.email || session.user?.email}
+      userAvatarUrl={profile?.avatarUrl}
     >
       <div className="mx-auto max-w-4xl">
-        {crmUser ? (
+        {profile ? (
           <AnimatedCard animation="fadeInUp" variant="elevated" className="ld-animate-fade-in-up">
             <GlassCard glassStyle="vibrant" className="p-5 sm:p-6">
               <TeamMemberProfileForm
-                userId={crmUser.id}
-                fullName={crmUser.fullName || session.user?.name || session.user?.email || ""}
-                email={crmUser.email || session.user?.email || ""}
-                avatarUrl={crmUser.avatarUrl}
-                accessLevel={resolveAdminAccessLevel({ email: crmUser.email, role: crmUser.role })}
-                isActive={crmUser.isActive}
+                userId={profile.id}
+                fullName={profile.fullName || session.user?.name || session.user?.email || ""}
+                email={profile.email || session.user?.email || ""}
+                avatarUrl={profile.avatarUrl}
+                accessLevel={resolveAdminAccessLevel({ email: profile.email, role: profile.role })}
+                isActive={profile.isActive}
+                demoMode={demoMode}
               />
             </GlassCard>
           </AnimatedCard>

@@ -58,7 +58,7 @@ import {
   type DashboardWidgetKey,
 } from "@/lib/crm/workspace-settings";
 import { getCompanySettings } from "@/lib/crm/workspace-settings-server";
-import type { CrmStatus, LeadRecord } from "@/lib/crm/types";
+import type { CrmStatus, IntegrationProvider, LeadRecord } from "@/lib/crm/types";
 import { leadStore } from "@/lib/storage";
 
 export const dynamic = "force-dynamic";
@@ -86,6 +86,19 @@ function readStageFilter(input: Record<string, string | string[] | undefined>) {
 
 function safeNumber(value: number) {
   return new Intl.NumberFormat().format(value);
+}
+
+function getIntegrationManagementHref(provider: IntegrationProvider) {
+  const routes: Partial<Record<IntegrationProvider, string>> = {
+    website: appRoutes.forms,
+    facebook: appRoutes.integration("facebook"),
+    google_sheets: appRoutes.integration("google-sheets"),
+    google_ads: appRoutes.integration("google-ads"),
+    tiktok: appRoutes.integration("tiktok"),
+    linkedin: appRoutes.integration("linkedin"),
+    sender: appRoutes.integrations,
+  };
+  return routes[provider];
 }
 
 function scoreTaskForQueue(task: Awaited<ReturnType<typeof leadStore.listLeadTasks>>[number]) {
@@ -1028,7 +1041,7 @@ export default async function AdminPage({
                   <IntegrationHealthCard
                     key={integration.id}
                     integration={integration}
-                    href={appRoutes.integration(integration.provider.replaceAll("_", "-"))}
+                    href={getIntegrationManagementHref(integration.provider)}
                   />
                 ))
               ) : (

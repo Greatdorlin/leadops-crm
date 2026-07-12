@@ -25,6 +25,7 @@ export function TeamMemberProfileForm({
   departmentId,
   teamId,
   branches = [], departments = [], teams = [],
+  demoMode = false,
 }: {
   userId: string;
   fullName: string;
@@ -43,6 +44,7 @@ export function TeamMemberProfileForm({
   branches?: ScopeOption[];
   departments?: ScopeOption[];
   teams?: ScopeOption[];
+  demoMode?: boolean;
 }) {
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -91,6 +93,12 @@ export function TeamMemberProfileForm({
 
     setIsSaving(true);
     setMessage("");
+
+    if (demoMode) {
+      setMessage("Profile updated for this preview.");
+      setIsSaving(false);
+      return;
+    }
 
     try {
       const response = await fetch(`/api/admin/users/${userId}`, {

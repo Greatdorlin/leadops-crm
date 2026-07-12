@@ -30,6 +30,7 @@ function connectorHref(id: string, availability: ConnectorAvailability) {
 
   const routes: Record<string, string> = {
     website_forms: appRoutes.forms,
+    custom_webhook: appRoutes.settingsFormSources,
     meta_lead_ads: appRoutes.integration("facebook"),
     google_ads: appRoutes.integration("google-ads"),
     tiktok: appRoutes.integration("tiktok"),

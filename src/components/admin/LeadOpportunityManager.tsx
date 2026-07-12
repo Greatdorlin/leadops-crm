@@ -11,6 +11,7 @@ import {
 import type { LeadOpportunityRecord, LeadOpportunityStatus } from "@/lib/crm/types";
 import { AdminSelect } from "./AdminSelect";
 import { InfoTip } from "./ui/InfoTip";
+import { CurrencySelect } from "./CurrencySelect";
 import { useAdminWorkspaceSettings } from "./AdminWorkspaceSettingsProvider";
 import {
   resolveQuickScheduleDate,
@@ -23,6 +24,8 @@ type OpportunityDraft = {
   offerLabel: string;
   status: LeadOpportunityStatus;
   estimatedValue: string;
+  currency: string;
+  exchangeRateToGlobal: string;
   closeProbability: string;
   expectedCloseDate: string;
   reason: string;
@@ -34,13 +37,16 @@ function toDateTimeLocalValue(value?: string | null) {
   return value ? value.slice(0, 16) : "";
 }
 
-function createDraft(input?: LeadOpportunityRecord): OpportunityDraft {
+function createDraft(input?: LeadOpportunityRecord, defaultCurrency = "USD"): OpportunityDraft {
   return {
     id: input?.id,
     localId: input?.id || crypto.randomUUID(),
     offerLabel: input?.offerLabel ?? "",
     status: input?.status ?? "active",
     estimatedValue: input?.estimatedValue == null ? "" : String(input.estimatedValue),
+    currency: input?.currency ?? defaultCurrency,
+    exchangeRateToGlobal:
+      input?.exchangeRateToGlobal == null ? "" : String(input.exchangeRateToGlobal),
     closeProbability: input?.closeProbability == null ? "" : String(input.closeProbability),
     expectedCloseDate: toDateTimeLocalValue(input?.expectedCloseDate),
     reason: input?.reason ?? "",
@@ -84,7 +90,9 @@ export function LeadOpportunityManager({
   const workspaceSettings = useAdminWorkspaceSettings();
   const currency = workspaceSettings.globalCurrency;
   const [opportunities, setOpportunities] = useState<OpportunityDraft[]>(
-    initialOpportunities.length > 0 ? initialOpportunities.map((item) => createDraft(item)) : [createDraft()],
+    initialOpportunities.length > 0
+      ? initialOpportunities.map((item) => createDraft(item, currency))
+      : [createDraft(undefined, currency)],
   );
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState("");
@@ -94,16 +102,22 @@ export function LeadOpportunityManager({
   const rollup = useMemo(
     () =>
       buildLeadOpportunityRollup(
-        opportunities.map((item) => ({
-          status: item.status,
-          estimatedValue: item.estimatedValue ? Number(item.estimatedValue) : null,
-          expectedValue: null,
-          closeProbability: item.closeProbability ? Number(item.closeProbability) : null,
-          expectedCloseDate: item.expectedCloseDate || null,
-          reason: item.reason || null,
-        })),
+        opportunities.map((item) => {
+          const parsedRate = item.currency === currency ? 1 : Number(item.exchangeRateToGlobal);
+          const reportingRate = Number.isFinite(parsedRate) && parsedRate > 0 ? parsedRate : 0;
+          return {
+            status: item.status,
+            estimatedValue: item.estimatedValue
+              ? Number(item.estimatedValue) * reportingRate
+              : null,
+            expectedValue: null,
+            closeProbability: item.closeProbability ? Number(item.closeProbability) : null,
+            expectedCloseDate: item.expectedCloseDate || null,
+            reason: item.reason || null,
+          };
+        }),
       ),
-    [opportunities],
+    [currency, opportunities],
   );
 
   function updateOpportunity(localId: string, patch: Partial<OpportunityDraft>) {
@@ -116,7 +130,7 @@ export function LeadOpportunityManager({
     setOpportunities((current) => {
       const next = current.filter((item) => item.localId !== localId);
       if (next.length === 0) {
-        return [createDraft()];
+        return [createDraft(undefined, currency)];
       }
 
       if (!next.some((item) => item.isPrimary)) {
@@ -131,7 +145,7 @@ export function LeadOpportunityManager({
     setOpportunities((current) => [
       ...current,
       {
-        ...createDraft(),
+        ...createDraft(undefined, currency),
         isPrimary: current.length === 0,
       },
     ]);
@@ -152,6 +166,12 @@ export function LeadOpportunityManager({
               offerLabel: item.offerLabel.trim(),
               status: item.status,
               estimatedValue: item.estimatedValue ? Number(item.estimatedValue) : null,
+              currency: item.currency,
+              exchangeRateToGlobal: item.exchangeRateToGlobal
+                ? Number(item.exchangeRateToGlobal)
+                : item.currency === currency
+                  ? 1
+                  : null,
               closeProbability: item.closeProbability ? Number(item.closeProbability) : null,
               expectedCloseDate: item.expectedCloseDate || null,
               reason: item.reason.trim() || null,
@@ -404,6 +424,40 @@ export function LeadOpportunityManager({
                     ) : null}
                   </div>
                 </label>
+                <div className="space-y-2">
+                  <CurrencySelect
+                    value={opportunity.currency}
+                    onChange={(value) =>
+                      updateOpportunity(opportunity.localId, {
+                        currency: value,
+                        exchangeRateToGlobal: value === currency ? "1" : "",
+                      })
+                    }
+                    label="Offer currency"
+                  />
+                </div>
+                {opportunity.currency !== currency ? (
+                  <label className="space-y-2">
+                    <span className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.16em] text-white/70">
+                      Rate to {currency}
+                      <InfoTip label={`How many ${currency} one ${opportunity.currency} is worth. This snapshot keeps reports stable when rates change.`} />
+                    </span>
+                    <input
+                      type="number"
+                      min="0.00000001"
+                      step="any"
+                      required
+                      value={opportunity.exchangeRateToGlobal}
+                      onChange={(event) =>
+                        updateOpportunity(opportunity.localId, {
+                          exchangeRateToGlobal: event.target.value,
+                        })
+                      }
+                      placeholder={`1 ${opportunity.currency} in ${currency}`}
+                      className={inputClassName()}
+                    />
+                  </label>
+                ) : null}
                 <label className="space-y-2">
                   <span className="text-xs font-semibold uppercase tracking-[0.16em] text-white/70">
                     Close probability
@@ -441,7 +495,7 @@ export function LeadOpportunityManager({
                   <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/70">
                     Expected value
                   </p>
-                  <p className="mt-2 text-lg font-semibold text-white">{formatMoney(expectedValue, currency)}</p>
+                  <p className="mt-2 text-lg font-semibold text-white">{formatMoney(expectedValue, opportunity.currency)}</p>
                 </div>
                 <label className="space-y-2 md:col-span-2 xl:col-span-3">
                   <span className="text-xs font-semibold uppercase tracking-[0.16em] text-white/70">
@@ -493,14 +547,14 @@ export function LeadOpportunityManager({
                     Offer value
                   </p>
                   <p className="mt-2 text-sm font-semibold text-white">
-                    {hasValue ? formatMoney(Number(opportunity.estimatedValue), currency) : "Not set"}
+                    {hasValue ? formatMoney(Number(opportunity.estimatedValue), opportunity.currency) : "Not set"}
                   </p>
                 </div>
                 <div className="rounded-[18px] border border-white/10 bg-black/10 px-4 py-3">
                   <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/58">
                     Expected value
                   </p>
-                  <p className="mt-2 text-sm font-semibold text-white">{formatMoney(expectedValue, currency)}</p>
+                  <p className="mt-2 text-sm font-semibold text-white">{formatMoney(expectedValue, opportunity.currency)}</p>
                 </div>
               </div>
             </div>

@@ -542,6 +542,8 @@ export const leadOpportunities = pgTable(
     status: leadOpportunityStatusEnum("status").notNull().default("active"),
     estimatedValue: numeric("estimated_value", { precision: 12, scale: 2 }),
     expectedValue: numeric("expected_value", { precision: 12, scale: 2 }),
+    currency: text("currency"),
+    exchangeRateToGlobal: numeric("exchange_rate_to_global", { precision: 18, scale: 8 }),
     closeProbability: integer("close_probability"),
     expectedCloseDate: timestamp("expected_close_date", { withTimezone: true }),
     reason: text("reason"),
@@ -577,6 +579,10 @@ export const leadOpportunities = pgTable(
     expectedValueCheck: check(
       "lead_opportunities_expected_value_check",
       sql`${table.expectedValue} is null or ${table.expectedValue} >= 0`,
+    ),
+    exchangeRateCheck: check(
+      "lead_opportunities_exchange_rate_check",
+      sql`${table.exchangeRateToGlobal} is null or ${table.exchangeRateToGlobal} > 0`,
     ),
     sortOrderCheck: check(
       "lead_opportunities_sort_order_check",

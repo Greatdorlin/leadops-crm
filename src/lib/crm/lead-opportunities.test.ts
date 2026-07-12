@@ -125,3 +125,21 @@ test("offer automation accepts a call schedule and rejects duplicate offer names
   assert.equal(accepted.success, true);
   assert.equal(duplicate.success, false);
 });
+
+test("opportunity payload accepts CFA currencies and a reporting-rate snapshot", () => {
+  const parsed = normalizeLeadOpportunityPayload({
+    opportunities: [
+      {
+        offerLabel: "Regional implementation",
+        status: "qualified",
+        estimatedValue: 500000,
+        currency: "XOF",
+        exchangeRateToGlobal: 0.00165,
+      },
+    ],
+  });
+
+  assert.equal(parsed.success, true);
+  assert.equal(parsed.data?.opportunities[0]?.currency, "XOF");
+  assert.equal(parsed.data?.opportunities[0]?.exchangeRateToGlobal, 0.00165);
+});

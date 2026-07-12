@@ -10,6 +10,7 @@ import {
   type LeadOpportunityRollup,
 } from "@/lib/crm/lead-opportunity-contract";
 import type { LeadOpportunityRecord } from "@/lib/crm/types";
+import { isSupportedCurrency } from "@/lib/currency";
 
 export { buildLeadOpportunityRollup, LEAD_OPPORTUNITY_STATUSES };
 export type { LeadOpportunityRollup };
@@ -20,6 +21,8 @@ const leadOpportunityInputSchema = z
     offerLabel: z.string().trim().min(1, "Add an offer name before saving."),
     status: z.enum(LEAD_OPPORTUNITY_STATUSES),
     estimatedValue: z.coerce.number().nonnegative().nullable().optional(),
+    currency: z.string().trim().toUpperCase().refine(isSupportedCurrency, "Choose a supported currency.").default("USD"),
+    exchangeRateToGlobal: z.coerce.number().positive().nullable().optional(),
     closeProbability: z.coerce.number().min(0).max(100).nullable().optional(),
     expectedCloseDate: z
       .string()
@@ -116,6 +119,9 @@ function mapLeadOpportunityRecord(
     status: row.status,
     estimatedValue: row.estimatedValue === null ? null : Number.parseFloat(row.estimatedValue),
     expectedValue: row.expectedValue === null ? null : Number.parseFloat(row.expectedValue),
+    currency: row.currency,
+    exchangeRateToGlobal:
+      row.exchangeRateToGlobal === null ? null : Number.parseFloat(row.exchangeRateToGlobal),
     closeProbability: row.closeProbability,
     expectedCloseDate: toIsoString(row.expectedCloseDate),
     reason: row.reason,
@@ -204,6 +210,7 @@ export async function replaceLeadOpportunities(
     callTaskDueAt?: string | null;
     assignedTo?: string | null;
     createdBy?: string | null;
+    globalCurrency?: string;
   } = {},
 ) {
   const db = getDb();
@@ -232,6 +239,8 @@ export async function replaceLeadOpportunities(
         offerLabel: item.offerLabel.trim(),
         status: item.status,
         estimatedValue: item.estimatedValue ?? null,
+        currency: item.currency,
+        exchangeRateToGlobal: item.exchangeRateToGlobal ?? null,
         closeProbability:
           item.closeProbability === undefined || item.closeProbability === null
             ? null
@@ -243,6 +252,18 @@ export async function replaceLeadOpportunities(
         sortOrder: index,
       };
     });
+
+    for (const item of normalizedInput) {
+      if (
+        options.globalCurrency &&
+        item.currency !== options.globalCurrency &&
+        item.exchangeRateToGlobal === null
+      ) {
+        throw new LeadOpportunityInputError(
+          `Add the ${item.currency} to ${options.globalCurrency} exchange rate before saving.`,
+        );
+      }
+    }
 
     if (!primaryAssigned && normalizedInput.length > 0) {
       normalizedInput[0] = {
@@ -273,6 +294,8 @@ export async function replaceLeadOpportunities(
             status: item.status,
             estimatedValue: item.estimatedValue?.toFixed(2) ?? null,
             expectedValue: expectedValue?.toFixed(2) ?? null,
+            currency: item.currency,
+            exchangeRateToGlobal: item.exchangeRateToGlobal?.toFixed(8) ?? null,
             closeProbability: item.closeProbability,
             expectedCloseDate: item.expectedCloseDate ? new Date(item.expectedCloseDate) : null,
             reason: item.reason,
@@ -294,6 +317,8 @@ export async function replaceLeadOpportunities(
           status: item.status,
           estimatedValue: item.estimatedValue?.toFixed(2) ?? null,
           expectedValue: expectedValue?.toFixed(2) ?? null,
+          currency: item.currency,
+          exchangeRateToGlobal: item.exchangeRateToGlobal?.toFixed(8) ?? null,
           closeProbability: item.closeProbability,
           expectedCloseDate: item.expectedCloseDate ? new Date(item.expectedCloseDate) : null,
           reason: item.reason,
@@ -352,7 +377,15 @@ export async function replaceLeadOpportunities(
     const opportunities = rows
       .map(mapLeadOpportunityRecord)
       .sort((left, right) => (left.isPrimary === right.isPrimary ? left.sortOrder - right.sortOrder : left.isPrimary ? -1 : 1));
-    const rollup = buildLeadOpportunityRollup(opportunities);
+    const reportingOpportunities = opportunities.map((opportunity) => {
+      const rate = opportunity.exchangeRateToGlobal ?? 1;
+      return {
+        ...opportunity,
+        estimatedValue: opportunity.estimatedValue === null ? null : opportunity.estimatedValue * rate,
+        expectedValue: opportunity.expectedValue === null ? null : opportunity.expectedValue * rate,
+      };
+    });
+    const rollup = buildLeadOpportunityRollup(reportingOpportunities);
 
     await transaction
       .update(leads)

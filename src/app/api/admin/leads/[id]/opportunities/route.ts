@@ -9,6 +9,7 @@ import {
 } from "@/lib/crm/lead-opportunities";
 import { notifyLeadOffersQualified } from "@/lib/crm/notification-events";
 import { leadStore } from "@/lib/storage";
+import { getCompanySettings } from "@/lib/crm/workspace-settings-server";
 
 export async function GET(
   _request: Request,
@@ -83,11 +84,13 @@ export async function PUT(
   }
 
   try {
+    const companySettings = await getCompanySettings();
     const saved = await replaceLeadOpportunities(id, parsed.data.opportunities, {
       createCallTasksForNewlyQualified: parsed.data.createCallTasksForNewlyQualified,
       callTaskDueAt: parsed.data.callTaskDueAt,
       assignedTo: lead.assignedTo,
       createdBy: context.session.user?.email ?? null,
+      globalCurrency: companySettings.globalCurrency,
     });
     const refreshedLead = await leadStore.getById(id);
 

@@ -111,6 +111,8 @@ export interface LeadOpportunityRecord {
   status: LeadOpportunityStatus;
   estimatedValue: number | null;
   expectedValue: number | null;
+  currency: string | null;
+  exchangeRateToGlobal: number | null;
   closeProbability: number | null;
   expectedCloseDate: string | null;
   reason: string | null;

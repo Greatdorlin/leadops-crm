@@ -15,6 +15,8 @@ export const SUPPORTED_CURRENCIES = [
   { code: "CHF", name: "Swiss Franc", symbol: "CHF", locale: "de-CH" },
   { code: "GHS", name: "Ghanaian Cedi", symbol: "GH₵", locale: "en-GH" },
   { code: "KES", name: "Kenyan Shilling", symbol: "KSh", locale: "en-KE" },
+  { code: "XOF", name: "West African CFA Franc", symbol: "CFA", locale: "fr-SN" },
+  { code: "XAF", name: "Central African CFA Franc", symbol: "FCFA", locale: "fr-CM" },
 ] as const;
 
 export type CurrencyCode = (typeof SUPPORTED_CURRENCIES)[number]["code"];

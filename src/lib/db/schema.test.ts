@@ -234,6 +234,8 @@ test("phase 2D additive schema exports custom-field, form-source, and intake tab
     "status",
     "estimatedValue",
     "expectedValue",
+    "currency",
+    "exchangeRateToGlobal",
     "closeProbability",
     "expectedCloseDate",
     "reason",

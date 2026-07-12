@@ -1,0 +1,3 @@
+ALTER TABLE "lead_opportunities" ADD COLUMN "currency" text;--> statement-breakpoint
+ALTER TABLE "lead_opportunities" ADD COLUMN "exchange_rate_to_global" numeric(18, 8);--> statement-breakpoint
+ALTER TABLE "lead_opportunities" ADD CONSTRAINT "lead_opportunities_exchange_rate_check" CHECK ("lead_opportunities"."exchange_rate_to_global" is null or "lead_opportunities"."exchange_rate_to_global" > 0);

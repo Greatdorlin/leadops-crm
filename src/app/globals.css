@@ -1451,6 +1451,7 @@ body {
 .ld-scroll-region {
   overscroll-behavior-inline: contain;
   scrollbar-gutter: stable;
+  -webkit-overflow-scrolling: touch;
 }
 
 .ld-scroll-region .ld-readable-table {
@@ -1486,6 +1487,40 @@ button,
 input,
 textarea {
   font: inherit;
+}
+
+button,
+a,
+summary,
+select {
+  touch-action: manipulation;
+}
+
+@media (max-width: 640px) {
+  .admin-input,
+  .admin-select,
+  .admin-textarea {
+    font-size: 16px;
+  }
+
+  .admin-shell ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  .admin-shell ::-webkit-scrollbar-thumb {
+    border-width: 2px;
+  }
+
+  .ld-scroll-region {
+    scrollbar-gutter: auto;
+  }
+
+  .ld-action-strip,
+  .ld-topbar-nav {
+    overscroll-behavior-inline: contain;
+    -webkit-overflow-scrolling: touch;
+  }
 }
 
 .page-shell {

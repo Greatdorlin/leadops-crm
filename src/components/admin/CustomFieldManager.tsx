@@ -429,8 +429,10 @@ function CustomFieldEditor({
 
 export function CustomFieldManager({
   initialFields,
+  demoMode = false,
 }: {
   initialFields: AdminCustomFieldRecord[];
+  demoMode?: boolean;
 }) {
   const router = useRouter();
   const [newField, setNewField] = useState<FieldDraft>(createEmptyFieldDraft());
@@ -451,6 +453,7 @@ export function CustomFieldManager({
   );
 
   async function createField() {
+    if (demoMode) { setNewMessage("Field added for this preview."); return; }
     setNewSaving(true);
     setNewMessage("");
     try {
@@ -481,6 +484,7 @@ export function CustomFieldManager({
     if (!draft) {
       return;
     }
+    if (demoMode) { setMessages((current) => ({ ...current, [fieldId]: "Field updated for this preview." })); return; }
 
     setSavingById((current) => ({ ...current, [fieldId]: true }));
     setMessages((current) => ({ ...current, [fieldId]: "" }));
@@ -514,6 +518,7 @@ export function CustomFieldManager({
   }
 
   async function toggleArchive(fieldId: string, action: "archive" | "restore") {
+    if (demoMode) { setMessages((current) => ({ ...current, [fieldId]: `Field ${action === "archive" ? "archived" : "restored"} for this preview.` })); return; }
     setSavingById((current) => ({ ...current, [fieldId]: true }));
     setMessages((current) => ({ ...current, [fieldId]: "" }));
     try {

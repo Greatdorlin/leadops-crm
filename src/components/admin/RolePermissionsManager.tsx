@@ -32,8 +32,10 @@ export interface RolePermissionViewRow {
 
 export function RolePermissionsManager({
   initialPermissions,
+  demoMode = false,
 }: {
   initialPermissions: RolePermissionViewRow[];
+  demoMode?: boolean;
 }) {
   const [permissions, setPermissions] = useState(initialPermissions);
   const [saving, setSaving] = useState<Record<string, boolean>>({});
@@ -63,6 +65,11 @@ export function RolePermissionsManager({
     current: boolean,
   ) {
     const key = `${role}:${permission}`;
+    if (demoMode) {
+      setPermissions((rows) => rows.map((row) => row.role === role && row.permission === permission ? { ...row, enabled: !current } : row));
+      showToast(`${ROLE_LABELS[role]} access updated for this preview.`);
+      return;
+    }
     setSaving((state) => ({ ...state, [key]: true }));
 
     try {
@@ -94,6 +101,12 @@ export function RolePermissionsManager({
 
   async function resetPermissions() {
     if (!window.confirm("Reset every role to the Leads Desk defaults?")) {
+      return;
+    }
+
+    if (demoMode) {
+      setPermissions(initialPermissions);
+      showToast("Role defaults restored for this preview.");
       return;
     }
 

@@ -5,15 +5,17 @@ import { AdminSignOutButton } from "@/components/admin/AdminSignOutButton";
 import { CustomFieldManager } from "@/components/admin/CustomFieldManager";
 import { ErrorState } from "@/components/admin/ErrorState";
 import { getAdminAccessContext } from "@/lib/admin";
+import { isLocalAdminPreviewEmail } from "@/lib/admin-access";
 import { appRoutes } from "@/lib/app-routes";
 import { canManageCustomFields } from "@/lib/crm/authz";
 import { listCustomFields } from "@/lib/crm/custom-fields-admin";
 import { getCrmPageErrorCopy, logCrmPageError } from "@/lib/crm/runtime";
+import { buildLeadsDeskDefaultSeedPayload } from "@/lib/db/seed-defaults";
 
 export const dynamic = "force-dynamic";
 
 export default async function AdminLeadFieldsPage() {
-  const { role, accessLevel, actualAccessLevel, canSwitchAccessViews, permissions } =
+  const { session, role, accessLevel, actualAccessLevel, canSwitchAccessViews, permissions } =
     await getAdminAccessContext(appRoutes.settingsFields);
 
   if (!canManageCustomFields({ accessLevel, permissions, role })) {
@@ -23,7 +25,28 @@ export default async function AdminLeadFieldsPage() {
   let fields = null;
   let pageError: unknown = null;
 
-  try {
+  if (isLocalAdminPreviewEmail(session.user?.email)) {
+    const timestamp = new Date().toISOString();
+    fields = buildLeadsDeskDefaultSeedPayload().customFields.map((field, index) => ({
+      id: `demo-field-${field.key}`,
+      key: field.key,
+      label: field.label,
+      type: field.type,
+      description: null,
+      placeholder: null,
+      required: field.required ?? false,
+      archived: field.archived ?? false,
+      showInTable: field.showInTable ?? false,
+      showInForm: field.showInForm ?? true,
+      showInDetails: field.showInDetails ?? true,
+      searchable: field.searchable ?? false,
+      filterable: field.filterable ?? false,
+      sortOrder: field.sortOrder ?? index,
+      createdAt: timestamp,
+      updatedAt: timestamp,
+      options: [],
+    }));
+  } else try {
     fields = await listCustomFields({ includeArchived: true });
   } catch (error) {
     pageError = error;
@@ -61,7 +84,7 @@ export default async function AdminLeadFieldsPage() {
     >
       {fields ? (
         <section className="admin-surface rounded-[24px] p-4 sm:p-5">
-          <CustomFieldManager initialFields={fields} />
+          <CustomFieldManager initialFields={fields} demoMode={isLocalAdminPreviewEmail(session.user?.email)} />
         </section>
       ) : (
         <ErrorState

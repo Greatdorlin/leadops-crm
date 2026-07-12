@@ -30,8 +30,10 @@ function normalizeItems(settings: ResolvedWorkspaceSettings): NavigationDraftIte
 
 export function NavigationSettingsManager({
   initialSettings,
+  demoMode = false,
 }: {
   initialSettings: ResolvedWorkspaceSettings;
+  demoMode?: boolean;
 }) {
   const router = useRouter();
   const [items, setItems] = useState<NavigationDraftItem[]>(() => normalizeItems(initialSettings));
@@ -46,6 +48,11 @@ export function NavigationSettingsManager({
   async function saveSettings() {
     setIsSaving(true);
     setMessage("");
+    if (demoMode) {
+      setMessage("Navigation updated for this preview.");
+      setIsSaving(false);
+      return;
+    }
     try {
       const response = await fetch("/api/admin/settings/navigation", {
         method: "PATCH",

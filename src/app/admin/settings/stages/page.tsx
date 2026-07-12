@@ -93,7 +93,7 @@ export default async function AdminLeadStagesPage() {
               description="Add, rename, order, archive, and restore stages without breaking lead history."
             />
             <div className="mt-5">
-              <LeadStageManager initialStages={stages} />
+              <LeadStageManager initialStages={stages} demoMode={isLocalAdminPreviewEmail(session.user?.email)} />
             </div>
           </section>
         </div>

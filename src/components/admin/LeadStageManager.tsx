@@ -165,8 +165,10 @@ function StageEditor({
 
 export function LeadStageManager({
   initialStages,
+  demoMode = false,
 }: {
   initialStages: AdminLeadStageRecord[];
+  demoMode?: boolean;
 }) {
   const router = useRouter();
   const [newDraft, setNewDraft] = useState<StageDraft>(createEmptyStageDraft());
@@ -187,6 +189,7 @@ export function LeadStageManager({
   );
 
   async function createStage() {
+    if (demoMode) { setNewMessage("Stage added for this preview."); return; }
     setNewSaving(true);
     setNewMessage("");
     try {
@@ -217,6 +220,7 @@ export function LeadStageManager({
     if (!draft) {
       return;
     }
+    if (demoMode) { setMessages((current) => ({ ...current, [stageId]: "Stage updated for this preview." })); return; }
 
     setSavingById((current) => ({ ...current, [stageId]: true }));
     setMessages((current) => ({ ...current, [stageId]: "" }));
@@ -250,6 +254,7 @@ export function LeadStageManager({
   }
 
   async function toggleArchive(stageId: string, action: "archive" | "restore") {
+    if (demoMode) { setMessages((current) => ({ ...current, [stageId]: `Stage ${action === "archive" ? "archived" : "restored"} for this preview.` })); return; }
     setSavingById((current) => ({ ...current, [stageId]: true }));
     setMessages((current) => ({ ...current, [stageId]: "" }));
 

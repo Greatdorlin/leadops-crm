@@ -7,12 +7,16 @@ import { CurrencySelect } from "@/components/admin/CurrencySelect";
 import type { BranchRow } from "@/lib/db/schema";
 import { getCurrencySymbol } from "@/lib/currency";
 
-function BranchCurrencyRow({ branch, onSaved }: { branch: BranchRow; onSaved: () => void }) {
+function BranchCurrencyRow({ branch, onSaved, demoMode }: { branch: BranchRow; onSaved: () => void; demoMode: boolean }) {
   const [currency, setCurrency] = useState<string>(branch.currency ?? "USD");
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
 
   async function save() {
+    if (demoMode) {
+      setMessage("Currency updated for this preview.");
+      return;
+    }
     setSaving(true);
     setMessage("");
     try {
@@ -67,9 +71,9 @@ function BranchCurrencyRow({ branch, onSaved }: { branch: BranchRow; onSaved: ()
   );
 }
 
-export function BranchSettingsManager() {
-  const [branches, setBranches] = useState<BranchRow[]>([]);
-  const [loading, setLoading] = useState(true);
+export function BranchSettingsManager({ initialBranches = [], demoMode = false }: { initialBranches?: BranchRow[]; demoMode?: boolean }) {
+  const [branches, setBranches] = useState<BranchRow[]>(initialBranches);
+  const [loading, setLoading] = useState(!demoMode);
   const [error, setError] = useState("");
 
   const fetchBranches = useCallback(async () => {
@@ -92,12 +96,13 @@ export function BranchSettingsManager() {
   }, []);
 
   useEffect(() => {
+    if (demoMode) return;
     const timer = window.setTimeout(() => {
       void fetchBranches();
     }, 0);
 
     return () => window.clearTimeout(timer);
-  }, [fetchBranches]);
+  }, [demoMode, fetchBranches]);
 
   return (
     <div className="space-y-5">
@@ -121,7 +126,7 @@ export function BranchSettingsManager() {
       ) : (
         <div className="space-y-3">
           {branches.map((branch) => (
-            <BranchCurrencyRow key={branch.id} branch={branch} onSaved={fetchBranches} />
+            <BranchCurrencyRow key={branch.id} branch={branch} onSaved={fetchBranches} demoMode={demoMode} />
           ))}
         </div>
       )}

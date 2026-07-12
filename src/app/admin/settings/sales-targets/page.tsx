@@ -7,6 +7,7 @@ import { MetricCard } from "@/components/admin/MetricCard";
 import { SalesTargetManager } from "@/components/admin/SalesTargetManager";
 import { SectionHeader } from "@/components/admin/SectionHeader";
 import { getAdminAccessContext } from "@/lib/admin";
+import { isLocalAdminPreviewEmail } from "@/lib/admin-access";
 import { appRoutes } from "@/lib/app-routes";
 import { canManageSalesTargets } from "@/lib/crm/authz";
 import {
@@ -15,11 +16,12 @@ import {
 } from "@/lib/crm/sales-targets-admin";
 import { getCrmPageErrorCopy, logCrmPageError } from "@/lib/crm/runtime";
 import { getCompanySettings } from "@/lib/crm/workspace-settings-server";
+import { resolveStoredWorkspaceSettings } from "@/lib/crm/workspace-settings";
 
 export const dynamic = "force-dynamic";
 
 export default async function AdminSalesTargetsPage() {
-  const { role, accessLevel, actualAccessLevel, canSwitchAccessViews, permissions } =
+  const { session, role, accessLevel, actualAccessLevel, canSwitchAccessViews, permissions } =
     await getAdminAccessContext(appRoutes.settingsSalesTargets);
 
   if (!canManageSalesTargets({ accessLevel, permissions, role })) {
@@ -31,7 +33,31 @@ export default async function AdminSalesTargetsPage() {
   let workspaceSettings = null;
   let pageError: unknown = null;
 
-  try {
+  if (isLocalAdminPreviewEmail(session.user?.email)) {
+    const timestamp = new Date().toISOString();
+    targets = [{
+      id: "demo-target-quarterly",
+      name: "Q3 revenue target",
+      scope: "global" as const,
+      scopeId: null,
+      period: "quarterly" as const,
+      targetValue: 12_000_000,
+      currency: "NGN",
+      startDate: "2026-07-01",
+      endDate: "2026-09-30",
+      isActive: true,
+      archived: false,
+      createdAt: timestamp,
+      updatedAt: timestamp,
+    }];
+    referenceData = {
+      teams: [{ id: "demo-team-inbound", name: "Inbound sales" }],
+      branches: [{ id: "demo-branch-lagos", name: "Lagos HQ" }],
+      departments: [{ id: "demo-department-sales", name: "Sales" }],
+      users: [{ id: "demo-user-ada", label: "Ada Okafor" }],
+    };
+    workspaceSettings = resolveStoredWorkspaceSettings(null);
+  } else try {
     [targets, referenceData, workspaceSettings] = await Promise.all([
       listSalesTargets({ includeArchived: true }),
       getSalesTargetReferenceData(),
@@ -101,6 +127,7 @@ export default async function AdminSalesTargetsPage() {
                 initialTargets={targets}
                 referenceData={referenceData}
                 defaultCurrency={defaultCurrency}
+                demoMode={isLocalAdminPreviewEmail(session.user?.email)}
               />
             </div>
           </section>

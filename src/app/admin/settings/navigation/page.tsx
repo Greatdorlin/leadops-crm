@@ -5,21 +5,25 @@ import { AdminSignOutButton } from "@/components/admin/AdminSignOutButton";
 import { GlassSurface } from "@/components/admin/ui/GlassSurface";
 import { NavigationSettingsManager } from "@/components/admin/NavigationSettingsManager";
 import { getAdminAccessContext } from "@/lib/admin";
+import { isLocalAdminPreviewEmail } from "@/lib/admin-access";
 import { appRoutes } from "@/lib/app-routes";
 import { canManageNavigationSettings } from "@/lib/crm/authz";
 import { getCompanySettings } from "@/lib/crm/workspace-settings-server";
+import { resolveStoredWorkspaceSettings } from "@/lib/crm/workspace-settings";
 
 export const dynamic = "force-dynamic";
 
 export default async function NavigationSettingsPage() {
-  const { role, accessLevel, actualAccessLevel, canSwitchAccessViews, permissions } =
+  const { session, role, accessLevel, actualAccessLevel, canSwitchAccessViews, permissions } =
     await getAdminAccessContext(appRoutes.settingsNavigation);
 
   if (!canManageNavigationSettings({ accessLevel, permissions, role })) {
     redirect(appRoutes.settings);
   }
 
-  const settings = await getCompanySettings();
+  const settings = isLocalAdminPreviewEmail(session.user?.email)
+    ? resolveStoredWorkspaceSettings(null)
+    : await getCompanySettings();
 
   return (
     <AdminShell
@@ -44,7 +48,7 @@ export default async function NavigationSettingsPage() {
       }
     >
       <GlassSurface as="section" intensity="medium" className="rounded-[24px] p-5 sm:p-6 ld-animate-fade-in-up">
-        <NavigationSettingsManager initialSettings={settings} />
+        <NavigationSettingsManager initialSettings={settings} demoMode={isLocalAdminPreviewEmail(session.user?.email)} />
       </GlassSurface>
     </AdminShell>
   );

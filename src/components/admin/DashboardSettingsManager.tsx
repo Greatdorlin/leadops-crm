@@ -31,8 +31,10 @@ const widgetLabels: Record<DashboardWidgetKey, string> = {
 
 export function DashboardSettingsManager({
   initialSettings,
+  demoMode = false,
 }: {
   initialSettings: ResolvedWorkspaceSettings;
+  demoMode?: boolean;
 }) {
   const router = useRouter();
   const [widgetOrder, setWidgetOrder] = useState<DashboardWidgetKey[]>(initialSettings.dashboard.widgetOrder);
@@ -44,6 +46,11 @@ export function DashboardSettingsManager({
   async function saveSettings() {
     setIsSaving(true);
     setMessage("");
+    if (demoMode) {
+      setMessage("Dashboard updated for this preview.");
+      setIsSaving(false);
+      return;
+    }
     try {
       const response = await fetch("/api/admin/settings/dashboard", {
         method: "PATCH",

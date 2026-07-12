@@ -10,8 +10,10 @@ import { isSupportedCurrency } from "@/lib/currency";
 
 export function CurrencySettingsManager({
   initialGlobalCurrency,
+  demoMode = false,
 }: {
   initialGlobalCurrency: string;
+  demoMode?: boolean;
 }) {
   const router = useRouter();
   const [currency, setCurrency] = useState<string>(
@@ -23,6 +25,12 @@ export function CurrencySettingsManager({
   async function saveSettings() {
     setIsSaving(true);
     setMessage("");
+
+    if (demoMode) {
+      setMessage("Currency updated for this preview.");
+      setIsSaving(false);
+      return;
+    }
 
     try {
       const response = await fetch("/api/admin/settings/currency", {

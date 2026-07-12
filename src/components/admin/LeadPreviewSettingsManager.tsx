@@ -111,12 +111,14 @@ export function LeadPreviewSettingsManager({
   previewLead,
   currency,
   stageOptions,
+  demoMode = false,
 }: {
   initialSettings: ResolvedWorkspaceSettings;
   customFields: AdminCustomFieldRecord[];
   previewLead: AdminLeadListItem | null;
   currency: string;
   stageOptions: LeadStageQuickOption[];
+  demoMode?: boolean;
 }) {
   const router = useRouter();
   const [desktopColumns, setDesktopColumns] = useState<LeadPreviewFieldKey[]>(initialSettings.leadPreview.desktopColumns);
@@ -152,6 +154,11 @@ export function LeadPreviewSettingsManager({
   async function saveSettings() {
     setIsSaving(true);
     setMessage("");
+    if (demoMode) {
+      setMessage("Lead preview updated for this preview.");
+      setIsSaving(false);
+      return;
+    }
     try {
       const response = await fetch("/api/admin/settings/lead-preview", {
         method: "PATCH",

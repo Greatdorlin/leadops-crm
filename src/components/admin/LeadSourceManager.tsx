@@ -144,8 +144,10 @@ function SourceEditor({
 
 export function LeadSourceManager({
   initialSources,
+  demoMode = false,
 }: {
   initialSources: AdminLeadSourceRecord[];
+  demoMode?: boolean;
 }) {
   const router = useRouter();
   const [newDraft, setNewDraft] = useState<SourceDraft>(createEmptySourceDraft());
@@ -166,6 +168,7 @@ export function LeadSourceManager({
   );
 
   async function createSource() {
+    if (demoMode) { setNewMessage("Source added for this preview."); return; }
     setNewSaving(true);
     setNewMessage("");
     try {
@@ -196,6 +199,7 @@ export function LeadSourceManager({
     if (!draft) {
       return;
     }
+    if (demoMode) { setMessages((current) => ({ ...current, [sourceId]: "Source updated for this preview." })); return; }
 
     setSavingById((current) => ({ ...current, [sourceId]: true }));
     setMessages((current) => ({ ...current, [sourceId]: "" }));
@@ -229,6 +233,7 @@ export function LeadSourceManager({
   }
 
   async function toggleArchive(sourceId: string, action: "archive" | "restore") {
+    if (demoMode) { setMessages((current) => ({ ...current, [sourceId]: `Source ${action === "archive" ? "archived" : "restored"} for this preview.` })); return; }
     setSavingById((current) => ({ ...current, [sourceId]: true }));
     setMessages((current) => ({ ...current, [sourceId]: "" }));
 

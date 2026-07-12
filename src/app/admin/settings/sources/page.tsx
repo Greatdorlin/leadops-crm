@@ -7,15 +7,17 @@ import { LeadSourceManager } from "@/components/admin/LeadSourceManager";
 import { MetricCard } from "@/components/admin/MetricCard";
 import { SectionHeader } from "@/components/admin/SectionHeader";
 import { getAdminAccessContext } from "@/lib/admin";
+import { isLocalAdminPreviewEmail } from "@/lib/admin-access";
 import { appRoutes } from "@/lib/app-routes";
 import { canManageLeadSources } from "@/lib/crm/authz";
 import { listLeadSources } from "@/lib/crm/lead-sources-admin";
 import { getCrmPageErrorCopy, logCrmPageError } from "@/lib/crm/runtime";
+import { DEFAULT_LEADS_DESK_SOURCE_ROWS } from "@/lib/db/defaults";
 
 export const dynamic = "force-dynamic";
 
 export default async function AdminLeadSourcesPage() {
-  const { role, accessLevel, actualAccessLevel, canSwitchAccessViews, permissions } =
+  const { session, role, accessLevel, actualAccessLevel, canSwitchAccessViews, permissions } =
     await getAdminAccessContext(appRoutes.settingsSources);
 
   if (!canManageLeadSources({ accessLevel, permissions, role })) {
@@ -25,7 +27,16 @@ export default async function AdminLeadSourcesPage() {
   let sources = null;
   let pageError: unknown = null;
 
-  try {
+  if (isLocalAdminPreviewEmail(session.user?.email)) {
+    const timestamp = new Date().toISOString();
+    sources = DEFAULT_LEADS_DESK_SOURCE_ROWS.map((source) => ({
+      id: `demo-source-${source.key}`,
+      ...source,
+      archived: false,
+      createdAt: timestamp,
+      updatedAt: timestamp,
+    }));
+  } else try {
     sources = await listLeadSources({ includeArchived: true });
   } catch (error) {
     pageError = error;
@@ -81,7 +92,7 @@ export default async function AdminLeadSourcesPage() {
               description="Add, rename, archive, and restore the source labels your team uses every day."
             />
             <div className="mt-5">
-              <LeadSourceManager initialSources={sources} />
+              <LeadSourceManager initialSources={sources} demoMode={isLocalAdminPreviewEmail(session.user?.email)} />
             </div>
           </section>
         </div>

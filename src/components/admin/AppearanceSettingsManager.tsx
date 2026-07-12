@@ -457,8 +457,10 @@ function ThemeSection({
 
 export function AppearanceSettingsManager({
   initialSettings,
+  demoMode = false,
 }: {
   initialSettings: ResolvedWorkspaceSettings;
+  demoMode?: boolean;
 }) {
   const router = useRouter();
   const [draft, setDraft] = useState<AppearanceDraft>({
@@ -538,6 +540,12 @@ export function AppearanceSettingsManager({
 
     setIsSaving(true);
     setMessage("");
+
+    if (demoMode) {
+      setMessage("Appearance updated for this preview.");
+      setIsSaving(false);
+      return;
+    }
 
     try {
       const response = await fetch("/api/admin/settings/appearance", {

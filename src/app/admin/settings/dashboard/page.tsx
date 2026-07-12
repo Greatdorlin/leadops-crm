@@ -46,7 +46,7 @@ export default async function DashboardSettingsPage() {
         </>
       }
     >
-      <DashboardSettingsManager initialSettings={settings} />
+      <DashboardSettingsManager initialSettings={settings} demoMode={isLocalAdminPreviewEmail(session.user?.email)} />
     </AdminShell>
   );
 }

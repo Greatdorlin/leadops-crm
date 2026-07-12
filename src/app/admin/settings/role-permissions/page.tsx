@@ -5,9 +5,10 @@ import { AdminSignOutButton } from "@/components/admin/AdminSignOutButton";
 import { ErrorState } from "@/components/admin/ErrorState";
 import { RolePermissionsManager } from "@/components/admin/RolePermissionsManager";
 import { getAdminAccessContext } from "@/lib/admin";
+import { isLocalAdminPreviewEmail } from "@/lib/admin-access";
 import { appRoutes } from "@/lib/app-routes";
 import { canManageAdminSettings } from "@/lib/crm/authz";
-import { listRolePermissions } from "@/lib/crm/role-permissions";
+import { buildDefaultRolePermissionRows, listRolePermissions } from "@/lib/crm/role-permissions";
 import { getCrmPageErrorCopy, logCrmPageError } from "@/lib/crm/runtime";
 
 export const dynamic = "force-dynamic";
@@ -33,7 +34,9 @@ export default async function RolePermissionsPage() {
   let permissions: Awaited<ReturnType<typeof listRolePermissions>> | null = null;
   let pageError: unknown = null;
 
-  try {
+  if (isLocalAdminPreviewEmail(session.user?.email)) {
+    permissions = buildDefaultRolePermissionRows();
+  } else try {
     permissions = await listRolePermissions();
   } catch (error) {
     pageError = error;
@@ -66,7 +69,7 @@ export default async function RolePermissionsPage() {
       userAvatarUrl={session.user?.image}
     >
       {permissions ? (
-        <RolePermissionsManager initialPermissions={permissions} />
+        <RolePermissionsManager initialPermissions={permissions} demoMode={isLocalAdminPreviewEmail(session.user?.email)} />
       ) : (
         <ErrorState
           title={getCrmPageErrorCopy(pageError).title}

@@ -4,6 +4,7 @@ import { AdminShell } from "@/components/admin/AdminShell";
 import { AdminSignOutButton } from "@/components/admin/AdminSignOutButton";
 import { LeadPreviewSettingsManager } from "@/components/admin/LeadPreviewSettingsManager";
 import { getAdminAccessContext } from "@/lib/admin";
+import { isLocalAdminPreviewEmail } from "@/lib/admin-access";
 import { appRoutes } from "@/lib/app-routes";
 import { canManageLeadPreviewSettings } from "@/lib/crm/authz";
 import { loadAdminLeadReadContext } from "@/lib/crm/admin-read-context";
@@ -11,24 +12,34 @@ import { listCustomFields } from "@/lib/crm/custom-fields-admin";
 import { listLeadStages } from "@/lib/crm/lead-stages-admin";
 import { buildAdminLeadListItem } from "@/lib/crm/view-models";
 import { getCompanySettings } from "@/lib/crm/workspace-settings-server";
+import { resolveStoredWorkspaceSettings } from "@/lib/crm/workspace-settings";
 import { leadStore } from "@/lib/storage";
+import { DEFAULT_LEADS_DESK_STAGE_ROWS } from "@/lib/db/defaults";
 
 export const dynamic = "force-dynamic";
 
 export default async function LeadPreviewSettingsPage() {
-  const { role, accessLevel, actualAccessLevel, canSwitchAccessViews, permissions } =
+  const { session, role, accessLevel, actualAccessLevel, canSwitchAccessViews, permissions } =
     await getAdminAccessContext(appRoutes.settingsLeadPreview);
 
   if (!canManageLeadPreviewSettings({ accessLevel, permissions, role })) {
     redirect(appRoutes.settings);
   }
 
-  const [settings, customFields, previewLeads, stages] = await Promise.all([
-    getCompanySettings(),
-    listCustomFields(),
-    leadStore.list({ limit: 1 }),
-    listLeadStages(),
-  ]);
+  const demoMode = isLocalAdminPreviewEmail(session.user?.email);
+  const [settings, customFields, previewLeads, stages] = demoMode
+    ? [
+        resolveStoredWorkspaceSettings(null),
+        [] as Awaited<ReturnType<typeof listCustomFields>>,
+        [] as Awaited<ReturnType<typeof leadStore.list>>,
+        DEFAULT_LEADS_DESK_STAGE_ROWS.map((stage) => ({ id: `demo-stage-${stage.key}`, ...stage })),
+      ]
+    : await Promise.all([
+        getCompanySettings(),
+        listCustomFields(),
+        leadStore.list({ limit: 1 }),
+        listLeadStages(),
+      ]);
   const previewLeadRow = previewLeads[0] ?? null;
   const previewContext = previewLeadRow
     ? await loadAdminLeadReadContext([previewLeadRow], { includeCustomFields: true })
@@ -89,6 +100,7 @@ export default async function LeadPreviewSettingsPage() {
           label: stage.name,
           color: stage.color,
         }))}
+        demoMode={demoMode}
       />
     </AdminShell>
   );

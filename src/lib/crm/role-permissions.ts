@@ -13,6 +13,17 @@ import {
 export { DEFAULT_ROLE_PERMISSIONS, PERMISSION_DEFINITIONS };
 export type { PermissionKey };
 
+export function buildDefaultRolePermissionRows() {
+  return ROLE_PERMISSION_ROLES.flatMap((role) =>
+    PERMISSION_DEFINITIONS.map((permission) => ({
+      id: `${role}:${permission.key}`,
+      role,
+      permission: permission.key,
+      enabled: DEFAULT_ROLE_PERMISSIONS[role].includes(permission.key),
+    })),
+  );
+}
+
 export async function seedRolePermissions() {
   const db = getDb();
   const existing = await db.select({ count: sql<number>`count(*)` }).from(rolePermissions);

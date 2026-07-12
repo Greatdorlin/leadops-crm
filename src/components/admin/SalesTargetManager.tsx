@@ -343,10 +343,12 @@ export function SalesTargetManager({
   initialTargets,
   referenceData,
   defaultCurrency = "USD",
+  demoMode = false,
 }: {
   initialTargets: AdminSalesTargetRecord[];
   referenceData: SalesTargetReferenceData;
   defaultCurrency?: string;
+  demoMode?: boolean;
 }) {
   const router = useRouter();
   const [newDraft, setNewDraft] = useState<TargetDraft>(createEmptyTargetDraft(defaultCurrency));
@@ -377,6 +379,7 @@ export function SalesTargetManager({
   }
 
   async function createTarget() {
+    if (demoMode) { setNewMessage("Sales target added for this preview."); return; }
     setNewSaving(true);
     setNewMessage("");
     try {
@@ -407,6 +410,7 @@ export function SalesTargetManager({
     if (!draft) {
       return;
     }
+    if (demoMode) { setMessages((current) => ({ ...current, [targetId]: "Sales target updated for this preview." })); return; }
 
     setSavingById((current) => ({ ...current, [targetId]: true }));
     setMessages((current) => ({ ...current, [targetId]: "" }));
@@ -440,6 +444,7 @@ export function SalesTargetManager({
   }
 
   async function toggleArchive(targetId: string, action: "archive" | "restore") {
+    if (demoMode) { setMessages((current) => ({ ...current, [targetId]: `Target ${action === "archive" ? "archived" : "restored"} for this preview.` })); return; }
     setSavingById((current) => ({ ...current, [targetId]: true }));
     setMessages((current) => ({ ...current, [targetId]: "" }));
 

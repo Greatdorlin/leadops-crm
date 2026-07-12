@@ -59,7 +59,7 @@ import { listLeadStages } from "@/lib/crm/lead-stages-admin";
 import { getCrmPageErrorCopy, logCrmPageError } from "@/lib/crm/runtime";
 import type { CrmStatus } from "@/lib/crm/types";
 import { buildAdminLeadDetailView } from "@/lib/crm/view-models";
-import { getCompanySettings } from "@/lib/crm/workspace-settings-server";
+import { getBranchCurrency, getCompanySettings } from "@/lib/crm/workspace-settings-server";
 import { leadStore } from "@/lib/storage";
 
 export const dynamic = "force-dynamic";
@@ -224,6 +224,7 @@ export default async function AdminLeadDetailPage({
   const { lead, users, notes, tasks, events, duplicateCandidates } = pageData;
   const workspaceSettings = await getCompanySettings();
   const currency = workspaceSettings.globalCurrency;
+  const branchCurrency = (await getBranchCurrency(lead.branchId)) ?? currency;
   const canTrashLead = canSoftDeleteLead(accessLevel, permissions) && !lead.deletedAt;
   const canRestoreDeletedLead = canOpenLeadTrash && Boolean(lead.deletedAt);
   const showTechnicalLeadContext = canViewTechnicalLeadContext(
@@ -757,7 +758,11 @@ export default async function AdminLeadDetailPage({
                     description="Restore this lead before editing offer opportunities."
                   />
                 ) : (
-                  <LeadOpportunityManager leadId={lead.id} initialOpportunities={opportunityRows} />
+                  <LeadOpportunityManager
+                    leadId={lead.id}
+                    initialOpportunities={opportunityRows}
+                    defaultCurrency={branchCurrency}
+                  />
                 )}
               </div>
             </section>

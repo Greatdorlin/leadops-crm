@@ -15,7 +15,25 @@ import {
   type WorkspaceAppearanceSettings,
 } from "@/lib/crm/workspace-settings";
 import { getDb } from "@/lib/db/client";
-import { companySettings } from "@/lib/db/schema";
+import { branches, companySettings } from "@/lib/db/schema";
+
+export async function getBranchCurrency(branchId?: string | null) {
+  if (!branchId) {
+    return null;
+  }
+
+  try {
+    const db = getDb();
+    const [branch] = await db
+      .select({ currency: branches.currency })
+      .from(branches)
+      .where(eq(branches.id, branchId))
+      .limit(1);
+    return branch?.currency?.trim().toUpperCase() || null;
+  } catch {
+    return null;
+  }
+}
 
 export async function getCompanySettings() {
   try {

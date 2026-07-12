@@ -82,17 +82,20 @@ function isPipelineStatus(status: LeadOpportunityStatus) {
 export function LeadOpportunityManager({
   leadId,
   initialOpportunities,
+  defaultCurrency,
 }: {
   leadId: string;
   initialOpportunities: LeadOpportunityRecord[];
+  defaultCurrency?: string;
 }) {
   const router = useRouter();
   const workspaceSettings = useAdminWorkspaceSettings();
   const currency = workspaceSettings.globalCurrency;
+  const offerDefaultCurrency = defaultCurrency || currency;
   const [opportunities, setOpportunities] = useState<OpportunityDraft[]>(
     initialOpportunities.length > 0
-      ? initialOpportunities.map((item) => createDraft(item, currency))
-      : [createDraft(undefined, currency)],
+      ? initialOpportunities.map((item) => createDraft(item, offerDefaultCurrency))
+      : [createDraft(undefined, offerDefaultCurrency)],
   );
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState("");
@@ -130,7 +133,7 @@ export function LeadOpportunityManager({
     setOpportunities((current) => {
       const next = current.filter((item) => item.localId !== localId);
       if (next.length === 0) {
-        return [createDraft(undefined, currency)];
+        return [createDraft(undefined, offerDefaultCurrency)];
       }
 
       if (!next.some((item) => item.isPrimary)) {
@@ -145,7 +148,7 @@ export function LeadOpportunityManager({
     setOpportunities((current) => [
       ...current,
       {
-        ...createDraft(undefined, currency),
+        ...createDraft(undefined, offerDefaultCurrency),
         isPrimary: current.length === 0,
       },
     ]);

@@ -58,7 +58,6 @@ Before making non-trivial changes, read:
 - `docs/VERTICAL_PRESETS.md`
 - `docs/UI_CUSTOMIZATION_STANDARD.md`
 - `docs/SECURITY_AND_PERMISSIONS.md`
-- `docs/DEPLOYMENT_BUCKETS.md`
 - `package.json`
 - `next.config.ts`
 - `tsconfig.json`

@@ -36,7 +36,7 @@ Optional:
 
 - `ALLOWED_EMAIL_DOMAINS`
 - `NEXT_PUBLIC_APP_URL`
-- provider-specific legacy compatibility variables only if you are migrating inherited runtime behavior
+- connector-specific credentials only for integrations enabled in this deployment
 
 Important:
 

@@ -137,19 +137,14 @@ Behavior:
 
 ## Export Permissions
 
-Current Phase 1E direction:
+Current behavior:
 
 - export access should be granted by role/access level first
 - the initial bootstrap owner/admin can export
 - general admin access can export
-- `LEAD_EXPORT_ALLOWED_EMAILS` may remain temporarily as legacy compatibility only
+- `LEAD_EXPORT_ALLOWED_EMAILS` remains a compatibility-only deployment allowlist
 - no hardcoded personal export allowlist default is allowed
-
-Future direction:
-
-- exports should respect role plus scope
-- owner/admin permissions should be explicit
-- manager/team/branch export scope should be enforced server-side
+- exports enforce role and stored owner, team, department, or branch scope server-side
 
 ## Neutral Permission Vocabulary
 
@@ -170,7 +165,7 @@ Current helper direction includes:
 - manage branch scope
 - manage department scope
 
-These are still compatibility-backed in this phase, but the vocabulary is now neutral.
+Compatibility role names remain mapped at the boundary, while new permission logic uses this neutral vocabulary.
 
 ## Hard Rules
 
@@ -224,11 +219,10 @@ Before approving security-sensitive work, verify:
 - audit logs cover the changed action
 - export rules do not bypass scope checks
 
-## Remaining Blockers Before Full Auth Rebuild
+## Compatibility Boundaries
 
-- Google OAuth is still the runtime sign-in path, but the final Leads Desk owner/admin model is not fully migrated yet
-- scoped access by team, branch, and department is still planned, not fully implemented
-- legacy compatibility envs (`ADMIN_ALLOWED_EMAILS`, `LEAD_EXPORT_ALLOWED_EMAILS`) still exist and should be retired after the new role/scope model lands
-- compatibility access-level names still appear in admin surfaces and tests
-- local preview access exists for development convenience and must remain development-only
-- local preview enablement is guarded by `NODE_ENV !== "production"` and should never be expanded into a production bypass
+- Google OAuth remains the default runtime sign-in path.
+- Stored access scopes are enforced for owner, team, department, and branch views.
+- Legacy environment allowlists remain compatibility-only and must not become product defaults.
+- Compatibility access-level names are mapped to neutral Leads Desk roles at authorization boundaries.
+- Local preview access is guarded by `NODE_ENV !== "production"` and must never become a production bypass.

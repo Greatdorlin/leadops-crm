@@ -208,7 +208,7 @@ Optional baseline variables:
 
 - `ALLOWED_EMAIL_DOMAINS`
 - `NEXT_PUBLIC_APP_URL`
-- future email/notification variables when that module is implemented
+- connector-specific credentials only for integrations enabled in that deployment
 
 Migration rule:
 
@@ -262,7 +262,7 @@ Production deployments require:
 - backup retention policy
 - documented ownership of backup credentials
 
-Detailed backup/restore runbooks will be written after the core product schema stabilizes.
+Use the tested operator runbook in [`BACKUP_AND_RESTORE.md`](../BACKUP_AND_RESTORE.md).
 
 ## Observability
 
@@ -297,7 +297,7 @@ Implications:
 - keep export design background-job-friendly
 - index lead ownership, stage, source, timestamps, and task due dates
 
-## Non-Goals For This Phase
+## Optional Platform Extensions
 
 - infrastructure automation scripts
 - Terraform
@@ -306,4 +306,4 @@ Implications:
 - billing platform
 - deep integration hosting guides
 
-Those can be added later if the product direction requires them.
+These are not required for a standard single-client deployment and should be introduced only when measured workload or operating requirements justify them.

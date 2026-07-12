@@ -32,4 +32,12 @@ Production schema changes use `npm run db:migrate`. `npm run db:push` is for dis
 - [Architecture and scale contract](./docs/ARCHITECTURE.md)
 - [Security and permissions](./docs/SECURITY_AND_PERMISSIONS.md)
 
+## Operate And Handover
+
+- [Installation guide](./INSTALL.md)
+- [Production checklist](./PRODUCTION_CHECKLIST.md)
+- [Go-live QA](./GO_LIVE_QA.md)
+- [Demo walkthrough](./DEMO_SCRIPT.md)
+- [Client handover](./CLIENT_HANDOVER.md)
+
 The runtime is provider-neutral: it requires PostgreSQL through `DATABASE_URL` and does not depend on a specific database vendor.

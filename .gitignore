@@ -20,5 +20,3 @@ npm-debug.log*
 server.log
 *.tsbuildinfo
 *.log
-.env.local
-.env.*.local

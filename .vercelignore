@@ -1,0 +1,7 @@
+.env
+.env.*
+!.env.example
+!.env.docker.example
+artifacts/
+.codex/
+.codex-shots/

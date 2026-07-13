@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { AdminSignInButton } from "@/components/admin/AdminSignInButton";
+import { ChiefSignInForm } from "@/components/admin/ChiefSignInForm";
 import { LeadsDeskWordmark } from "@/components/brand/LeadsDeskWordmark";
 import {
   buildThemeCssVariables,
@@ -8,6 +9,8 @@ import {
 import { getCompanySettings } from "@/lib/crm/workspace-settings-server";
 import {
   isAdminAuthConfigured,
+  isChiefLoginConfigured,
+  isGoogleAuthConfigured,
   isLocalAdminPreviewEnabled,
 } from "@/lib/admin-access";
 import { appRoutes } from "@/lib/app-routes";
@@ -21,6 +24,10 @@ function getErrorMessage(error?: string) {
 
   if (error === "Configuration") {
     return "Sign-in setup is not ready in this environment yet.";
+  }
+
+  if (error === "CredentialsSignin") {
+    return "We couldn't verify those access details.";
   }
 
   if (error) {
@@ -39,6 +46,8 @@ export default async function AdminSignInPage({
   const callbackUrl = params.callbackUrl ?? appRoutes.dashboard;
   const errorMessage = getErrorMessage(params.error);
   const authReady = isAdminAuthConfigured();
+  const googleLoginEnabled = isGoogleAuthConfigured();
+  const chiefLoginEnabled = isChiefLoginConfigured();
   const canShowSetupMessage = !authReady && process.env.NODE_ENV !== "production";
   const canUseLocalPreview = !authReady && isLocalAdminPreviewEnabled();
   const settings = await getCompanySettings();
@@ -118,7 +127,17 @@ export default async function AdminSignInPage({
                 ) : null}
               </div>
             ) : (
-              <AdminSignInButton callbackUrl={callbackUrl} />
+              <div className="space-y-4">
+                {googleLoginEnabled ? <AdminSignInButton callbackUrl={callbackUrl} /> : null}
+                {googleLoginEnabled && chiefLoginEnabled ? (
+                  <div className="flex items-center gap-3 text-[11px] font-medium uppercase tracking-[0.16em] text-white/40">
+                    <span className="h-px flex-1 bg-white/10" />
+                    or
+                    <span className="h-px flex-1 bg-white/10" />
+                  </div>
+                ) : null}
+                {chiefLoginEnabled ? <ChiefSignInForm callbackUrl={callbackUrl} /> : null}
+              </div>
             )}
           </div>
         </section>

@@ -29,6 +29,17 @@ Optional:
 - `ALLOWED_EMAIL_DOMAINS`
 - `ENABLE_PASSWORD_LOGIN=false` by default
 
+### Optional chief access
+
+A deployment may explicitly enable an owner-only password fallback for recovery or restricted environments. It is disabled by default and is not a separate admin identity:
+
+- `ENABLE_PASSWORD_LOGIN=true` is required.
+- `CHIEF_LOGIN_EMAIL` must exactly match `INITIAL_ADMIN_EMAIL`.
+- `CHIEF_LOGIN_PASSWORD_HASH` must contain a bcrypt hash, never a plaintext password.
+- Failed attempts are rate limited and successful authentication still passes through the normal server-side workspace access check.
+
+Do not enable this fallback for a client unless their deployment operator stores the hash in that deployment's secret manager.
+
 Current runtime rule:
 
 - admin sign-in is not considered configured unless Google OAuth credentials and the initial admin bootstrap variables are present
@@ -198,7 +209,7 @@ Audit logging foundation is required for:
 
 Password login is optional only.
 
-If added later:
+When enabled:
 
 - `ENABLE_PASSWORD_LOGIN=false` by default
 - bcrypt hashing

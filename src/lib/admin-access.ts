@@ -102,13 +102,46 @@ export function isAllowedAdminEmail(email?: string | null) {
   return getAdminAllowedEmails().includes(normalizeAdminEmail(email));
 }
 
-export function isAdminAuthConfigured() {
+export function isGoogleAuthConfigured(environment: NodeJS.ProcessEnv = process.env) {
   return Boolean(
-    hasConfiguredEnvValue(process.env.AUTH_GOOGLE_ID) &&
-      hasConfiguredEnvValue(process.env.AUTH_GOOGLE_SECRET) &&
-      hasConfiguredEnvValue(process.env.AUTH_SECRET ?? process.env.NEXTAUTH_SECRET) &&
-      hasConfiguredEnvValue(process.env.INITIAL_ADMIN_EMAIL) &&
-      hasConfiguredEnvValue(process.env.INITIAL_ADMIN_NAME),
+    hasConfiguredEnvValue(environment.AUTH_GOOGLE_ID) &&
+      hasConfiguredEnvValue(environment.AUTH_GOOGLE_SECRET),
+  );
+}
+
+export function getChiefLoginEmail(environment: NodeJS.ProcessEnv = process.env) {
+  const [email] = parseEmailList(environment.CHIEF_LOGIN_EMAIL);
+  return email ?? null;
+}
+
+export function isChiefLoginConfigured(environment: NodeJS.ProcessEnv = process.env) {
+  const enabled = normalizeEnvValue(environment.ENABLE_PASSWORD_LOGIN).toLowerCase() === "true";
+  const chiefEmail = getChiefLoginEmail(environment);
+  const [initialAdminEmail] = parseEmailList(environment.INITIAL_ADMIN_EMAIL);
+
+  return Boolean(
+    enabled &&
+      chiefEmail &&
+      initialAdminEmail &&
+      chiefEmail === initialAdminEmail &&
+      hasConfiguredEnvValue(environment.CHIEF_LOGIN_PASSWORD_HASH),
+  );
+}
+
+export function isChiefLoginEmail(
+  email?: string | null,
+  environment: NodeJS.ProcessEnv = process.env,
+) {
+  const chiefEmail = getChiefLoginEmail(environment);
+  return Boolean(chiefEmail && email && chiefEmail === normalizeAdminEmail(email));
+}
+
+export function isAdminAuthConfigured(environment: NodeJS.ProcessEnv = process.env) {
+  return Boolean(
+    (isGoogleAuthConfigured(environment) || isChiefLoginConfigured(environment)) &&
+      hasConfiguredEnvValue(environment.AUTH_SECRET ?? environment.NEXTAUTH_SECRET) &&
+      hasConfiguredEnvValue(environment.INITIAL_ADMIN_EMAIL) &&
+      hasConfiguredEnvValue(environment.INITIAL_ADMIN_NAME),
   );
 }
 

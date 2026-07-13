@@ -4,6 +4,9 @@ import {
   canExportLeadData,
   getAdminAllowedEmails,
   getLeadExportAllowedEmails,
+  isAdminAuthConfigured,
+  isChiefLoginConfigured,
+  isChiefLoginEmail,
   isEmailDomainAllowed,
   isLocalAdminPreviewEmail,
   isLocalAdminPreviewEnabled,
@@ -138,4 +141,23 @@ test("local preview identity is exact and never enabled in production", () => {
   assert.equal(isLocalAdminPreviewEmail("preview@local.leadsdesk.test"), false);
 
   setNodeEnvForTest(previousNodeEnv);
+});
+
+test("chief access is opt-in and cannot target a different workspace identity", () => {
+  const environment = {
+    AUTH_SECRET: "test-secret",
+    CHIEF_LOGIN_EMAIL: "owner@example.com",
+    CHIEF_LOGIN_PASSWORD_HASH: "$2b$10$KIXQfQmtb7ZB7LxxFd7gFeT9w6S4A5zq8e0qO4VqYwqdn1QDmFArG",
+    ENABLE_PASSWORD_LOGIN: "true",
+    INITIAL_ADMIN_EMAIL: "owner@example.com",
+    INITIAL_ADMIN_NAME: "Owner",
+  } as NodeJS.ProcessEnv;
+
+  assert.equal(isChiefLoginConfigured(environment), true);
+  assert.equal(isAdminAuthConfigured(environment), true);
+  assert.equal(isChiefLoginEmail("OWNER@example.com", environment), true);
+
+  environment.CHIEF_LOGIN_EMAIL = "other@example.com";
+  assert.equal(isChiefLoginConfigured(environment), false);
+  assert.equal(isAdminAuthConfigured(environment), false);
 });

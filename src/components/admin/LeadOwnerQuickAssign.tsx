@@ -125,7 +125,7 @@ export function LeadOwnerQuickAssign({
           className={cn(
             "group flex w-full min-w-0 items-center justify-between gap-2 border border-white/12 bg-white/[0.06] text-left text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.09),0_12px_24px_rgba(0,0,0,0.18)] transition hover:border-white/22 hover:bg-white/[0.09] disabled:cursor-wait disabled:opacity-75",
             variant === "compact"
-              ? "h-10 max-w-[13rem] rounded-full py-1 pl-1.5 pr-2.5"
+              ? "h-11 max-w-full rounded-full py-1 pl-1.5 pr-2.5 sm:h-10 sm:max-w-[13rem]"
               : "h-12 rounded-[18px] py-1.5 pl-2 pr-3",
           )}
           aria-controls={listboxId}

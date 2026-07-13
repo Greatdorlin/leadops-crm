@@ -49,7 +49,7 @@ export function MobileSidebarDrawer({
       <div
         {...props}
         className={cn(
-          "fixed top-0 left-0 z-50 h-full w-[280px] max-w-[80vw] md:hidden",
+          "fixed inset-y-0 left-0 z-50 flex h-[100dvh] w-[min(20rem,88vw)] max-w-none flex-col md:hidden",
           "ld-glass-sidebar ld-animate-slide-in-right",
           "transition-transform duration-300 ease-[cubic-bezier(0.32,0.72,0,1.02)]",
           "touch-44",
@@ -61,7 +61,7 @@ export function MobileSidebarDrawer({
         aria-hidden={!isOpen}
       >
         {title && (
-          <div className="flex items-center justify-between border-b border-white/[0.08] px-4 py-3">
+          <div className="flex items-center justify-between border-b border-white/[0.08] px-4 pb-3 pt-[max(0.75rem,env(safe-area-inset-top))]">
             <h2 className="text-base font-semibold">{title}</h2>
             <button
               onClick={onClose}
@@ -85,7 +85,9 @@ export function MobileSidebarDrawer({
             </button>
           </div>
         )}
-        <div className="overflow-y-auto h-[calc(100%-60px)]">{children}</div>
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+          {children}
+        </div>
       </div>
     </>
   );

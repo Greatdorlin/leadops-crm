@@ -28,7 +28,7 @@ export function SmoothButton({
   }[variant];
 
   const sizeClass = {
-    sm: "h-8 px-3 text-sm rounded-lg",
+    sm: "h-10 px-3 text-sm rounded-xl sm:h-8 sm:rounded-lg",
     md: "h-10 px-4 text-sm rounded-xl",
     lg: "h-12 px-6 text-base rounded-xl",
   }[size];

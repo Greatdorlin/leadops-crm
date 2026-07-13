@@ -122,7 +122,7 @@ export function AdminTopbar({
 
             <div className={cn("flex w-full min-w-0 flex-col gap-3 2xl:w-auto 2xl:min-w-[420px]", isDashboard && "2xl:min-w-[min(720px,58vw)]")}>
               {actions || canCollapse ? (
-                <div className="ld-action-strip flex w-full flex-nowrap items-center justify-start gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden [&>*]:shrink-0 sm:flex-wrap sm:gap-3 sm:overflow-visible sm:pb-0 2xl:justify-end">
+                <div className="ld-action-strip -mx-1 flex w-[calc(100%+0.5rem)] snap-x snap-mandatory flex-nowrap items-center justify-start gap-2 overflow-x-auto px-1 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden [&>*]:shrink-0 [&>*]:snap-start sm:mx-0 sm:w-full sm:flex-wrap sm:gap-3 sm:overflow-visible sm:px-0 sm:pb-0 2xl:justify-end">
                   {actions}
                   {canCollapse ? (
                     <SmoothButton

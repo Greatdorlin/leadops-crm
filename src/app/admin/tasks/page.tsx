@@ -362,7 +362,7 @@ export default async function AdminTasksPage({
 
         <section className="space-y-5 ld-animate-fade-in-up">
           <GlassSurface as="section" className="rounded-[24px] p-2.5 sm:p-3">
-            <div className="grid grid-cols-2 gap-2 lg:grid-cols-4">
+            <div className="grid gap-2 min-[420px]:grid-cols-2 lg:grid-cols-4">
               {taskStats.map((stat) => (
                 <div
                   key={stat.label}

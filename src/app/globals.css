@@ -1497,6 +1497,15 @@ select {
 }
 
 @media (max-width: 640px) {
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    min-width: 320px;
+    overscroll-behavior-y: none;
+  }
+
   .admin-input,
   .admin-select,
   .admin-textarea {
@@ -1514,12 +1523,30 @@ select {
 
   .ld-scroll-region {
     scrollbar-gutter: auto;
+    margin-inline: -0.25rem;
+    padding-inline: 0.25rem;
+    scroll-padding-inline: 0.25rem;
+    scroll-snap-type: x proximity;
+  }
+
+  .ld-scroll-region > * {
+    scroll-snap-align: start;
+  }
+
+  .ld-readable-table {
+    min-width: max-content;
   }
 
   .ld-action-strip,
   .ld-topbar-nav {
     overscroll-behavior-inline: contain;
     -webkit-overflow-scrolling: touch;
+  }
+
+  .ld-action-strip::after {
+    content: "";
+    width: 0.25rem;
+    flex: 0 0 0.25rem;
   }
 }
 

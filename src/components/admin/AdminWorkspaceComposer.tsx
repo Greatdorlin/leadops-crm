@@ -188,13 +188,13 @@ export function AdminWorkspaceComposer({
   return (
     <section
       className={cn(
-        "ld-glass-panel relative overflow-hidden p-5 shadow-[0_28px_70px_rgba(0,0,0,0.2)] sm:p-6",
-        isCompact ? "rounded-[32px]" : "rounded-[36px]",
+        "ld-glass-panel relative overflow-hidden p-4 shadow-[0_28px_70px_rgba(0,0,0,0.2)] sm:p-6",
+        isCompact ? "rounded-[28px] sm:rounded-[32px]" : "rounded-[30px] sm:rounded-[36px]",
       )}
     >
       <div className="pointer-events-none absolute inset-x-0 top-0 h-36 bg-[radial-gradient(circle_at_top_left,color-mix(in_srgb,var(--ld-color-primary)_18%,transparent),transparent_34%),radial-gradient(circle_at_top_right,rgba(139,92,246,0.2),transparent_32%),linear-gradient(180deg,rgba(255,255,255,0.08)_0%,transparent_100%)]" />
       <div className="relative flex flex-col gap-5">
-        <div className="rounded-[28px] border border-white/10 bg-white/[0.06] p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
+        <div className="rounded-[24px] border border-white/10 bg-white/[0.06] p-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] sm:rounded-[28px] sm:p-3">
           <div className={cn("grid gap-2", isCompact ? "md:grid-cols-2 2xl:grid-cols-4" : "md:grid-cols-2 xl:grid-cols-4")}>
             {availableModes.map((item) => (
               (() => {
@@ -207,7 +207,7 @@ export function AdminWorkspaceComposer({
                     type="button"
                     onClick={() => setMode(item)}
                     className={cn(
-                      "rounded-[24px] border px-4 py-3 text-left transition",
+                      "rounded-[20px] border px-3 py-3 text-left transition sm:rounded-[24px] sm:px-4",
                       item === mode
                         ? "border-[color:var(--ld-color-accent)]/35 bg-[linear-gradient(145deg,color-mix(in_srgb,var(--ld-color-primary)_28%,transparent)_0%,color-mix(in_srgb,var(--ld-color-accent)_22%,transparent)_68%,rgba(255,255,255,0.08)_100%)] text-white shadow-[0_18px_34px_rgba(7,19,56,0.22)]"
                         : "border-white/8 bg-white/[0.07] text-white/70 hover:border-white/16 hover:bg-white/[0.1] hover:text-white",
@@ -216,7 +216,7 @@ export function AdminWorkspaceComposer({
                     <div className="flex items-center gap-3">
                       <span
                         className={cn(
-                          "inline-flex h-10 w-10 items-center justify-center rounded-[16px] border",
+                          "inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-[14px] border sm:h-10 sm:w-10 sm:rounded-[16px]",
                           item === mode
                             ? "border-white/12 bg-white/10 text-[color:var(--ld-color-accent)]"
                             : "border-white/10 bg-white/[0.08] text-white/70",
@@ -228,7 +228,7 @@ export function AdminWorkspaceComposer({
                         <p className="text-sm font-semibold">{itemContent.tabLabel}</p>
                         <p
                           className={cn(
-                            "mt-1 text-xs",
+                              "mt-1 hidden text-xs sm:block",
                             item === mode ? "text-white/70" : "text-white/70",
                           )}
                         >
@@ -243,7 +243,7 @@ export function AdminWorkspaceComposer({
           </div>
         </div>
 
-        <div className="rounded-[32px] border border-white/10 bg-[linear-gradient(145deg,rgba(8,17,48,0.92)_0%,rgba(16,31,89,0.76)_54%,rgba(29,53,134,0.72)_100%)] p-5 text-white shadow-[0_28px_54px_rgba(0,0,0,0.24)] sm:p-6">
+        <div className="rounded-[26px] border border-white/10 bg-[linear-gradient(145deg,rgba(8,17,48,0.92)_0%,rgba(16,31,89,0.76)_54%,rgba(29,53,134,0.72)_100%)] p-4 text-white shadow-[0_28px_54px_rgba(0,0,0,0.24)] sm:rounded-[32px] sm:p-6">
           <div className={cn("flex flex-col gap-5", isCompact ? "2xl:flex-row 2xl:items-end 2xl:justify-between" : "xl:flex-row xl:items-end xl:justify-between")}>
             <div className="max-w-2xl">
               <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/70">
@@ -257,7 +257,7 @@ export function AdminWorkspaceComposer({
                   Action center
                 </span>
               </div>
-              <h3 className="mt-4 font-[family:var(--font-heading)] text-[1.85rem] leading-[1.1] tracking-[-0.05em] text-white sm:text-[2.2rem]">
+              <h3 className="mt-4 font-[family:var(--font-heading)] text-[1.65rem] leading-[1.1] tracking-[-0.05em] text-white sm:text-[2.2rem]">
                 {current.title}
               </h3>
               <p className="mt-3 max-w-2xl text-sm leading-7 text-white/72">{current.description}</p>
@@ -279,7 +279,7 @@ export function AdminWorkspaceComposer({
         </div>
 
         <div className={cn("grid gap-4", !isCompact && "xl:grid-cols-[minmax(0,1.12fr)_280px]")}>
-          <div className="rounded-[32px] border border-white/10 bg-black/18 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.07)] sm:p-5">
+          <div className="rounded-[26px] border border-white/10 bg-black/18 p-3.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.07)] sm:rounded-[32px] sm:p-5">
             {current.body}
           </div>
 

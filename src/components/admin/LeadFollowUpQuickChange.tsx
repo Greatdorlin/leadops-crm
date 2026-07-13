@@ -124,7 +124,7 @@ export function LeadFollowUpQuickChange({
         type="button"
         onClick={() => setIsOpen((current) => !current)}
         disabled={isSaving}
-        className="ld-focus-ring inline-flex max-w-full items-center gap-2 rounded-full border border-white/14 bg-white/[0.075] px-3 py-1.5 text-xs font-semibold text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.09),0_8px_18px_rgba(2,6,23,0.16)] transition hover:border-white/24 hover:bg-white/[0.11] disabled:cursor-wait disabled:opacity-70"
+        className="ld-focus-ring inline-flex min-h-10 max-w-full items-center gap-2 rounded-full border border-white/14 bg-white/[0.075] px-3 py-1.5 text-xs font-semibold text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.09),0_8px_18px_rgba(2,6,23,0.16)] transition hover:border-white/24 hover:bg-white/[0.11] disabled:cursor-wait disabled:opacity-70 sm:min-h-0"
         aria-expanded={isOpen}
         aria-haspopup="dialog"
         aria-label={`Schedule follow-up. Current value: ${label}`}

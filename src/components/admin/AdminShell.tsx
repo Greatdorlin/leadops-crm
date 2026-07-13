@@ -121,7 +121,7 @@ export function AdminShell({
       data-glass-style={glassStyle}
     >
       <div className="ld-bg-overlay" aria-hidden="true" />
-      <div className="relative z-10 min-h-screen p-3 sm:p-4">
+      <div className="relative z-10 min-h-[100dvh] px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-[max(0.75rem,env(safe-area-inset-top))] sm:p-4">
         <div
           className={[
             "grid min-h-[calc(100vh-1.5rem)] gap-3 xl:gap-4",
@@ -145,7 +145,7 @@ export function AdminShell({
               userAvatarUrl={userAvatarUrl}
             />
           <div className="min-w-0">
-            <div className="flex items-center gap-3 pb-2 xl:hidden">
+            <div className="flex min-w-0 items-center gap-2 pb-2 xl:hidden">
               <SmoothButton
                 variant="ghost"
                 size="sm"
@@ -178,7 +178,7 @@ export function AdminShell({
               actions={actions}
               searchSlot={searchSlot}
             />
-            <main className="scroll-smooth px-0 pb-6 pt-4 sm:pt-5">
+            <main className="scroll-smooth px-0 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-4 sm:pb-6 sm:pt-5">
               <PageTransition key={activeNav}>
                 <div className="w-full">{children}</div>
               </PageTransition>

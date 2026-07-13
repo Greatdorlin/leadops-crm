@@ -13,9 +13,11 @@ const priorityColors: Record<LeadPriority, string> = {
 export function LeadPriorityQuickChange({
   leadId,
   initialPriority,
+  previewMode = false,
 }: {
   leadId: string;
   initialPriority: LeadPriority;
+  previewMode?: boolean;
 }) {
   return (
     <LeadWorkflowQuickSelect
@@ -32,6 +34,7 @@ export function LeadPriorityQuickChange({
       pickerTitle="Set priority"
       pickerDescription="Keep the queue ordered by urgency."
       testId="lead-priority-quick-change"
+      previewMode={previewMode}
     />
   );
 }

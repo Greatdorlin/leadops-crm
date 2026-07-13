@@ -724,6 +724,7 @@ export default async function AdminLeadsPage({
             }))}
             previewConfig={previewConfig}
             currency={workspaceCurrency}
+            previewMode={usingDevelopmentDemoData}
             renderActions={(lead) => (
               <>
                   <Link

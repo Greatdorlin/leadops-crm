@@ -6,6 +6,7 @@ import { formatCrmDateTime } from "@/lib/crm/formatters";
 import type { AdminLeadListItem } from "@/lib/crm/view-models";
 import type { LeadPriority } from "@/lib/crm/types";
 import { cn } from "@/lib/cn";
+import { formatCurrencyValue } from "@/lib/currency";
 import { GradientText } from "./ui/GradientText";
 import {
   DEFAULT_LEAD_PREVIEW_CONFIG,
@@ -37,12 +38,7 @@ function formatMoney(value: number | null | undefined, currency: string) {
   if (value === null || value === undefined) {
     return "Not set";
   }
-
-  return new Intl.NumberFormat(undefined, {
-    style: "currency",
-    currency,
-    maximumFractionDigits: 0,
-  }).format(value);
+  return formatCurrencyValue(value, currency);
 }
 
 function followUpLabel(lead: AdminLeadListItem) {
@@ -118,6 +114,7 @@ function resolvePreviewFieldValue(
   assigneeOptions: LeadAssigneeOption[],
   stageOptions: LeadStageQuickOption[],
   interactiveWorkflow: boolean,
+  previewMode: boolean,
   currency: string,
 ) {
   if (key.startsWith("custom:")) {
@@ -151,6 +148,7 @@ function resolvePreviewFieldValue(
           initialStageLabel={lead.stageLabel}
           initialStageColor={lead.stageDisplay.color}
           stageOptions={stageOptions}
+          previewMode={previewMode}
         />
       ) : (
         <StatusBadge
@@ -167,6 +165,7 @@ function resolvePreviewFieldValue(
           initialAssignedTo={lead.assignedTo}
           assigneeOptions={assigneeOptions}
           variant="compact"
+          previewMode={previewMode}
         />
       ) : (
         lead.assignedUserName
@@ -177,6 +176,7 @@ function resolvePreviewFieldValue(
           key={`${lead.id}-${lead.lastActivityAt}-priority`}
           leadId={lead.id}
           initialPriority={lead.priority}
+          previewMode={previewMode}
         />
       ) : (
         <PriorityBadge priority={lead.priority} />
@@ -188,6 +188,7 @@ function resolvePreviewFieldValue(
           leadId={lead.id}
           initialFollowUpAt={lead.nextFollowUpAt ?? null}
           initialLabel={followUpLabel(lead)}
+          previewMode={previewMode}
         />
       ) : followUpLabel(lead);
     case "follow_up_status":
@@ -223,6 +224,7 @@ export function LeadDataTable({
   renderActions,
   previewConfig = DEFAULT_LEAD_PREVIEW_CONFIG,
   currency = "USD",
+  previewMode = false,
 }: {
   leads: AdminLeadListItem[];
   emptyTitle: string;
@@ -233,6 +235,7 @@ export function LeadDataTable({
   renderActions?: (lead: AdminLeadListItem) => ReactNode;
   previewConfig?: LeadPreviewCustomizationConfig;
   currency?: string;
+  previewMode?: boolean;
 }) {
   if (leads.length === 0) {
     return <EmptyState title={emptyTitle} description={emptyDescription} />;
@@ -308,6 +311,7 @@ export function LeadDataTable({
                     initialStageLabel={lead.stageLabel}
                     initialStageColor={lead.stageDisplay.color}
                     stageOptions={stageOptions}
+                    previewMode={previewMode}
                   />
                 ) : (
                   <StatusBadge
@@ -326,6 +330,7 @@ export function LeadDataTable({
                   key={`${lead.id}-${lead.lastActivityAt}-mobile-priority`}
                   leadId={lead.id}
                   initialPriority={lead.priority}
+                  previewMode={previewMode}
                 />
               ) : (
                 <PriorityBadge priority={lead.priority} />
@@ -368,6 +373,7 @@ export function LeadDataTable({
                         initialAssignedTo={lead.assignedTo}
                         assigneeOptions={assigneeOptions}
                         variant="compact"
+                        previewMode={previewMode}
                       />
                     </div>
                   ) : (
@@ -387,6 +393,7 @@ export function LeadDataTable({
                         leadId={lead.id}
                         initialFollowUpAt={lead.nextFollowUpAt ?? null}
                         initialLabel={followUpLabel(lead)}
+                        previewMode={previewMode}
                       />
                     ) : (
                       <p className="text-sm font-medium text-white/76">{followUpLabel(lead)}</p>
@@ -418,6 +425,7 @@ export function LeadDataTable({
                             assigneeOptions,
                             stageOptions,
                             interactiveWorkflow,
+                            previewMode,
                             currency,
                           )}
                         </div>
@@ -436,6 +444,7 @@ export function LeadDataTable({
                       assignedTo={lead.assignedTo}
                       leadId={lead.id}
                       leadName={lead.displayName}
+                      previewMode={previewMode}
                     />
                   ) : null}
                   {renderActions?.(lead)}
@@ -524,6 +533,7 @@ export function LeadDataTable({
                             assignedTo={lead.assignedTo}
                             leadId={lead.id}
                             leadName={lead.displayName}
+                            previewMode={previewMode}
                           />
                         ) : null}
                         {renderActions?.(lead)}
@@ -554,6 +564,7 @@ export function LeadDataTable({
                             assigneeOptions,
                             stageOptions,
                             interactiveWorkflow,
+                            previewMode,
                             currency,
                           )}
                         </div>

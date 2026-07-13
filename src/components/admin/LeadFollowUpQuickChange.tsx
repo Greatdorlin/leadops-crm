@@ -41,10 +41,12 @@ export function LeadFollowUpQuickChange({
   initialFollowUpAt,
   initialLabel,
   leadId,
+  previewMode = false,
 }: {
   initialFollowUpAt: string | null;
   initialLabel: string;
   leadId: string;
+  previewMode?: boolean;
 }) {
   const buttonRef = useRef<HTMLButtonElement>(null);
   const [followUpAt, setFollowUpAt] = useState(initialFollowUpAt);
@@ -73,6 +75,14 @@ export function LeadFollowUpQuickChange({
     setIsSaving(true);
     setHasError(false);
     setMessage("Saving follow-up...");
+
+    if (previewMode) {
+      setSavedFollowUpAt(nextValue);
+      setMessage(nextValue ? "Follow-up scheduled." : "Follow-up cleared.");
+      setIsSaving(false);
+      setIsOpen(false);
+      return;
+    }
 
     try {
       const response = await fetch(`/api/admin/leads/${leadId}/workflow`, {

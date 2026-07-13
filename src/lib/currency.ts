@@ -47,31 +47,34 @@ export function formatCurrencyValue(
   currencyCode: string,
   options?: { compact?: boolean; decimals?: number },
 ): string {
+  const normalizedCurrency = isSupportedCurrency(currencyCode)
+    ? currencyCode.toUpperCase()
+    : "USD";
   const num = typeof value === "string" ? Number.parseFloat(value) : Number(value);
   if (!Number.isFinite(num)) {
-    return `${getCurrencySymbol(currencyCode)} 0`;
+    return `${getCurrencySymbol(normalizedCurrency)} 0`;
   }
 
-  const locale = getCurrencyLocale(currencyCode);
+  const locale = getCurrencyLocale(normalizedCurrency);
   const compact = options?.compact ?? false;
   const decimals = options?.decimals ?? 0;
 
   if (compact && Math.abs(num) >= 1_000_000) {
-    return `${getCurrencySymbol(currencyCode)} ${(num / 1_000_000).toFixed(1)}M`;
+    return `${getCurrencySymbol(normalizedCurrency)} ${(num / 1_000_000).toFixed(1)}M`;
   }
   if (compact && Math.abs(num) >= 1_000) {
-    return `${getCurrencySymbol(currencyCode)} ${(num / 1_000).toFixed(1)}k`;
+    return `${getCurrencySymbol(normalizedCurrency)} ${(num / 1_000).toFixed(1)}k`;
   }
 
   try {
     return new Intl.NumberFormat(locale, {
       style: "currency",
-      currency: currencyCode.toUpperCase(),
+      currency: normalizedCurrency,
       minimumFractionDigits: decimals,
       maximumFractionDigits: decimals,
     }).format(num);
   } catch {
-    return `${getCurrencySymbol(currencyCode)} ${num.toLocaleString(locale, {
+    return `${getCurrencySymbol(normalizedCurrency)} ${num.toLocaleString(locale, {
       minimumFractionDigits: decimals,
       maximumFractionDigits: decimals,
     })}`;

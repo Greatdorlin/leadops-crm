@@ -18,11 +18,13 @@ export function LeadOwnerQuickAssign({
   initialAssignedTo,
   assigneeOptions,
   variant = "stacked",
+  previewMode = false,
 }: {
   leadId: string;
   initialAssignedTo: string | null;
   assigneeOptions: LeadAssigneeOption[];
   variant?: "stacked" | "compact";
+  previewMode?: boolean;
 }) {
   const listboxId = useId();
   const buttonRef = useRef<HTMLButtonElement>(null);
@@ -59,6 +61,13 @@ export function LeadOwnerQuickAssign({
     setIsSaving(true);
     setHasError(false);
     setMessage("Saving owner...");
+
+    if (previewMode) {
+      setSavedAssignedTo(nextAssignedTo);
+      setMessage("Owner updated.");
+      setIsSaving(false);
+      return;
+    }
 
     try {
       const response = await fetch(`/api/admin/leads/${leadId}/workflow`, {

@@ -30,10 +30,12 @@ export function LeadQuickActions({
   assignedTo,
   leadId,
   leadName,
+  previewMode = false,
 }: {
   assignedTo: string | null;
   leadId: string;
   leadName: string;
+  previewMode?: boolean;
 }) {
   const router = useRouter();
   const buttonRef = useRef<HTMLButtonElement>(null);
@@ -57,6 +59,12 @@ export function LeadQuickActions({
     setIsSaving(true);
     setHasError(false);
     setMessage("");
+    if (previewMode) {
+      setNote("");
+      setMessage("Note added.");
+      setIsSaving(false);
+      return;
+    }
     try {
       const response = await fetch(`/api/admin/leads/${leadId}/notes`, {
         method: "POST",
@@ -95,6 +103,12 @@ export function LeadQuickActions({
     setIsSaving(true);
     setHasError(false);
     setMessage("");
+    if (previewMode) {
+      setTaskDetail("");
+      setMessage("Task created.");
+      setIsSaving(false);
+      return;
+    }
     try {
       const response = await fetch(`/api/admin/leads/${leadId}/tasks`, {
         method: "POST",

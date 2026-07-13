@@ -13,12 +13,14 @@ export function LeadStatusQuickChange({
   initialStageLabel,
   initialStageColor,
   stageOptions,
+  previewMode = false,
 }: {
   leadId: string;
   initialStageId: string | null;
   initialStageLabel: string;
   initialStageColor?: string | null;
   stageOptions: LeadStageQuickOption[];
+  previewMode?: boolean;
 }) {
   return (
     <LeadWorkflowQuickSelect
@@ -35,6 +37,7 @@ export function LeadStatusQuickChange({
       pickerTitle="Move lead"
       pickerDescription="Choose an active stage."
       testId="lead-stage-quick-change"
+      previewMode={previewMode}
     />
   );
 }

@@ -21,6 +21,7 @@ export function LeadWorkflowQuickSelect({
   pickerTitle,
   pickerDescription,
   testId,
+  previewMode = false,
 }: {
   leadId: string;
   field: "stageId" | "priority";
@@ -31,6 +32,7 @@ export function LeadWorkflowQuickSelect({
   pickerTitle: string;
   pickerDescription: string;
   testId: string;
+  previewMode?: boolean;
 }) {
   const listboxId = useId();
   const buttonRef = useRef<HTMLButtonElement>(null);
@@ -56,6 +58,13 @@ export function LeadWorkflowQuickSelect({
     setIsSaving(true);
     setHasError(false);
     setMessage(`Saving ${field === "stageId" ? "stage" : "priority"}...`);
+
+    if (previewMode) {
+      setSavedValue(nextValue);
+      setMessage(`${field === "stageId" ? "Stage" : "Priority"} updated.`);
+      setIsSaving(false);
+      return;
+    }
 
     try {
       const response = await fetch(`/api/admin/leads/${leadId}/workflow`, {

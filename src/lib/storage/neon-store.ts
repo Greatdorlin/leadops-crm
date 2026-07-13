@@ -408,6 +408,10 @@ function buildLeadAssigneeFilterCondition(email: string) {
   );
 }
 
+function timestampParam(value: Date) {
+  return sql`${value.toISOString()}::timestamptz`;
+}
+
 function buildLeadStatusFilterCondition(status: NonNullable<LeadListFilters["status"]>) {
   if (status === "all") {
     return null;
@@ -2007,6 +2011,8 @@ export class NeonLeadStore implements LeadStorage {
     const today = startOfDay();
     const sevenDaysAgo = new Date();
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+    const todayParam = timestampParam(today);
+    const sevenDaysAgoParam = timestampParam(sevenDaysAgo);
     const leadScope = db
       .select({ id: leads.id })
       .from(leads)
@@ -2016,7 +2022,7 @@ export class NeonLeadStore implements LeadStorage {
       db
         .select({
           totalLeads: sql<number>`count(*)`,
-          newLeadsToday: sql<number>`count(*) filter (where ${leads.createdAt} >= ${today})`,
+          newLeadsToday: sql<number>`count(*) filter (where ${leads.createdAt} >= ${todayParam})`,
           unassignedLeads: sql<number>`count(*) filter (
             where nullif(trim(coalesce(${leads.assignedTo}, '')), '') is null
           )`,
@@ -2030,10 +2036,10 @@ export class NeonLeadStore implements LeadStorage {
             where ${leads.priority} in ('high', 'urgent')
           )`,
           facebookLeadsThisWeek: sql<number>`count(*) filter (
-            where ${leads.source} = 'facebook_lead_ads' and ${leads.createdAt} >= ${sevenDaysAgo}
+            where ${leads.source} = 'facebook_lead_ads' and ${leads.createdAt} >= ${sevenDaysAgoParam}
           )`,
           websiteLeadsThisWeek: sql<number>`count(*) filter (
-            where ${leads.source} = 'website_form' and ${leads.createdAt} >= ${sevenDaysAgo}
+            where ${leads.source} = 'website_form' and ${leads.createdAt} >= ${sevenDaysAgoParam}
           )`,
         })
         .from(leads)
@@ -2157,6 +2163,10 @@ export class NeonLeadStore implements LeadStorage {
     const now = new Date();
     const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
     const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    const monthStartParam = timestampParam(monthStart);
+    const todayStartParam = timestampParam(startOfDay(now));
+    const todayEndParam = timestampParam(endOfDay(now));
+    const sevenDaysAgoParam = timestampParam(sevenDaysAgo);
     const openLead = sql`${leads.wonAt} is null and ${leads.lostAt} is null`;
     const pipelineValue = sql<number>`coalesce(sum(
       case
@@ -2209,17 +2219,17 @@ export class NeonLeadStore implements LeadStorage {
               and ${leads.nextFollowUpAt} is null
             )
           )`,
-          leadsThisMonth: sql<number>`count(*) filter (where ${leads.createdAt} >= ${monthStart})`,
+          leadsThisMonth: sql<number>`count(*) filter (where ${leads.createdAt} >= ${monthStartParam})`,
           overdueFollowUps: sql<number>`count(*) filter (
-            where ${openLead} and ${leads.nextFollowUpAt} < ${startOfDay(now)}
+            where ${openLead} and ${leads.nextFollowUpAt} < ${todayStartParam}
           )`,
           dueTodayFollowUps: sql<number>`count(*) filter (
             where ${openLead}
-              and ${leads.nextFollowUpAt} >= ${startOfDay(now)}
-              and ${leads.nextFollowUpAt} <= ${endOfDay(now)}
+              and ${leads.nextFollowUpAt} >= ${todayStartParam}
+              and ${leads.nextFollowUpAt} <= ${todayEndParam}
           )`,
           stuckLeads: sql<number>`count(*) filter (
-            where ${openLead} and ${leads.lastActivityAt} < ${sevenDaysAgo}
+            where ${openLead} and ${leads.lastActivityAt} < ${sevenDaysAgoParam}
           )`,
           wonLeads: sql<number>`count(*) filter (where ${leads.wonAt} is not null)`,
           lostLeads: sql<number>`count(*) filter (where ${leads.lostAt} is not null)`,
@@ -2266,7 +2276,7 @@ export class NeonLeadStore implements LeadStorage {
           ownerEmail,
           assignedLeads: sql<number>`count(*)`,
           overdueFollowUps: sql<number>`count(*) filter (
-            where ${openLead} and ${leads.nextFollowUpAt} < ${startOfDay(now)}
+            where ${openLead} and ${leads.nextFollowUpAt} < ${todayStartParam}
           )`,
           wonLeads: sql<number>`count(*) filter (where ${leads.wonAt} is not null)`,
           wonValue,
@@ -2379,6 +2389,9 @@ export class NeonLeadStore implements LeadStorage {
     const taskOwnerEmail = sql<string | null>`nullif(lower(trim(coalesce(${leadTasks.assignedTo}, ''))), '')`;
     const todayStart = startOfDay();
     const todayEnd = endOfDay();
+    const nowParam = timestampParam(new Date());
+    const todayStartParam = timestampParam(todayStart);
+    const todayEndParam = timestampParam(todayEnd);
     const leadScopeConditions = buildLeadListConditions({ ...filters, recordState: "active" });
 
     const [users, leadRows, taskRows] = await Promise.all([
@@ -2417,12 +2430,12 @@ export class NeonLeadStore implements LeadStorage {
           ownerEmail: taskOwnerEmail,
           openTasks: sql<number>`count(*) filter (where ${leadTasks.completedAt} is null)`,
           overdueTasks: sql<number>`count(*) filter (
-            where ${leadTasks.completedAt} is null and ${leadTasks.dueAt} < ${new Date()}
+            where ${leadTasks.completedAt} is null and ${leadTasks.dueAt} < ${nowParam}
           )`,
           dueTodayTasks: sql<number>`count(*) filter (
             where ${leadTasks.completedAt} is null
-              and ${leadTasks.dueAt} >= ${todayStart}
-              and ${leadTasks.dueAt} <= ${todayEnd}
+              and ${leadTasks.dueAt} >= ${todayStartParam}
+              and ${leadTasks.dueAt} <= ${todayEndParam}
           )`,
           completedTasks: sql<number>`count(*) filter (where ${leadTasks.completedAt} is not null)`,
           lastActivityAt: sql<Date | null>`max(greatest(

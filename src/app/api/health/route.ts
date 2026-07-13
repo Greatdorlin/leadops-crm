@@ -3,6 +3,7 @@ import { sql } from "drizzle-orm";
 import { getAllowedEmailDomains, isLocalAdminPreviewEnabled } from "@/lib/admin-access";
 import { getDb } from "@/lib/db/client";
 import { hasDatabaseUrl } from "@/lib/db/env";
+import { buildHealthResponse } from "@/lib/health-response";
 
 export const dynamic = "force-dynamic";
 
@@ -54,13 +55,12 @@ export async function GET() {
         !checks.devPreviewEnabled));
 
   return NextResponse.json(
-    {
+    buildHealthResponse({
       ok,
-      service: "Leads Desk",
       environment,
       timestamp: new Date().toISOString(),
       checks,
-    },
+    }),
     {
       status: ok ? 200 : 503,
     },

@@ -47,9 +47,13 @@ Create `.env` with production values for:
 
 If you use the bundled Postgres container, make sure `DATABASE_URL` matches the Postgres service credentials.
 
-Start from `.env.docker.example` when using the bundled Postgres service. The database password has no unsafe fallback and Postgres is not published to the public host network.
+For bundled Postgres, start from `.env.docker.example`. The database password has no unsafe fallback and Postgres is not published to the public host network.
+
+For external Postgres, start from `.env.example`, replace the local `DATABASE_URL` with the provider's pooled SSL connection URL, and use `docker-compose.external.yml`.
 
 ## 4. Build And Start
+
+Bundled Postgres:
 
 ```bash
 docker compose up -d --build
@@ -57,10 +61,27 @@ docker compose up -d --build
 
 The one-shot `migrate` service applies journaled migrations before the app starts.
 
+External Postgres:
+
+```bash
+docker compose -f docker-compose.external.yml run --rm migrate
+docker compose -f docker-compose.external.yml up -d --build app
+```
+
+The external variant never starts or stores a local database container.
+
 ## 5. Seed Defaults On First Install
+
+Bundled Postgres:
 
 ```bash
 docker compose run --rm migrate npm run db:seed:defaults:full
+```
+
+External Postgres:
+
+```bash
+docker compose -f docker-compose.external.yml run --rm migrate npm run db:seed:defaults:full
 ```
 
 ## 6. Health Check

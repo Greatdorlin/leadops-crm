@@ -41,3 +41,5 @@ Production schema changes use `npm run db:migrate`. `npm run db:push` is for dis
 - [Client handover](./CLIENT_HANDOVER.md)
 
 The runtime is provider-neutral: it requires PostgreSQL through `DATABASE_URL` and does not depend on a specific database vendor.
+
+Docker buyers can choose bundled Postgres with `docker-compose.yml` or an external managed database with `docker-compose.external.yml`.

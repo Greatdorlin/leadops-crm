@@ -1,13 +1,16 @@
 import { notFound } from "next/navigation";
 import { PublicFormRenderer } from "@/components/admin/PublicFormRenderer";
 import { getPublicFormBySlug } from "@/lib/crm/form-builder-store";
+import { buildDemoPublicForm } from "@/lib/crm/demo-data";
 import { buildPublicFormDefinition, buildPublicFormFields } from "@/lib/crm/public-form";
 
 export const dynamic = "force-dynamic";
 
 export default async function PublicFormPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  const result = await getPublicFormBySlug(slug);
+  const demoResult = process.env.NODE_ENV === "production" ? null : buildDemoPublicForm(slug);
+  const result = demoResult ?? (await getPublicFormBySlug(slug));
+  const previewMode = Boolean(demoResult);
 
   if (!result) {
     notFound();
@@ -17,28 +20,17 @@ export default async function PublicFormPage({ params }: { params: Promise<{ slu
   const fields = buildPublicFormFields(result.fields);
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-[#030712] px-4 py-10 sm:px-6 sm:py-14">
+    <div className="relative min-h-screen overflow-hidden bg-[#030712] px-4 py-5 sm:px-6 sm:py-10">
       <div
         className="absolute inset-0 bg-[url('/backgrounds/bg-butterfly-glass.png')] bg-cover bg-center opacity-90"
         aria-hidden="true"
       />
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(129,140,248,0.26),transparent_34%),radial-gradient(circle_at_bottom_right,rgba(56,189,248,0.18),transparent_30%),linear-gradient(180deg,rgba(3,7,18,0.38),rgba(3,7,18,0.76))]" aria-hidden="true" />
-      <div className="relative mx-auto max-w-6xl">
-        <div className="mb-8 text-center sm:mb-10">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/58">
-            Leads Desk form
-          </p>
-          <h1 className="mt-3 font-[family:var(--font-heading)] text-[2.3rem] leading-none tracking-[-0.06em] text-white sm:text-[3.2rem]">
-            Capture qualified leads in one private workspace.
-          </h1>
-          <p className="mx-auto mt-4 max-w-3xl text-sm leading-7 text-white/64 sm:text-base">
-            This branded form experience is designed for direct intake, cleaner follow-up, and reliable lead routing from the first submission.
-          </p>
-        </div>
-
+      <div className="relative mx-auto max-w-3xl">
         <PublicFormRenderer
           form={form}
           fields={fields}
+          previewMode={previewMode}
         />
       </div>
     </div>

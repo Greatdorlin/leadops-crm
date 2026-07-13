@@ -2,7 +2,7 @@ import type { CrmUserRecord, LeadEventRecord, LeadNoteRecord, LeadRecord, LeadTa
 import type { TeamPerformanceRow } from "@/lib/admin-insights";
 import type { AdminFormSourceRecord } from "@/lib/crm/form-sources-admin";
 import type { IntakeEventAdminRow } from "@/lib/crm/intake-runtime";
-import type { FormRow } from "@/lib/db/schema";
+import type { FormFieldRow, FormRow } from "@/lib/db/schema";
 
 export type DemoFormRecord = FormRow & { fieldCount: number; submissionCount: number };
 
@@ -21,6 +21,67 @@ export function buildDemoForms(): DemoFormRecord[] {
     { ...shared, id: "demo-form-product-fit", name: "Product fit assessment", slug: "product-fit", description: "Captures product interest, budget, timeline, and qualification signals.", enableAutoQualify: true, autoQualifyRules: [{ field: "timeline", operator: "in", value: ["now", "30_days"] }], fieldCount: 11, submissionCount: 129 },
     { ...shared, id: "demo-form-partner-referral", name: "Partner referral", slug: "partner-referral", description: "Gives approved partners a clean path to submit and track referrals.", enableAutoQualify: false, autoQualifyRules: null, defaultPriority: "medium", defaultSource: "referral", fieldCount: 7, submissionCount: 76 },
   ];
+}
+
+export function buildDemoPublicForm(slug: string) {
+  const form = buildDemoForms().find((item) => item.slug === slug);
+  if (!form) return null;
+
+  const createdAt = form.createdAt;
+  const updatedAt = form.updatedAt;
+  const field = (
+    id: string,
+    order: number,
+    input: Pick<FormFieldRow, "fieldType" | "label"> & Partial<FormFieldRow>,
+  ): FormFieldRow => ({
+    id,
+    formId: form.id,
+    fieldType: input.fieldType,
+    label: input.label,
+    placeholder: input.placeholder ?? null,
+    helpText: input.helpText ?? null,
+    isRequired: input.isRequired ?? false,
+    isVisible: true,
+    order,
+    options: input.options ?? null,
+    validationRules: input.validationRules ?? null,
+    mapsToLeadField: input.mapsToLeadField ?? null,
+    showWhen: input.showWhen ?? null,
+    defaultValue: input.defaultValue ?? null,
+    createdAt,
+    updatedAt,
+  });
+
+  const fields = [
+    field("demo-field-first-name", 0, { fieldType: "text", label: "First name", placeholder: "Ada", isRequired: true, mapsToLeadField: "firstName" }),
+    field("demo-field-last-name", 1, { fieldType: "text", label: "Last name", placeholder: "Okafor", isRequired: true, mapsToLeadField: "lastName" }),
+    field("demo-field-email", 2, { fieldType: "email", label: "Work email", placeholder: "ada@company.com", isRequired: true, mapsToLeadField: "email" }),
+    field("demo-field-phone", 3, { fieldType: "phone", label: "Phone", placeholder: "+234 801 234 5678", mapsToLeadField: "phone" }),
+    field("demo-field-company", 4, { fieldType: "text", label: "Company", placeholder: "Northwind Ventures", mapsToLeadField: "companyName" }),
+    field("demo-field-interest", 5, {
+      fieldType: "select",
+      label: "What would you like help with?",
+      isRequired: true,
+      options: [
+        { label: "Sales operations", value: "sales_operations" },
+        { label: "Lead generation", value: "lead_generation" },
+        { label: "Reporting and automation", value: "reporting_automation" },
+      ],
+    }),
+    field("demo-field-timeline", 6, {
+      fieldType: "radio",
+      label: "When would you like to start?",
+      isRequired: true,
+      options: [
+        { label: "As soon as possible", value: "now" },
+        { label: "Within 30 days", value: "30_days" },
+        { label: "Still exploring", value: "exploring" },
+      ],
+    }),
+    field("demo-field-notes", 7, { fieldType: "textarea", label: "What should we know?", placeholder: "Share the outcome you want to achieve." }),
+  ];
+
+  return { form, fields };
 }
 
 export function buildDemoTeamPerformance(): TeamPerformanceRow[] {

@@ -21,6 +21,7 @@ export interface PublicFormConfig {
 export interface PublicFormRendererProps {
   form: PublicFormConfig;
   fields: PublicFormFieldData[];
+  previewMode?: boolean;
 }
 
 interface FormErrors {
@@ -136,7 +137,7 @@ function validateField(
   return null;
 }
 
-export function PublicFormRenderer({ form, fields }: PublicFormRendererProps) {
+export function PublicFormRenderer({ form, fields, previewMode = false }: PublicFormRendererProps) {
   const [values, setValues] = useState<Record<string, unknown>>(() => buildDefaultFieldValues(fields));
   const [errors, setErrors] = useState<FormErrors>({});
   const [touched, setTouched] = useState<Set<string>>(new Set());
@@ -195,6 +196,12 @@ export function PublicFormRenderer({ form, fields }: PublicFormRendererProps) {
       setSubmitting(true);
 
       try {
+        if (previewMode) {
+          setSubmitSuccess(true);
+          setSubmitResult({ submissionId: "preview-submission", leadId: null });
+          return;
+        }
+
         const response = await fetch(`/api/forms/${form.id}/submit`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -243,7 +250,7 @@ export function PublicFormRenderer({ form, fields }: PublicFormRendererProps) {
         setSubmitting(false);
       }
     },
-    [form.id, form.redirectUrl, values, validateAll, visibleFields]
+    [form.id, form.redirectUrl, previewMode, values, validateAll, visibleFields]
   );
 
   const brandStyle = useMemo<CSSProperties>(() => {
@@ -311,11 +318,11 @@ export function PublicFormRenderer({ form, fields }: PublicFormRendererProps) {
 
   return (
     <div
-      className="mx-auto w-full max-w-3xl overflow-hidden rounded-[32px] border border-white/14 bg-[#091120]/76 p-6 shadow-[0_30px_80px_rgba(0,0,0,0.34)] backdrop-blur-[22px] sm:p-10"
+      className="mx-auto w-full max-w-3xl overflow-hidden rounded-[28px] border border-white/14 bg-[#091120]/76 p-4 shadow-[0_30px_80px_rgba(0,0,0,0.34)] backdrop-blur-[22px] sm:rounded-[32px] sm:p-8"
       style={brandStyle}
     >
       <div
-        className="mb-8 rounded-[28px] border border-white/10 px-5 py-5 sm:px-6"
+        className="mb-4 rounded-[22px] border border-white/10 px-4 py-4 sm:mb-6 sm:rounded-[28px] sm:px-6 sm:py-5"
         style={{
           background: `linear-gradient(145deg, ${primaryColor}18, rgba(5,10,20,0.82) 58%, ${accentColor}18)`,
         }}
@@ -339,15 +346,15 @@ export function PublicFormRenderer({ form, fields }: PublicFormRendererProps) {
             Secure form
           </div>
         </div>
-        <div className="mt-6">
+        <div className="mt-4 sm:mt-5">
           <h1
-            className="text-3xl font-bold tracking-tight text-white sm:text-4xl"
+            className="text-[1.7rem] font-bold leading-tight tracking-[-0.04em] text-white sm:text-4xl"
             style={{ fontFamily: "var(--font-heading-active), var(--font-fallback), sans-serif" }}
           >
             {form.name}
           </h1>
           {form.description ? (
-            <p className="mt-3 max-w-2xl text-base leading-7 text-white/70">{form.description}</p>
+            <p className="mt-2 max-w-2xl text-sm leading-6 text-white/68 sm:text-base sm:leading-7">{form.description}</p>
           ) : (
             <p className="mt-3 max-w-2xl text-base leading-7 text-white/62">
               Share one link, capture the right details, and route every lead into your private workspace.
@@ -356,32 +363,7 @@ export function PublicFormRenderer({ form, fields }: PublicFormRendererProps) {
         </div>
       </div>
 
-      <div className="mb-8 grid gap-3 sm:grid-cols-3">
-        {[
-          ["Private workspace", "Submissions stay inside this Leads Desk deployment."],
-          ["Built for follow-up", "Default stage, owner, and source rules apply on submit."],
-          ["Fast completion", "Short fields, clear labels, and one primary action."],
-        ].map(([title, copy]) => (
-          <div
-            key={title}
-            className="rounded-[22px] border border-white/10 bg-white/[0.04] px-4 py-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]"
-          >
-            <p className="text-sm font-semibold text-white">{title}</p>
-            <p className="mt-2 text-sm leading-6 text-white/58">{copy}</p>
-          </div>
-        ))}
-      </div>
-
-      <div className="rounded-[28px] border border-white/10 bg-black/12 p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] sm:p-6">
-        <div className="mb-6">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/56">
-            Lead capture
-          </p>
-          <p className="mt-2 text-sm text-white/62">
-            Complete the form below and the workspace will route the lead automatically.
-          </p>
-        </div>
-
+      <div className="rounded-[22px] border border-white/10 bg-black/12 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] sm:rounded-[28px] sm:p-6">
         <form onSubmit={handleSubmit} noValidate className="space-y-6">
           {visibleFields.map((field) => (
             <PublicFormField

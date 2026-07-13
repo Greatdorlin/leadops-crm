@@ -19,6 +19,7 @@ import { cn } from "@/lib/cn";
 import { appRoutes } from "@/lib/app-routes";
 import type { FormRow } from "@/lib/db/schema";
 import type { AdminAccessLevel } from "@/lib/admin-permissions";
+import type { PermissionKey } from "@/lib/crm/role-permissions-contract";
 import { formatCrmDate } from "@/lib/crm/formatters";
 import type { CrmUserRole } from "@/lib/crm/types";
 import { canManageForms } from "@/lib/crm/authz";
@@ -232,15 +233,17 @@ export function FormListGrid({
   initialForms,
   accessLevel,
   role,
+  permissions,
   demoMode = false,
 }: {
   initialForms: FormWithCounts[];
   accessLevel: AdminAccessLevel;
   role?: CrmUserRole | null;
+  permissions?: readonly PermissionKey[];
   demoMode?: boolean;
 }) {
   const [forms, setForms] = useState<FormWithCounts[]>(initialForms);
-  const canManage = canManageForms({ accessLevel, role });
+  const canManage = canManageForms({ accessLevel, role, permissions });
 
   function handleStatusChange(id: string, status: "draft" | "archived") {
     setForms((prev) =>
@@ -287,7 +290,7 @@ export function FormListGrid({
           </h2>
           <p className="mt-1 text-sm text-white/70">Manage forms, fields, and submission rules.</p>
         </div>
-        {canManage && !demoMode ? (
+        {canManage ? (
           <Link
             href={appRoutes.formsNew}
             className="admin-button-primary inline-flex h-11 shrink-0 items-center justify-center rounded-2xl px-5 text-sm font-semibold"

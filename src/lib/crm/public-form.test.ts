@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { buildPublicFormFields } from "@/lib/crm/public-form";
+import { buildDemoPublicForm } from "@/lib/crm/demo-data";
 import type { FormFieldRow } from "@/lib/db/schema";
 
 function field(overrides: Partial<FormFieldRow>): FormFieldRow {
@@ -35,4 +36,15 @@ test("public forms expose only visible, supported fields", () => {
   ]);
 
   assert.deepEqual(result.map((item) => item.id), [visible.id]);
+});
+
+test("seeded demo forms expose a complete public preview without database access", () => {
+  const result = buildDemoPublicForm("executive-consultation");
+
+  assert.ok(result);
+  assert.equal(result.form.status, "active");
+  assert.equal(result.form.isPublic, true);
+  assert.ok(result.fields.some((item) => item.mapsToLeadField === "email"));
+  assert.ok(result.fields.some((item) => item.fieldType === "select"));
+  assert.equal(buildDemoPublicForm("unknown-form"), null);
 });

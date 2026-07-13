@@ -4,6 +4,7 @@ import { AdminShell } from "@/components/admin/AdminShell";
 import { AdminSignOutButton } from "@/components/admin/AdminSignOutButton";
 import { FormCreateStudio } from "@/components/admin/FormCreateStudio";
 import { getAdminAccessContext } from "@/lib/admin";
+import { isLocalAdminPreviewEmail } from "@/lib/admin-access";
 import { appRoutes } from "@/lib/app-routes";
 import { canManageForms } from "@/lib/crm/authz";
 import { buildFormDefaultSourceOptions } from "@/lib/crm/form-default-source-options";
@@ -14,29 +15,52 @@ import { leadStore } from "@/lib/storage";
 export const dynamic = "force-dynamic";
 
 export default async function AdminNewFormPage() {
-  const { role, accessLevel, actualAccessLevel, canSwitchAccessViews, permissions } =
+  const { role, accessLevel, actualAccessLevel, canSwitchAccessViews, permissions, session } =
     await getAdminAccessContext(appRoutes.formsNew);
 
   if (!canManageForms({ accessLevel, permissions, role })) {
     redirect(appRoutes.forms);
   }
 
-  const [stages, sources, users] = await Promise.all([
-    listLeadStages(),
-    listLeadSources(),
-    leadStore.listCrmUsers(),
-  ]);
+  const isPreview = isLocalAdminPreviewEmail(session.user?.email);
+  let stageOptions: Array<{ value: string; label: string }>;
+  let sourceOptions: Array<{ value: string; label: string }>;
+  let ownerOptions: Array<{ value: string; label: string }>;
 
-  const stageOptions = stages
-    .filter((stage) => !stage.archived)
-    .map((stage) => ({ value: stage.key, label: stage.name }));
-  const sourceOptions = buildFormDefaultSourceOptions(sources);
-  const ownerOptions = users
-    .filter((user) => user.isActive)
-    .map((user) => ({
-      value: user.id,
-      label: user.fullName.trim() || user.email,
-    }));
+  if (isPreview) {
+    stageOptions = [
+      { value: "new", label: "New" },
+      { value: "contacted", label: "Contacted" },
+      { value: "qualified", label: "Qualified" },
+      { value: "consultation_booked", label: "Consultation booked" },
+    ];
+    sourceOptions = [
+      { value: "website_form", label: "Website form" },
+      { value: "referral", label: "Referral" },
+      { value: "manual_entry", label: "Manual entry" },
+    ];
+    ownerOptions = [
+      { value: "demo-user-ada", label: "Ada Okafor" },
+      { value: "demo-user-malik", label: "Malik Bello" },
+      { value: "demo-user-zara", label: "Zara Mensah" },
+    ];
+  } else {
+    const [stages, sources, users] = await Promise.all([
+      listLeadStages(),
+      listLeadSources(),
+      leadStore.listCrmUsers(),
+    ]);
+    stageOptions = stages
+      .filter((stage) => !stage.archived)
+      .map((stage) => ({ value: stage.key, label: stage.name }));
+    sourceOptions = buildFormDefaultSourceOptions(sources);
+    ownerOptions = users
+      .filter((user) => user.isActive)
+      .map((user) => ({
+        value: user.id,
+        label: user.fullName.trim() || user.email,
+      }));
+  }
 
   return (
     <AdminShell

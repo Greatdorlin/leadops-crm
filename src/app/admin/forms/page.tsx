@@ -96,6 +96,7 @@ export default async function AdminFormsPage() {
         initialForms={formsWithCounts}
         accessLevel={accessLevel}
         role={role}
+        permissions={permissions}
         demoMode={isLocalAdminPreviewEmail(session.user?.email)}
       />
     </AdminShell>

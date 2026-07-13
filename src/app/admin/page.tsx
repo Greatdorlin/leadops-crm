@@ -663,22 +663,24 @@ export default async function AdminPage({
       : null;
   const searchSlot = (
       <form action={appRoutes.dashboard} className="flex flex-col gap-2">
-        <GlassSurface as="div" intensity="soft" border={true} className="flex flex-col gap-2 p-3 lg:flex-row lg:items-center">
+        <GlassSurface as="div" intensity="soft" border={true} className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2 p-2 sm:p-2.5">
           <div className="min-w-0 flex-1">
             <SearchInput
               defaultValue={filters.search ?? ""}
               placeholder="Search leads, region, tasks, people, or phone"
             />
           </div>
-          <SmoothButton type="submit" variant="primary" size="sm">
+          <SmoothButton type="submit" variant="primary" size="sm" className="h-10 rounded-xl px-4">
             Search
           </SmoothButton>
-          <Link
-            href={appRoutes.dashboard}
-            className="admin-button-secondary inline-flex h-8 items-center justify-center rounded-lg px-3 text-sm font-semibold"
-          >
-            {hasFilters ? "Reset" : "All leads"}
-          </Link>
+          {hasFilters ? (
+            <Link
+              href={appRoutes.dashboard}
+              className="admin-button-secondary col-span-2 inline-flex h-9 items-center justify-center rounded-xl px-3 text-sm font-semibold sm:col-span-1"
+            >
+              Reset
+            </Link>
+          ) : null}
         </GlassSurface>
 
         {accessLevel !== "sales_rep" && hasFilters ? (

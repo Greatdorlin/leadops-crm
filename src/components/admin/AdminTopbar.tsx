@@ -113,7 +113,7 @@ export function AdminTopbar({
                       <InfoTip label={description} align="left" />
                     ) : null}
                   </div>
-                  {!isCollapsed && description && !useDescriptionTip ? (
+                  {!isDashboard && !isCollapsed && description && !useDescriptionTip ? (
                     <p className="mt-1.5 text-sm leading-relaxed text-white/70 sm:text-[15px]">{description}</p>
                   ) : null}
                 </div>
@@ -128,6 +128,7 @@ export function AdminTopbar({
                     <SmoothButton
                       variant="ghost"
                       size="sm"
+                      className="!hidden sm:!inline-flex"
                       onClick={() => updateCollapseState(!isCollapsed)}
                       aria-expanded={!isCollapsed}
                       icon={<ChevronDown className={cn("h-4 w-4 transition", !isCollapsed && "rotate-180")} />}

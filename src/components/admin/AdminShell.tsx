@@ -21,6 +21,7 @@ import {
 } from "@/lib/crm/workspace-settings";
 import { LeadsDeskWordmark } from "@/components/brand/LeadsDeskWordmark";
 import { AdminSidebar } from "./AdminSidebar";
+import { AdminSignOutButton } from "./AdminSignOutButton";
 import { AdminTopbar } from "./AdminTopbar";
 import { useAdminPermissions } from "./AdminAuthorizationProvider";
 import { useAdminWorkspaceSettings } from "./AdminWorkspaceSettingsProvider";
@@ -227,6 +228,9 @@ export function AdminShell({
         {sidebarFooter ? (
           <div className="border-t border-white/[0.07] p-3">{sidebarFooter}</div>
         ) : null}
+        <div className="border-t border-white/[0.07] p-3 sm:hidden">
+          <AdminSignOutButton mobile />
+        </div>
       </MobileSidebarDrawer>
     </div>
   );

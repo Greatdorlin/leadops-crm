@@ -71,7 +71,7 @@ export function NotificationInbox({
             {unreadCount} unread
           </span>
         </div>
-        <nav className="flex min-w-0 gap-1 overflow-x-auto" aria-label="Notification categories">
+        <nav className="flex min-w-0 gap-1 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" aria-label="Notification categories">
           {notificationCategoryOptions.map((category) => {
             const isActive = category.value === activeCategory;
             const href =

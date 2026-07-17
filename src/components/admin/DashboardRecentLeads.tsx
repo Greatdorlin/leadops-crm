@@ -50,7 +50,7 @@ export function DashboardRecentLeads({
           <ArrowUpRight className="h-4 w-4" />
         </Link>
       }
-      className="p-0"
+      className="p-4 sm:p-5"
       bodyClassName="mt-4"
     >
       {leads.length > 0 ? (
@@ -74,18 +74,20 @@ export function DashboardRecentLeads({
                 </time>
               </div>
 
-              <div className="ld-action-strip ld-scroll-region mt-3 flex items-center gap-2 overflow-x-auto pb-1">
-                <SourceBadge source={lead.source} />
-                <LeadStatusQuickChange
-                  leadId={lead.id}
-                  initialStageId={lead.stageId}
-                  initialStageLabel={lead.stageLabel}
-                  initialStageColor={lead.stageColor}
-                  stageOptions={stageOptions}
-                  previewMode={previewMode}
-                />
-                <PriorityBadge priority={lead.priority} />
-                <div className="w-[12rem] shrink-0 sm:w-auto">
+              <div className="mt-3 grid min-w-0 gap-2 sm:flex sm:flex-wrap sm:items-center">
+                <div className="flex min-w-0 flex-wrap items-center gap-2 sm:contents">
+                  <SourceBadge source={lead.source} />
+                  <LeadStatusQuickChange
+                    leadId={lead.id}
+                    initialStageId={lead.stageId}
+                    initialStageLabel={lead.stageLabel}
+                    initialStageColor={lead.stageColor}
+                    stageOptions={stageOptions}
+                    previewMode={previewMode}
+                  />
+                  <PriorityBadge priority={lead.priority} />
+                </div>
+                <div className="min-w-0 sm:w-[12rem] sm:shrink-0">
                   <LeadOwnerQuickAssign
                     leadId={lead.id}
                     initialAssignedTo={lead.assignedTo}
@@ -94,7 +96,7 @@ export function DashboardRecentLeads({
                     previewMode={previewMode}
                   />
                 </div>
-                <div className="shrink-0">
+                <div className="min-w-0 sm:shrink-0">
                   <LeadFollowUpQuickChange
                     leadId={lead.id}
                     initialFollowUpAt={lead.nextFollowUpAt}
@@ -105,7 +107,7 @@ export function DashboardRecentLeads({
                 <Link
                   href={appRoutes.lead(lead.id)}
                   prefetch={false}
-                  className="admin-button-secondary inline-flex h-10 shrink-0 items-center justify-center rounded-full px-4 text-sm font-semibold"
+                  className="admin-button-secondary inline-flex h-10 w-full items-center justify-center rounded-full px-4 text-sm font-semibold sm:w-auto sm:shrink-0"
                 >
                   Open
                 </Link>

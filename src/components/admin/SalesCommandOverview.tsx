@@ -370,7 +370,7 @@ export function SalesCommandOverview({
             {summary.target ? "Edit target" : "Set target"}
           </Link>
         }
-        className="p-0"
+        className="p-4 sm:p-5"
         bodyClassName="mt-5"
       >
         <div className="grid gap-4 lg:grid-cols-[280px_minmax(0,1fr)] 2xl:grid-cols-[300px_minmax(0,1fr)]">

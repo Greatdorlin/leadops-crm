@@ -307,7 +307,7 @@ export default async function AdminTasksPage({
       <div className="space-y-6">
         <FilterBar>
           <div className="flex flex-col gap-3">
-            <nav className="flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" aria-label="Task views">
+            <nav className="flex flex-wrap gap-2" aria-label="Task views">
               {availableViews.map((option) => {
                 const isActive = option === view;
 

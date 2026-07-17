@@ -44,7 +44,7 @@ import {
   type DashboardWidgetKey,
 } from "@/lib/crm/workspace-settings";
 import { getCompanySettings } from "@/lib/crm/workspace-settings-server";
-import type { LeadRecord } from "@/lib/crm/types";
+import type { CrmStatus, LeadRecord } from "@/lib/crm/types";
 import { leadStore } from "@/lib/storage";
 
 export const dynamic = "force-dynamic";

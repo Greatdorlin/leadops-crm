@@ -87,7 +87,7 @@ export function TaskQueueTable({
               </span>
             </div>
 
-            <div className="mt-4 grid gap-4 md:grid-cols-[minmax(0,1.15fr)_minmax(170px,0.75fr)] xl:grid-cols-[minmax(0,1.2fr)_minmax(170px,0.75fr)_minmax(170px,0.72fr)_auto] xl:items-start">
+            <div className="mt-4 grid min-w-0 gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(210px,0.72fr)] lg:items-start">
               <div className="min-w-0">
                 <p className="text-lg font-semibold leading-tight text-white">{task.title}</p>
                 {task.description ? (
@@ -99,7 +99,7 @@ export function TaskQueueTable({
                 )}
               </div>
 
-              <dl className="grid gap-3 text-sm">
+              <dl className="grid min-w-0 gap-3 text-sm sm:grid-cols-2 lg:grid-cols-1">
                 <div>
                   <dt className="text-[11px] font-semibold uppercase tracking-[0.14em] text-white/70">Lead</dt>
                   <dd className="mt-1 text-white">{getTaskLeadName(task)}</dd>
@@ -115,21 +115,22 @@ export function TaskQueueTable({
                 </div>
               </dl>
 
-              <div>
-                <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-white/70">Due</p>
-                <p className="mt-1 text-sm font-medium text-white">{formatCrmDateTime(task.dueAt)}</p>
-              </div>
-
-              <div className="flex flex-wrap items-center gap-2 xl:justify-end">
-                <Link
-                  href={appRoutes.lead(task.leadId)}
-                  className="admin-button-secondary inline-flex h-10 items-center justify-center rounded-full px-4 text-sm font-medium"
-                >
-                  Open lead
-                </Link>
-                {canCompleteTasks && !task.completedAt ? (
-                  <LeadTaskCompleteButton taskId={task.id} />
-                ) : null}
+              <div className="grid min-w-0 gap-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end lg:grid-cols-1">
+                <div>
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-white/70">Due</p>
+                  <p className="mt-1 text-sm font-medium text-white">{formatCrmDateTime(task.dueAt)}</p>
+                </div>
+                <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap lg:grid lg:grid-cols-2">
+                  <Link
+                    href={appRoutes.lead(task.leadId)}
+                    className="admin-button-secondary inline-flex h-10 min-w-0 items-center justify-center rounded-full px-3 text-sm font-medium"
+                  >
+                    Open lead
+                  </Link>
+                  {canCompleteTasks && !task.completedAt ? (
+                    <LeadTaskCompleteButton taskId={task.id} />
+                  ) : null}
+                </div>
               </div>
             </div>
           </article>

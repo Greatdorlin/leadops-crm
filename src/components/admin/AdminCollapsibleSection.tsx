@@ -51,7 +51,7 @@ export function AdminCollapsibleSection({
           <div className="mt-2 flex items-center gap-2.5">
             <h2
               className={cn(
-                "min-w-0 max-w-2xl break-words font-[family:var(--font-heading)] leading-[1.12] tracking-[-0.045em] text-white transition-all duration-200",
+                "min-w-0 max-w-2xl break-words font-[family:var(--font-heading)] font-bold leading-[1.12] tracking-[-0.045em] text-white transition-all duration-200",
                 isOpen ? "text-[1.45rem] sm:text-[1.65rem]" : "text-[1.25rem] sm:text-[1.38rem]",
               )}
             >

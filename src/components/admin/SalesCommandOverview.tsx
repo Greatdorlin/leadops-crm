@@ -373,7 +373,7 @@ export function SalesCommandOverview({
         className="p-0"
         bodyClassName="mt-5"
       >
-        <div className="grid gap-5 xl:grid-cols-[300px_minmax(0,1fr)] 2xl:grid-cols-[320px_minmax(0,1fr)]">
+        <div className="grid gap-4 lg:grid-cols-[280px_minmax(0,1fr)] 2xl:grid-cols-[300px_minmax(0,1fr)]">
           <div className="ld-solid-panel grid content-between rounded-[26px] border border-white/10 bg-[radial-gradient(circle_at_top_left,color-mix(in_srgb,var(--ld-color-primary)_18%,transparent),transparent_38%),linear-gradient(180deg,rgba(255,255,255,0.06),rgba(255,255,255,0.03))] p-5">
             <div>
               <div className="flex items-center justify-between gap-3">
@@ -453,7 +453,32 @@ export function SalesCommandOverview({
               </div>
             </div>
 
-            <div className="ld-scroll-region mt-6 overflow-x-auto pb-2">
+            <div className="mt-5 grid gap-2 sm:grid-cols-2 lg:hidden">
+              {stagePerformance.map((stage) => {
+                const percent = getPercent(stage.totalLeads, stageMax);
+                const stageColor = normalizeStageColor(stage.color) ?? "var(--ld-color-accent)";
+
+                return (
+                  <div key={stage.label} className="rounded-[17px] border border-white/10 bg-white/[0.04] p-3.5">
+                    <div className="flex min-w-0 items-center justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-bold text-white">{stage.label}</p>
+                        <p className="mt-1 text-xs text-white/60">{formatShortMoney(stage.pipelineValue, currency)}</p>
+                      </div>
+                      <p className="shrink-0 text-2xl font-bold tracking-[-0.05em] text-white">{stage.totalLeads}</p>
+                    </div>
+                    <div className="mt-3 h-2 overflow-hidden rounded-full bg-white/[0.08]">
+                      <div
+                        className="h-full rounded-full transition-[width] duration-500"
+                        style={{ width: `${Math.max(percent, stage.totalLeads > 0 ? 8 : 0)}%`, backgroundColor: stageColor }}
+                      />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            <div className="ld-scroll-region mt-6 hidden overflow-x-auto pb-2 lg:block">
               <div
                 className="grid min-h-[230px] items-end gap-3"
                 style={{

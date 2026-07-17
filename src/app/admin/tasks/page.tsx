@@ -385,7 +385,7 @@ export default async function AdminTasksPage({
           </GlassSurface>
         </section>
 
-        <section className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_300px]">
+        <section className="grid items-start gap-4 2xl:grid-cols-[minmax(0,1fr)_280px]">
           <div className="min-w-0">
             <GlassSurface as="section" className="rounded-[28px] p-5 sm:p-6 ld-animate-fade-in-up">
               <SectionHeader
@@ -410,14 +410,14 @@ export default async function AdminTasksPage({
                 eyebrow={accessLevel === "sales_rep" ? "My task health" : "Queue health"}
                 title="At a glance"
               />
-              <div className="mt-4 divide-y divide-white/10 overflow-hidden rounded-[20px] border border-white/10 bg-white/[0.04]">
+              <div className="mt-4 grid gap-2 min-[420px]:grid-cols-2 2xl:grid-cols-1">
                 {[
                   { label: "Open", value: openTasks.length },
                   { label: "Mine", value: myOpenTaskCount },
                   { label: "Completed", value: completedCount },
                   { label: "Overdue", value: overdueCount, danger: overdueCount > 0 },
                 ].map((item) => (
-                  <div key={item.label} className="flex items-center justify-between gap-4 px-4 py-3.5">
+                  <div key={item.label} className="flex items-center justify-between gap-4 rounded-[16px] border border-white/10 bg-white/[0.04] px-4 py-3.5">
                     <span className="text-sm text-white/68">{item.label}</span>
                     <span className={item.danger ? "font-semibold text-rose-200" : "font-semibold text-white"}>
                       {item.value}

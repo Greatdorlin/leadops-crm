@@ -80,10 +80,10 @@ const adminNavigation: AdminNavigationItem[] = [
   },
   {
     key: "integrations",
-    label: "Intake",
-    href: appRoutes.intake,
+    label: "Integrations",
+    href: appRoutes.integrations,
     icon: PlugZap,
-    description: "Connected forms, imports, exports, and source activity.",
+    description: "Forms, lead sources, imports, exports, and connected tools.",
   },
   {
     key: "settings",

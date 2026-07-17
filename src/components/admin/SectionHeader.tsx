@@ -26,7 +26,7 @@ export function SectionHeader({
           </p>
         ) : null}
         <div className="mt-2 flex items-center gap-2.5">
-          <h2 className="break-words font-[family:var(--font-heading)] text-[1.5rem] leading-[1.12] tracking-[-0.045em] text-white">
+          <h2 className="break-words font-[family:var(--font-heading)] text-[1.5rem] font-bold leading-[1.12] tracking-[-0.045em] text-white">
             {title}
           </h2>
           {useDescriptionTip && description ? <InfoTip label={description} align="left" /> : null}

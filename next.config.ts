@@ -44,6 +44,12 @@ const nextConfig: NextConfig = {
   turbopack: {
     root: projectRoot,
   },
+  webpack(config) {
+    if (process.env.LEADS_DESK_DISABLE_WEBPACK_CACHE === "true") {
+      config.cache = false;
+    }
+    return config;
+  },
   async redirects() {
     return [
       {

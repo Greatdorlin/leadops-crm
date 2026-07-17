@@ -39,13 +39,13 @@ export function SectionHeader({
         <div className="min-w-0">
           <div className="flex items-center gap-2.5">
             {isLarge ? (
-              <h2 className="break-words font-[family:var(--font-heading)] text-[1.78rem] leading-[1.08] tracking-[-0.045em] text-white sm:text-[2.15rem] sm:leading-[1.03]">
+              <h2 className="break-words font-[family:var(--font-heading)] text-[1.78rem] font-bold leading-[1.08] tracking-[-0.045em] text-white sm:text-[2.15rem] sm:leading-[1.03]">
                 <GradientText>{title}</GradientText>
               </h2>
             ) : (
               <h2
                 className={cn(
-                  "break-words font-[family:var(--font-heading)] tracking-[-0.04em] text-white",
+                  "break-words font-[family:var(--font-heading)] font-bold tracking-[-0.04em] text-white",
                   variant === "compact"
                     ? "text-lg leading-tight"
                     : "text-[1.35rem] leading-tight"

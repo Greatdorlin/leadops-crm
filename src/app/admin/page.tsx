@@ -1,35 +1,23 @@
-import { PlugZap, Filter } from "lucide-react";
+import { Filter } from "lucide-react";
 import Link from "next/link";
 import { AdminCollapsibleSection } from "@/components/admin/AdminCollapsibleSection";
-import { AdminDashboardWidgetDeck } from "@/components/admin/AdminDashboardWidgetDeck";
 import { AffiliateDashboardPanel } from "@/components/admin/AffiliateDashboardPanel";
+import { DashboardRecentLeads } from "@/components/admin/DashboardRecentLeads";
 import { DashboardHeroClock } from "@/components/admin/DashboardHeroClock";
 import { SalesCommandOverview } from "@/components/admin/SalesCommandOverview";
 import { AdminShell } from "@/components/admin/AdminShell";
 import { ErrorState } from "@/components/admin/ErrorState";
 import { AdminSignOutButton } from "@/components/admin/AdminSignOutButton";
-import { EmptyState } from "@/components/admin/EmptyState";
 import { GlassSurface } from "@/components/admin/ui/GlassSurface";
 import { SmoothButton } from "@/components/admin/ui/SmoothButton";
 import { SectionHeader } from "@/components/admin/ui/SectionHeader";
-import { IntegrationHealthCard } from "@/components/admin/IntegrationHealthCard";
 import { AdminSelect } from "@/components/admin/AdminSelect";
-import { MetricCard } from "@/components/admin/MetricCard";
-import { PriorityBadge } from "@/components/admin/PriorityBadge";
 import { SearchInput } from "@/components/admin/SearchInput";
-import { SourceBadge } from "@/components/admin/SourceBadge";
-import { StatusBadge } from "@/components/admin/StatusBadge";
 import { AdminAccessViewSwitcher } from "@/components/admin/AdminAccessViewSwitcher";
-import { cn } from "@/lib/cn";
 import { getAdminAccessContext } from "@/lib/admin";
 import { isLocalAdminPreviewEmail } from "@/lib/admin-access";
-import {
-  isDateToday,
-  isTaskOverdue,
-} from "@/lib/admin-insights";
 import { parseLeadListFilters } from "@/lib/admin-leads";
 import {
-  canManageIntegrationsAccess,
   canViewSalesTeam,
   scopeLeadListFilters,
   type AdminAccessLevel,
@@ -37,8 +25,6 @@ import {
 import { buildLeadDisplayNameMap } from "@/lib/crm/lead-identity";
 import {
   crmLabelize,
-  formatCrmDateTime,
-  formatLeadStateLabel,
 } from "@/lib/crm/formatters";
 import { listLeadIntakeEvents } from "@/lib/crm/intake-runtime";
 import { listLeadStages } from "@/lib/crm/lead-stages-admin";
@@ -58,7 +44,7 @@ import {
   type DashboardWidgetKey,
 } from "@/lib/crm/workspace-settings";
 import { getCompanySettings } from "@/lib/crm/workspace-settings-server";
-import type { CrmStatus, IntegrationProvider, LeadRecord } from "@/lib/crm/types";
+import type { LeadRecord } from "@/lib/crm/types";
 import { leadStore } from "@/lib/storage";
 
 export const dynamic = "force-dynamic";
@@ -82,43 +68,6 @@ const priorityOptions = ["all", "low", "medium", "high", "urgent"] as const;
 function readStageFilter(input: Record<string, string | string[] | undefined>) {
   const raw = Array.isArray(input.stage) ? input.stage[0] : input.stage;
   return raw?.trim() ? raw : undefined;
-}
-
-function safeNumber(value: number) {
-  return new Intl.NumberFormat().format(value);
-}
-
-function getIntegrationManagementHref(provider: IntegrationProvider) {
-  const routes: Partial<Record<IntegrationProvider, string>> = {
-    website: appRoutes.forms,
-    facebook: appRoutes.integration("facebook"),
-    google_sheets: appRoutes.integration("google-sheets"),
-    google_ads: appRoutes.integration("google-ads"),
-    tiktok: appRoutes.integration("tiktok"),
-    linkedin: appRoutes.integration("linkedin"),
-    sender: appRoutes.integrations,
-  };
-  return routes[provider];
-}
-
-function scoreTaskForQueue(task: Awaited<ReturnType<typeof leadStore.listLeadTasks>>[number]) {
-  if (task.completedAt) {
-    return 999;
-  }
-
-  if (isTaskOverdue(task)) {
-    return 0;
-  }
-
-  if (isDateToday(task.dueAt)) {
-    return 1;
-  }
-
-  if (!task.dueAt) {
-    return 3;
-  }
-
-  return 2;
 }
 
 function getDashboardTitle(accessLevel: AdminAccessLevel) {
@@ -447,7 +396,6 @@ function buildDevelopmentDashboardData() {
     stats,
     tasks,
     users,
-    integrations: [] as Awaited<ReturnType<typeof leadStore.listIntegrations>>,
     intakeEvents,
     activeTarget,
     stages,
@@ -478,11 +426,6 @@ export default async function AdminPage({
       : filters.stageId ?? filters.status);
   const scopedFilters = scopeLeadListFilters(filters, accessLevel, session.user?.email, crmUser);
   const showTeamViews = canViewSalesTeam(accessLevel, permissions);
-  const showTechnicalSummary = canManageIntegrationsAccess(
-    accessLevel,
-    role,
-    permissions,
-  );
   const usePersonalTaskScope =
     accessLevel === "sales_rep" || accessLevel === "affiliate" || accessLevel === "finance";
   const showIntakeFeed =
@@ -491,11 +434,9 @@ export default async function AdminPage({
   let pageData:
     | {
         leads: Awaited<ReturnType<typeof leadStore.list>>;
-        stats: Awaited<ReturnType<typeof leadStore.getDashboardStats>>;
         salesAggregate: Awaited<ReturnType<typeof leadStore.getSalesPipelineAggregate>> | null;
         tasks: Awaited<ReturnType<typeof leadStore.listLeadTasks>>;
         users: Awaited<ReturnType<typeof leadStore.listCrmUsers>>;
-        integrations: Awaited<ReturnType<typeof leadStore.listIntegrations>>;
         intakeEvents: Awaited<ReturnType<typeof listLeadIntakeEvents>>;
         activeTarget: Awaited<ReturnType<typeof getActiveGlobalSalesTarget>>;
         stages: Awaited<ReturnType<typeof listLeadStages>>;
@@ -511,13 +452,10 @@ export default async function AdminPage({
     };
     usingDevelopmentDemoData = true;
   } else try {
-    const [leads, stats, salesAggregate, tasks, users, integrations, intakeEvents, activeTarget, stages, trend] = await Promise.all([
+    const [leads, salesAggregate, tasks, users, intakeEvents, activeTarget, stages, trend] = await Promise.all([
       leadStore.list({
         ...scopedFilters,
         limit: 120,
-      }),
-      leadStore.getDashboardStats({
-        ...scopedFilters,
       }),
       leadStore.getSalesPipelineAggregate(scopedFilters),
       leadStore.listLeadTasks({
@@ -530,7 +468,6 @@ export default async function AdminPage({
         limit: 500,
       }),
       showTeamViews ? leadStore.listCrmUsers() : Promise.resolve([]),
-      showTechnicalSummary ? leadStore.listIntegrations() : Promise.resolve([]),
       showIntakeFeed ? listLeadIntakeEvents({ limit: 8 }) : Promise.resolve([]),
       getActiveGlobalSalesTarget(),
       listLeadStages(),
@@ -539,11 +476,9 @@ export default async function AdminPage({
 
     pageData = {
       leads,
-      stats,
       salesAggregate,
       tasks,
       users,
-      integrations,
       intakeEvents,
       activeTarget,
       stages,
@@ -597,24 +532,7 @@ export default async function AdminPage({
     );
   }
 
-  const { leads, stats, salesAggregate, tasks, users, integrations, intakeEvents, activeTarget, stages, trend } = pageData;
-  const openTasks = tasks.filter((task) => !task.completedAt);
-  const leadNameById = buildLeadDisplayNameMap(leads);
-  const focusedTasks = openTasks
-    .sort((left, right) => {
-      const priorityDifference = scoreTaskForQueue(left) - scoreTaskForQueue(right);
-      if (priorityDifference !== 0) {
-        return priorityDifference;
-      }
-
-      const leftTime = left.dueAt ? new Date(left.dueAt).getTime() : Number.MAX_SAFE_INTEGER;
-      const rightTime = right.dueAt ? new Date(right.dueAt).getTime() : Number.MAX_SAFE_INTEGER;
-      return leftTime - rightTime;
-    })
-    .slice(0, 8);
-  const leadStateById = Object.fromEntries(
-    leads.map((lead) => [lead.id, lead.state]),
-  );
+  const { leads, salesAggregate, tasks, users, intakeEvents, activeTarget, stages, trend } = pageData;
   const hasFilters = Boolean(
     filters.search ||
       (selectedStage && selectedStage !== "all") ||
@@ -639,10 +557,40 @@ export default async function AdminPage({
   const salesDashboardWidgetKeys = visibleDashboardWidgetKeys.filter(
     (key) => key !== "my_tasks" && key !== "recent_leads" && key !== "quick_actions",
   );
-  const nextActionWidgetOrder = visibleDashboardWidgetKeys.filter(
-    (key) => key === "my_tasks" || key === "recent_leads" || key === "quick_actions",
-  );
   const stageById = new Map(stages.map((stage) => [stage.id, stage]));
+  const dashboardStageOptions = stages
+    .filter((stage) => !stage.archived)
+    .map((stage) => ({
+      id: stage.id,
+      key: stage.key,
+      label: stage.name,
+      color: stage.color,
+    }));
+  const dashboardAssigneeOptions = users
+    .filter((user) => user.isActive)
+    .map((user) => ({
+      avatarUrl: user.avatarUrl,
+      detail: user.role,
+      label: user.fullName || user.email,
+      value: user.email,
+    }));
+  const dashboardRecentLeads = recentLeads.map((lead) => {
+    const stage = stageById.get(lead.stageId ?? "");
+    return {
+      assignedTo: lead.assignedTo,
+      contact: lead.email || lead.whatsappNumber || "No contact details yet",
+      createdAt: lead.createdAt,
+      id: lead.id,
+      location: lead.region || lead.city || lead.state || lead.country || "Location not captured",
+      name: recentLeadNameById[lead.id] || `${(lead.firstName || "Lead").trim()} ${lead.lastName}`.trim(),
+      nextFollowUpAt: lead.nextFollowUpAt ?? null,
+      priority: lead.priority,
+      source: lead.source,
+      stageColor: stage?.color ?? null,
+      stageId: lead.stageId ?? null,
+      stageLabel: stage?.name ?? crmLabelize(lead.crmStatus),
+    };
+  });
   const salesDashboardSummary = salesAggregate
     ? mergeSalesDashboardSummary(salesAggregate, { intakeEvents, activeTarget })
     : buildSalesDashboardSummary({
@@ -852,212 +800,15 @@ export default async function AdminPage({
           </>
         )}
 
-        {nextActionWidgetOrder.length > 0 ? (
-          <>
-            <SectionHeader
-              eyebrow="Workspace"
-              title="Next actions"
-              description="Tasks, leads, and lanes that need attention now."
-            />
-            <AdminDashboardWidgetDeck
-          initialOrder={nextActionWidgetOrder}
-          persistKey={`ld-dashboard-next-actions-v2:${accessLevel}`}
-          widgets={[
-            {
-              id: "my_tasks",
-              step: "1",
-              stepLabel: "Start here",
-              eyebrow: "Tasks to handle",
-              title: accessLevel === "sales_rep" ? "Start with these tasks" : "Tasks that need attention first",
-              description: "Urgent items, due-today work, and overdue follow-ups surface first.",
-              accent: "warm" as const,
-              ctaHref: appRoutes.tasks,
-              ctaLabel: "View all",
-              children:
-                focusedTasks.slice(0, 4).length > 0 ? (
-                  <div className="overflow-hidden rounded-[24px] border border-white/10 bg-white/[0.035]">
-                    {focusedTasks.slice(0, 4).map((task, index) => (
-                      <article
-                        key={task.id}
-                        className={cn(
-                          "flex flex-col gap-4 px-4 py-4 transition hover:bg-white/[0.06] sm:flex-row sm:items-center sm:justify-between",
-                          index < focusedTasks.slice(0, 4).length - 1 ? "border-b border-white/10" : "",
-                          isTaskOverdue(task) ? "border-l-2 border-l-rose-400/70" : isDateToday(task.dueAt) ? "border-l-2 border-l-amber-400/70" : "",
-                        )}
-                      >
-                        <div className="min-w-0">
-                            <p className="text-base font-semibold text-white">{task.title}</p>
-                            <p className="mt-1 text-sm text-white/70">
-                              {leadNameById[task.leadId] || "Lead"}
-                              {leadStateById[task.leadId]
-                                ? ` • ${formatLeadStateLabel(leadStateById[task.leadId])}`
-                                : ""}
-                              {" • "}
-                              {formatCrmDateTime(task.dueAt)}
-                            </p>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Link
-                            href={appRoutes.lead(task.leadId)}
-                            className="admin-button-ghost inline-flex h-8 items-center justify-center gap-2 rounded-lg px-3 text-sm font-semibold text-white/70 transition-all duration-200 hover:bg-white/[0.06] hover:text-white"
-                          >
-                            Open lead
-                          </Link>
-                        </div>
-                      </article>
-                    ))}
-                  </div>
-                ) : (
-                  <EmptyState
-                    title="No tasks due right now"
-                    description="Create a task so the next step stays visible."
-                  />
-                ),
-            },
-            {
-              id: "recent_leads",
-              step: "2",
-              stepLabel: "Review next",
-              eyebrow: "Recent leads",
-              title: "Newest leads",
-              description: "Fresh arrivals, newest activity, and lead context in one quick scan.",
-              accent: "cool" as const,
-              ctaHref: appRoutes.leads,
-              ctaLabel: "View all",
-              children:
-                recentLeads.length > 0 ? (
-                  <div className="overflow-hidden rounded-[24px] border border-white/10 bg-white/[0.035]">
-                    {recentLeads.map((lead, index) => (
-                      <Link
-                        key={lead.id}
-                        href={appRoutes.lead(lead.id)}
-                        className={cn(
-                          "block px-4 py-4 transition hover:bg-white/[0.06] ld-animate-fade-in-up",
-                          index < recentLeads.length - 1 ? "border-b border-white/10" : "",
-                        )}
-                        style={{ animationDelay: `${index * 60}ms` }}
-                      >
-                        <div className="flex items-start gap-3">
-                          <div className="min-w-0 flex-1">
-                            <p className="text-base font-semibold text-white [overflow-wrap:anywhere]">
-                              {recentLeadNameById[lead.id] || `${(lead.firstName || "Lead").trim()} ${lead.lastName}`.trim()}
-                            </p>
-                            <p className="mt-1 text-sm leading-6 text-white/70 [overflow-wrap:anywhere]">
-                              {lead.email || lead.whatsappNumber || "No contact details yet"}
-                            </p>
-                            <p className="mt-2 text-xs font-medium uppercase tracking-[0.14em] text-white/70">
-                              {lead.state ? formatLeadStateLabel(lead.state) : "Region not captured yet"}
-                            </p>
-                          </div>
-                          <div className="shrink-0 rounded-full border border-white/10 bg-white/[0.06] px-2.5 py-1">
-                            <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/70">
-                              {formatCrmDateTime(lead.createdAt)}
-                            </p>
-                          </div>
-                        </div>
-                        <div className="mt-3 flex flex-wrap items-center gap-2">
-                          <SourceBadge source={lead.source} />
-                          <StatusBadge
-                            status={(stageById.get(lead.stageId ?? "")?.key ?? lead.crmStatus) as CrmStatus}
-                            label={stageById.get(lead.stageId ?? "")?.name ?? crmLabelize(lead.crmStatus)}
-                            color={stageById.get(lead.stageId ?? "")?.color}
-                          />
-                          <PriorityBadge priority={lead.priority} />
-                        </div>
-                      </Link>
-                    ))}
-                  </div>
-                ) : (
-                  <EmptyState
-                    title="No recent leads yet"
-                    description="New leads will show up here as soon as they arrive."
-                  />
-                ),
-            },
-            {
-              id: "quick_actions",
-              step: "3",
-              stepLabel: "Jump in",
-              eyebrow: "Operational lanes",
-              title: "Open the right workspace fast",
-              description: "Open the right place without crowding the dashboard.",
-              accent: "navy" as const,
-              defaultOpen: false,
-              children: (
-                <div className="grid gap-3 md:grid-cols-3">
-                  {[
-                    {
-                      label: "Leads",
-                      copy: "Create, import, filter, assign, and export lead segments.",
-                      href: appRoutes.leads,
-                    },
-                    {
-                      label: "Tasks",
-                      copy: "Create tasks, clear overdue work, and rebalance follow-up.",
-                      href: appRoutes.tasks,
-                    },
-                    {
-                      label: "Reports",
-                      copy: "Review pipeline, source performance, and revenue progress.",
-                      href: appRoutes.reports,
-                    },
-                  ].map((lane) => (
-                    <Link
-                      key={lane.label}
-                      href={lane.href}
-                      className="admin-surface-muted rounded-[24px] px-4 py-4 transition hover:border-white/20 hover:bg-white/[0.08]"
-                    >
-                      <p className="text-base font-semibold text-white">{lane.label}</p>
-                      <p className="mt-2 text-sm leading-6 text-white/70">{lane.copy}</p>
-                    </Link>
-                  ))}
-                </div>
-              ),
-            },
-          ].filter((widget) =>
-            visibleDashboardWidgetSet.has(widget.id as DashboardWidgetKey),
-          )}
-            />
-          </>
+        {visibleDashboardWidgetSet.has("recent_leads") ? (
+          <DashboardRecentLeads
+            leads={dashboardRecentLeads}
+            stageOptions={dashboardStageOptions}
+            assigneeOptions={dashboardAssigneeOptions}
+            previewMode={usingDevelopmentDemoData}
+          />
         ) : null}
 
-        {showTechnicalSummary ? (
-          <AdminCollapsibleSection
-            eyebrow="Connected tools"
-            title="Tool status"
-            description="Live connection health."
-          >
-            <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-              <MetricCard
-                label="Tool issues"
-                value={safeNumber(stats.failedIntegrations)}
-                supporting={
-                  stats.failedIntegrations > 0
-                    ? "One or more connected tools still need attention."
-                    : "No connection issue is currently flagged."
-                }
-                tone={stats.failedIntegrations > 0 ? "danger" : "positive"}
-              />
-              {integrations.length > 0 ? (
-                integrations.slice(0, 3).map((integration) => (
-                  <IntegrationHealthCard
-                    key={integration.id}
-                    integration={integration}
-                    href={getIntegrationManagementHref(integration.provider)}
-                  />
-                ))
-              ) : (
-                <div className="md:col-span-2 xl:col-span-3">
-                  <EmptyState
-                    title="No connected tools yet"
-                    description="Connected tools will show up here once setup is saved."
-                    icon={PlugZap}
-                  />
-                </div>
-              )}
-            </div>
-          </AdminCollapsibleSection>
-        ) : null}
       </div>
     </AdminShell>
   );

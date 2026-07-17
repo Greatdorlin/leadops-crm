@@ -8,9 +8,8 @@ import {
 } from "@/lib/crm/custom-field-values";
 import type { LeadCustomerType } from "@/lib/crm/types";
 import { CustomFieldValueInputs } from "./CustomFieldValueInputs";
-import { GlassSurface } from "./ui/GlassSurface";
 import { SmoothButton } from "./ui/SmoothButton";
-import { GradientText } from "./ui/GradientText";
+import { CountrySearchInput } from "./CountrySearchInput";
 
 type ProfileInputProps = {
   label: string;
@@ -179,12 +178,7 @@ export function LeadProfileForm({
   }
 
   return (
-    <GlassSurface intensity="medium" className="ld-animate-fade-in-up rounded-[24px] p-4">
-      <div className="mb-4 flex items-center gap-2">
-        <h3 className="text-sm font-semibold text-white/80">
-          <GradientText>Edit profile</GradientText>
-        </h3>
-      </div>
+    <div>
       <div className="grid gap-3 sm:grid-cols-2">
         <section className="space-y-3 sm:col-span-2">
           <p className={labelClass}>Lead type</p>
@@ -219,7 +213,7 @@ export function LeadProfileForm({
         <ProfileInput label="Email" type="email" value={email} onChange={setEmail} placeholder="lead@example.com" />
         <ProfileInput label="WhatsApp" value={whatsappNumber} onChange={setWhatsappNumber} placeholder="+234 801 234 5678" />
         <ProfileInput label="Previous region" value={state} onChange={setState} placeholder="Lagos" />
-        <ProfileInput label="Country" value={country} onChange={setCountry} placeholder="Nigeria" />
+        <CountrySearchInput value={country} onChange={setCountry} />
         <ProfileInput label="Company" value={companyName} onChange={setCompanyName} placeholder="Northwind Ventures" />
         <ProfileInput label="State/Province/Region" value={region} onChange={setRegion} placeholder="Lagos State" />
         <ProfileInput label="City" value={city} onChange={setCity} placeholder="Lekki" />
@@ -278,6 +272,6 @@ export function LeadProfileForm({
       </div>
 
       {message ? <p className="mt-3 text-sm text-white/70">{message}</p> : null}
-    </GlassSurface>
+    </div>
   );
 }

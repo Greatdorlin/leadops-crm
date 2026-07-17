@@ -214,7 +214,7 @@ export function LeadOpportunityManager({
 
   return (
     <div className="space-y-4">
-      <div className="grid gap-3 md:grid-cols-4">
+      <div className="grid grid-cols-2 gap-x-4 gap-y-3 md:grid-cols-4">
         {[
           ["Pipeline value", formatMoney(rollup.expectedValue ?? rollup.estimatedValue, currency)],
           ["Open offers", String(rollup.activeCount)],
@@ -223,7 +223,7 @@ export function LeadOpportunityManager({
         ].map(([label, value]) => (
           <div
             key={label}
-            className="rounded-[22px] border border-white/10 bg-white/[0.045] px-4 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]"
+            className="border-b border-white/10 px-1 py-3"
           >
             <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/70">
               {label}
@@ -231,19 +231,6 @@ export function LeadOpportunityManager({
             <p className="mt-2 text-lg font-semibold tracking-[-0.04em] text-white">{value}</p>
           </div>
         ))}
-      </div>
-
-      <div className="flex items-start justify-between gap-3 rounded-[22px] border border-white/16 bg-white/[0.08] px-4 py-3">
-        <div>
-          <p className="text-sm font-semibold text-white">Offer tracking</p>
-          <p className="mt-1 text-sm leading-6 text-white/70">
-            Keep multiple offers on one lead without overstating the live pipeline.
-          </p>
-        </div>
-        <InfoTip
-          label="Active, qualified, and on-hold offers count toward pipeline. Lost and unqualified offers stay in history but stop inflating live value."
-          align="right"
-        />
       </div>
 
       <div className="rounded-[22px] border border-white/10 bg-white/[0.045] p-4">
@@ -502,7 +489,11 @@ export function LeadOpportunityManager({
                 </div>
                 <label className="space-y-2 md:col-span-2 xl:col-span-3">
                   <span className="text-xs font-semibold uppercase tracking-[0.16em] text-white/70">
-                    {requiresReason ? "Why it dropped out" : "Reason or qualification note"}
+                    {opportunity.status === "lost"
+                      ? "Reason for loss"
+                      : opportunity.status === "unqualified"
+                        ? "Reason not qualified"
+                        : "Qualification reason"}
                     {requiresReason ? " *" : ""}
                   </span>
                   <input
@@ -536,30 +527,6 @@ export function LeadOpportunityManager({
                 </label>
               </div>
 
-              <div className="mt-4 grid gap-3 sm:grid-cols-3">
-                <div className="rounded-[18px] border border-white/10 bg-black/10 px-4 py-3">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/58">
-                    Status effect
-                  </p>
-                  <p className="mt-2 text-sm font-semibold text-white">
-                    {countsTowardPipeline ? "Adds to live pipeline" : "History only"}
-                  </p>
-                </div>
-                <div className="rounded-[18px] border border-white/10 bg-black/10 px-4 py-3">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/58">
-                    Offer value
-                  </p>
-                  <p className="mt-2 text-sm font-semibold text-white">
-                    {hasValue ? formatMoney(Number(opportunity.estimatedValue), opportunity.currency) : "Not set"}
-                  </p>
-                </div>
-                <div className="rounded-[18px] border border-white/10 bg-black/10 px-4 py-3">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/58">
-                    Expected value
-                  </p>
-                  <p className="mt-2 text-sm font-semibold text-white">{formatMoney(expectedValue, opportunity.currency)}</p>
-                </div>
-              </div>
             </div>
           );
         })}
@@ -569,7 +536,7 @@ export function LeadOpportunityManager({
         <button
           type="button"
           onClick={addOpportunity}
-          className="admin-button-secondary inline-flex h-11 items-center justify-center rounded-2xl px-5 text-sm font-semibold"
+          className="admin-button-secondary inline-flex h-11 w-full items-center justify-center rounded-2xl px-5 text-sm font-semibold sm:w-auto"
         >
           <Plus className="mr-2 h-4 w-4" />
           Add another offer
@@ -578,7 +545,7 @@ export function LeadOpportunityManager({
           type="button"
           disabled={isSaving}
           onClick={() => void saveOpportunities()}
-          className="admin-button-primary h-11 rounded-2xl px-5 text-sm"
+          className="admin-button-primary h-11 w-full rounded-2xl px-5 text-sm sm:w-auto"
         >
           {isSaving ? "Saving..." : "Save offer tracking"}
         </button>

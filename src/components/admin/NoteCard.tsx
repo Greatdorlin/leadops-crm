@@ -21,6 +21,10 @@ function getAuthorBorderColor(author?: string | null): string {
 }
 
 export function NoteCard({ note, index = 0 }: { note: LeadNoteRecord; index?: number }) {
+  const categoryMatch = note.note.match(/^\[([^\]]+)]\s*/);
+  const category = categoryMatch?.[1];
+  const body = categoryMatch ? note.note.slice(categoryMatch[0].length) : note.note;
+
   return (
     <AnimatedCard
       animation="fadeInUp"
@@ -32,12 +36,13 @@ export function NoteCard({ note, index = 0 }: { note: LeadNoteRecord; index?: nu
       )}
     >
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <p className="text-xs uppercase tracking-[0.16em] text-white/70">
-          {note.createdBy || "Team note"}
-        </p>
+        <div className="flex flex-wrap items-center gap-2">
+          {category ? <span className="rounded-full border border-white/12 bg-white/[0.07] px-2.5 py-1 text-[11px] font-semibold text-white/80">{category}</span> : null}
+          <p className="text-xs uppercase tracking-[0.16em] text-white/70">{note.createdBy || "Team note"}</p>
+        </div>
         <p className="text-xs text-white/70">{formatCrmDateTime(note.createdAt)}</p>
       </div>
-      <p className="mt-3 text-sm leading-6 text-white/80">{note.note}</p>
+      <p className="mt-3 text-sm leading-6 text-white/80">{body}</p>
     </AnimatedCard>
   );
 }

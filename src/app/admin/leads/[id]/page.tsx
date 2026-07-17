@@ -8,7 +8,6 @@ import {
   Mail,
   MapPin,
   MessageCircle,
-  NotebookPen,
   PhoneCall,
   TriangleAlert,
   UserRound,
@@ -21,7 +20,9 @@ import { LeadLifecycleButton } from "@/components/admin/LeadLifecycleButton";
 import { AdminSignOutButton } from "@/components/admin/AdminSignOutButton";
 import { EmptyState } from "@/components/admin/EmptyState";
 import { LeadNoteForm } from "@/components/admin/LeadNoteForm";
+import { LeadQuickNoteDialog } from "@/components/admin/LeadQuickNoteDialog";
 import { LeadOpportunityManager } from "@/components/admin/LeadOpportunityManager";
+import { AdminCollapsibleSection } from "@/components/admin/AdminCollapsibleSection";
 import { LeadProfileForm } from "@/components/admin/LeadProfileForm";
 import { LeadStatusForm } from "@/components/admin/LeadStatusForm";
 import { LeadSyncActions } from "@/components/admin/LeadSyncActions";
@@ -55,7 +56,7 @@ import {
 } from "@/lib/crm/formatters";
 import { loadAdminLeadReadContext } from "@/lib/crm/admin-read-context";
 import { listCustomFields } from "@/lib/crm/custom-fields-admin";
-import { buildLeadOpportunityRollup, listLeadOpportunities } from "@/lib/crm/lead-opportunities";
+import { listLeadOpportunities } from "@/lib/crm/lead-opportunities";
 import { listLeadStages } from "@/lib/crm/lead-stages-admin";
 import { getCrmPageErrorCopy, logCrmPageError } from "@/lib/crm/runtime";
 import type { CrmStatus } from "@/lib/crm/types";
@@ -69,18 +70,6 @@ export const dynamic = "force-dynamic";
 function buildWhatsAppHref(value?: string | null) {
   const sanitized = value?.replace(/[^\d]/g, "") ?? "";
   return sanitized ? `https://wa.me/${sanitized}` : null;
-}
-
-function formatMoney(value: number | null | undefined, currency: string) {
-  if (value === null || value === undefined) {
-    return "Not set";
-  }
-
-  return new Intl.NumberFormat(undefined, {
-    style: "currency",
-    currency,
-    maximumFractionDigits: 0,
-  }).format(value);
 }
 
 function eventTone(eventType: string) {
@@ -320,7 +309,6 @@ export default async function AdminLeadDetailPage({
         isLost: stage.isLost,
       }))
     : undefined;
-  const opportunityRollup = buildLeadOpportunityRollup(opportunityRows);
 
   return (
     <AdminShell
@@ -417,7 +405,7 @@ export default async function AdminLeadDetailPage({
 
           <div className="grid gap-0 xl:grid-cols-3">
             <div className="border-b border-white/10/80 px-5 py-6 sm:px-6 xl:border-b-0 xl:border-r">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#243f7e]">Contact</p>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/72">Contact</p>
               <div className="mt-4 h-px bg-[linear-gradient(90deg,rgba(158,183,255,0.75)_0%,rgba(158,183,255,0.18)_100%)]" />
 
               <div className="mt-6 space-y-6">
@@ -460,7 +448,7 @@ export default async function AdminLeadDetailPage({
             </div>
 
             <div className="border-b border-white/10/80 px-5 py-6 sm:px-6 xl:border-b-0 xl:border-r">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#243f7e]">Lead details</p>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/72">Lead details</p>
               <div className="mt-4 h-px bg-[linear-gradient(90deg,rgba(158,183,255,0.75)_0%,rgba(158,183,255,0.18)_100%)]" />
 
               <div className="mt-6 space-y-6">
@@ -507,7 +495,7 @@ export default async function AdminLeadDetailPage({
             </div>
 
             <div className="px-5 py-6 sm:px-6">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#243f7e]">Next touch</p>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/72">Next touch</p>
               <div className="mt-4 h-px bg-[linear-gradient(90deg,rgba(158,183,255,0.75)_0%,rgba(158,183,255,0.18)_100%)]" />
 
               <div className="mt-6 rounded-[28px] border border-white/10 bg-white/[0.06] p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] ld-animate-fade-in">
@@ -516,7 +504,7 @@ export default async function AdminLeadDetailPage({
                     <CalendarDays className="h-5 w-5" />
                   </span>
                   <div className="min-w-0">
-                    <p className="text-[1.75rem] font-semibold tracking-[-0.05em] text-white">
+                    <p className="break-words text-[1.35rem] font-semibold tracking-[-0.04em] text-white sm:text-[1.75rem]">
                       {nextTask?.title || "Not scheduled"}
                     </p>
                     <p className="mt-3 text-[1.05rem] leading-8 text-white/70">
@@ -542,7 +530,7 @@ export default async function AdminLeadDetailPage({
             <div className="flex flex-wrap gap-3">
               <a
                 href="#lead-tasks"
-                className="ld-focus-ring inline-flex h-12 items-center justify-center rounded-2xl bg-[linear-gradient(135deg,#09174b_0%,#17348b_100%)] px-6 text-base font-semibold text-white shadow-[0_16px_34px_rgba(14,28,88,0.24)] transition hover:brightness-[1.04]"
+                className="ld-focus-ring inline-flex h-12 w-full items-center justify-center rounded-2xl bg-[linear-gradient(135deg,#09174b_0%,#17348b_100%)] px-6 text-base font-semibold text-white shadow-[0_16px_34px_rgba(14,28,88,0.24)] transition hover:brightness-[1.04] sm:w-auto"
               >
                 Add next touch
               </a>
@@ -551,7 +539,7 @@ export default async function AdminLeadDetailPage({
                   href={whatsappHref}
                   target="_blank"
                   rel="noreferrer"
-                  className="admin-button-secondary ld-focus-ring inline-flex h-12 items-center justify-center rounded-2xl px-5 text-base font-medium"
+                  className="admin-button-secondary ld-focus-ring inline-flex h-12 w-full items-center justify-center rounded-2xl px-5 text-base font-medium sm:w-auto"
                 >
                   <MessageCircle className="mr-2 h-5 w-5" />
                   Message
@@ -560,7 +548,7 @@ export default async function AdminLeadDetailPage({
               {lead.email ? (
                 <a
                   href={`mailto:${lead.email}`}
-                  className="admin-button-secondary ld-focus-ring inline-flex h-12 items-center justify-center rounded-2xl px-5 text-base font-medium"
+                  className="admin-button-secondary ld-focus-ring inline-flex h-12 w-full items-center justify-center rounded-2xl px-5 text-base font-medium sm:w-auto"
                 >
                   <Mail className="mr-2 h-5 w-5" />
                   Email
@@ -569,18 +557,18 @@ export default async function AdminLeadDetailPage({
               {lead.whatsappNumber ? (
                 <a
                   href={`tel:${lead.whatsappNumber}`}
-                  className="admin-button-secondary ld-focus-ring inline-flex h-12 items-center justify-center rounded-2xl px-5 text-base font-medium"
+                  className="admin-button-secondary ld-focus-ring inline-flex h-12 w-full items-center justify-center rounded-2xl px-5 text-base font-medium sm:w-auto"
                 >
                   <PhoneCall className="mr-2 h-5 w-5" />
                   Call
                 </a>
               ) : null}
+              <LeadQuickNoteDialog leadId={lead.id} />
               <a
-                href="#lead-notes"
-                className="admin-button-secondary ld-focus-ring inline-flex h-12 items-center justify-center rounded-2xl px-5 text-base font-medium"
+                href="#lead-potential"
+                className="admin-button-secondary ld-focus-ring inline-flex h-12 w-full items-center justify-center rounded-2xl px-5 text-base font-medium sm:w-auto"
               >
-                <NotebookPen className="mr-2 h-5 w-5" />
-                Add note
+                Lead potential
               </a>
               {canTrashLead ? (
                 <LeadLifecycleButton
@@ -609,6 +597,39 @@ export default async function AdminLeadDetailPage({
             </div>
           </div>
         </section>
+
+        <AdminCollapsibleSection
+          eyebrow="Lead context"
+          title="What they told us"
+          description="Key answers and submitted details to review before outreach."
+          defaultOpen
+          className="scroll-mt-24"
+          bodyClassName="space-y-4"
+        >
+          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+            {leadView.keyFacts.map(({ label, value }) => (
+              <div key={label} className="rounded-2xl border border-white/10 bg-white/[0.045] px-4 py-3">
+                <p className="text-xs font-semibold uppercase tracking-[0.12em] text-white/60">{label}</p>
+                <p className="mt-1.5 text-sm leading-6 text-white/82">{value}</p>
+              </div>
+            ))}
+          </div>
+          {leadView.intakeAnswers.length > 0 ? (
+            <details className="group rounded-2xl border border-white/10 bg-white/[0.035] px-4 py-3">
+              <summary className="cursor-pointer list-none text-sm font-semibold text-white marker:hidden">
+                All captured answers <span className="text-white/50">({leadView.intakeAnswers.length})</span>
+              </summary>
+              <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+                {leadView.intakeAnswers.map(({ label, value }) => (
+                  <div key={label} className="rounded-xl bg-black/10 px-3 py-3">
+                    <p className="text-xs font-semibold uppercase tracking-[0.12em] text-white/60">{label}</p>
+                    <p className="mt-1.5 text-sm leading-6 text-white/80">{value}</p>
+                  </div>
+                ))}
+              </div>
+            </details>
+          ) : null}
+        </AdminCollapsibleSection>
 
         {duplicateCandidates.length > 0 ? (
           <section className="rounded-[24px] border border-amber-300/20 bg-amber-400/[0.06] p-5 ld-animate-fade-in-up" style={{animationDelay: "80ms"}}>
@@ -675,7 +696,7 @@ export default async function AdminLeadDetailPage({
               </div>
             </section>
 
-            <section className="admin-surface rounded-[24px] p-5">
+            <section className="admin-surface rounded-[24px] p-4 sm:p-5">
               <SectionHeader
                 eyebrow="Profile"
                 title="Contact details"
@@ -713,50 +734,16 @@ export default async function AdminLeadDetailPage({
                     initialCustomFieldValues={readContext.customFieldValuesByLeadId.get(lead.id) ?? []}
                   />
                 )}
-
-                <div className="grid gap-4 text-sm text-white/70">
-                  {[
-                    ["Company", leadView.companyName || "Not set"],
-                    ["Next follow-up", leadView.nextFollowUpAt ? formatCrmDateTime(leadView.nextFollowUpAt) : "Not scheduled"],
-                    ["Estimated value", formatMoney(leadView.estimatedValue, currency)],
-                    ["Expected value", formatMoney(leadView.expectedValue, currency)],
-                    ["Close probability", leadView.closeProbability !== null && leadView.closeProbability !== undefined ? `${leadView.closeProbability}%` : "Not set"],
-                    ["Expected close", leadView.expectedCloseDate ? formatCrmDateTime(leadView.expectedCloseDate) : "Not set"],
-                    ["Won value", formatMoney(leadView.wonValue, currency)],
-                    ["Lost reason", leadView.lostReason || "Not set"],
-                    ["Fit signal", leadView.fitSignalLabel],
-                    ["Top interest", leadView.interestLabel],
-                    ["Last updated", formatCrmDateTime(lead.updatedAt)],
-                  ].map(([label, value]) => (
-                    <div key={label} className="rounded-2xl border border-white/10 bg-white/[0.045] px-4 py-3">
-                      <p className="text-xs font-semibold uppercase tracking-[0.12em] text-white/60">{label}</p>
-                      <p className="mt-1.5 text-sm text-white/72">{value}</p>
-                    </div>
-                  ))}
-                </div>
               </div>
             </section>
 
-            <section className="admin-surface rounded-[24px] p-5">
+            <section id="lead-potential" className="admin-surface scroll-mt-24 rounded-[24px] p-4 sm:p-5">
               <SectionHeader
                 eyebrow="Offer tracking"
                 title="Offer opportunities"
                 description="Track multiple offers per lead so lost or unqualified options stop inflating pipeline."
               />
               <div className="mt-4 space-y-4">
-                <div className="grid gap-4 text-sm text-white/70 md:grid-cols-2 xl:grid-cols-4">
-                  {[
-                    ["Pipeline value", formatMoney(opportunityRollup.expectedValue, currency)],
-                    ["Open offers", `${opportunityRollup.activeCount}`],
-                    ["Removed from pipeline", `${opportunityRollup.inactiveCount}`],
-                    ["Won offers", `${opportunityRollup.wonCount}`],
-                  ].map(([label, value]) => (
-                    <div key={label} className="rounded-2xl border border-white/10 bg-white/[0.045] px-4 py-3">
-                      <p className="text-xs font-semibold uppercase tracking-[0.12em] text-white/60">{label}</p>
-                      <p className="mt-1.5 text-sm text-white/72">{value}</p>
-                    </div>
-                  ))}
-                </div>
                 {lead.deletedAt ? (
                   <EmptyState
                     title="Lead is in trash"
@@ -818,13 +805,14 @@ export default async function AdminLeadDetailPage({
             ) : null}
 
             {showTechnicalLeadContext ? (
-              <section className="admin-surface rounded-[24px] p-5 ld-animate-fade-in-up" style={{animationDelay: "320ms"}}>
-                <SectionHeader
-                  eyebrow="Connected tools"
-                  title="Tool updates"
-                  description="Current sync status for this lead."
-                />
-                <div className="mt-4 grid gap-3">
+              <AdminCollapsibleSection
+                eyebrow="Connected tools"
+                title="Tool updates"
+                description="Current sync status for this lead."
+                defaultOpen={false}
+                className="ld-animate-fade-in-up"
+              >
+                <div className="grid gap-3">
                   <div className="admin-surface-muted rounded-2xl p-4 ld-animate-fade-in">
                     <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-white/60">
                       Google Sheets
@@ -849,7 +837,7 @@ export default async function AdminLeadDetailPage({
                 <div className="mt-4">
                   <LeadSyncActions leadId={lead.id} canSyncSender={leadView.marketingConsent} />
                 </div>
-              </section>
+              </AdminCollapsibleSection>
             ) : null}
           </div>
 
@@ -920,13 +908,14 @@ export default async function AdminLeadDetailPage({
               </div>
             </section>
 
-            <section className="admin-surface rounded-[24px] p-5 ld-animate-fade-in-up" style={{animationDelay: "220ms"}}>
-              <SectionHeader
-                eyebrow="Activity"
-                title="Activity feed"
-                description="Status changes, task actions, and captured notes stay visible here."
-              />
-              <div className="mt-4 space-y-4">
+            <AdminCollapsibleSection
+              eyebrow="Activity"
+              title="Activity feed"
+              description="Status changes, task actions, and captured notes stay visible here."
+              defaultOpen={false}
+              className="ld-animate-fade-in-up"
+            >
+              <div className="space-y-4">
                 {events.length > 0 ? (
                   events.map((event) => (
                     <TimelineItem
@@ -952,7 +941,7 @@ export default async function AdminLeadDetailPage({
                   />
                 )}
               </div>
-            </section>
+            </AdminCollapsibleSection>
             <section className="admin-surface rounded-[24px] p-5">
               <SectionHeader
                 eyebrow="Lead summary"
@@ -1007,48 +996,6 @@ export default async function AdminLeadDetailPage({
               )}
             </section>
 
-            <section className="admin-surface rounded-[24px] p-5 ld-animate-fade-in-up" style={{animationDelay: "300ms"}}>
-              <SectionHeader
-                eyebrow="Key answers"
-                title="What they told us"
-                description="The quickest answers to scan before outreach."
-              />
-              <div className="mt-4 grid gap-3">
-                {leadView.keyFacts.map(({ label, value }) => (
-                  <div key={label} className="admin-surface-muted rounded-2xl px-4 py-3 ld-animate-fade-in">
-                    <p className="text-xs font-semibold uppercase tracking-[0.12em] text-white/60">{label}</p>
-                    <p className="mt-1.5 text-sm text-white/72">{value}</p>
-                  </div>
-                ))}
-              </div>
-            </section>
-          </div>
-        </section>
-
-        <section className="admin-surface rounded-[24px] p-5">
-          <SectionHeader
-            eyebrow="Lead intake"
-            title="Captured intake answers"
-            description="Submitted answers that inform qualification and next-step guidance."
-          />
-          <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-            {leadView.intakeAnswers.length > 0 ? (
-              leadView.intakeAnswers.map(({ label, value }) => (
-                <div key={label} className="admin-surface-muted rounded-2xl p-4 ld-animate-fade-in">
-                  <p className="text-xs font-semibold uppercase tracking-[0.12em] text-white/60">
-                    {label}
-                  </p>
-                  <p className="mt-2 text-sm leading-6 text-white/80">{value}</p>
-                </div>
-              ))
-            ) : (
-              <div className="md:col-span-2 xl:col-span-3">
-                <EmptyState
-                  title="No intake answers yet"
-                  description="Captured answers will appear here after the lead completes more of the intake journey."
-                />
-              </div>
-            )}
           </div>
         </section>
       </div>

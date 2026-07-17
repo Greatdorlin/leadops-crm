@@ -2,14 +2,16 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { GlassSurface } from "./ui/GlassSurface";
 import { SmoothButton } from "./ui/SmoothButton";
-import { GradientText } from "./ui/GradientText";
 import { NotebookPen } from "lucide-react";
+import { AdminSelect } from "./AdminSelect";
 
-export function LeadNoteForm({ leadId }: { leadId: string }) {
+const noteCategories = ["General note", "Customer context", "Qualification", "Follow-up", "Reason for loss"];
+
+export function LeadNoteForm({ leadId, onSaved }: { leadId: string; onSaved?: () => void }) {
   const router = useRouter();
   const [note, setNote] = useState("");
+  const [category, setCategory] = useState(noteCategories[0]);
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState("");
 
@@ -28,7 +30,7 @@ export function LeadNoteForm({ leadId }: { leadId: string }) {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ note }),
+        body: JSON.stringify({ note: `[${category}] ${note.trim()}` }),
       });
 
       const payload = (await response.json().catch(() => null)) as { error?: string } | null;
@@ -42,6 +44,7 @@ export function LeadNoteForm({ leadId }: { leadId: string }) {
       setMessage("Note added.");
       setIsSaving(false);
       router.refresh();
+      onSaved?.();
     } catch {
       setMessage("We couldn't save this note right now.");
       setIsSaving(false);
@@ -49,22 +52,17 @@ export function LeadNoteForm({ leadId }: { leadId: string }) {
   }
 
   return (
-    <GlassSurface intensity="medium" className="ld-animate-fade-in-up rounded-[24px] p-4">
-      <div className="mb-4 flex items-center gap-2">
-        <NotebookPen className="h-4 w-4 text-white/70" />
-        <h3 className="text-sm font-semibold text-white/80">
-          <GradientText>Add a note</GradientText>
-        </h3>
-      </div>
-      <div className="mb-3 rounded-[18px] border border-white/10 bg-white/[0.06] px-4 py-3 text-sm leading-6 text-white/70">
-        Capture objections, nuance, and handoff context in one concise note.
-      </div>
+    <div className="space-y-3">
+      <AdminSelect value={category} onChange={(event) => setCategory(event.target.value)} className="h-11" aria-label="Note category">
+        {noteCategories.map((option) => <option key={option} value={option}>{option}</option>)}
+      </AdminSelect>
       <textarea
         value={note}
         onChange={(event) => setNote(event.target.value)}
-        rows={4}
-        placeholder="Capture context, objections, next steps, or important handoff notes."
-        className="admin-textarea ld-focus-ring min-h-[156px] w-full rounded-2xl px-4 py-3 text-sm outline-none"
+        rows={3}
+        maxLength={1960}
+        placeholder={category === "Reason for loss" ? "Why was this lead or offer lost?" : "Add the context your team needs."}
+        className="admin-textarea ld-focus-ring min-h-[112px] w-full rounded-2xl px-4 py-3 text-sm outline-none"
       />
       <div className="mt-4 flex flex-col gap-3 border-t border-white/10 pt-4 sm:flex-row sm:items-end sm:justify-between">
         <div className="min-h-[1.5rem] text-sm text-white/70">
@@ -80,6 +78,6 @@ export function LeadNoteForm({ leadId }: { leadId: string }) {
           Add note
         </SmoothButton>
       </div>
-    </GlassSurface>
+    </div>
   );
 }

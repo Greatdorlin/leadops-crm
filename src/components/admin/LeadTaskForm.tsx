@@ -10,7 +10,6 @@ import {
   toLocalDateTimeInputValue,
   type QuickSchedulePreset,
 } from "@/lib/crm/schedule-presets";
-import { AnimatedCard } from "./ui/AnimatedCard";
 import { SmoothButton } from "./ui/SmoothButton";
 import { AdminSelect } from "./AdminSelect";
 
@@ -122,7 +121,7 @@ export function LeadTaskForm({
   }
 
   return (
-    <AnimatedCard animation="fadeInUp" variant="subtle" className="space-y-4">
+    <div className="space-y-4">
       {leadId ? null : (
         <label className="space-y-2">
           <span className={labelClass}>Lead</span>
@@ -254,6 +253,6 @@ export function LeadTaskForm({
           Create task
         </SmoothButton>
       </div>
-    </AnimatedCard>
+    </div>
   );
 }

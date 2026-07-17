@@ -16,9 +16,8 @@ import {
 } from "@/lib/crm/types";
 import { CustomFieldValueInputs } from "./CustomFieldValueInputs";
 import { AdminSelect } from "./AdminSelect";
-import { GlassSurface } from "./ui/GlassSurface";
 import { SmoothButton } from "./ui/SmoothButton";
-import { GradientText } from "./ui/GradientText";
+import { CountrySearchInput } from "./CountrySearchInput";
 
 const manualSourceOptions: LeadSource[] = ["manual_entry", "agent", "referral"];
 const labelClass = "text-xs font-semibold uppercase tracking-[0.16em] text-white/70";
@@ -160,12 +159,7 @@ export function LeadCaptureForm({
     }
   }
   return (
-    <GlassSurface intensity="medium" className="ld-animate-fade-in-up space-y-5 rounded-[24px] p-5">
-      <div className="mb-2 flex items-center gap-2">
-        <h3 className="text-sm font-semibold text-white/80">
-          <GradientText>Capture new lead</GradientText>
-        </h3>
-      </div>
+    <div className="space-y-5">
       <div className="grid gap-3 sm:grid-cols-2">
         <label className="space-y-2">
           <span className={labelClass}>First name</span>
@@ -251,16 +245,7 @@ export function LeadCaptureForm({
       </div>
 
       <div className="grid gap-3 sm:grid-cols-2">
-        <label className="space-y-2">
-          <span className={labelClass}>Country</span>
-          <input
-            type="text"
-            value={country}
-            onChange={(event) => setCountry(event.target.value)}
-            placeholder="United States"
-            className="admin-input ld-focus-ring h-11 w-full rounded-2xl px-4 text-sm outline-none"
-          />
-        </label>
+        <CountrySearchInput value={country} onChange={setCountry} />
         <label className="space-y-2">
           <span className={labelClass}>State/Province/Region</span>
           <input
@@ -471,6 +456,6 @@ export function LeadCaptureForm({
         </SmoothButton>
       </div>
       {message ? <p className="text-sm text-white/70">{message}</p> : null}
-    </GlassSurface>
+    </div>
   );
 }

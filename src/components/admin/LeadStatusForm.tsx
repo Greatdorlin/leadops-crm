@@ -9,7 +9,6 @@ import { crmLabelize } from "@/lib/crm/formatters";
 import type { LeadPriority } from "@/lib/crm/types";
 import { AdminSelect } from "./AdminSelect";
 import { InfoTip } from "./ui/InfoTip";
-import { GlassSurface } from "./ui/GlassSurface";
 import { SmoothButton } from "./ui/SmoothButton";
 
 const stageKeys = [
@@ -174,14 +173,11 @@ export function LeadStatusForm({
   }
 
   return (
-    <GlassSurface intensity="medium" className="ld-animate-fade-in-up rounded-[24px] p-4">
+    <div>
       <CelebrationPanel celebration={celebration} onClose={() => setCelebration(null)} className="mb-4" />
-      <div className="mb-4 flex items-start justify-between gap-3 rounded-[18px] border border-white/10 bg-white/[0.06] px-4 py-3">
+      <div className="mb-4 flex items-center justify-between gap-3 border-b border-white/10 pb-4">
         <div>
           <p className="text-sm font-semibold text-white">Lead routing</p>
-          <p className="mt-1 text-sm leading-6 text-white/70">
-            Keep the next owner, stage, and follow-up clean before the next touch.
-          </p>
         </div>
         <InfoTip
           label="Use offer tracking below to remove pipeline value from unqualified or lost offers without losing the full lead record."
@@ -299,6 +295,6 @@ export function LeadStatusForm({
         </div>
       </div>
       {message ? <p className="mt-3 text-sm text-white/70">{message}</p> : null}
-    </GlassSurface>
+    </div>
   );
 }

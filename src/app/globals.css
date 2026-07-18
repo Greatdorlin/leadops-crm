@@ -618,6 +618,9 @@ body {
 .admin-input[type="date"],
 .admin-input[type="datetime-local"],
 .admin-input[type="time"] {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
   color-scheme: dark;
   background-image:
     url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='0 0 24 24' fill='none' stroke='%23ffffff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M8 2v4'/%3E%3Cpath d='M16 2v4'/%3E%3Crect width='18' height='18' x='3' y='4' rx='2'/%3E%3Cpath d='M3 10h18'/%3E%3C/svg%3E"),
@@ -774,6 +777,30 @@ body {
   box-shadow:
     0 12px 32px color-mix(in srgb, var(--ld-color-primary) 28%, transparent),
     inset 0 1px 0 rgba(255, 255, 255, 0.18);
+}
+
+.admin-input[type="date"]::-webkit-date-and-time-value,
+.admin-input[type="datetime-local"]::-webkit-date-and-time-value,
+.admin-input[type="time"]::-webkit-date-and-time-value {
+  min-width: 0;
+  text-align: left;
+}
+
+.admin-shell input,
+.admin-shell select,
+.admin-shell textarea {
+  min-width: 0;
+  max-width: 100%;
+}
+
+@media (max-width: 639px) {
+  .admin-input[type="date"],
+  .admin-input[type="datetime-local"],
+  .admin-input[type="time"] {
+    padding-left: 0.75rem;
+    padding-right: 2.5rem;
+    font-size: 0.8125rem;
+  }
 }
 
 .admin-button-primary:hover {

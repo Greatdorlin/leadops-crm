@@ -215,7 +215,6 @@ export function LeadQuickActions({
                 maxLength={2_000}
                 placeholder="Objection, context, or handoff note..."
                 className="admin-textarea ld-focus-ring min-h-[112px] w-full rounded-[18px] px-4 py-3 text-sm"
-                autoFocus
               />
               <button
                 type="button"

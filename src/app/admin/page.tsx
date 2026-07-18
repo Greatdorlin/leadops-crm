@@ -1,4 +1,3 @@
-import { Filter } from "lucide-react";
 import Link from "next/link";
 import { AdminCollapsibleSection } from "@/components/admin/AdminCollapsibleSection";
 import { AffiliateDashboardPanel } from "@/components/admin/AffiliateDashboardPanel";
@@ -9,10 +8,7 @@ import { AdminShell } from "@/components/admin/AdminShell";
 import { ErrorState } from "@/components/admin/ErrorState";
 import { AdminSignOutButton } from "@/components/admin/AdminSignOutButton";
 import { GlassSurface } from "@/components/admin/ui/GlassSurface";
-import { SmoothButton } from "@/components/admin/ui/SmoothButton";
 import { SectionHeader } from "@/components/admin/ui/SectionHeader";
-import { AdminSelect } from "@/components/admin/AdminSelect";
-import { SearchInput } from "@/components/admin/SearchInput";
 import { AdminAccessViewSwitcher } from "@/components/admin/AdminAccessViewSwitcher";
 import { getAdminAccessContext } from "@/lib/admin";
 import { isLocalAdminPreviewEmail } from "@/lib/admin-access";
@@ -48,27 +44,6 @@ import type { CrmStatus, LeadRecord } from "@/lib/crm/types";
 import { leadStore } from "@/lib/storage";
 
 export const dynamic = "force-dynamic";
-
-const sourceOptions = [
-  "all",
-  "website_form",
-  "facebook_lead_ads",
-  "google_ads",
-  "tiktok_lead_ads",
-  "linkedin_lead_gen_forms",
-  "google_sheets",
-  "whatsapp_inquiry",
-  "manual_entry",
-  "agent",
-  "referral",
-] as const;
-
-const priorityOptions = ["all", "low", "medium", "high", "urgent"] as const;
-
-function readStageFilter(input: Record<string, string | string[] | undefined>) {
-  const raw = Array.isArray(input.stage) ? input.stage[0] : input.stage;
-  return raw?.trim() ? raw : undefined;
-}
 
 function getDashboardTitle(accessLevel: AdminAccessLevel) {
   if (accessLevel === "affiliate") {
@@ -419,11 +394,6 @@ export default async function AdminPage({
   } = await getAdminAccessContext(appRoutes.dashboard);
   const params = await searchParams;
   const filters = parseLeadListFilters(params);
-  const selectedStage =
-    readStageFilter(params) ??
-    (filters.stageId === "all" || filters.status === "all"
-      ? "all"
-      : filters.stageId ?? filters.status);
   const scopedFilters = scopeLeadListFilters(filters, accessLevel, session.user?.email, crmUser);
   const showTeamViews = canViewSalesTeam(accessLevel, permissions);
   const usePersonalTaskScope =
@@ -533,13 +503,6 @@ export default async function AdminPage({
   }
 
   const { leads, salesAggregate, tasks, users, intakeEvents, activeTarget, stages, trend } = pageData;
-  const hasFilters = Boolean(
-    filters.search ||
-      (selectedStage && selectedStage !== "all") ||
-      (filters.source && filters.source !== "all") ||
-      (filters.priority && filters.priority !== "all") ||
-      filters.assignedTo,
-  );
   const welcomeName = getFirstNameLabel(crmUser?.fullName || session.user?.name || session.user?.email);
   const recentLeads = [...leads]
     .sort((left, right) => new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime())
@@ -609,106 +572,6 @@ export default async function AdminPage({
           commissionRatePercent: usingDevelopmentDemoData ? 5 : 0,
         })
       : null;
-  const searchSlot = (
-      <form action={appRoutes.dashboard} className="flex flex-col gap-2">
-        <GlassSurface as="div" intensity="soft" border={true} className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2 p-2 sm:p-2.5">
-          <div className="min-w-0 flex-1">
-            <SearchInput
-              defaultValue={filters.search ?? ""}
-              placeholder="Search leads, region, tasks, people, or phone"
-            />
-          </div>
-          <SmoothButton type="submit" variant="primary" size="sm" className="h-10 rounded-xl px-4">
-            Search
-          </SmoothButton>
-          {hasFilters ? (
-            <Link
-              href={appRoutes.dashboard}
-              className="admin-button-secondary col-span-2 inline-flex h-9 items-center justify-center rounded-xl px-3 text-sm font-semibold sm:col-span-1"
-            >
-              Reset
-            </Link>
-          ) : null}
-        </GlassSurface>
-
-        {accessLevel !== "sales_rep" && hasFilters ? (
-          <div className="rounded-[18px] border border-white/10 bg-black/16 px-4 py-3">
-            <div className="flex flex-wrap items-center gap-2">
-              <span
-                className="inline-flex items-center justify-center"
-                title="Active filters narrow the dashboard view"
-              >
-                <Filter
-                  className="h-4 w-4 text-white/50"
-                  aria-label="Active filters narrow the dashboard view"
-                />
-              </span>
-              <span className="text-xs font-semibold uppercase tracking-[0.14em] text-white/70">Filters</span>
-              {selectedStage && selectedStage !== "all" ? (
-                <span className="rounded-full border border-white/10 bg-white/[0.06] px-2.5 py-0.5 text-xs text-white/80">
-                  {stages.find((stage) => stage.id === selectedStage)?.name ?? crmLabelize(selectedStage)}
-                </span>
-              ) : null}
-              {filters.source && filters.source !== "all" ? (
-                <span className="rounded-full border border-white/10 bg-white/[0.06] px-2.5 py-0.5 text-xs text-white/80">{crmLabelize(filters.source)}</span>
-              ) : null}
-              {filters.priority && filters.priority !== "all" ? (
-                <span className="rounded-full border border-white/10 bg-white/[0.06] px-2.5 py-0.5 text-xs text-white/80">{crmLabelize(filters.priority)}</span>
-              ) : null}
-              {filters.assignedTo ? (
-                <span className="rounded-full border border-white/10 bg-white/[0.06] px-2.5 py-0.5 text-xs text-white/80">Owner</span>
-              ) : null}
-            </div>
-            <div className="mt-3 grid gap-3 sm:grid-cols-3">
-              <div className="flex flex-col gap-1.5">
-                <label className="text-[11px] font-semibold uppercase tracking-[0.14em] text-white/70">Stage</label>
-                <AdminSelect
-                  name="stage"
-                  defaultValue={selectedStage ?? "all"}
-                  className="h-11"
-                >
-                  <option value="all">All stages</option>
-                  {stages.filter((stage) => !stage.archived).map((stage) => (
-                    <option key={stage.id} value={stage.id}>
-                      {stage.name}
-                    </option>
-                  ))}
-                </AdminSelect>
-              </div>
-              <div className="flex flex-col gap-1.5">
-                <label className="text-[11px] font-semibold uppercase tracking-[0.14em] text-white/70">Source</label>
-                <AdminSelect
-                  name="source"
-                  defaultValue={filters.source ?? "all"}
-                  className="h-11"
-                >
-                  {sourceOptions.map((option) => (
-                    <option key={option} value={option}>
-                      {crmLabelize(option)}
-                    </option>
-                  ))}
-                </AdminSelect>
-              </div>
-              <div className="flex flex-col gap-1.5">
-                <label className="text-[11px] font-semibold uppercase tracking-[0.14em] text-white/70">Priority</label>
-                <AdminSelect
-                  name="priority"
-                  defaultValue={filters.priority ?? "all"}
-                  className="h-11"
-                >
-                  {priorityOptions.map((option) => (
-                    <option key={option} value={option}>
-                      {crmLabelize(option)}
-                    </option>
-                  ))}
-                </AdminSelect>
-              </div>
-            </div>
-          </div>
-        ) : null}
-      </form>
-  );
-
   return (
     <AdminShell
       activeNav="dashboard"
@@ -718,7 +581,6 @@ export default async function AdminPage({
       canSwitchAccessViews={canSwitchAccessViews}
       title={getDashboardTitle(accessLevel)}
       description={getDashboardDescription(accessLevel)}
-      searchSlot={searchSlot}
       actions={shellActions}
       userName={crmUser?.fullName || session.user?.name}
       userEmail={crmUser?.email || session.user?.email}

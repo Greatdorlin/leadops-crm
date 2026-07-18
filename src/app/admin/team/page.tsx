@@ -214,7 +214,7 @@ export default async function AdminTeamPage() {
                 title="Follow-up pressure"
                 description="The clearest signals shaping team workload right now."
               />
-              <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-1">
+              <div className="mt-4 grid min-w-0 gap-3 sm:grid-cols-2 xl:grid-cols-1">
                 <MetricCard
                   label="Overdue tasks"
                   value={safeNumber(overdueTaskCount)}
@@ -252,18 +252,18 @@ export default async function AdminTeamPage() {
                         variant="subtle"
                         animation="fadeInUp"
                         delay={index * 60}
-                        className="rounded-[24px] px-4 py-4"
+                        className="min-w-0 rounded-[22px] px-4 py-4"
                       >
                         <div className="flex flex-wrap items-center justify-between gap-3">
-                          <div>
-                            <p className="text-sm font-semibold text-white">{row.fullName || row.email}</p>
+                          <div className="min-w-0">
+                            <p className="break-words text-sm font-semibold text-white">{row.fullName || row.email}</p>
                             <p className="mt-1 text-sm text-white/60">
                               {row.overdueTasks} overdue • {row.openTasks} open tasks
                             </p>
                           </div>
                           <Link
                             href={`${appRoutes.tasks}?assignedTo=${encodeURIComponent(row.email)}&view=all`}
-                            className="rounded-full border border-white/14 bg-white/[0.07] px-3 py-1.5 text-sm font-semibold text-white/90 transition hover:bg-white/[0.1]"
+                            className="inline-flex w-full items-center justify-center rounded-full border border-white/14 bg-white/[0.07] px-3 py-2 text-sm font-semibold text-white/90 transition hover:bg-white/[0.1] sm:w-auto"
                           >
                             Open tasks
                           </Link>

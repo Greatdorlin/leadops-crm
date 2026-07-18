@@ -7,7 +7,6 @@ import {
   Check,
   FilePlus2,
   Layers3,
-  Sparkles,
   Wand2,
 } from "lucide-react";
 import { AdminSelect } from "@/components/admin/AdminSelect";
@@ -185,20 +184,20 @@ export function FormCreateStudio({
     <div className="space-y-6">
       <SectionHeader
         eyebrow="Built-in forms"
-        title="Create a premium intake form"
-        description="Pick a template, set the default routing, and create a form that is ready to share or embed."
+        title="Create a form"
+        description="Choose a starting point, name it, and preview it live."
         variant="large"
       />
 
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1.1fr)_360px]">
-        <GlassSurface intensity="medium" className="rounded-[28px] p-5 sm:p-6">
+        <section className="min-w-0">
           <div className="flex items-center justify-between gap-3">
             <div>
               <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/60">
                 Template library
               </p>
               <h2 className="mt-2 text-xl font-semibold tracking-[-0.04em] text-white">
-                Start with a proven intake structure
+                Choose a template
               </h2>
             </div>
             <span className="rounded-full border border-white/10 bg-white/[0.05] px-3 py-1 text-xs font-semibold text-white/60">
@@ -243,14 +242,7 @@ export function FormCreateStudio({
                         </span>
                       ) : null}
                     </div>
-                    <p className="mt-3 text-sm leading-6 text-white/68">{template.description}</p>
-                    <div className="mt-4 flex flex-wrap gap-2">
-                      <span className="rounded-full border border-white/10 bg-white/[0.05] px-2.5 py-1 text-[11px] font-semibold text-white/58">
-                        {template.visualStyle}
-                      </span>
-                      <span className="rounded-full border border-white/10 bg-white/[0.05] px-2.5 py-1 text-[11px] font-semibold text-white/58">
-                        {template.backgroundPreset}
-                      </span>
+                    <div className="mt-3 flex flex-wrap gap-2">
                       <span className="rounded-full border border-white/10 bg-white/[0.05] px-2.5 py-1 text-[11px] font-semibold text-white/58">
                         {template.fields.length} starter fields
                       </span>
@@ -260,7 +252,7 @@ export function FormCreateStudio({
               );
             })}
           </div>
-        </GlassSurface>
+        </section>
 
         <div className="space-y-6">
           <GlassSurface intensity="medium" className="rounded-[28px] p-5 sm:p-6">
@@ -271,17 +263,14 @@ export function FormCreateStudio({
 
             <div className="mt-5 grid gap-4">
               <label className="space-y-2">
-                <span className="text-xs font-semibold uppercase tracking-[0.16em] text-white/60">
-                  Form name
-                </span>
-                <input
-                  type="text"
-                  value={draft.name}
-                  onChange={(event) => updateName(event.target.value)}
-                  className="admin-input h-11 w-full rounded-2xl px-4 text-sm outline-none"
-                />
+                <span className="text-xs font-semibold uppercase tracking-[0.16em] text-white/60">Form name</span>
+                <input type="text" value={draft.name} onChange={(event) => updateName(event.target.value)} className="admin-input h-11 w-full rounded-2xl px-4 text-sm outline-none" />
               </label>
-
+              <details className="group rounded-2xl border border-white/10 bg-white/[0.035] px-4 py-3">
+                <summary className="cursor-pointer list-none text-sm font-semibold text-white marker:hidden">
+                  Advanced setup <span className="text-white/48 group-open:hidden">(optional)</span>
+                </summary>
+                <div className="mt-4 grid gap-4">
               <label className="space-y-2">
                 <span className="text-xs font-semibold uppercase tracking-[0.16em] text-white/60">
                   Slug
@@ -435,6 +424,8 @@ export function FormCreateStudio({
                   className="admin-textarea min-h-[92px] w-full rounded-2xl px-4 py-3 text-sm outline-none"
                 />
               </label>
+                </div>
+              </details>
 
               {error ? (
                 <div className="rounded-2xl border border-rose-300/22 bg-rose-400/10 px-4 py-3 text-sm text-rose-100">
@@ -466,31 +457,27 @@ export function FormCreateStudio({
           <GlassSurface intensity="soft" className="rounded-[28px] p-5 sm:p-6">
             <div className="flex items-center gap-2">
               <Layers3 className="h-4 w-4 text-white/70" />
-              <h2 className="text-base font-semibold text-white">Starter field preview</h2>
+              <div className="min-w-0">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-white/55">Live preview</p>
+                <h2 className="truncate text-base font-semibold text-white">{draft.name || "Untitled form"}</h2>
+              </div>
             </div>
 
             <div className="mt-4 grid gap-3">
               {selectedTemplate.fields.length > 0 ? (
                 selectedTemplate.fields.map((field, index) => (
-                  <div
-                    key={`${selectedTemplate.key}-${field.label}-${index}`}
-                    className="rounded-[20px] border border-white/10 bg-white/[0.045] px-4 py-3"
-                  >
-                    <div className="flex items-center justify-between gap-3">
-                      <div>
-                        <p className="text-sm font-semibold text-white">{field.label}</p>
-                        <p className="mt-1 text-xs text-white/58">
-                          {field.fieldType}
-                          {field.mapsToLeadField ? ` • maps to ${field.mapsToLeadField}` : ""}
-                        </p>
-                      </div>
-                      {field.isRequired ? (
-                        <span className="rounded-full border border-white/10 bg-white/[0.05] px-2.5 py-1 text-[11px] font-semibold text-white/58">
-                          Required
-                        </span>
-                      ) : null}
-                    </div>
-                  </div>
+                  <label key={`${selectedTemplate.key}-${field.label}-${index}`} className="grid gap-2">
+                    <span className="text-sm font-semibold text-white/84">{field.label}{field.isRequired ? " *" : ""}</span>
+                    {field.fieldType === "textarea" ? (
+                      <textarea disabled rows={3} placeholder={field.placeholder ?? "Type your answer"} className="admin-textarea w-full rounded-2xl px-4 py-3 text-sm opacity-90" />
+                    ) : field.fieldType === "select" ? (
+                      <select disabled className="admin-select h-11 w-full rounded-2xl px-4 text-sm opacity-90"><option>Choose an option</option></select>
+                    ) : field.fieldType === "checkbox" ? (
+                      <span className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-white/70"><input type="checkbox" disabled /> Yes</span>
+                    ) : (
+                      <input disabled type={field.fieldType === "email" ? "email" : field.fieldType === "phone" ? "tel" : "text"} placeholder={field.placeholder ?? "Type your answer"} className="admin-input h-11 w-full rounded-2xl px-4 text-sm opacity-90" />
+                    )}
+                  </label>
                 ))
               ) : (
                 <div className="rounded-[20px] border border-dashed border-white/12 bg-black/10 px-4 py-5 text-sm text-white/58">
@@ -499,29 +486,7 @@ export function FormCreateStudio({
               )}
             </div>
 
-            <div className="mt-4 rounded-[20px] border border-white/10 bg-[linear-gradient(145deg,rgba(255,255,255,0.05),rgba(255,255,255,0.02))] p-4">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/55">
-                Template direction
-              </p>
-              <p className="mt-2 text-sm font-semibold text-white">
-                {selectedTemplate.visualStyle}
-              </p>
-              <p className="mt-1 text-sm leading-6 text-white/64">
-                {selectedTemplate.backgroundPreset} background with concise lead-capture fields and one primary action.
-              </p>
-            </div>
-
-            <div className="mt-4 rounded-[20px] border border-white/10 bg-white/[0.04] px-4 py-3">
-              <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-white/55">
-                <Sparkles className="h-3.5 w-3.5 text-[var(--ld-color-accent)]" />
-                Ready after create
-              </div>
-              <ul className="mt-3 grid gap-2 text-sm text-white/68">
-                <li>Template fields are created automatically.</li>
-                <li>You can still refine fields, rules, settings, preview, and embed right after.</li>
-                <li>The public route stays under `/forms/[slug]` once the form is active.</li>
-              </ul>
-            </div>
+            <button type="button" disabled className="admin-button-primary mt-5 h-11 w-full rounded-2xl text-sm">Submit</button>
           </GlassSurface>
         </div>
       </div>

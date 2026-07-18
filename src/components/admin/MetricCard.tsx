@@ -84,7 +84,7 @@ export function MetricCard({
       animation="fadeInUp"
       delay={animationDelay}
       className={cn(
-        "relative flex h-full min-h-[176px] flex-col overflow-hidden rounded-[28px] border p-5 shadow-[var(--ld-shadow-card)] backdrop-blur-[18px]",
+        "relative flex h-full min-w-0 flex-col overflow-hidden rounded-[24px] border p-4 shadow-[var(--ld-shadow-card)] backdrop-blur-[18px] sm:min-h-[176px] sm:rounded-[28px] sm:p-5",
         toneClass,
         colorBorderClass,
         className,
@@ -99,7 +99,7 @@ export function MetricCard({
         )}
       />
       <div className="relative flex h-full flex-col">
-        <div className="flex min-w-0 items-center justify-between gap-4">
+        <div className="flex min-w-0 flex-wrap items-center justify-between gap-2 sm:gap-4">
           <div className="flex min-w-0 items-center gap-2.5">
             {Icon ? (
               <span
@@ -150,7 +150,7 @@ export function MetricCard({
         </div>
         <p
           className={cn(
-            "mt-6 text-[2.35rem] font-semibold leading-none tracking-[-0.06em] sm:text-[2.55rem]",
+            "mt-5 min-w-0 break-words text-[2rem] font-semibold leading-none tracking-[-0.06em] sm:mt-6 sm:text-[2.55rem]",
             "text-white",
           )}
         >
@@ -159,7 +159,7 @@ export function MetricCard({
         {supporting ? (
           <p
             className={cn(
-              "mt-5 max-w-[28ch] text-sm leading-6",
+              "mt-4 min-w-0 max-w-[28ch] break-words text-sm leading-6 sm:mt-5",
               "text-white/70",
             )}
           >

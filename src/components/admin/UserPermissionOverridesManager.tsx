@@ -6,6 +6,7 @@ import {
   PERMISSION_DEFINITIONS,
   type PermissionKey,
 } from "@/lib/crm/role-permissions-contract";
+import { AdminOverlayPortal } from "./AdminOverlayPortal";
 
 type PermissionOverride = {
   permission: PermissionKey;
@@ -79,28 +80,29 @@ export function UserPermissionOverridesManager({
       </button>
 
       {isOpen ? (
-        <div
-          className="fixed inset-0 z-[170] flex items-end justify-center bg-slate-950/78 backdrop-blur-md sm:items-center sm:p-6"
-          role="presentation"
-          onMouseDown={(event) => {
-            if (event.target === event.currentTarget) setIsOpen(false);
-          }}
-        >
-          <section
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby={`permissions-${userId}`}
-            className="admin-surface max-h-[90dvh] w-full max-w-3xl overflow-y-auto rounded-t-[28px] p-5 sm:rounded-[28px] sm:p-6"
+        <AdminOverlayPortal>
+          <div
+            className="fixed inset-0 z-[170] flex items-end justify-center bg-slate-950/78 backdrop-blur-md sm:items-center sm:p-6"
+            role="presentation"
+            onMouseDown={(event) => {
+              if (event.target === event.currentTarget) setIsOpen(false);
+            }}
           >
-            <div className="flex items-start justify-between gap-4">
-              <div className="min-w-0">
-                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-cyan-100/70">Feature access</p>
-                <h2 id={`permissions-${userId}`} className="mt-1 truncate text-xl font-bold text-white">{userName}</h2>
+            <section
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby={`permissions-${userId}`}
+              className="admin-surface max-h-[90dvh] w-full max-w-3xl overflow-y-auto overscroll-contain rounded-t-[28px] p-5 sm:rounded-[28px] sm:p-6"
+            >
+              <div className="flex items-start justify-between gap-4">
+                <div className="min-w-0">
+                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-cyan-100/70">Feature access</p>
+                  <h2 id={`permissions-${userId}`} className="mt-1 truncate text-xl font-bold text-white">{userName}</h2>
+                </div>
+                <button type="button" onClick={() => setIsOpen(false)} aria-label="Close permissions" className="ld-focus-ring inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-white/10 bg-white/[0.06]">
+                  <X className="h-4 w-4" />
+                </button>
               </div>
-              <button type="button" onClick={() => setIsOpen(false)} aria-label="Close permissions" className="ld-focus-ring inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-white/10 bg-white/[0.06]">
-                <X className="h-4 w-4" />
-              </button>
-            </div>
 
             <div className="mt-5 grid gap-2 sm:grid-cols-2">
               {PERMISSION_DEFINITIONS.map((definition) => {
@@ -133,9 +135,10 @@ export function UserPermissionOverridesManager({
                 );
               })}
             </div>
-            {message ? <p className="mt-4 text-sm text-white/70" role="status">{message}</p> : null}
-          </section>
-        </div>
+              {message ? <p className="mt-4 text-sm text-white/70" role="status">{message}</p> : null}
+            </section>
+          </div>
+        </AdminOverlayPortal>
       ) : null}
     </>
   );

@@ -9,7 +9,6 @@ Use this guide to install Leads Desk for local development, a private client wor
 - Node.js 20+
 - npm 10+
 - PostgreSQL 15+ or 16+
-- Google OAuth credentials for production sign-in
 - A private repository checkout
 
 ## 1. Clone And Install
@@ -26,8 +25,6 @@ Copy `.env.example` to `.env` and set the required values:
 
 - `DATABASE_URL`
 - `AUTH_SECRET`
-- `AUTH_GOOGLE_ID`
-- `AUTH_GOOGLE_SECRET`
 - `NEXTAUTH_URL`
 - `INITIAL_ADMIN_EMAIL`
 - `INITIAL_ADMIN_NAME`
@@ -35,6 +32,8 @@ Copy `.env.example` to `.env` and set the required values:
 Optional:
 
 - `ALLOWED_EMAIL_DOMAINS`
+- `ENABLE_GOOGLE_LOGIN`, `AUTH_GOOGLE_ID`, and `AUTH_GOOGLE_SECRET` only when secondary Google login is required
+- `AUTH_INVITATION_TTL_HOURS`
 - `NEXT_PUBLIC_APP_URL`
 - connector-specific credentials only for integrations enabled in this deployment
 
@@ -95,9 +94,11 @@ npm run start
 
 ## 6. Initial Admin Setup
 
-- sign in with the Google account that matches `INITIAL_ADMIN_EMAIL`
-- confirm the owner/admin account appears in `/admin/team`
-- create additional users only after the owner account is working
+- run `npm run auth:invite-initial-admin`
+- open the one-time activation link and set the initial admin password
+- sign in with `INITIAL_ADMIN_EMAIL`
+- confirm the owner/admin account appears in `/admin/settings/team`
+- create additional users and copy their activation links from Team settings
 
 In development only, local preview access can open `/admin` without Google auth. This must stay disabled in production.
 

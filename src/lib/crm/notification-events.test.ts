@@ -6,8 +6,28 @@ import {
   buildLeadClosedNotification,
   buildLeadStageChangedNotification,
   buildWebhookLeadNotification,
+  canAccessGlobalNotifications,
   notifyNewLeadAssigned,
+  resolveNotificationLeadScope,
 } from "@/lib/crm/notification-events";
+import type { CrmUserRecord } from "@/lib/crm/types";
+
+function scopedUser(overrides: Partial<CrmUserRecord> = {}): CrmUserRecord {
+  return {
+    id: "user-1",
+    email: "rep@example.com",
+    fullName: "Sales Rep",
+    role: "sales_agent",
+    isActive: true,
+    accessScope: "own",
+    branchId: null,
+    departmentId: null,
+    teamId: null,
+    createdAt: new Date(0).toISOString(),
+    updatedAt: new Date(0).toISOString(),
+    ...overrides,
+  };
+}
 
 test("notification builders keep sellable v1 copy short and action-oriented", () => {
   const assigned = buildAssignedLeadNotification({
@@ -61,4 +81,88 @@ test("assigned-lead notifications do not fire without a recipient", async () => 
   });
 
   assert.equal(result, null);
+});
+
+test("sales rep notification scope follows current lead assignment", () => {
+  const user = scopedUser();
+
+  assert.deepEqual(
+    resolveNotificationLeadScope({
+      accessLevel: "sales_rep",
+      currentUserEmail: user.email,
+      currentUser: user,
+      permissions: ["canViewLeads"],
+    }),
+    { mode: "assigned", email: "rep@example.com" },
+  );
+});
+
+test("global notifications stay restricted to admin access levels", () => {
+  assert.equal(canAccessGlobalNotifications({ accessLevel: "master_admin" }), true);
+  assert.equal(canAccessGlobalNotifications({ accessLevel: "general_admin" }), true);
+  assert.equal(canAccessGlobalNotifications({ accessLevel: "lead_sales_rep" }), false);
+  assert.equal(canAccessGlobalNotifications({ accessLevel: "sales_rep" }), false);
+  assert.equal(canAccessGlobalNotifications({ accessLevel: "affiliate" }), false);
+});
+
+test("affiliate linked-lead notifications fail closed without lead permission", () => {
+  const user = scopedUser({
+    email: "affiliate@example.com",
+    role: "affiliate",
+  });
+
+  assert.deepEqual(
+    resolveNotificationLeadScope({
+      accessLevel: "affiliate",
+      currentUserEmail: user.email,
+      currentUser: user,
+      permissions: ["canAccessAffiliateDashboard"],
+    }),
+    { mode: "denied" },
+  );
+});
+
+test("affiliate lead permission remains restricted to attributed leads", () => {
+  const user = scopedUser({
+    email: "affiliate@example.com",
+    role: "affiliate",
+  });
+
+  assert.deepEqual(
+    resolveNotificationLeadScope({
+      accessLevel: "affiliate",
+      currentUserEmail: user.email,
+      currentUser: user,
+      permissions: ["canViewLeads"],
+    }),
+    { mode: "affiliate", userId: "user-1" },
+  );
+});
+
+test("notification scope respects team boundaries and fails closed when incomplete", () => {
+  const manager = scopedUser({
+    email: "manager@example.com",
+    role: "manager",
+    accessScope: "team",
+    teamId: "team-a",
+  });
+
+  assert.deepEqual(
+    resolveNotificationLeadScope({
+      accessLevel: "general_admin",
+      currentUserEmail: manager.email,
+      currentUser: manager,
+      permissions: ["canViewLeads"],
+    }),
+    { mode: "team", id: "team-a" },
+  );
+  assert.deepEqual(
+    resolveNotificationLeadScope({
+      accessLevel: "general_admin",
+      currentUserEmail: manager.email,
+      currentUser: { ...manager, teamId: null },
+      permissions: ["canViewLeads"],
+    }),
+    { mode: "denied" },
+  );
 });

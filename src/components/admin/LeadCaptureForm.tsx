@@ -17,12 +17,12 @@ import {
 import { CustomFieldValueInputs } from "./CustomFieldValueInputs";
 import { AdminSelect } from "./AdminSelect";
 import { SmoothButton } from "./ui/SmoothButton";
-import { CountrySearchInput } from "./CountrySearchInput";
+import { CitySearchInput, CountrySearchInput } from "./CountrySearchInput";
 
 const manualSourceOptions: LeadSource[] = ["manual_entry", "agent", "referral"];
 const labelClass = "text-xs font-semibold uppercase tracking-[0.16em] text-white/70";
 const panelClass =
-  "space-y-3 rounded-[24px] border border-white/10 bg-white/[0.045] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]";
+  "min-w-0 space-y-3 rounded-[24px] border border-white/10 bg-white/[0.045] p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] sm:p-4";
 
 export function LeadCaptureForm({
   accessLevel,
@@ -256,16 +256,7 @@ export function LeadCaptureForm({
             className="admin-input ld-focus-ring h-11 w-full rounded-2xl px-4 text-sm outline-none"
           />
         </label>
-        <label className="space-y-2">
-          <span className={labelClass}>City</span>
-          <input
-            type="text"
-            value={city}
-            onChange={(event) => setCity(event.target.value)}
-            placeholder="San Francisco"
-            className="admin-input ld-focus-ring h-11 w-full rounded-2xl px-4 text-sm outline-none"
-          />
-        </label>
+        <CitySearchInput value={city} onChange={setCity} />
         <label className="space-y-2">
           <span className={labelClass}>Postal Code</span>
           <input
@@ -374,8 +365,8 @@ export function LeadCaptureForm({
           </p>
           <p className="mt-1 text-sm text-white/70">Capture the next follow-up and potential value.</p>
         </div>
-        <div className="grid gap-3 sm:grid-cols-2">
-          <label className="space-y-2">
+        <div className="grid min-w-0 gap-3 sm:grid-cols-2">
+          <label className="min-w-0 space-y-2">
             <span className={labelClass}>Next follow-up</span>
             <input
               type="datetime-local"
@@ -384,7 +375,7 @@ export function LeadCaptureForm({
               className="admin-input ld-focus-ring h-11 w-full rounded-2xl px-4 text-sm outline-none"
             />
           </label>
-          <label className="space-y-2">
+          <label className="min-w-0 space-y-2">
             <span className={labelClass}>Estimated value</span>
             <input
               type="number"
@@ -396,7 +387,7 @@ export function LeadCaptureForm({
               className="admin-input ld-focus-ring h-11 w-full rounded-2xl px-4 text-sm outline-none"
             />
           </label>
-          <label className="space-y-2">
+          <label className="min-w-0 space-y-2">
             <span className={labelClass}>Close probability</span>
             <input
               type="number"
@@ -409,7 +400,7 @@ export function LeadCaptureForm({
               className="admin-input ld-focus-ring h-11 w-full rounded-2xl px-4 text-sm outline-none"
             />
           </label>
-          <label className="space-y-2">
+          <label className="min-w-0 space-y-2">
             <span className={labelClass}>Expected close date</span>
             <input
               type="datetime-local"

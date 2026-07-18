@@ -618,6 +618,10 @@ body {
 .admin-input[type="date"],
 .admin-input[type="datetime-local"],
 .admin-input[type="time"] {
+  inline-size: 100%;
+  min-inline-size: 0;
+  max-inline-size: 100%;
+  overflow: hidden;
   width: 100%;
   min-width: 0;
   max-width: 100%;
@@ -782,8 +786,12 @@ body {
 .admin-input[type="date"]::-webkit-date-and-time-value,
 .admin-input[type="datetime-local"]::-webkit-date-and-time-value,
 .admin-input[type="time"]::-webkit-date-and-time-value {
+  display: block;
+  max-width: 100%;
   min-width: 0;
+  overflow: hidden;
   text-align: left;
+  text-overflow: ellipsis;
 }
 
 .admin-shell input,
@@ -791,6 +799,12 @@ body {
 .admin-shell textarea {
   min-width: 0;
   max-width: 100%;
+}
+
+.admin-shell label,
+.admin-shell fieldset,
+.admin-shell form {
+  min-width: 0;
 }
 
 @media (max-width: 639px) {

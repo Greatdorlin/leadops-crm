@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { AdminSignInButton } from "@/components/admin/AdminSignInButton";
-import { ChiefSignInForm } from "@/components/admin/ChiefSignInForm";
+import { EmailPasswordSignInForm } from "@/components/admin/EmailPasswordSignInForm";
 import { LeadsDeskWordmark } from "@/components/brand/LeadsDeskWordmark";
 import {
   buildThemeCssVariables,
@@ -9,7 +9,6 @@ import {
 import { getCompanySettings } from "@/lib/crm/workspace-settings-server";
 import {
   isAdminAuthConfigured,
-  isChiefLoginConfigured,
   isGoogleAuthConfigured,
   isLocalAdminPreviewEnabled,
 } from "@/lib/admin-access";
@@ -19,7 +18,7 @@ export const dynamic = "force-dynamic";
 
 function getErrorMessage(error?: string) {
   if (error === "AccessDenied") {
-    return "This Google account does not have access to the admin area.";
+    return "We couldn't verify those sign-in details.";
   }
 
   if (error === "Configuration") {
@@ -47,7 +46,6 @@ export default async function AdminSignInPage({
   const errorMessage = getErrorMessage(params.error);
   const authReady = isAdminAuthConfigured();
   const googleLoginEnabled = isGoogleAuthConfigured();
-  const chiefLoginEnabled = isChiefLoginConfigured();
   const canShowSetupMessage = !authReady && process.env.NODE_ENV !== "production";
   const canUseLocalPreview = !authReady && isLocalAdminPreviewEnabled();
   const settings = await getCompanySettings();
@@ -115,7 +113,7 @@ export default async function AdminSignInPage({
             {canShowSetupMessage ? (
               <div className="space-y-3">
                 <div className="rounded-2xl border border-amber-300/20 bg-amber-500/10 px-4 py-3 text-sm leading-6 text-amber-100">
-                  Google sign-in and initial admin setup need configuration before admin can open.
+                  Database, authentication secret, and initial admin setup must be configured before this workspace can open.
                 </div>
                 {canUseLocalPreview ? (
                   <Link
@@ -128,15 +126,15 @@ export default async function AdminSignInPage({
               </div>
             ) : (
               <div className="space-y-4">
-                {googleLoginEnabled ? <AdminSignInButton callbackUrl={callbackUrl} /> : null}
-                {googleLoginEnabled && chiefLoginEnabled ? (
+                <EmailPasswordSignInForm callbackUrl={callbackUrl} />
+                {googleLoginEnabled ? (
                   <div className="flex items-center gap-3 text-[11px] font-medium uppercase tracking-[0.16em] text-white/40">
                     <span className="h-px flex-1 bg-white/10" />
                     or
                     <span className="h-px flex-1 bg-white/10" />
                   </div>
                 ) : null}
-                {chiefLoginEnabled ? <ChiefSignInForm callbackUrl={callbackUrl} /> : null}
+                {googleLoginEnabled ? <AdminSignInButton callbackUrl={callbackUrl} /> : null}
               </div>
             )}
           </div>

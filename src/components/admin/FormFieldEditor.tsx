@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState, useCallback } from "react";
 import { cn } from "@/lib/cn";
 import { GlassSurface } from "@/components/admin/ui/GlassSurface";
@@ -7,6 +8,8 @@ import { SmoothButton } from "@/components/admin/ui/SmoothButton";
 import { GradientText } from "@/components/admin/ui/GradientText";
 import { SectionHeader } from "@/components/admin/ui/SectionHeader";
 import { AdminSelect } from "@/components/admin/AdminSelect";
+import { AdminOverlayPortal } from "@/components/admin/AdminOverlayPortal";
+import { appRoutes } from "@/lib/app-routes";
 import {
   GripVertical,
   Trash2,
@@ -27,6 +30,8 @@ import {
   Calendar,
   FileUp,
   ChevronDown,
+  Eye,
+  Share2,
 } from "lucide-react";
 
 export type FieldType =
@@ -382,15 +387,16 @@ export function FormFieldEditor({
   const hasNumericValidation = editingField && editingField.fieldType === "number";
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
       <SectionHeader
-        title="Form Fields"
-        description="Build your form by adding, editing, and reordering fields."
+        eyebrow="Step 1 of 3"
+        title="Build"
+        description="Add questions in the order leads will see them."
         variant="compact"
         actions={
           canEdit ? (
             <SmoothButton size="sm" icon={<Plus className="h-4 w-4" />} onClick={startCreating}>
-              Add Field
+              Add question
             </SmoothButton>
           ) : undefined
         }
@@ -403,11 +409,13 @@ export function FormFieldEditor({
         </div>
       )}
 
-      <div className="space-y-2">
+      <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_340px]">
+        <div className="space-y-3">
+          <div className="space-y-2">
         {fields.length === 0 ? (
           <GlassSurface intensity="soft" className="py-12 text-center">
             <p className="text-sm text-white/70">
-              {canEdit ? 'No fields yet. Click "Add Field" to get started.' : 'No fields defined for this form.'}
+              {canEdit ? 'No questions yet. Add the first one to begin.' : 'No questions in this form.'}
             </p>
           </GlassSurface>
         ) : (
@@ -494,7 +502,7 @@ export function FormFieldEditor({
             </div>
           ))
         )}
-      </div>
+          </div>
 
       {canEdit && (
         <SmoothButton
@@ -504,20 +512,68 @@ export function FormFieldEditor({
           onClick={startCreating}
           className="w-full sm:w-auto"
         >
-          Add Another Field
+          Add question
         </SmoothButton>
       )}
+        </div>
+
+        <aside className="h-fit rounded-[24px] border border-white/10 bg-black/10 p-4 xl:sticky xl:top-5">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-white/45">Live outline</p>
+              <p className="mt-1 text-sm font-semibold text-white">{fields.length} {fields.length === 1 ? "question" : "questions"}</p>
+            </div>
+            <Link
+              href={`${appRoutes.form(formId)}/preview`}
+              className="inline-flex h-9 items-center gap-2 rounded-xl border border-white/10 bg-white/[0.05] px-3 text-xs font-semibold text-white/72 transition hover:bg-white/[0.1] hover:text-white"
+            >
+              <Eye className="h-3.5 w-3.5" />
+              Preview
+            </Link>
+          </div>
+
+          <div className="mt-4 space-y-3">
+            {fields.length > 0 ? fields.map((field, index) => (
+              <button
+                key={field.id}
+                type="button"
+                onClick={() => canEdit && openEditor(field)}
+                className="grid w-full grid-cols-[24px_minmax(0,1fr)] gap-2 text-left"
+              >
+                <span className="pt-0.5 text-xs font-semibold text-white/35">{index + 1}</span>
+                <span>
+                  <span className="block truncate text-sm font-medium text-white/78">{field.label || "Untitled question"}</span>
+                  <span className="mt-1 block h-9 rounded-xl border border-white/10 bg-white/[0.035]" />
+                </span>
+              </button>
+            )) : (
+              <div className="rounded-2xl border border-dashed border-white/12 px-4 py-8 text-center text-sm text-white/42">
+                Your questions will appear here.
+              </div>
+            )}
+          </div>
+
+          <Link
+            href={`${appRoutes.form(formId)}/embed`}
+            className="mt-5 inline-flex h-10 w-full items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/[0.05] text-sm font-semibold text-white/72 transition hover:bg-white/[0.1] hover:text-white"
+          >
+            <Share2 className="h-4 w-4" />
+            Share form
+          </Link>
+        </aside>
+      </div>
 
       {editingField && canEdit && (
-        <div className="fixed inset-0 z-[100] flex items-end justify-center sm:items-center">
+        <AdminOverlayPortal>
+        <div className="fixed inset-0 z-[160] flex items-end justify-center sm:items-center sm:p-6">
           <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={closeEditor} />
           <GlassSurface
             intensity="strong"
-            className="relative z-10 flex max-h-[90vh] w-full flex-col rounded-t-[28px] border border-white/15 sm:max-w-lg sm:rounded-[28px]"
+            className="relative z-10 flex max-h-[90dvh] w-full flex-col overflow-hidden rounded-t-[28px] border border-white/15 sm:max-w-lg sm:rounded-[28px]"
           >
             <div className="flex items-center justify-between border-b border-white/10 px-6 py-4">
               <h3 className="text-lg font-semibold text-white">
-                <GradientText>{isCreating ? "New Field" : "Edit Field"}</GradientText>
+                <GradientText>{isCreating ? "New question" : "Edit question"}</GradientText>
               </h3>
               <button
                 onClick={closeEditor}
@@ -530,7 +586,7 @@ export function FormFieldEditor({
             <div className="flex-1 overflow-y-auto px-6 py-5">
               <div className="space-y-5">
                 <div>
-                  <label className="mb-2 block text-sm font-medium text-white/90">Field Type</label>
+                  <label className="mb-2 block text-sm font-medium text-white/90">Answer type</label>
                    <div className="grid grid-cols-3 gap-2 sm:grid-cols-5">
                      {CREATABLE_FIELD_TYPES.map((type) => {
                       const Icon = FIELD_TYPE_ICONS[type];
@@ -555,7 +611,7 @@ export function FormFieldEditor({
                 </div>
 
                 <div>
-                  <label className="mb-2 block text-sm font-medium text-white/90">Label</label>
+                  <label className="mb-2 block text-sm font-medium text-white/90">Question</label>
                   <input
                     type="text"
                     value={editingField.label}
@@ -827,11 +883,12 @@ export function FormFieldEditor({
                 disabled={!editingField.label.trim()}
                 onClick={() => handleSave(editingField)}
               >
-                {isCreating ? "Create Field" : "Save Changes"}
+                {isCreating ? "Add question" : "Save changes"}
               </SmoothButton>
             </div>
           </GlassSurface>
         </div>
+        </AdminOverlayPortal>
       )}
     </div>
   );

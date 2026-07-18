@@ -9,6 +9,7 @@ import {
 } from "@/lib/admin-permissions";
 import { canManageUsers } from "@/lib/crm/authz";
 import { leadStore } from "@/lib/storage";
+import { getActivationBaseUrl, issueUserInvitation } from "@/lib/auth-credentials";
 
 const avatarImageSchema = z
   .string()
@@ -77,19 +78,37 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "You cannot change your own access here." }, { status: 403 });
   }
 
-  const user = await leadStore.upsertCrmUser({
-    email: normalizedEmail,
-    fullName: parsed.data.fullName,
-    role: getStoredRoleForAccessLevel(
-      lockedAsMaster ? "master_admin" : parsed.data.accessLevel,
-    ),
-    isActive: lockedAsMaster ? true : parsed.data.isActive ?? true,
-    avatarUrl: parsed.data.avatarUrl?.trim() || null,
-    accessScope: lockedAsMaster ? "all" : parsed.data.accessScope,
-    branchId: parsed.data.accessScope === "branch" ? parsed.data.branchId ?? null : null,
-    departmentId: parsed.data.accessScope === "department" ? parsed.data.departmentId ?? null : null,
-    teamId: parsed.data.accessScope === "team" ? parsed.data.teamId ?? null : null,
-  });
+  try {
+    const user = await leadStore.upsertCrmUser({
+      email: normalizedEmail,
+      fullName: parsed.data.fullName,
+      role: getStoredRoleForAccessLevel(
+        lockedAsMaster ? "master_admin" : parsed.data.accessLevel,
+      ),
+      isActive: lockedAsMaster ? true : parsed.data.isActive ?? true,
+      avatarUrl: parsed.data.avatarUrl?.trim() || null,
+      accessScope: lockedAsMaster ? "all" : parsed.data.accessScope,
+      branchId: parsed.data.accessScope === "branch" ? parsed.data.branchId ?? null : null,
+      departmentId: parsed.data.accessScope === "department" ? parsed.data.departmentId ?? null : null,
+      teamId: parsed.data.accessScope === "team" ? parsed.data.teamId ?? null : null,
+    });
+    const requestOrigin = process.env.NODE_ENV === "production" ? null : new URL(request.url).origin;
+    const invitation = await issueUserInvitation({
+      userId: user.id,
+      createdBy: context.session.user?.email ?? "",
+      baseUrl: getActivationBaseUrl() ?? requestOrigin,
+    });
 
-  return NextResponse.json({ user });
+    return NextResponse.json({
+      user,
+      activationUrl: invitation.activationUrl,
+      invitationExpiresAt: invitation.expiresAt.toISOString(),
+    });
+  } catch (error) {
+    console.error("[admin:users:create-invitation]", error);
+    return NextResponse.json(
+      { error: "We couldn't create an activation link right now." },
+      { status: 500 },
+    );
+  }
 }

@@ -104,41 +104,15 @@ export function isAllowedAdminEmail(email?: string | null) {
 
 export function isGoogleAuthConfigured(environment: NodeJS.ProcessEnv = process.env) {
   return Boolean(
+    normalizeEnvValue(environment.ENABLE_GOOGLE_LOGIN).toLowerCase() === "true" &&
     hasConfiguredEnvValue(environment.AUTH_GOOGLE_ID) &&
       hasConfiguredEnvValue(environment.AUTH_GOOGLE_SECRET),
   );
 }
 
-export function getChiefLoginEmail(environment: NodeJS.ProcessEnv = process.env) {
-  const [email] = parseEmailList(environment.CHIEF_LOGIN_EMAIL);
-  return email ?? null;
-}
-
-export function isChiefLoginConfigured(environment: NodeJS.ProcessEnv = process.env) {
-  const enabled = normalizeEnvValue(environment.ENABLE_PASSWORD_LOGIN).toLowerCase() === "true";
-  const chiefEmail = getChiefLoginEmail(environment);
-  const [initialAdminEmail] = parseEmailList(environment.INITIAL_ADMIN_EMAIL);
-
-  return Boolean(
-    enabled &&
-      chiefEmail &&
-      initialAdminEmail &&
-      chiefEmail === initialAdminEmail &&
-      hasConfiguredEnvValue(environment.CHIEF_LOGIN_PASSWORD_HASH),
-  );
-}
-
-export function isChiefLoginEmail(
-  email?: string | null,
-  environment: NodeJS.ProcessEnv = process.env,
-) {
-  const chiefEmail = getChiefLoginEmail(environment);
-  return Boolean(chiefEmail && email && chiefEmail === normalizeAdminEmail(email));
-}
-
 export function isAdminAuthConfigured(environment: NodeJS.ProcessEnv = process.env) {
   return Boolean(
-    (isGoogleAuthConfigured(environment) || isChiefLoginConfigured(environment)) &&
+    hasConfiguredEnvValue(environment.DATABASE_URL) &&
       hasConfiguredEnvValue(environment.AUTH_SECRET ?? environment.NEXTAUTH_SECRET) &&
       hasConfiguredEnvValue(environment.INITIAL_ADMIN_EMAIL) &&
       hasConfiguredEnvValue(environment.INITIAL_ADMIN_NAME),

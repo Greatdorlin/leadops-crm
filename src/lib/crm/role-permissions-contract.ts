@@ -76,7 +76,7 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<CrmUserRole, PermissionKey[]> = {
   finance: [
     "canViewLeads", "canEditLeads", "canExportLeads", "canViewReports", "canVerifyPayments",
   ],
-  affiliate: ["canAccessAffiliateDashboard"],
+  affiliate: ["canViewLeads", "canCreateLeads", "canAccessAffiliateDashboard"],
   sales_agent: ["canViewLeads", "canCreateLeads", "canEditLeads"],
 };
 

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { AdminCollapsibleSection } from "@/components/admin/AdminCollapsibleSection";
 import { AffiliateDashboardPanel } from "@/components/admin/AffiliateDashboardPanel";
 import { DashboardRecentLeads } from "@/components/admin/DashboardRecentLeads";
@@ -6,6 +7,7 @@ import { DashboardHeroClock } from "@/components/admin/DashboardHeroClock";
 import { SalesCommandOverview } from "@/components/admin/SalesCommandOverview";
 import { AdminShell } from "@/components/admin/AdminShell";
 import { ErrorState } from "@/components/admin/ErrorState";
+import { MetricCard } from "@/components/admin/MetricCard";
 import { AdminSignOutButton } from "@/components/admin/AdminSignOutButton";
 import { GlassSurface } from "@/components/admin/ui/GlassSurface";
 import { SectionHeader } from "@/components/admin/ui/SectionHeader";
@@ -25,12 +27,13 @@ import {
 import { listLeadIntakeEvents } from "@/lib/crm/intake-runtime";
 import { listLeadStages } from "@/lib/crm/lead-stages-admin";
 import { buildAffiliateDashboardSummary } from "@/lib/crm/affiliate-dashboard";
+import { canAccessAffiliateDashboard } from "@/lib/crm/authz";
 import { getCrmPageErrorCopy, logCrmPageError } from "@/lib/crm/runtime";
 import {
   buildSalesDashboardSummary,
   mergeSalesDashboardSummary,
 } from "@/lib/crm/sales-metrics";
-import { getActiveGlobalSalesTarget } from "@/lib/crm/sales-targets-admin";
+import { getResolvedSalesTargetForUser } from "@/lib/crm/sales-targets-admin";
 import { appRoutes } from "@/lib/app-routes";
 import {
   DASHBOARD_WIDGET_KEYS,
@@ -346,7 +349,7 @@ function buildDevelopmentDashboardData() {
     updatedAt: now.toISOString(),
     isActive: true,
     archived: false,
-  } as Awaited<ReturnType<typeof getActiveGlobalSalesTarget>>;
+  } as Awaited<ReturnType<typeof getResolvedSalesTargetForUser>>;
   const timestamp = now.toISOString();
   const stages = [
     { id: "demo-stage-new", key: "new", name: "New", color: "#60a5fa", sortOrder: 0, isWon: false, isLost: false, archived: false, createdAt: timestamp, updatedAt: timestamp },
@@ -392,12 +395,22 @@ export default async function AdminPage({
     canSwitchAccessViews,
     permissions,
   } = await getAdminAccessContext(appRoutes.dashboard);
+  if (
+    accessLevel === "affiliate" &&
+    !canAccessAffiliateDashboard({
+      accessLevel,
+      email: session.user?.email,
+      permissions,
+      role,
+    })
+  ) {
+    redirect(appRoutes.leads);
+  }
   const params = await searchParams;
   const filters = parseLeadListFilters(params);
   const scopedFilters = scopeLeadListFilters(filters, accessLevel, session.user?.email, crmUser);
   const showTeamViews = canViewSalesTeam(accessLevel, permissions);
-  const usePersonalTaskScope =
-    accessLevel === "sales_rep" || accessLevel === "affiliate" || accessLevel === "finance";
+  const usePersonalTaskScope = accessLevel === "sales_rep" || accessLevel === "finance";
   const showIntakeFeed =
     accessLevel !== "sales_rep" && accessLevel !== "affiliate" && accessLevel !== "finance";
   let pageError: unknown = null;
@@ -408,7 +421,7 @@ export default async function AdminPage({
         tasks: Awaited<ReturnType<typeof leadStore.listLeadTasks>>;
         users: Awaited<ReturnType<typeof leadStore.listCrmUsers>>;
         intakeEvents: Awaited<ReturnType<typeof listLeadIntakeEvents>>;
-        activeTarget: Awaited<ReturnType<typeof getActiveGlobalSalesTarget>>;
+        activeTarget: Awaited<ReturnType<typeof getResolvedSalesTargetForUser>>;
         stages: Awaited<ReturnType<typeof listLeadStages>>;
         trend: Awaited<ReturnType<typeof leadStore.getDashboardTrend>>;
       }
@@ -431,6 +444,7 @@ export default async function AdminPage({
       leadStore.listLeadTasks({
         assignedTo: usePersonalTaskScope ? session.user?.email ?? undefined : undefined,
         leadAssignedTo: scopedFilters.assignedTo,
+        leadAffiliateReferrerId: scopedFilters.affiliateReferrerId,
         branchId: scopedFilters.branchId,
         departmentId: scopedFilters.departmentId,
         teamId: scopedFilters.teamId,
@@ -439,7 +453,7 @@ export default async function AdminPage({
       }),
       showTeamViews ? leadStore.listCrmUsers() : Promise.resolve([]),
       showIntakeFeed ? listLeadIntakeEvents({ limit: 8 }) : Promise.resolve([]),
-      getActiveGlobalSalesTarget(),
+      getResolvedSalesTargetForUser(crmUser),
       listLeadStages(),
       leadStore.getDashboardTrend(scopedFilters, 14),
     ]);
@@ -568,6 +582,7 @@ export default async function AdminPage({
       ? buildAffiliateDashboardSummary({
           leads,
           tasks,
+          affiliateUserId: crmUser?.id,
           affiliateEmail: session.user?.email,
           commissionRatePercent: usingDevelopmentDemoData ? 5 : 0,
         })
@@ -635,7 +650,34 @@ export default async function AdminPage({
             summary={affiliateDashboardSummary}
             currency={salesDashboardSummary.target?.currency ?? workspaceSettings.globalCurrency}
           />
-        ) : accessLevel === "sales_rep" || salesDashboardWidgetKeys.length === 0 ? null : (
+        ) : accessLevel === "sales_rep" ? (
+          <section className="space-y-4 ld-animate-fade-in-up">
+            <div className="flex flex-wrap items-end justify-between gap-3">
+              <SectionHeader
+                eyebrow="Performance"
+                title="My performance"
+                description="Your private pipeline, results, and active sales target."
+              />
+              <Link
+                href={appRoutes.reports}
+                className="admin-button-secondary inline-flex h-10 items-center justify-center rounded-xl px-4 text-sm font-semibold"
+              >
+                View details
+              </Link>
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+              <MetricCard label="My pipeline" value={`${salesDashboardSummary.target?.currency ?? workspaceSettings.globalCurrency} ${salesDashboardSummary.pipelineValue.toLocaleString()}`} supporting="Open expected value in your queue." />
+              <MetricCard label="My won value" value={`${salesDashboardSummary.target?.currency ?? workspaceSettings.globalCurrency} ${salesDashboardSummary.wonValue.toLocaleString()}`} supporting="Value closed in your reporting view." tone="positive" />
+              <MetricCard label="Converted" value={salesDashboardSummary.wonLeads} supporting="Leads you have closed." tone="positive" />
+              <MetricCard
+                label="Target progress"
+                value={salesDashboardSummary.target ? `${salesDashboardSummary.target.progressPercent}%` : "Not set"}
+                supporting={salesDashboardSummary.target?.name ?? "No active target applies to you."}
+                tone={salesDashboardSummary.target ? "accent" : "default"}
+              />
+            </div>
+          </section>
+        ) : salesDashboardWidgetKeys.length === 0 ? null : (
           <>
             <SectionHeader
               eyebrow="Performance"

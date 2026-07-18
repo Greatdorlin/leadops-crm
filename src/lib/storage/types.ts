@@ -28,6 +28,7 @@ export interface LeadListFilters {
   leadCustomerType?: "all" | LeadCustomerType;
   assignment?: "unassigned";
   assignedTo?: string;
+  affiliateReferrerId?: string;
   assignedUserId?: string;
   branchId?: string;
   departmentId?: string;
@@ -56,6 +57,7 @@ export interface ExternalLeadUpsertInput {
   priority?: LeadPriority;
   assignedTo?: string | null;
   assignedToList?: string[] | null;
+  affiliateReferrerId?: string | null;
   assignedUserId?: string | null;
   teamId?: string | null;
   branchId?: string | null;
@@ -151,6 +153,7 @@ export interface LeadTaskListFilters {
   leadIds?: string[];
   assignedTo?: string;
   leadAssignedTo?: string;
+  leadAffiliateReferrerId?: string;
   stageId?: string;
   completion?: "all" | "open" | "completed";
   leadRecordState?: "active" | "trashed" | "all";

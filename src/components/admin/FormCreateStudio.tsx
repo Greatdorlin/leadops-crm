@@ -3,13 +3,12 @@
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import {
+  ArrowLeft,
   ArrowRight,
   Check,
   FilePlus2,
   Layers3,
-  Wand2,
 } from "lucide-react";
-import { AdminSelect } from "@/components/admin/AdminSelect";
 import { AnimatedCard } from "@/components/admin/ui/AnimatedCard";
 import { GlassSurface } from "@/components/admin/ui/GlassSurface";
 import { SmoothButton } from "@/components/admin/ui/SmoothButton";
@@ -23,48 +22,33 @@ import {
   type FormTemplateDefinition,
 } from "@/lib/crm/form-templates";
 
-type FormCreateStudioProps = {
-  stageOptions: Array<{ value: string; label: string }>;
-  sourceOptions: Array<{ value: string; label: string }>;
-  ownerOptions: Array<{ value: string; label: string }>;
-};
-
 type CreateDraft = {
   templateKey: string;
   name: string;
   slug: string;
-  description: string;
-  defaultStatus: string;
-  defaultPriority: string;
-  defaultSource: string;
-  defaultOwnerId: string;
-  successMessage: string;
   isPublic: boolean;
 };
+
+const STEPS = [
+  { number: 1, label: "Template" },
+  { number: 2, label: "Name" },
+  { number: 3, label: "Create" },
+] as const;
 
 function buildDraft(template: FormTemplateDefinition): CreateDraft {
   return {
     templateKey: template.key,
     name: template.suggestedName,
     slug: template.suggestedSlug,
-    description: template.description,
-    defaultStatus: template.defaultStatus,
-    defaultPriority: template.defaultPriority,
-    defaultSource: template.defaultSource,
-    defaultOwnerId: "",
-    successMessage: template.successMessage,
     isPublic: true,
   };
 }
 
-export function FormCreateStudio({
-  stageOptions,
-  sourceOptions,
-  ownerOptions,
-}: FormCreateStudioProps) {
+export function FormCreateStudio() {
   const [draft, setDraft] = useState<CreateDraft>(() =>
     buildDraft(getFormTemplateByKey("sales_inquiry")),
   );
+  const [step, setStep] = useState(1);
   const [slugTouched, setSlugTouched] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -75,15 +59,7 @@ export function FormCreateStudio({
   );
 
   function applyTemplate(template: FormTemplateDefinition) {
-    setDraft((current) => ({
-      ...buildDraft(template),
-      name: current.name.trim() && current.templateKey === template.key ? current.name : template.suggestedName,
-      slug:
-        current.templateKey === template.key && current.slug.trim()
-          ? current.slug
-          : template.suggestedSlug,
-      defaultOwnerId: current.defaultOwnerId,
-    }));
+    setDraft(buildDraft(template));
     setSlugTouched(false);
     setError(null);
   }
@@ -101,12 +77,23 @@ export function FormCreateStudio({
     setDraft((current) => ({ ...current, slug: slugifyFormName(value) }));
   }
 
+  function goToStep(nextStep: number) {
+    if (nextStep > 2 && (!draft.name.trim() || !slugifyFormName(draft.slug))) {
+      setError("Add a form name before continuing.");
+      return;
+    }
+
+    setError(null);
+    setStep(nextStep);
+  }
+
   async function createForm() {
     const trimmedName = draft.name.trim();
     const trimmedSlug = slugifyFormName(draft.slug);
 
     if (!trimmedName || !trimmedSlug) {
-      setError("Choose a form name and a valid slug before creating the form.");
+      setError("Add a form name before creating the form.");
+      setStep(2);
       return;
     }
 
@@ -120,13 +107,13 @@ export function FormCreateStudio({
         body: JSON.stringify({
           name: trimmedName,
           slug: trimmedSlug,
-          description: draft.description.trim() || null,
+          description: selectedTemplate.description,
           isPublic: draft.isPublic,
-          successMessage: draft.successMessage.trim() || selectedTemplate.successMessage,
-          defaultStatus: draft.defaultStatus,
-          defaultPriority: draft.defaultPriority,
-          defaultSource: draft.defaultSource,
-          defaultOwnerId: draft.defaultOwnerId || null,
+          successMessage: selectedTemplate.successMessage,
+          defaultStatus: selectedTemplate.defaultStatus,
+          defaultPriority: selectedTemplate.defaultPriority,
+          defaultSource: selectedTemplate.defaultSource,
+          defaultOwnerId: null,
         }),
       });
 
@@ -164,12 +151,12 @@ export function FormCreateStudio({
             | null;
           throw new Error(
             fieldPayload?.error ??
-              "The form was created, but the starter fields did not finish saving.",
+              "The form was created, but its starter fields did not finish saving.",
           );
         }
       }
 
-      window.location.assign(appRoutes.form(createPayload.form.id));
+      window.location.assign(`${appRoutes.form(createPayload.form.id)}/fields`);
     } catch (caughtError) {
       setError(
         caughtError instanceof Error
@@ -181,314 +168,243 @@ export function FormCreateStudio({
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       <SectionHeader
         eyebrow="Built-in forms"
         title="Create a form"
-        description="Choose a starting point, name it, and preview it live."
+        description="Pick a starting point, name it, then build."
         variant="large"
       />
 
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,1.1fr)_360px]">
-        <section className="min-w-0">
-          <div className="flex items-center justify-between gap-3">
-            <div>
-              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/60">
-                Template library
-              </p>
-              <h2 className="mt-2 text-xl font-semibold tracking-[-0.04em] text-white">
-                Choose a template
-              </h2>
-            </div>
-            <span className="rounded-full border border-white/10 bg-white/[0.05] px-3 py-1 text-xs font-semibold text-white/60">
-              {FORM_TEMPLATES.length} options
-            </span>
-          </div>
-
-          <div className="mt-5 grid gap-3 md:grid-cols-2">
-            {FORM_TEMPLATES.map((template, index) => {
-              const isActive = template.key === draft.templateKey;
-              return (
-                <button
-                  key={template.key}
-                  type="button"
-                  onClick={() => applyTemplate(template)}
-                  className={cn(
-                    "text-left transition",
-                    isActive ? "scale-[1.01]" : "hover:-translate-y-0.5",
-                  )}
-                >
-                  <AnimatedCard
-                    variant={isActive ? "elevated" : "subtle"}
-                    animation="fadeInUp"
-                    delay={index * 25}
-                    className={cn(
-                      "h-full rounded-[24px] p-4",
-                      isActive
-                        ? "border-[var(--ld-color-accent)]/28 bg-[linear-gradient(145deg,color-mix(in_srgb,var(--ld-color-primary)_16%,transparent),rgba(255,255,255,0.05),color-mix(in_srgb,var(--ld-color-accent)_14%,transparent))]"
-                        : "",
-                    )}
-                  >
-                    <div className="flex items-start justify-between gap-3">
-                      <div>
-                        <p className="text-sm font-semibold text-white">{template.label}</p>
-                        <p className="mt-1 text-xs font-semibold uppercase tracking-[0.14em] text-white/55">
-                          {template.tagline}
-                        </p>
-                      </div>
-                      {isActive ? (
-                        <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-[var(--ld-color-accent)]/18 text-[var(--ld-color-accent)]">
-                          <Check className="h-4 w-4" />
-                        </span>
-                      ) : null}
-                    </div>
-                    <div className="mt-3 flex flex-wrap gap-2">
-                      <span className="rounded-full border border-white/10 bg-white/[0.05] px-2.5 py-1 text-[11px] font-semibold text-white/58">
-                        {template.fields.length} starter fields
-                      </span>
-                    </div>
-                  </AnimatedCard>
-                </button>
-              );
-            })}
-          </div>
-        </section>
-
-        <div className="space-y-6">
-          <GlassSurface intensity="medium" className="rounded-[28px] p-5 sm:p-6">
-            <div className="flex items-center gap-2">
-              <Wand2 className="h-4 w-4 text-[var(--ld-color-accent)]" />
-              <h2 className="text-base font-semibold text-white">Create form</h2>
-            </div>
-
-            <div className="mt-5 grid gap-4">
-              <label className="space-y-2">
-                <span className="text-xs font-semibold uppercase tracking-[0.16em] text-white/60">Form name</span>
-                <input type="text" value={draft.name} onChange={(event) => updateName(event.target.value)} className="admin-input h-11 w-full rounded-2xl px-4 text-sm outline-none" />
-              </label>
-              <details className="group rounded-2xl border border-white/10 bg-white/[0.035] px-4 py-3">
-                <summary className="cursor-pointer list-none text-sm font-semibold text-white marker:hidden">
-                  Advanced setup <span className="text-white/48 group-open:hidden">(optional)</span>
-                </summary>
-                <div className="mt-4 grid gap-4">
-              <label className="space-y-2">
-                <span className="text-xs font-semibold uppercase tracking-[0.16em] text-white/60">
-                  Slug
-                </span>
-                <input
-                  type="text"
-                  value={draft.slug}
-                  onChange={(event) => updateSlug(event.target.value)}
-                  className="admin-input h-11 w-full rounded-2xl px-4 text-sm outline-none"
-                />
-              </label>
-
-              <label className="space-y-2">
-                <span className="text-xs font-semibold uppercase tracking-[0.16em] text-white/60">
-                  One-line description
-                </span>
-                <textarea
-                  value={draft.description}
-                  onChange={(event) =>
-                    setDraft((current) => ({ ...current, description: event.target.value }))
-                  }
-                  rows={3}
-                  className="admin-textarea min-h-[112px] w-full rounded-2xl px-4 py-3 text-sm outline-none"
-                />
-              </label>
-
-              <div className="grid gap-4 sm:grid-cols-2">
-                <label className="space-y-2">
-                  <span className="text-xs font-semibold uppercase tracking-[0.16em] text-white/60">
-                    Default stage
-                  </span>
-                  <AdminSelect
-                    value={draft.defaultStatus}
-                    onChange={(event) =>
-                      setDraft((current) => ({
-                        ...current,
-                        defaultStatus: event.target.value,
-                      }))
-                    }
-                    className="h-11"
-                  >
-                    {stageOptions.map((option) => (
-                      <option key={option.value} value={option.value}>
-                        {option.label}
-                      </option>
-                    ))}
-                  </AdminSelect>
-                </label>
-
-                <label className="space-y-2">
-                  <span className="text-xs font-semibold uppercase tracking-[0.16em] text-white/60">
-                    Default source
-                  </span>
-                  <AdminSelect
-                    value={draft.defaultSource}
-                    onChange={(event) =>
-                      setDraft((current) => ({
-                        ...current,
-                        defaultSource: event.target.value,
-                      }))
-                    }
-                    className="h-11"
-                  >
-                    {sourceOptions.map((option) => (
-                      <option key={option.value} value={option.value}>
-                        {option.label}
-                      </option>
-                    ))}
-                  </AdminSelect>
-                </label>
-
-                <label className="space-y-2">
-                  <span className="text-xs font-semibold uppercase tracking-[0.16em] text-white/60">
-                    Default priority
-                  </span>
-                  <AdminSelect
-                    value={draft.defaultPriority}
-                    onChange={(event) =>
-                      setDraft((current) => ({
-                        ...current,
-                        defaultPriority: event.target.value,
-                      }))
-                    }
-                    className="h-11"
-                  >
-                    {[
-                      { value: "low", label: "Low" },
-                      { value: "medium", label: "Medium" },
-                      { value: "high", label: "High" },
-                      { value: "urgent", label: "Urgent" },
-                    ].map((option) => (
-                      <option key={option.value} value={option.value}>
-                        {option.label}
-                      </option>
-                    ))}
-                  </AdminSelect>
-                </label>
-
-                <label className="space-y-2">
-                  <span className="text-xs font-semibold uppercase tracking-[0.16em] text-white/60">
-                    Default owner
-                  </span>
-                  <AdminSelect
-                    value={draft.defaultOwnerId}
-                    onChange={(event) =>
-                      setDraft((current) => ({
-                        ...current,
-                        defaultOwnerId: event.target.value,
-                      }))
-                    }
-                    className="h-11"
-                  >
-                    <option value="">Unassigned</option>
-                    {ownerOptions.map((option) => (
-                      <option key={option.value} value={option.value}>
-                        {option.label}
-                      </option>
-                    ))}
-                  </AdminSelect>
-                </label>
-              </div>
-
-              <label className="inline-flex items-center justify-between gap-3 rounded-2xl border border-white/10 bg-white/[0.045] px-4 py-3 text-sm font-semibold text-white/72">
-                <span>Public form link ready after creation</span>
-                <input
-                  type="checkbox"
-                  checked={draft.isPublic}
-                  onChange={(event) =>
-                    setDraft((current) => ({
-                      ...current,
-                      isPublic: event.target.checked,
-                    }))
-                  }
-                  className="admin-toggle"
-                />
-              </label>
-
-              <label className="space-y-2">
-                <span className="text-xs font-semibold uppercase tracking-[0.16em] text-white/60">
-                  Thank-you message
-                </span>
-                <textarea
-                  value={draft.successMessage}
-                  onChange={(event) =>
-                    setDraft((current) => ({
-                      ...current,
-                      successMessage: event.target.value,
-                    }))
-                  }
-                  rows={2}
-                  className="admin-textarea min-h-[92px] w-full rounded-2xl px-4 py-3 text-sm outline-none"
-                />
-              </label>
-                </div>
-              </details>
-
-              {error ? (
-                <div className="rounded-2xl border border-rose-300/22 bg-rose-400/10 px-4 py-3 text-sm text-rose-100">
-                  {error}
-                </div>
-              ) : null}
-
-              <div className="flex flex-col gap-3 border-t border-white/10 pt-4">
-                <SmoothButton
-                  variant="primary"
-                  size="lg"
-                  icon={<FilePlus2 className="h-4 w-4" />}
-                  loading={isCreating}
-                  onClick={() => void createForm()}
-                >
-                  {isCreating ? "Creating form..." : "Create form"}
-                </SmoothButton>
-                <Link
-                  href={appRoutes.forms}
-                  className="inline-flex items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm font-semibold text-white/72 transition hover:bg-white/[0.08] hover:text-white"
-                >
-                  Back to forms
-                  <ArrowRight className="h-4 w-4" />
-                </Link>
-              </div>
-            </div>
-          </GlassSurface>
-
-          <GlassSurface intensity="soft" className="rounded-[28px] p-5 sm:p-6">
-            <div className="flex items-center gap-2">
-              <Layers3 className="h-4 w-4 text-white/70" />
-              <div className="min-w-0">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-white/55">Live preview</p>
-                <h2 className="truncate text-base font-semibold text-white">{draft.name || "Untitled form"}</h2>
-              </div>
-            </div>
-
-            <div className="mt-4 grid gap-3">
-              {selectedTemplate.fields.length > 0 ? (
-                selectedTemplate.fields.map((field, index) => (
-                  <label key={`${selectedTemplate.key}-${field.label}-${index}`} className="grid gap-2">
-                    <span className="text-sm font-semibold text-white/84">{field.label}{field.isRequired ? " *" : ""}</span>
-                    {field.fieldType === "textarea" ? (
-                      <textarea disabled rows={3} placeholder={field.placeholder ?? "Type your answer"} className="admin-textarea w-full rounded-2xl px-4 py-3 text-sm opacity-90" />
-                    ) : field.fieldType === "select" ? (
-                      <select disabled className="admin-select h-11 w-full rounded-2xl px-4 text-sm opacity-90"><option>Choose an option</option></select>
-                    ) : field.fieldType === "checkbox" ? (
-                      <span className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-white/70"><input type="checkbox" disabled /> Yes</span>
-                    ) : (
-                      <input disabled type={field.fieldType === "email" ? "email" : field.fieldType === "phone" ? "tel" : "text"} placeholder={field.placeholder ?? "Type your answer"} className="admin-input h-11 w-full rounded-2xl px-4 text-sm opacity-90" />
-                    )}
-                  </label>
-                ))
-              ) : (
-                <div className="rounded-[20px] border border-dashed border-white/12 bg-black/10 px-4 py-5 text-sm text-white/58">
-                  Blank forms start without fields so the team can build the intake from scratch.
-                </div>
+      <nav aria-label="Form creation progress" className="flex items-center gap-2">
+        {STEPS.map((item, index) => (
+          <div key={item.number} className="flex min-w-0 flex-1 items-center gap-2">
+            <button
+              type="button"
+              onClick={() => item.number < step && goToStep(item.number)}
+              disabled={item.number > step}
+              className={cn(
+                "flex min-w-0 items-center gap-2 text-left text-sm font-semibold transition",
+                item.number <= step ? "text-white" : "text-white/35",
               )}
-            </div>
+            >
+              <span
+                className={cn(
+                  "inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full border text-xs",
+                  item.number < step
+                    ? "border-emerald-300/30 bg-emerald-400/15 text-emerald-100"
+                    : item.number === step
+                      ? "border-[var(--ld-color-accent)]/40 bg-[var(--ld-color-accent)]/15 text-white"
+                      : "border-white/10 bg-white/[0.03]",
+                )}
+              >
+                {item.number < step ? <Check className="h-3.5 w-3.5" /> : item.number}
+              </span>
+              <span className="truncate">{item.label}</span>
+            </button>
+            {index < STEPS.length - 1 ? <span className="h-px flex-1 bg-white/10" /> : null}
+          </div>
+        ))}
+      </nav>
 
-            <button type="button" disabled className="admin-button-primary mt-5 h-11 w-full rounded-2xl text-sm">Submit</button>
-          </GlassSurface>
-        </div>
+      <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_360px]">
+        <GlassSurface intensity="medium" className="rounded-[28px] p-5 sm:p-6">
+          {step === 1 ? (
+            <section>
+              <div className="flex items-end justify-between gap-4">
+                <div>
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/55">Step 1</p>
+                  <h2 className="mt-1 text-xl font-semibold tracking-[-0.04em] text-white">Choose a template</h2>
+                </div>
+                <span className="text-xs font-medium text-white/45">{FORM_TEMPLATES.length} options</span>
+              </div>
+
+              <div className="mt-5 grid gap-2 sm:grid-cols-2">
+                {FORM_TEMPLATES.map((template, index) => {
+                  const isActive = template.key === draft.templateKey;
+                  return (
+                    <button
+                      key={template.key}
+                      type="button"
+                      onClick={() => applyTemplate(template)}
+                      className="text-left"
+                    >
+                      <AnimatedCard
+                        variant={isActive ? "elevated" : "subtle"}
+                        animation="fadeInUp"
+                        delay={index * 20}
+                        className={cn(
+                          "h-full rounded-[20px] p-4",
+                          isActive
+                            ? "border-[var(--ld-color-accent)]/35 bg-[var(--ld-color-accent)]/10"
+                            : "hover:bg-white/[0.07]",
+                        )}
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <p className="truncate text-sm font-semibold text-white">{template.label}</p>
+                            <p className="mt-1 text-xs text-white/52">{template.fields.length} fields</p>
+                          </div>
+                          {isActive ? (
+                            <span className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[var(--ld-color-accent)]/18 text-[var(--ld-color-accent)]">
+                              <Check className="h-3.5 w-3.5" />
+                            </span>
+                          ) : null}
+                        </div>
+                      </AnimatedCard>
+                    </button>
+                  );
+                })}
+              </div>
+            </section>
+          ) : null}
+
+          {step === 2 ? (
+            <section>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/55">Step 2</p>
+              <h2 className="mt-1 text-xl font-semibold tracking-[-0.04em] text-white">Name your form</h2>
+              <div className="mt-6 grid max-w-xl gap-5">
+                <label className="space-y-2">
+                  <span className="text-sm font-semibold text-white/80">Form name</span>
+                  <input
+                    autoFocus
+                    type="text"
+                    value={draft.name}
+                    onChange={(event) => updateName(event.target.value)}
+                    className="admin-input h-12 w-full rounded-2xl px-4 text-base outline-none"
+                  />
+                </label>
+                <details className="group rounded-2xl border border-white/10 bg-white/[0.035] px-4 py-3">
+                  <summary className="cursor-pointer list-none text-sm font-semibold text-white/72 marker:hidden">
+                    Edit link <span className="font-normal text-white/40">(optional)</span>
+                  </summary>
+                  <label className="mt-4 block space-y-2">
+                    <span className="text-xs font-semibold uppercase tracking-[0.14em] text-white/50">Public link</span>
+                    <div className="flex h-11 items-center rounded-2xl border border-white/10 bg-black/10 px-4 focus-within:border-white/20">
+                      <span className="shrink-0 text-sm text-white/38">/forms/</span>
+                      <input
+                        type="text"
+                        value={draft.slug}
+                        onChange={(event) => updateSlug(event.target.value)}
+                        className="min-w-0 flex-1 bg-transparent text-sm text-white outline-none"
+                      />
+                    </div>
+                  </label>
+                </details>
+                <label className="flex items-center justify-between gap-4 rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3">
+                  <span>
+                    <span className="block text-sm font-semibold text-white/82">Publish after creation</span>
+                    <span className="mt-0.5 block text-xs text-white/45">You can change this later.</span>
+                  </span>
+                  <input
+                    type="checkbox"
+                    checked={draft.isPublic}
+                    onChange={(event) =>
+                      setDraft((current) => ({ ...current, isPublic: event.target.checked }))
+                    }
+                    className="admin-toggle"
+                  />
+                </label>
+              </div>
+            </section>
+          ) : null}
+
+          {step === 3 ? (
+            <section>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/55">Step 3</p>
+              <h2 className="mt-1 text-xl font-semibold tracking-[-0.04em] text-white">Ready to build</h2>
+              <div className="mt-6 grid gap-3 sm:grid-cols-3">
+                <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
+                  <p className="text-xs text-white/45">Template</p>
+                  <p className="mt-1 text-sm font-semibold text-white">{selectedTemplate.label}</p>
+                </div>
+                <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
+                  <p className="text-xs text-white/45">Fields</p>
+                  <p className="mt-1 text-sm font-semibold text-white">{selectedTemplate.fields.length} ready</p>
+                </div>
+                <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
+                  <p className="text-xs text-white/45">Access</p>
+                  <p className="mt-1 text-sm font-semibold text-white">{draft.isPublic ? "Published" : "Private"}</p>
+                </div>
+              </div>
+              <div className="mt-4 rounded-2xl border border-white/10 bg-black/10 px-4 py-3">
+                <p className="text-xs text-white/45">Form name</p>
+                <p className="mt-1 font-semibold text-white">{draft.name}</p>
+                <p className="mt-1 text-xs text-white/42">/forms/{draft.slug}</p>
+              </div>
+            </section>
+          ) : null}
+
+          {error ? (
+            <div className="mt-5 rounded-2xl border border-rose-300/22 bg-rose-400/10 px-4 py-3 text-sm text-rose-100">
+              {error}
+            </div>
+          ) : null}
+
+          <div className="mt-6 flex flex-col-reverse gap-3 border-t border-white/10 pt-5 sm:flex-row sm:items-center sm:justify-between">
+            {step === 1 ? (
+              <Link href={appRoutes.forms} className="text-center text-sm font-semibold text-white/58 hover:text-white">
+                Cancel
+              </Link>
+            ) : (
+              <SmoothButton variant="ghost" icon={<ArrowLeft className="h-4 w-4" />} onClick={() => goToStep(step - 1)}>
+                Back
+              </SmoothButton>
+            )}
+            {step < 3 ? (
+              <SmoothButton variant="primary" icon={<ArrowRight className="h-4 w-4" />} onClick={() => goToStep(step + 1)}>
+                Continue
+              </SmoothButton>
+            ) : (
+              <SmoothButton
+                variant="primary"
+                size="lg"
+                icon={<FilePlus2 className="h-4 w-4" />}
+                loading={isCreating}
+                onClick={() => void createForm()}
+              >
+                {isCreating ? "Creating..." : "Create and build"}
+              </SmoothButton>
+            )}
+          </div>
+        </GlassSurface>
+
+        <GlassSurface intensity="soft" className="h-fit rounded-[28px] p-5 sm:p-6">
+          <div className="flex items-center gap-2">
+            <Layers3 className="h-4 w-4 text-[var(--ld-color-accent)]" />
+            <div className="min-w-0">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-white/48">Preview</p>
+              <h2 className="truncate text-base font-semibold text-white">{draft.name || "Untitled form"}</h2>
+            </div>
+          </div>
+          <p className="mt-2 text-xs text-white/45">{selectedTemplate.tagline}</p>
+
+          <div className="mt-5 grid gap-3">
+            {selectedTemplate.fields.length > 0 ? (
+              selectedTemplate.fields.slice(0, 5).map((field, index) => (
+                <div key={`${selectedTemplate.key}-${field.label}-${index}`} className="grid gap-1.5">
+                  <span className="text-xs font-semibold text-white/76">
+                    {field.label}{field.isRequired ? " *" : ""}
+                  </span>
+                  <div className="h-10 rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 text-xs text-white/32">
+                    {field.placeholder ?? (field.fieldType === "select" ? "Choose an option" : "Type your answer")}
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="rounded-2xl border border-dashed border-white/12 bg-black/10 px-4 py-5 text-sm text-white/48">
+                Add your first field after creation.
+              </div>
+            )}
+            {selectedTemplate.fields.length > 5 ? (
+              <p className="text-center text-xs text-white/38">+{selectedTemplate.fields.length - 5} more fields</p>
+            ) : null}
+          </div>
+
+          <button type="button" disabled className="admin-button-primary mt-5 h-10 w-full rounded-xl text-sm opacity-70">
+            Submit
+          </button>
+        </GlassSurface>
       </div>
     </div>
   );

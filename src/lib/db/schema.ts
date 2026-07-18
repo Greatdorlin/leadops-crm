@@ -413,6 +413,7 @@ export const leads = pgTable(
     priority: leadPriorityEnum("priority").$type<LeadPriority>().notNull().default("medium"),
     leadCustomerType: text("lead_customer_type").$type<LeadCustomerType>().notNull().default("direct"),
     assignedTo: text("assigned_to"),
+    affiliateReferrerId: uuid("affiliate_referrer_id"),
     companyName: text("company_name"),
     sourceId: uuid("source_id"),
     stageId: uuid("stage_id"),
@@ -473,6 +474,7 @@ export const leads = pgTable(
     priorityIdx: index("leads_priority_idx").on(table.priority),
     customerTypeIdx: index("leads_customer_type_idx").on(table.leadCustomerType),
     assignedToIdx: index("leads_assigned_to_idx").on(table.assignedTo),
+    affiliateReferrerIdx: index("leads_affiliate_referrer_id_idx").on(table.affiliateReferrerId),
     assignedUserIdIdx: index("leads_assigned_user_id_idx").on(table.assignedUserId),
     stageIdIdx: index("leads_stage_id_idx").on(table.stageId),
     teamIdIdx: index("leads_team_id_idx").on(table.teamId),
@@ -618,6 +620,44 @@ export const crmUsers = pgTable(
     branchIdx: index("crm_users_branch_id_idx").on(table.branchId),
     departmentIdx: index("crm_users_department_id_idx").on(table.departmentId),
     teamIdx: index("crm_users_team_id_idx").on(table.teamId),
+  }),
+);
+
+export const userCredentials = pgTable(
+  "user_credentials",
+  {
+    userId: uuid("user_id")
+      .primaryKey()
+      .references(() => crmUsers.id, { onDelete: "cascade" }),
+    passwordHash: text("password_hash").notNull(),
+    failedLoginCount: integer("failed_login_count").notNull().default(0),
+    lockedUntil: timestamp("locked_until", { withTimezone: true }),
+    passwordSetAt: timestamp("password_set_at", { withTimezone: true }).notNull().defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => ({
+    lockedUntilIdx: index("user_credentials_locked_until_idx").on(table.lockedUntil),
+  }),
+);
+
+export const userInvitations = pgTable(
+  "user_invitations",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => crmUsers.id, { onDelete: "cascade" }),
+    tokenHash: text("token_hash").notNull(),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    usedAt: timestamp("used_at", { withTimezone: true }),
+    createdBy: text("created_by").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => ({
+    tokenHashUnique: uniqueIndex("user_invitations_token_hash_unique").on(table.tokenHash),
+    userPendingIdx: index("user_invitations_user_pending_idx").on(table.userId, table.usedAt),
+    expiresAtIdx: index("user_invitations_expires_at_idx").on(table.expiresAt),
   }),
 );
 

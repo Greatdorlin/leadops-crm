@@ -1,7 +1,10 @@
-import { and, desc, eq, inArray, isNull, lt, or, sql, type SQL } from "drizzle-orm";
+import { and, desc, eq, exists, inArray, isNull, lt, or, sql, type SQL } from "drizzle-orm";
+import { scopeLeadListFilters, type AdminAccessLevel } from "@/lib/admin-permissions";
 import type { NotificationChannel, NotificationStatus, NotificationType } from "@/lib/crm/domain";
+import type { PermissionKey } from "@/lib/crm/role-permissions-contract";
+import type { CrmUserRecord } from "@/lib/crm/types";
 import { getDb } from "@/lib/db/client";
-import { notificationEvents } from "@/lib/db/schema";
+import { leads, notificationEvents } from "@/lib/db/schema";
 import { decodeNotificationCursor } from "@/lib/crm/notification-pagination";
 
 export interface NotificationEventRecord {
@@ -35,12 +38,104 @@ export interface NotificationListOptions {
   types?: NotificationType[];
 }
 
+export interface NotificationAccessContext {
+  accessLevel: AdminAccessLevel;
+  currentUserEmail?: string | null;
+  currentUser?: CrmUserRecord | null;
+  permissions?: readonly PermissionKey[];
+}
+
+export type NotificationLeadScope =
+  | { mode: "denied" }
+  | { mode: "all" }
+  | { mode: "assigned"; email: string }
+  | { mode: "affiliate"; userId: string }
+  | { mode: "branch" | "department" | "team"; id: string };
+
 function combineOrPredicates(predicates: [SQL<unknown>, ...SQL<unknown>[]]) {
   if (predicates.length === 1) {
     return predicates[0];
   }
 
   return or(...predicates) ?? predicates[0];
+}
+
+export function canAccessGlobalNotifications(access: NotificationAccessContext) {
+  return access.accessLevel === "master_admin" || access.accessLevel === "general_admin";
+}
+
+export function resolveNotificationLeadScope(
+  access: NotificationAccessContext,
+): NotificationLeadScope {
+  if (!access.permissions?.includes("canViewLeads")) {
+    return { mode: "denied" };
+  }
+
+  const filters = scopeLeadListFilters(
+    {},
+    access.accessLevel,
+    access.currentUserEmail,
+    access.currentUser,
+  );
+
+  if (filters.scopeDenied) {
+    return { mode: "denied" };
+  }
+  if (filters.assignedTo) {
+    return { mode: "assigned", email: filters.assignedTo };
+  }
+  if (filters.affiliateReferrerId) {
+    return { mode: "affiliate", userId: filters.affiliateReferrerId };
+  }
+  if (filters.branchId) {
+    return { mode: "branch", id: filters.branchId };
+  }
+  if (filters.departmentId) {
+    return { mode: "department", id: filters.departmentId };
+  }
+  if (filters.teamId) {
+    return { mode: "team", id: filters.teamId };
+  }
+
+  return { mode: "all" };
+}
+
+function buildAssignedLeadPredicate(email: string) {
+  return or(
+    eq(leads.assignedTo, email),
+    sql`${leads.assignedTo} like ${`${email}|%`}`,
+    sql`${leads.assignedTo} like ${`%|${email}|%`}`,
+    sql`${leads.assignedTo} like ${`%|${email}`}`,
+  ) as SQL<unknown>;
+}
+
+function buildNotificationLeadVisibilityPredicate(access: NotificationAccessContext) {
+  const scope = resolveNotificationLeadScope(access);
+  const leadPredicates: SQL<unknown>[] = [eq(leads.id, notificationEvents.leadId)];
+
+  if (scope.mode === "denied") {
+    leadPredicates.push(sql`false`);
+  } else if (scope.mode === "assigned") {
+    leadPredicates.push(buildAssignedLeadPredicate(scope.email));
+  } else if (scope.mode === "affiliate") {
+    leadPredicates.push(eq(leads.affiliateReferrerId, scope.userId));
+  } else if (scope.mode === "branch") {
+    leadPredicates.push(eq(leads.branchId, scope.id));
+  } else if (scope.mode === "department") {
+    leadPredicates.push(eq(leads.departmentId, scope.id));
+  } else if (scope.mode === "team") {
+    leadPredicates.push(eq(leads.teamId, scope.id));
+  }
+
+  return or(
+    isNull(notificationEvents.leadId),
+    exists(
+      getDb()
+        .select({ id: leads.id })
+        .from(leads)
+        .where(and(...leadPredicates)),
+    ),
+  ) as SQL<unknown>;
 }
 
 function toRecord(row: typeof notificationEvents.$inferSelect): NotificationEventRecord {
@@ -78,17 +173,21 @@ export async function createNotificationEvent(input: CreateNotificationEventInpu
 
 export async function listUserNotifications(
   recipientUserId: string,
+  access: NotificationAccessContext,
   options: NotificationListOptions = {},
 ) {
   const db = getDb();
   const recipientPredicates: [SQL<unknown>, ...SQL<unknown>[]] = [
     eq(notificationEvents.recipientUserId, recipientUserId),
   ];
-  if (options.includeGlobal) {
+  if (options.includeGlobal && canAccessGlobalNotifications(access)) {
     recipientPredicates.push(isNull(notificationEvents.recipientUserId));
   }
 
-  const wherePredicates: SQL<unknown>[] = [combineOrPredicates(recipientPredicates)];
+  const wherePredicates: SQL<unknown>[] = [
+    combineOrPredicates(recipientPredicates),
+    buildNotificationLeadVisibilityPredicate(access),
+  ];
   if (!options.includeRead) {
     wherePredicates.push(isNull(notificationEvents.readAt));
   }
@@ -120,36 +219,48 @@ export async function listUserNotifications(
 
 export async function countUnreadNotifications(
   recipientUserId: string,
+  access: NotificationAccessContext,
   options: Pick<NotificationListOptions, "includeGlobal"> = {},
 ) {
   const db = getDb();
   const recipientPredicates: [SQL<unknown>, ...SQL<unknown>[]] = [
     eq(notificationEvents.recipientUserId, recipientUserId),
   ];
-  if (options.includeGlobal) {
+  if (options.includeGlobal && canAccessGlobalNotifications(access)) {
     recipientPredicates.push(isNull(notificationEvents.recipientUserId));
   }
 
   const [row] = await db
     .select({ count: sql<number>`count(*)::int` })
     .from(notificationEvents)
-    .where(and(combineOrPredicates(recipientPredicates), isNull(notificationEvents.readAt)));
+    .where(
+      and(
+        combineOrPredicates(recipientPredicates),
+        buildNotificationLeadVisibilityPredicate(access),
+        isNull(notificationEvents.readAt),
+      ),
+    );
 
   return row?.count ?? 0;
 }
 
-export async function markNotificationRead(id: string, recipientUserId?: string | null) {
+export async function markNotificationRead(
+  id: string,
+  recipientUserId: string,
+  access: NotificationAccessContext,
+) {
   const db = getDb();
-  const wherePredicates: SQL<unknown>[] = [eq(notificationEvents.id, id)];
-  if (recipientUserId) {
-    const visibilityPredicate = combineOrPredicates([
-      eq(notificationEvents.recipientUserId, recipientUserId),
-      isNull(notificationEvents.recipientUserId),
-    ]);
-    wherePredicates.push(
-      visibilityPredicate,
-    );
+  const recipientPredicates: [SQL<unknown>, ...SQL<unknown>[]] = [
+    eq(notificationEvents.recipientUserId, recipientUserId),
+  ];
+  if (canAccessGlobalNotifications(access)) {
+    recipientPredicates.push(isNull(notificationEvents.recipientUserId));
   }
+  const wherePredicates: SQL<unknown>[] = [
+    eq(notificationEvents.id, id),
+    combineOrPredicates(recipientPredicates),
+    buildNotificationLeadVisibilityPredicate(access),
+  ];
 
   const [updated] = await db
     .update(notificationEvents)

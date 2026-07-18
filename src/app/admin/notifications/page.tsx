@@ -25,13 +25,27 @@ export default async function AdminNotificationsPage({
 }: {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
-  const { session, crmUser, role, accessLevel, actualAccessLevel, canSwitchAccessViews } =
+  const {
+    session,
+    crmUser,
+    role,
+    accessLevel,
+    actualAccessLevel,
+    canSwitchAccessViews,
+    permissions,
+  } =
     await getAdminAccessContext(appRoutes.notifications);
   const params = await searchParams;
   const rawCategory = Array.isArray(params.category) ? params.category[0] : params.category;
   const rawCursor = Array.isArray(params.cursor) ? params.cursor[0] : params.cursor;
   const category = parseNotificationCategory(rawCategory);
   const includeGlobal = hasRoleAtLeast({ accessLevel, role }, "admin");
+  const notificationAccess = {
+    accessLevel,
+    currentUserEmail: session.user?.email,
+    currentUser: crmUser,
+    permissions,
+  };
 
   const isDevelopmentPreview = isLocalAdminPreviewEmail(session.user?.email);
   const now = new Date();
@@ -79,13 +93,13 @@ export default async function AdminNotificationsPage({
         (notification) => category === "all" || allowedDemoTypes.has(notification.type),
       )
     : crmUser?.id
-      ? await listUserNotifications(crmUser.id, {
-        includeGlobal,
-        includeRead: true,
-        types: notificationTypesForCategory(category),
-        cursor: rawCursor,
-        limit: PAGE_SIZE + 1,
-      })
+      ? await listUserNotifications(crmUser.id, notificationAccess, {
+          includeGlobal,
+          includeRead: true,
+          types: notificationTypesForCategory(category),
+          cursor: rawCursor,
+          limit: PAGE_SIZE + 1,
+        })
       : [];
   const hasNextPage = notificationPage.length > PAGE_SIZE;
   const notifications = notificationPage.slice(0, PAGE_SIZE);
@@ -99,7 +113,7 @@ export default async function AdminNotificationsPage({
   const unreadCount = isDevelopmentPreview
     ? demoNotifications.filter((notification) => !notification.readAt).length
     : crmUser?.id
-      ? await countUnreadNotifications(crmUser.id, { includeGlobal })
+      ? await countUnreadNotifications(crmUser.id, notificationAccess, { includeGlobal })
       : 0;
 
   return (

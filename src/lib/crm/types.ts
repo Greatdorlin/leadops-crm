@@ -50,6 +50,7 @@ export interface LeadRecord {
   priority: LeadPriority;
   assignedTo: string | null;
   assignedToList: string[];
+  affiliateReferrerId: string | null;
   leadCustomerType?: LeadCustomerType | null;
   firstName: string;
   lastName: string;

@@ -3,6 +3,7 @@ import { z } from "zod";
 import { getDb } from "@/lib/db/client";
 import { leadEvents, leadOpportunities, leadTasks, leads } from "@/lib/db/schema";
 import { leadEventTypes } from "@/lib/crm/lead-events";
+import { buildLeadAuditChanges } from "@/lib/crm/lead-audit-events";
 import {
   buildLeadOpportunityRollup,
   calculateExpectedValue,
@@ -107,6 +108,41 @@ function toIsoString(value: Date | string | null | undefined) {
 function normalizeOptionalString(value: string | null | undefined) {
   const normalized = value?.trim();
   return normalized ? normalized : null;
+}
+
+export function buildLeadOpportunityAuditChanges(
+  before: Partial<typeof leadOpportunities.$inferSelect> | null,
+  after: {
+    offerLabel: string;
+    status: string;
+    estimatedValue: number | null;
+    expectedValue: number | null;
+    currency: string;
+    exchangeRateToGlobal: number | null;
+    closeProbability: number | null;
+    expectedCloseDate: string | null;
+    reason: string | null;
+    notes: string | null;
+    isPrimary: boolean;
+    sortOrder: number;
+    archivedAt?: Date | null;
+  },
+) {
+  return buildLeadAuditChanges([
+    { field: "offerLabel", label: "Offer name", before: before?.offerLabel, after: after.offerLabel },
+    { field: "status", label: "Status", before: before?.status, after: after.status },
+    { field: "estimatedValue", label: "Estimated value", before: before?.estimatedValue === null || before?.estimatedValue === undefined ? null : Number(before.estimatedValue), after: after.estimatedValue },
+    { field: "expectedValue", label: "Expected value", before: before?.expectedValue === null || before?.expectedValue === undefined ? null : Number(before.expectedValue), after: after.expectedValue },
+    { field: "currency", label: "Currency", before: before?.currency, after: after.currency },
+    { field: "exchangeRateToGlobal", label: "Reporting exchange rate", before: before?.exchangeRateToGlobal === null || before?.exchangeRateToGlobal === undefined ? null : Number(before.exchangeRateToGlobal), after: after.exchangeRateToGlobal },
+    { field: "closeProbability", label: "Close probability", before: before?.closeProbability, after: after.closeProbability },
+    { field: "expectedCloseDate", label: "Expected close date", before: before?.expectedCloseDate, after: after.expectedCloseDate ? new Date(after.expectedCloseDate) : null },
+    { field: "reason", label: "Reason", before: before?.reason, after: after.reason },
+    { field: "notes", label: "Notes", before: before?.notes, after: after.notes },
+    { field: "isPrimary", label: "Primary offer", before: before?.isPrimary, after: after.isPrimary },
+    { field: "sortOrder", label: "Position", before: before?.sortOrder, after: after.sortOrder },
+    { field: "archived", label: "Archived", before: Boolean(before?.archivedAt), after: Boolean(after.archivedAt) },
+  ]);
 }
 
 function mapLeadOpportunityRecord(
@@ -287,6 +323,11 @@ export async function replaceLeadOpportunities(
 
       if (item.id) {
         seenIds.add(item.id);
+        const changes = buildLeadOpportunityAuditChanges(existingById.get(item.id) ?? null, {
+          ...item,
+          expectedValue,
+          archivedAt: null,
+        });
         await transaction
           .update(leadOpportunities)
           .set({
@@ -306,6 +347,19 @@ export async function replaceLeadOpportunities(
             updatedAt: new Date(),
           })
           .where(eq(leadOpportunities.id, item.id));
+        if (changes.length > 0) {
+          await transaction.insert(leadEvents).values({
+            leadId,
+            eventType: leadEventTypes.opportunityUpdated,
+            eventData: {
+              entityType: "opportunity",
+              opportunityId: item.id,
+              offerLabel: item.offerLabel,
+              changes,
+            },
+            createdBy: options.createdBy ?? null,
+          });
+        }
         continue;
       }
 
@@ -329,18 +383,56 @@ export async function replaceLeadOpportunities(
         .returning({ id: leadOpportunities.id });
 
       seenIds.add(created.id);
+      await transaction.insert(leadEvents).values({
+        leadId,
+        eventType: leadEventTypes.opportunityCreated,
+        eventData: {
+          entityType: "opportunity",
+          opportunityId: created.id,
+          offerLabel: item.offerLabel,
+          changes: buildLeadOpportunityAuditChanges(null, {
+            ...item,
+            expectedValue,
+            archivedAt: null,
+          }),
+        },
+        createdBy: options.createdBy ?? null,
+      });
     }
 
     const staleIds = existingRows.filter((row) => !seenIds.has(row.id)).map((row) => row.id);
     if (staleIds.length > 0) {
+      const archivedAt = new Date();
       await transaction
         .update(leadOpportunities)
         .set({
-          archivedAt: new Date(),
+          archivedAt,
           isPrimary: false,
           updatedAt: new Date(),
         })
         .where(inArray(leadOpportunities.id, staleIds));
+
+      const newlyArchivedRows = existingRows.filter(
+        (row) => staleIds.includes(row.id) && row.archivedAt === null,
+      );
+      if (newlyArchivedRows.length > 0) {
+        await transaction.insert(leadEvents).values(
+          newlyArchivedRows.map((row) => ({
+            leadId,
+            eventType: leadEventTypes.opportunityArchived,
+            eventData: {
+              entityType: "opportunity",
+              opportunityId: row.id,
+              offerLabel: row.offerLabel,
+              changes: buildLeadAuditChanges([
+                { field: "archived", label: "Archived", before: false, after: true },
+              ]),
+            },
+            createdBy: options.createdBy ?? null,
+            createdAt: archivedAt,
+          })),
+        );
+      }
     }
 
     if (options.createCallTasksForNewlyQualified && newlyQualifiedOfferLabels.length > 0) {

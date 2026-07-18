@@ -5,9 +5,8 @@ import {
   getAdminAllowedEmails,
   getLeadExportAllowedEmails,
   isAdminAuthConfigured,
-  isChiefLoginConfigured,
-  isChiefLoginEmail,
   isEmailDomainAllowed,
+  isGoogleAuthConfigured,
   isLocalAdminPreviewEmail,
   isLocalAdminPreviewEnabled,
 } from "./admin-access";
@@ -143,21 +142,30 @@ test("local preview identity is exact and never enabled in production", () => {
   setNodeEnvForTest(previousNodeEnv);
 });
 
-test("chief access is opt-in and cannot target a different workspace identity", () => {
+test("email authentication requires the database, secret, and initial admin identity", () => {
   const environment = {
     AUTH_SECRET: "test-secret",
-    CHIEF_LOGIN_EMAIL: "owner@example.com",
-    CHIEF_LOGIN_PASSWORD_HASH: "$2b$10$KIXQfQmtb7ZB7LxxFd7gFeT9w6S4A5zq8e0qO4VqYwqdn1QDmFArG",
-    ENABLE_PASSWORD_LOGIN: "true",
+    DATABASE_URL: "postgresql://example.test/leads-desk",
     INITIAL_ADMIN_EMAIL: "owner@example.com",
     INITIAL_ADMIN_NAME: "Owner",
+    NODE_ENV: "test",
   } as NodeJS.ProcessEnv;
 
-  assert.equal(isChiefLoginConfigured(environment), true);
   assert.equal(isAdminAuthConfigured(environment), true);
-  assert.equal(isChiefLoginEmail("OWNER@example.com", environment), true);
-
-  environment.CHIEF_LOGIN_EMAIL = "other@example.com";
-  assert.equal(isChiefLoginConfigured(environment), false);
+  delete environment.DATABASE_URL;
   assert.equal(isAdminAuthConfigured(environment), false);
+});
+
+test("Google login remains disabled unless explicitly enabled", () => {
+  const environment = {
+    AUTH_GOOGLE_ID: "client-id",
+    AUTH_GOOGLE_SECRET: "client-secret",
+    NODE_ENV: "test",
+  } as NodeJS.ProcessEnv;
+
+  assert.equal(isGoogleAuthConfigured(environment), false);
+  environment.ENABLE_GOOGLE_LOGIN = "true";
+  assert.equal(isGoogleAuthConfigured(environment), true);
+  delete environment.AUTH_GOOGLE_SECRET;
+  assert.equal(isGoogleAuthConfigured(environment), false);
 });

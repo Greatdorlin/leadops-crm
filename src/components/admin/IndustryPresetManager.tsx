@@ -4,6 +4,7 @@ import { useState, useRef } from "react";
 import { Check, Building2, Plane, Briefcase, Stethoscope, GraduationCap, Shield, ShoppingCart, Car, Code, Scale, Dumbbell, X, ChevronRight, Eye, Sparkles } from "lucide-react";
 import type { IndustryPreset } from "@/lib/crm/industry-presets";
 import { SmoothButton } from "./ui/SmoothButton";
+import { AdminOverlayPortal } from "./AdminOverlayPortal";
 
 const presetIcons: Record<string, React.ReactNode> = {
   real_estate: <Building2 className="h-5 w-5" />,
@@ -93,7 +94,8 @@ export function IndustryPresetManager({ presets }: { presets: IndustryPreset[] }
 
       {/* Modal Preview */}
       {showPreview && activePreset && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <AdminOverlayPortal>
+        <div className="fixed inset-0 z-[160] flex items-end justify-center sm:items-center sm:p-6">
           {/* Backdrop */}
           <div
             className="absolute inset-0 bg-black/60 backdrop-blur-sm"
@@ -102,7 +104,7 @@ export function IndustryPresetManager({ presets }: { presets: IndustryPreset[] }
           {/* Modal */}
           <div
             ref={modalRef}
-            className="relative w-full max-w-2xl max-h-[85vh] overflow-y-auto rounded-3xl border border-white/10 bg-[#0c0f1a] shadow-2xl"
+            className="relative max-h-[90dvh] w-full max-w-2xl overflow-y-auto overscroll-contain rounded-t-[28px] border border-white/10 bg-[#0c0f1a] shadow-2xl sm:rounded-3xl"
           >
             {/* Header */}
             <div className="sticky top-0 z-10 flex items-center justify-between border-b border-white/10 bg-[#0c0f1a]/95 backdrop-blur-xl px-6 py-4">
@@ -215,6 +217,7 @@ export function IndustryPresetManager({ presets }: { presets: IndustryPreset[] }
             </div>
           </div>
         </div>
+        </AdminOverlayPortal>
       )}
     </div>
   );

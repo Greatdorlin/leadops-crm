@@ -47,6 +47,7 @@ import {
   syncJobs,
 } from "@/lib/db/schema";
 import { parseNigeriaStateValue } from "@/lib/nigeria-state-options";
+import { buildLeadAuditChanges } from "@/lib/crm/lead-audit-events";
 import type {
   AdCampaignMetricRecord,
   CrmUserRecord,
@@ -199,6 +200,7 @@ function mapLeadRecord(row: typeof leads.$inferSelect): LeadRecord {
     leadCustomerType: row.leadCustomerType,
     assignedTo: getPrimaryLeadAssignee(row.assignedTo),
     assignedToList,
+    affiliateReferrerId: row.affiliateReferrerId,
     assignedUserId: row.assignedUserId,
     companyName: row.companyName,
     campaignId: row.campaignId,
@@ -530,6 +532,10 @@ function buildLeadListConditions(filters: LeadListFilters) {
     conditions.push(eq(leads.assignedUserId, filters.assignedUserId.trim()));
   }
 
+  if (filters.affiliateReferrerId?.trim()) {
+    conditions.push(eq(leads.affiliateReferrerId, filters.affiliateReferrerId.trim()));
+  }
+
   if (filters.branchId?.trim()) {
     conditions.push(eq(leads.branchId, filters.branchId.trim()));
   }
@@ -569,6 +575,7 @@ function buildLeadTaskFilterConditions(filters: LeadTaskListFilters) {
     teamId: filters.teamId,
     scopeDenied: filters.scopeDenied,
     assignedTo: filters.leadAssignedTo,
+    affiliateReferrerId: filters.leadAffiliateReferrerId,
   };
 
   if (filters.leadId) {
@@ -851,6 +858,7 @@ export class NeonLeadStore implements LeadStorage {
           primary: input.assignedTo,
           assignees: input.assignedToList ?? null,
         }),
+        affiliateReferrerId: input.affiliateReferrerId ?? null,
         assignedUserId: input.assignedUserId ?? null,
         teamId: input.teamId ?? null,
         branchId: input.branchId ?? null,
@@ -1483,6 +1491,21 @@ export class NeonLeadStore implements LeadStorage {
       });
     }
 
+    if (wonStateChanged || lostStateChanged) {
+      events.push({
+        leadId: id,
+        eventType: leadEventTypes.leadLifecycleChanged,
+        eventData: {
+          changes: buildLeadAuditChanges([
+            { field: "wonAt", label: "Won at", before: existing.wonAt, after: nextWonAt },
+            { field: "lostAt", label: "Lost at", before: existing.lostAt, after: nextLostAt },
+            { field: "lostReason", label: "Lost reason", before: existing.lostReason, after: nextLostReason },
+          ]),
+        },
+        createdBy: changedBy ?? null,
+      });
+    }
+
     for (const event of events) {
       await this.addLeadEvent(event);
     }
@@ -1573,37 +1596,37 @@ export class NeonLeadStore implements LeadStorage {
           ? new Date(input.nextFollowUpAt)
           : null;
 
-    const changedFields = [
-      existing.firstName !== nextFirstName ? "firstName" : null,
-      existing.lastName !== nextLastName ? "lastName" : null,
-      existing.email !== nextEmail ? "email" : null,
-      existing.whatsappNumber !== nextWhatsappNumber ? "whatsappNumber" : null,
-      existing.state !== nextState ? "state" : null,
-      existing.country !== nextCountry ? "country" : null,
-      existing.region !== nextRegion ? "region" : null,
-      existing.city !== nextCity ? "city" : null,
-      existing.address !== nextAddress ? "address" : null,
-      existing.postalCode !== nextPostalCode ? "postalCode" : null,
-      existing.companyName !== nextCompanyName ? "companyName" : null,
-      existing.leadCustomerType !== nextLeadCustomerType ? "leadCustomerType" : null,
-      existing.campaignId !== nextCampaignId ? "campaignId" : null,
-      existing.campaignLabel !== nextCampaignLabel ? "campaignLabel" : null,
-      existing.assignedUserId !== nextAssignedUserId ? "assignedUserId" : null,
-      existing.teamId !== nextTeamId ? "teamId" : null,
-      existing.branchId !== nextBranchId ? "branchId" : null,
-      existing.departmentId !== nextDepartmentId ? "departmentId" : null,
-      existing.estimatedValue !== nextEstimatedValue ? "estimatedValue" : null,
-      existing.expectedValue !== nextExpectedValue ? "expectedValue" : null,
-      existing.wonValue !== nextWonValue ? "wonValue" : null,
-      existing.closeProbability !== nextCloseProbability ? "closeProbability" : null,
-      `${existing.expectedCloseDate ?? ""}` !== `${nextExpectedCloseDate ?? ""}` ? "expectedCloseDate" : null,
-      `${existing.wonAt ?? ""}` !== `${nextWonAt ?? ""}` ? "wonAt" : null,
-      `${existing.lostAt ?? ""}` !== `${nextLostAt ?? ""}` ? "lostAt" : null,
-      existing.lostReason !== nextLostReason ? "lostReason" : null,
-      `${existing.nextFollowUpAt ?? ""}` !== `${nextFollowUpAt ?? ""}` ? "nextFollowUpAt" : null,
-    ].filter((value): value is string => Boolean(value));
+    const changes = buildLeadAuditChanges([
+      { field: "firstName", label: "First name", before: existing.firstName, after: nextFirstName },
+      { field: "lastName", label: "Last name", before: existing.lastName, after: nextLastName },
+      { field: "email", label: "Email", before: existing.email, after: nextEmail },
+      { field: "whatsappNumber", label: "WhatsApp number", before: existing.whatsappNumber, after: nextWhatsappNumber },
+      { field: "state", label: "State", before: existing.state, after: nextState },
+      { field: "country", label: "Country", before: existing.country, after: nextCountry },
+      { field: "region", label: "Region", before: existing.region, after: nextRegion },
+      { field: "city", label: "City", before: existing.city, after: nextCity },
+      { field: "address", label: "Address", before: existing.address, after: nextAddress },
+      { field: "postalCode", label: "Postal code", before: existing.postalCode, after: nextPostalCode },
+      { field: "companyName", label: "Company", before: existing.companyName, after: nextCompanyName },
+      { field: "leadCustomerType", label: "Customer type", before: existing.leadCustomerType, after: nextLeadCustomerType },
+      { field: "campaignId", label: "Campaign ID", before: existing.campaignId, after: nextCampaignId },
+      { field: "campaignLabel", label: "Campaign", before: existing.campaignLabel, after: nextCampaignLabel },
+      { field: "assignedUserId", label: "Assigned user ID", before: existing.assignedUserId, after: nextAssignedUserId },
+      { field: "teamId", label: "Team ID", before: existing.teamId, after: nextTeamId },
+      { field: "branchId", label: "Branch ID", before: existing.branchId, after: nextBranchId },
+      { field: "departmentId", label: "Department ID", before: existing.departmentId, after: nextDepartmentId },
+      { field: "estimatedValue", label: "Estimated value", before: existing.estimatedValue, after: nextEstimatedValue },
+      { field: "expectedValue", label: "Expected value", before: existing.expectedValue, after: nextExpectedValue },
+      { field: "wonValue", label: "Won value", before: existing.wonValue, after: nextWonValue },
+      { field: "closeProbability", label: "Close probability", before: existing.closeProbability, after: nextCloseProbability },
+      { field: "expectedCloseDate", label: "Expected close date", before: existing.expectedCloseDate, after: nextExpectedCloseDate },
+      { field: "wonAt", label: "Won at", before: existing.wonAt, after: nextWonAt },
+      { field: "lostAt", label: "Lost at", before: existing.lostAt, after: nextLostAt },
+      { field: "lostReason", label: "Lost reason", before: existing.lostReason, after: nextLostReason },
+      { field: "nextFollowUpAt", label: "Next follow-up", before: existing.nextFollowUpAt, after: nextFollowUpAt },
+    ]);
 
-    if (changedFields.length === 0) {
+    if (changes.length === 0) {
       return mapLeadRecord(existing);
     }
 
@@ -1643,14 +1666,30 @@ export class NeonLeadStore implements LeadStorage {
       .where(eq(leads.id, id))
       .returning();
 
-    await this.addLeadEvent({
-      leadId: id,
-      eventType: leadEventTypes.leadProfileUpdated,
-      eventData: {
-        changedFields,
-      },
-      createdBy: changedBy ?? null,
-    });
+    const lifecycleChanges = changes.filter((change) =>
+      change.field === "wonAt" || change.field === "lostAt" || change.field === "lostReason",
+    );
+    const profileChanges = changes.filter((change) => !lifecycleChanges.includes(change));
+    if (profileChanges.length > 0) {
+      await this.addLeadEvent({
+        leadId: id,
+        eventType: leadEventTypes.leadProfileUpdated,
+        eventData: {
+          changedFields: profileChanges.map((change) => change.field),
+          changes: profileChanges,
+        },
+        createdBy: changedBy ?? null,
+      });
+    }
+
+    if (lifecycleChanges.length > 0) {
+      await this.addLeadEvent({
+        leadId: id,
+        eventType: leadEventTypes.leadLifecycleChanged,
+        eventData: { changes: lifecycleChanges },
+        createdBy: changedBy ?? null,
+      });
+    }
 
     return updated ? mapLeadRecord(updated) : null;
   }

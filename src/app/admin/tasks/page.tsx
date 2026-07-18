@@ -177,6 +177,7 @@ export default async function AdminTasksPage({
         teamId: leadScope.teamId,
         scopeDenied: leadScope.scopeDenied,
         leadAssignedTo: leadScope.assignedTo,
+        leadAffiliateReferrerId: leadScope.affiliateReferrerId,
       }),
       leadStore.list({ ...leadScope, limit: 60 }),
     ]);

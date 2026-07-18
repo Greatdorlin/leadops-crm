@@ -1,9 +1,49 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
+  buildLeadOpportunityAuditChanges,
   buildLeadOpportunityRollup,
   normalizeLeadOpportunityPayload,
 } from "@/lib/crm/lead-opportunities";
+
+test("opportunity audit changes ignore equivalent stored decimals and dates", () => {
+  const changes = buildLeadOpportunityAuditChanges(
+    {
+      offerLabel: "Implementation",
+      status: "active",
+      estimatedValue: "500000.00",
+      expectedValue: "250000.00",
+      currency: "NGN",
+      exchangeRateToGlobal: "1.00000000",
+      closeProbability: 50,
+      expectedCloseDate: new Date("2026-08-01T10:00:00.000Z"),
+      reason: null,
+      notes: null,
+      isPrimary: true,
+      sortOrder: 0,
+      archivedAt: null,
+    },
+    {
+      offerLabel: "Implementation",
+      status: "won",
+      estimatedValue: 500000,
+      expectedValue: 250000,
+      currency: "NGN",
+      exchangeRateToGlobal: 1,
+      closeProbability: 50,
+      expectedCloseDate: "2026-08-01T10:00:00.000Z",
+      reason: null,
+      notes: null,
+      isPrimary: true,
+      sortOrder: 0,
+      archivedAt: null,
+    },
+  );
+
+  assert.deepEqual(changes, [
+    { field: "status", label: "Status", before: "active", after: "won" },
+  ]);
+});
 
 test("lead opportunity rollup keeps only active and qualified offers in pipeline", () => {
   const rollup = buildLeadOpportunityRollup([

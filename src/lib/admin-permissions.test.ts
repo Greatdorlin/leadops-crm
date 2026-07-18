@@ -15,6 +15,7 @@ import {
   scopeLeadListFilters,
 } from "@/lib/admin-permissions";
 import {
+  canAccessAffiliateDashboard,
   canExportLeads,
   canReviewApprovalRequests,
   canManageBranchScope,
@@ -250,6 +251,63 @@ test("finance navigation excludes broad reports and settings by default", () => 
 
 test("ad manager keeps integration access without full admin settings", () => {
   assert.equal(canManageIntegrationsAccess("general_admin", "ad_manager"), true);
+});
+
+test("affiliate access forces lead filters to immutable referral attribution", () => {
+  const affiliate = scopedUser({
+    id: "affiliate-user-id",
+    email: "affiliate@example.com",
+    role: "affiliate",
+    accessScope: "own",
+  });
+
+  assert.deepEqual(
+    scopeLeadListFilters(
+      { assignedTo: "someone-else@example.com", search: "ade" },
+      "affiliate",
+      affiliate.email,
+      affiliate,
+    ),
+    { affiliateReferrerId: "affiliate-user-id", search: "ade" },
+  );
+  assert.equal(
+    canViewLeadRecord(
+      "affiliate",
+      { affiliateReferrerId: "affiliate-user-id", assignedTo: "manager@example.com" } as LeadRecord,
+      affiliate.email,
+      ["canViewLeads"],
+      affiliate,
+    ),
+    true,
+  );
+  assert.equal(
+    canViewLeadRecord(
+      "affiliate",
+      { affiliateReferrerId: "other-affiliate-id", assignedTo: "affiliate@example.com" } as LeadRecord,
+      affiliate.email,
+      ["canViewLeads"],
+      affiliate,
+    ),
+    false,
+  );
+});
+
+test("affiliate attribution scope fails closed without a stored user id", () => {
+  assert.deepEqual(
+    scopeLeadListFilters({}, "affiliate", "affiliate@example.com"),
+    { scopeDenied: true },
+  );
+});
+
+test("affiliate dashboard access honors configured permission removal", () => {
+  const subject = {
+    accessLevel: "affiliate" as const,
+    email: "affiliate@example.com",
+    role: "affiliate" as const,
+  };
+
+  assert.equal(canAccessAffiliateDashboard(subject), true);
+  assert.equal(canAccessAffiliateDashboard({ ...subject, permissions: [] }), false);
 });
 
 test("manager list and record access fail closed outside the stored branch scope", () => {

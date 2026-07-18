@@ -186,7 +186,7 @@ Security responsibility:
 The application contract must stay stable across providers:
 
 - Node / Next.js app
-- Auth.js / Google OAuth
+- Auth.js / invite-only email and password
 - Postgres via `DATABASE_URL`
 - server-rendered admin UI
 - database-backed settings and customization
@@ -199,14 +199,15 @@ Required baseline variables:
 
 - `DATABASE_URL`
 - `AUTH_SECRET`
-- `AUTH_GOOGLE_ID`
-- `AUTH_GOOGLE_SECRET`
 - `INITIAL_ADMIN_EMAIL`
 - `INITIAL_ADMIN_NAME`
 
 Optional baseline variables:
 
 - `ALLOWED_EMAIL_DOMAINS`
+- `ENABLE_GOOGLE_LOGIN`
+- `AUTH_GOOGLE_ID` and `AUTH_GOOGLE_SECRET` when Google login is enabled
+- `AUTH_INVITATION_TTL_HOURS`
 - `NEXT_PUBLIC_APP_URL`
 - connector-specific credentials only for integrations enabled in that deployment
 
@@ -241,8 +242,10 @@ Initial product behavior:
 
 Default auth:
 
-- Google OAuth
-- verified email checks
+- invite-only email and password
+- bcrypt credential storage
+- single-use activation links
+- optional secondary Google OAuth when explicitly enabled
 - optional allowed-domain restriction
 - role and scope checks from Postgres-backed user data
 

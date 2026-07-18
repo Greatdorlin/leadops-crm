@@ -106,6 +106,20 @@
       "when": 1784334587668,
       "tag": "0014_next_triton",
       "breakpoints": true
+    },
+    {
+      "idx": 15,
+      "version": "7",
+      "when": 1784337846456,
+      "tag": "0015_burly_titania",
+      "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1784338700075,
+      "tag": "0016_email_first_invitations",
+      "breakpoints": true
     }
   ]
 }

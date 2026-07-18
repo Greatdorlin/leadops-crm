@@ -196,7 +196,6 @@ export function LeadOwnerQuickAssign({
                 onChange={(event) => setQuery(event.target.value)}
                 placeholder="Search people"
                 className="min-w-0 flex-1 bg-transparent text-sm text-white outline-none placeholder:text-white/52"
-                autoFocus
               />
             </label>
 

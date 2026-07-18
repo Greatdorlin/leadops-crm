@@ -146,8 +146,10 @@ Default auth direction:
 
 - Next.js App Router
 - Auth.js / NextAuth
-- Google OAuth first
-- verified email checks
+- invite-only email and password first
+- bcrypt credentials stored separately from CRM user profiles
+- single-use hashed activation tokens with expiry
+- optional Google OAuth only when explicitly enabled
 - optional allowed-domain restriction
 - Postgres-backed user record
 - server-enforced roles and scopes
@@ -157,13 +159,13 @@ Do not:
 - rely on frontend-only permission hiding
 - hardcode personal admin emails as product behavior
 - weaken auth to bypass stale account/session problems
-- make password auth the default
-
-If password auth is added later, it must be optional and off by default.
+- add open self-registration
+- let domain restrictions block active users explicitly invited by an admin
 
 ## Security Rules
 
-- Google OAuth is the default authentication path.
+- Invite-only email and password is the default authentication path.
+- Google OAuth is secondary and must be explicitly enabled.
 - Backend APIs must enforce permissions.
 - Do not rely on frontend hiding for security.
 - No hardcoded personal emails, company-specific backdoors, or silent bypass rules.

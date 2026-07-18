@@ -1,4 +1,4 @@
-import { and, asc, desc, eq } from "drizzle-orm";
+import { and, asc, desc, eq, gte, lte } from "drizzle-orm";
 import { z } from "zod";
 import type { SalesTarget, SalesTargetPeriod, SalesTargetScope } from "@/lib/crm/domain";
 import { SALES_TARGET_PERIODS, SALES_TARGET_SCOPES } from "@/lib/crm/domain";
@@ -38,6 +38,11 @@ export interface SalesTargetReferenceData {
   departments: Array<{ id: string; name: string }>;
   users: Array<{ id: string; label: string }>;
 }
+
+export type SalesTargetUserScope = Pick<
+  typeof crmUsers.$inferSelect,
+  "id" | "teamId" | "departmentId" | "branchId"
+>;
 
 function normalizeOptionalString(value: unknown) {
   if (typeof value !== "string") {
@@ -129,6 +134,100 @@ function mapSalesTarget(row: typeof salesTargets.$inferSelect): AdminSalesTarget
   };
 }
 
+const SALES_TARGET_SCOPE_PRECEDENCE: Record<SalesTargetScope, number> = {
+  user: 0,
+  team: 1,
+  department: 2,
+  branch: 3,
+  global: 4,
+};
+
+function targetMatchesUser(target: AdminSalesTargetRecord, user: SalesTargetUserScope | null) {
+  if (target.scope === "global") {
+    return true;
+  }
+
+  if (!user || !target.scopeId) {
+    return false;
+  }
+
+  const scopeIdByType = {
+    user: user.id,
+    team: user.teamId,
+    department: user.departmentId,
+    branch: user.branchId,
+  };
+
+  return target.scopeId === scopeIdByType[target.scope];
+}
+
+export function resolveSalesTargetForUser(
+  targets: AdminSalesTargetRecord[],
+  user: SalesTargetUserScope | null,
+  now = new Date(),
+) {
+  const today = now.toISOString().slice(0, 10);
+
+  return (
+    targets
+      .filter(
+        (target) =>
+          target.isActive &&
+          !target.archived &&
+          target.startDate <= today &&
+          target.endDate >= today &&
+          targetMatchesUser(target, user),
+      )
+      .sort((left, right) => {
+        const precedence =
+          SALES_TARGET_SCOPE_PRECEDENCE[left.scope] -
+          SALES_TARGET_SCOPE_PRECEDENCE[right.scope];
+        if (precedence !== 0) {
+          return precedence;
+        }
+
+        return right.createdAt.localeCompare(left.createdAt);
+      })[0] ?? null
+  );
+}
+
+async function assertSalesTargetScopeExists(input: AdminSalesTargetInput) {
+  if (input.scope === "global") {
+    return;
+  }
+
+  const scopeId = input.scopeId?.trim();
+  if (!scopeId) {
+    throw new SalesTargetAdminError("Choose a valid target scope.");
+  }
+
+  const db = getDb();
+  const row =
+    input.scope === "user"
+      ? await db.query.crmUsers.findFirst({
+          columns: { id: true },
+          where: and(eq(crmUsers.id, scopeId), eq(crmUsers.isActive, true)),
+        })
+      : input.scope === "team"
+        ? await db.query.teams.findFirst({
+            columns: { id: true },
+            where: and(eq(teams.id, scopeId), eq(teams.archived, false)),
+          })
+        : input.scope === "department"
+          ? await db.query.departments.findFirst({
+              columns: { id: true },
+              where: and(eq(departments.id, scopeId), eq(departments.archived, false)),
+            })
+          : await db.query.branches.findFirst({
+              columns: { id: true },
+              where: and(eq(branches.id, scopeId), eq(branches.archived, false)),
+            });
+
+  if (!row) {
+    throw new SalesTargetAdminError("The selected target scope is unavailable.");
+  }
+}
+
 export async function getSalesTargetReferenceData(): Promise<SalesTargetReferenceData> {
   const db = getDb();
   const [teamRows, branchRows, departmentRows, userRows] = await Promise.all([
@@ -163,6 +262,7 @@ export async function getSalesTarget(id: string) {
 }
 
 export async function createSalesTarget(input: AdminSalesTargetInput) {
+  await assertSalesTargetScopeExists(input);
   const db = getDb();
   const [created] = await db
     .insert(salesTargets)
@@ -184,6 +284,7 @@ export async function createSalesTarget(input: AdminSalesTargetInput) {
 }
 
 export async function updateSalesTarget(id: string, input: AdminSalesTargetInput) {
+  await assertSalesTargetScopeExists(input);
   const db = getDb();
   const [updated] = await db
     .update(salesTargets)
@@ -248,24 +349,29 @@ export async function restoreSalesTarget(id: string) {
 }
 
 export async function getActiveGlobalSalesTarget(now = new Date()) {
+  return getResolvedSalesTargetForUser(null, now);
+}
+
+export async function getResolvedSalesTargetForUser(
+  user: SalesTargetUserScope | null,
+  now = new Date(),
+) {
   const db = getDb();
   const today = now.toISOString().slice(0, 10);
-  const [row] = await db
+  const rows = await db
     .select()
     .from(salesTargets)
     .where(
       and(
         eq(salesTargets.archived, false),
         eq(salesTargets.isActive, true),
-        eq(salesTargets.scope, "global"),
-        eq(salesTargets.period, "monthly"),
-        eq(salesTargets.startDate, today.slice(0, 8) + "01"),
+        lte(salesTargets.startDate, today),
+        gte(salesTargets.endDate, today),
       ),
     )
-    .orderBy(desc(salesTargets.createdAt))
-    .limit(1);
+    .orderBy(desc(salesTargets.createdAt));
 
-  return row ? mapSalesTarget(row) : null;
+  return resolveSalesTargetForUser(rows.map(mapSalesTarget), user, now);
 }
 
 export function buildSalesTargetProgress(input: {

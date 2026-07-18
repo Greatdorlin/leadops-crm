@@ -18,6 +18,8 @@ import type { ScopeOption } from "./LeadAccessScopeFields";
 import type { LeadAccessScope } from "@/lib/crm/types";
 import type { PermissionKey } from "@/lib/crm/role-permissions-contract";
 import { UserPermissionOverridesManager } from "./UserPermissionOverridesManager";
+import { AdminOverlayPortal } from "./AdminOverlayPortal";
+import { UserInvitationButton } from "./UserInvitationButton";
 
 type TeamSettingsMember = {
   id: string;
@@ -128,21 +130,44 @@ export function TeamSettingsWorkspace({
 
   return (
     <div className="space-y-6">
-      {canGrantAccess ? (
-        <div className="flex justify-end">
-          <button type="button" onClick={() => setShowAddUser(true)} className="admin-button-primary inline-flex h-11 w-full items-center justify-center rounded-2xl px-5 text-sm font-semibold sm:w-auto">
-            <Plus className="mr-2 h-4 w-4" /> Add user
-          </button>
-        </div>
-      ) : null}
+      <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-stretch">
+        {currentUser ? (
+          <GlassCard glassStyle="soft" className="flex min-w-0 items-center gap-3 p-3 sm:p-4">
+            <TeamAvatar
+              name={currentUser.fullName}
+              email={currentUser.email}
+              avatarUrl={currentUser.avatarUrl}
+              size="md"
+            />
+            <div className="min-w-0 flex-1">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-white/60">My profile</p>
+              <p className="truncate text-sm font-semibold text-white">{currentUser.fullName || currentUser.email}</p>
+              <p className="truncate text-xs text-white/60">{currentUser.email}</p>
+            </div>
+            <Link href={appRoutes.profile} className="admin-button-secondary inline-flex h-10 shrink-0 items-center justify-center rounded-full px-4 text-sm font-semibold">
+              Edit
+            </Link>
+          </GlassCard>
+        ) : <div />}
+
+        {canGrantAccess ? (
+          <div className="flex sm:min-w-36">
+            <button type="button" onClick={() => setShowAddUser(true)} className="admin-button-primary inline-flex h-11 w-full items-center justify-center rounded-2xl px-5 text-sm font-semibold sm:w-auto">
+              <Plus className="mr-2 h-4 w-4" /> Add user
+            </button>
+          </div>
+        ) : null}
+      </div>
 
       {showAddUser ? (
-        <div className="fixed inset-0 z-[160] flex items-end justify-center bg-slate-950/75 backdrop-blur-md sm:items-center sm:p-6" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setShowAddUser(false); }}>
-          <section role="dialog" aria-modal="true" aria-labelledby="add-user-title" className="admin-surface max-h-[88dvh] w-full max-w-2xl overflow-y-auto rounded-t-[28px] p-5 sm:rounded-[28px] sm:p-6">
-            <div className="mb-5 flex items-center justify-between gap-3"><h2 id="add-user-title" className="text-xl font-bold text-white">Add workspace user</h2><button type="button" onClick={() => setShowAddUser(false)} aria-label="Close add user" className="ld-focus-ring inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-white/[0.06]"><X className="h-4 w-4" /></button></div>
-            <TeamAccessForm grantableAccessLevels={grantableAccessLevels} branches={branches} departments={departments} teams={teams} />
-          </section>
-        </div>
+        <AdminOverlayPortal>
+          <div className="fixed inset-0 z-[160] flex items-end justify-center bg-slate-950/75 backdrop-blur-md sm:items-center sm:p-6" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setShowAddUser(false); }}>
+            <section role="dialog" aria-modal="true" aria-labelledby="add-user-title" className="admin-surface max-h-[88dvh] w-full max-w-2xl overflow-y-auto overscroll-contain rounded-t-[28px] p-5 sm:rounded-[28px] sm:p-6">
+              <div className="mb-5 flex items-center justify-between gap-3"><h2 id="add-user-title" className="text-xl font-bold text-white">Add workspace user</h2><button type="button" onClick={() => setShowAddUser(false)} aria-label="Close add user" className="ld-focus-ring inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-white/[0.06]"><X className="h-4 w-4" /></button></div>
+              <TeamAccessForm grantableAccessLevels={grantableAccessLevels} branches={branches} departments={departments} teams={teams} />
+            </section>
+          </div>
+        </AdminOverlayPortal>
       ) : null}
 
       <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-5">
@@ -187,7 +212,7 @@ export function TeamSettingsWorkspace({
         </GlassCard>
       </section>
 
-      <section className="grid gap-6 xl:grid-cols-[minmax(0,1.15fr)_minmax(320px,0.85fr)]">
+      <section>
         <GlassCard glassStyle="vibrant" className="p-5 sm:p-6">
           <SectionHeader
             eyebrow="Team settings"
@@ -323,6 +348,7 @@ export function TeamSettingsWorkspace({
                         rolePermissions={member.rolePermissions}
                         initialOverrides={member.permissionOverrides}
                       />
+                      <UserInvitationButton userId={member.id} />
                       <TeamMemberAccessButton
                         userId={member.id}
                         isActive={member.isActive}
@@ -346,41 +372,6 @@ export function TeamSettingsWorkspace({
           </div>
         </GlassCard>
 
-        <div className="space-y-6">
-          {currentUser ? (
-            <GlassCard glassStyle="soft" className="p-5">
-              <SectionHeader
-                eyebrow="My profile"
-                title="Your account"
-                description="Open your profile if you want to update your own display name or photo."
-              />
-              <div className="mt-4 flex items-center gap-3 rounded-[24px] border border-white/10 bg-white/[0.04] p-4">
-                <TeamAvatar
-                  name={currentUser.fullName}
-                  email={currentUser.email}
-                  avatarUrl={currentUser.avatarUrl}
-                  size="lg"
-                />
-                <div className="min-w-0">
-                  <p className="truncate text-base font-semibold text-white">
-                    {currentUser.fullName || currentUser.email}
-                  </p>
-                  <p className="truncate text-sm text-white/70">{currentUser.email}</p>
-                  <p className="mt-1 text-xs uppercase tracking-[0.14em] text-white/70">
-                    {formatAdminAccessLevelLabel(currentUser.accessLevel)}
-                  </p>
-                </div>
-              </div>
-              <Link
-                href={appRoutes.profile}
-                className="admin-button-secondary mt-4 inline-flex h-11 items-center justify-center rounded-2xl px-5 text-sm font-medium"
-              >
-                Open profile
-              </Link>
-            </GlassCard>
-          ) : null}
-
-        </div>
       </section>
     </div>
   );

@@ -17,6 +17,7 @@ function createLead(overrides: Partial<LeadRecord> = {}) {
     priority: overrides.priority ?? "medium",
     assignedTo: overrides.assignedTo ?? "affiliate@example.com",
     assignedToList: overrides.assignedToList ?? [],
+    affiliateReferrerId: overrides.affiliateReferrerId ?? "affiliate-user-id",
     leadCustomerType: overrides.leadCustomerType ?? "direct",
     firstName: overrides.firstName ?? "Ada",
     lastName: overrides.lastName ?? "Okafor",
@@ -63,8 +64,9 @@ function createTask(overrides: Partial<LeadTaskRecord> = {}) {
   } as LeadTaskRecord;
 }
 
-test("affiliate dashboard only summarizes leads assigned to the affiliate", () => {
+test("affiliate dashboard only summarizes leads attributed to the affiliate", () => {
   const summary = buildAffiliateDashboardSummary({
+    affiliateUserId: "affiliate-user-id",
     affiliateEmail: "affiliate@example.com",
     commissionRatePercent: 5,
     now: new Date("2026-06-18T12:00:00.000Z"),
@@ -86,21 +88,22 @@ test("affiliate dashboard only summarizes leads assigned to the affiliate", () =
       createLead({
         id: "shared-lead",
         assignedTo: "manager@example.com",
-        assignedToList: ["affiliate@example.com"],
+        assignedToList: [],
         estimatedValue: 200000,
         closeProbability: 50,
       }),
       createLead({
         id: "other-lead",
-        assignedTo: "other@example.com",
-        assignedToList: [],
+        assignedTo: "affiliate@example.com",
+        assignedToList: ["affiliate@example.com"],
+        affiliateReferrerId: "other-affiliate-id",
         estimatedValue: 999999,
       }),
     ],
     tasks: [
       createTask({ id: "affiliate-task", leadId: "direct-lead" }),
       createTask({ id: "lead-task", leadId: "shared-lead", assignedTo: "manager@example.com" }),
-      createTask({ id: "other-task", leadId: "other-lead", assignedTo: "other@example.com" }),
+      createTask({ id: "other-task", leadId: "other-lead", assignedTo: "affiliate@example.com" }),
       createTask({ id: "completed-task", leadId: "direct-lead", completedAt: "2026-06-18T12:00:00.000Z" }),
     ],
   });
@@ -121,6 +124,7 @@ test("affiliate dashboard only summarizes leads assigned to the affiliate", () =
 
 test("affiliate dashboard does not claim earnings when no commission plan is configured", () => {
   const summary = buildAffiliateDashboardSummary({
+    affiliateUserId: "affiliate-user-id",
     affiliateEmail: "affiliate@example.com",
     leads: [createLead({ wonAt: "2026-06-17T12:00:00.000Z", crmStatus: "converted", wonValue: 100000 })],
     tasks: [],

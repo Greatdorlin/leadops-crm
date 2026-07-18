@@ -6,7 +6,8 @@
 - `.env` or platform secrets are configured.
 - `DATABASE_URL` points to the intended production database.
 - `AUTH_SECRET` is strong.
-- Google OAuth credentials are configured.
+- `npm run auth:invite-initial-admin` has issued the first activation link.
+- Google OAuth credentials are configured only if `ENABLE_GOOGLE_LOGIN=true`.
 - `NEXTAUTH_URL` and `NEXT_PUBLIC_APP_URL` match the HTTPS production domain.
 - `INITIAL_ADMIN_EMAIL` and `INITIAL_ADMIN_NAME` are configured.
 - `NEXT_PUBLIC_APP_URL` matches the production domain.

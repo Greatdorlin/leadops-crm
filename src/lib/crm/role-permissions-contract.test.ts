@@ -1,12 +1,20 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
-  applyPermissionOverrides,
   DEFAULT_ROLE_PERMISSIONS,
+  applyPermissionOverrides,
   PERMISSION_DEFINITIONS,
   ROLE_PERMISSION_ROLES,
   resolvePermissionList,
 } from "@/lib/crm/role-permissions-contract";
+
+test("affiliate defaults allow attributed lead creation and viewing", () => {
+  assert.deepEqual(DEFAULT_ROLE_PERMISSIONS.affiliate, [
+    "canViewLeads",
+    "canCreateLeads",
+    "canAccessAffiliateDashboard",
+  ]);
+});
 
 test("unavailable permissions fall back to the effective role defaults", () => {
   assert.equal(

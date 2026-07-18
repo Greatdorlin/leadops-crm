@@ -10,39 +10,33 @@ Default authentication:
 
 - Next.js App Router
 - Auth.js / NextAuth
-- Google OAuth
-- verified email check
+- invite-only email and password
+- bcrypt password hashing in a separate credentials table
+- single-use, hashed invitation tokens with expiry
+- active Postgres-backed CRM user enforcement
+- optional secondary Google OAuth when explicitly enabled
 - optional allowed-domain restriction
-- Postgres-backed user record
 
 Required environment variables:
 
 - `DATABASE_URL`
 - `AUTH_SECRET`
-- `AUTH_GOOGLE_ID`
-- `AUTH_GOOGLE_SECRET`
 - `INITIAL_ADMIN_EMAIL`
 - `INITIAL_ADMIN_NAME`
+- `NEXTAUTH_URL`
 
 Optional:
 
 - `ALLOWED_EMAIL_DOMAINS`
-- `ENABLE_PASSWORD_LOGIN=false` by default
-
-### Optional chief access
-
-A deployment may explicitly enable an owner-only password fallback for recovery or restricted environments. It is disabled by default and is not a separate admin identity:
-
-- `ENABLE_PASSWORD_LOGIN=true` is required.
-- `CHIEF_LOGIN_EMAIL` must exactly match `INITIAL_ADMIN_EMAIL`.
-- `CHIEF_LOGIN_PASSWORD_HASH` must contain a bcrypt hash, never a plaintext password.
-- Failed attempts are rate limited and successful authentication still passes through the normal server-side workspace access check.
-
-Do not enable this fallback for a client unless their deployment operator stores the hash in that deployment's secret manager.
+- `AUTH_INVITATION_TTL_HOURS=72` with a supported range of 1 to 168 hours
+- `ENABLE_GOOGLE_LOGIN=false`
+- `AUTH_GOOGLE_ID` and `AUTH_GOOGLE_SECRET` when Google login is enabled
 
 Current runtime rule:
 
-- admin sign-in is not considered configured unless Google OAuth credentials and the initial admin bootstrap variables are present
+- admin sign-in requires the database, auth secret, and initial admin bootstrap variables
+- email and password is the primary login path
+- Google login remains unavailable unless `ENABLE_GOOGLE_LOGIN=true` and both Google credentials are present
 - no personal fallback email is allowed when `INITIAL_ADMIN_EMAIL` or `INITIAL_ADMIN_NAME` is missing
 - development may show a setup warning, but production should be treated as misconfigured until the bootstrap env is supplied
 - local development can use a preview-only admin session when auth is not configured, but that path must stay disabled in production
@@ -117,6 +111,7 @@ Bootstrap direction:
 - use `INITIAL_ADMIN_EMAIL`
 - use `INITIAL_ADMIN_NAME`
 - create or activate the first privileged user through neutral environment configuration
+- run `npm run auth:invite-initial-admin` after migrations to issue the first activation link
 - do not hardcode any personal email in product logic
 - treat the bootstrap admin as the initial owner/admin equivalent for setup purposes
 - allow additional admins through stored user records and server-side permissions after bootstrap
@@ -142,9 +137,9 @@ Current compatibility behavior:
 Behavior:
 
 - if empty, no domain restriction is applied
-- if set, only emails whose domain matches the comma-separated list are allowed to sign in
+- the initial bootstrap identity must match the restriction when it has not yet become an active stored user
+- active users explicitly invited by an admin are allowed even when their email domain is outside this list
 - values are normalized with trimmed whitespace and lowercase comparison
-- domain checks apply before workspace-access approval
 
 ## Export Permissions
 
@@ -205,19 +200,16 @@ Audit logging foundation is required for:
 - export performed
 - customization changed
 
-## Password Fallback Rules
+## Invitation And Password Rules
 
-Password login is optional only.
-
-When enabled:
-
-- `ENABLE_PASSWORD_LOGIN=false` by default
-- bcrypt hashing
-- rate limiting
-- no plaintext passwords
-- password reset can come later
-
-Password login must not replace Google OAuth as the default path.
+- there is no open registration endpoint
+- admins create active CRM users and issue or renew activation links
+- only token hashes are stored; raw activation tokens appear only in the generated link
+- issuing a replacement link invalidates earlier unused links
+- activation rechecks token expiry, single-use state, and active CRM membership atomically
+- passwords use bcrypt and are stored separately from CRM user profiles
+- repeated failed logins use database-backed lockout state
+- public authentication and activation failures remain generic
 
 ## Security Review Checklist
 
@@ -232,7 +224,8 @@ Before approving security-sensitive work, verify:
 
 ## Compatibility Boundaries
 
-- Google OAuth remains the default runtime sign-in path.
+- Email and password remains the default runtime sign-in path.
+- Google OAuth is optional and secondary.
 - Stored access scopes are enforced for owner, team, department, and branch views.
 - Legacy environment allowlists remain compatibility-only and must not become product defaults.
 - Compatibility access-level names are mapped to neutral Leads Desk roles at authorization boundaries.

@@ -9,7 +9,7 @@ import {
 import type { LeadCustomerType } from "@/lib/crm/types";
 import { CustomFieldValueInputs } from "./CustomFieldValueInputs";
 import { SmoothButton } from "./ui/SmoothButton";
-import { CountrySearchInput } from "./CountrySearchInput";
+import { CitySearchInput, CountrySearchInput } from "./CountrySearchInput";
 
 type ProfileInputProps = {
   label: string;
@@ -216,7 +216,7 @@ export function LeadProfileForm({
         <CountrySearchInput value={country} onChange={setCountry} />
         <ProfileInput label="Company" value={companyName} onChange={setCompanyName} placeholder="Northwind Ventures" />
         <ProfileInput label="State/Province/Region" value={region} onChange={setRegion} placeholder="Lagos State" />
-        <ProfileInput label="City" value={city} onChange={setCity} placeholder="Lekki" />
+        <CitySearchInput value={city} onChange={setCity} />
         <ProfileInput label="Postal code" value={postalCode} onChange={setPostalCode} placeholder="101245" />
         <ProfileInput label="Address" value={address} onChange={setAddress} placeholder="14 Admiralty Way" className="sm:col-span-2" />
       </div>

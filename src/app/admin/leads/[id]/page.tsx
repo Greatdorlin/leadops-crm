@@ -57,6 +57,7 @@ import {
 import { loadAdminLeadReadContext } from "@/lib/crm/admin-read-context";
 import { listCustomFields } from "@/lib/crm/custom-fields-admin";
 import { listLeadOpportunities } from "@/lib/crm/lead-opportunities";
+import { formatLeadAuditChanges } from "@/lib/crm/lead-audit-events";
 import { listLeadStages } from "@/lib/crm/lead-stages-admin";
 import { getCrmPageErrorCopy, logCrmPageError } from "@/lib/crm/runtime";
 import type { CrmStatus } from "@/lib/crm/types";
@@ -73,6 +74,14 @@ function buildWhatsAppHref(value?: string | null) {
 }
 
 function eventTone(eventType: string) {
+  if (eventType.includes("archived") || eventType.includes("lost")) {
+    return "danger" as const;
+  }
+
+  if (eventType.includes("opportunity_created") || eventType.includes("lead_lifecycle_changed")) {
+    return "accent" as const;
+  }
+
   if (eventType.includes("task_completed") || eventType.includes("converted")) {
     return "success" as const;
   }
@@ -922,11 +931,12 @@ export default async function AdminLeadDetailPage({
                       key={event.id}
                       title={formatLeadEventLabel(event.eventType)}
                       description={
-                        typeof event.eventData?.preview === "string"
+                        formatLeadAuditChanges(event.eventData) ??
+                        (typeof event.eventData?.preview === "string"
                           ? event.eventData.preview
                           : typeof event.eventData?.to === "string"
                             ? `Changed to ${crmLabelize(event.eventData.to)}`
-                            : lead.email || lead.whatsappNumber || "Lead activity recorded."
+                            : lead.email || lead.whatsappNumber || "Lead activity recorded.")
                       }
                       meta={event.createdBy || formatLeadSourceLabel(lead.source)}
                       timestamp={event.createdAt}

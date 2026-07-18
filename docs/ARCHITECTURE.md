@@ -3,7 +3,7 @@
 ## Runtime
 
 - Next.js App Router with server-rendered admin pages and focused client controls
-- Auth.js with Google OAuth, verified email checks, and database-backed roles
+- Auth.js with invite-only email/password, optional secondary Google OAuth, and database-backed roles
 - PostgreSQL through `DATABASE_URL`
 - Drizzle ORM with journaled SQL migrations
 - Postgres.js with pooler-compatible prepared statements disabled

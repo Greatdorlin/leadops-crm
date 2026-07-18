@@ -3,8 +3,8 @@ import GoogleProvider from "next-auth/providers/google";
 import CredentialsProvider from "next-auth/providers/credentials";
 import { hasAdminWorkspaceAccess } from "@/lib/admin-directory";
 import { isVerifiedGoogleProfile } from "@/lib/auth-policy";
-import { isChiefLoginEmail, isGoogleAuthConfigured } from "@/lib/admin-access";
-import { verifyChiefLogin } from "@/lib/chief-login";
+import { isGoogleAuthConfigured } from "@/lib/admin-access";
+import { verifyUserPassword } from "@/lib/auth-credentials";
 
 const providers: NextAuthOptions["providers"] = [];
 
@@ -19,14 +19,14 @@ if (isGoogleAuthConfigured()) {
 
 providers.push(
   CredentialsProvider({
-    id: "chief",
-    name: "Chief access",
+    id: "credentials",
+    name: "Email and password",
     credentials: {
-      email: { label: "Chief email", type: "email" },
-      password: { label: "Access key", type: "password" },
+      email: { label: "Email", type: "email" },
+      password: { label: "Password", type: "password" },
     },
     async authorize(credentials) {
-      return verifyChiefLogin(credentials?.email, credentials?.password);
+      return verifyUserPassword(credentials?.email, credentials?.password);
     },
   }),
 );
@@ -47,7 +47,7 @@ export const authOptions: NextAuthOptions = {
         return isVerifiedGoogleProfile(profile) && hasAdminWorkspaceAccess(user.email);
       }
 
-      if (account?.provider !== "chief" || !isChiefLoginEmail(user.email)) {
+      if (account?.provider !== "credentials") {
         return false;
       }
 

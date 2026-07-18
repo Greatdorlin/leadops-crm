@@ -65,5 +65,5 @@ export const RECOMMENDED_GENERAL_CUSTOM_FIELDS = [
   { key: "preferred_contact_time", label: "Preferred Contact Time", type: "text" },
   { key: "urgency", label: "Urgency", type: "select" },
   { key: "location", label: "Location", type: "text" },
-  { key: "form_notes", label: "Notes from Form", type: "textarea" },
+  { key: "form_notes", label: "Notes", type: "textarea" },
 ] as const;

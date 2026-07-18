@@ -17,6 +17,7 @@
     "db:seed:defaults": "tsx src/scripts/seed-defaults.ts",
     "db:seed:defaults:full": "tsx src/scripts/seed-defaults.ts --with-custom-fields",
     "db:seed:demo": "tsx src/scripts/seed-demo.ts",
+    "auth:invite-initial-admin": "tsx src/scripts/invite-initial-admin.ts",
     "verify": "npm run lint && npm run test && npm run build"
   },
   "dependencies": {

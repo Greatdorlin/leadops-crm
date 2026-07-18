@@ -338,11 +338,17 @@ export function canViewLeadRecord(
     return false;
   }
 
+  if (accessLevel === "affiliate") {
+    return Boolean(
+      currentUser?.id && lead.affiliateReferrerId === currentUser.id,
+    );
+  }
+
   if (!leadMatchesStoredScope(lead, currentUser)) {
     return false;
   }
 
-  if (accessLevel !== "sales_rep" && accessLevel !== "affiliate") {
+  if (accessLevel !== "sales_rep") {
     return true;
   }
 
@@ -436,7 +442,15 @@ export function scopeLeadListFilters(
 ): LeadListFilters {
   const email = normalizeEmail(currentUserEmail);
   const scopedFilters = { ...filters };
-  if (accessLevel === "sales_rep" || accessLevel === "affiliate" || currentUser?.accessScope === "own") {
+  if (accessLevel === "affiliate") {
+    delete scopedFilters.assignment;
+    delete scopedFilters.assignedTo;
+    return currentUser?.id
+      ? { ...scopedFilters, affiliateReferrerId: currentUser.id }
+      : { ...scopedFilters, scopeDenied: true };
+  }
+
+  if (accessLevel === "sales_rep" || currentUser?.accessScope === "own") {
     delete scopedFilters.assignment;
     return { ...scopedFilters, assignedTo: email || currentUser?.email || undefined };
   }

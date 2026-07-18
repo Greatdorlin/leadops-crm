@@ -4,6 +4,7 @@ import type { ReactNode, RefObject } from "react";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { cn } from "@/lib/cn";
+import { usePreservedBodyScrollLock } from "./AdminOverlayPortal";
 
 interface PopoverPosition {
   left: number;
@@ -143,17 +144,7 @@ export function ResponsivePopover({
     };
   }, [anchorRef, onClose, open]);
 
-  useEffect(() => {
-    if (!open || !isMobile) {
-      return;
-    }
-
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.body.style.overflow = previousOverflow;
-    };
-  }, [isMobile, open]);
+  usePreservedBodyScrollLock(open && isMobile);
 
   if (!open || typeof document === "undefined") {
     return null;

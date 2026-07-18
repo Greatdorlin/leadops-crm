@@ -26,22 +26,34 @@ export async function GET(request: Request) {
   const category = parseNotificationCategory(searchParams.get("category"));
   const cursor = searchParams.get("cursor") ?? undefined;
   const includeGlobal = hasRoleAtLeast({ accessLevel: context.accessLevel, role: context.role }, "admin");
-  const notificationPage = await listUserNotifications(context.crmUser.id, {
-    includeRead,
-    includeGlobal,
-    types: notificationTypesForCategory(category),
-    cursor,
-    limit: PAGE_SIZE + 1,
-  });
+  const notificationAccess = {
+    accessLevel: context.accessLevel,
+    currentUserEmail: context.session.user?.email,
+    currentUser: context.crmUser,
+    permissions: context.permissions,
+  };
+  const notificationPage = await listUserNotifications(
+    context.crmUser.id,
+    notificationAccess,
+    {
+      includeRead,
+      includeGlobal,
+      types: notificationTypesForCategory(category),
+      cursor,
+      limit: PAGE_SIZE + 1,
+    },
+  );
   const hasNextPage = notificationPage.length > PAGE_SIZE;
   const notifications = notificationPage.slice(0, PAGE_SIZE);
   const lastNotification = notifications.at(-1);
   const nextCursor = hasNextPage && lastNotification
     ? encodeNotificationCursor({ createdAt: lastNotification.createdAt, id: lastNotification.id })
     : null;
-  const unreadCount = await countUnreadNotifications(context.crmUser.id, {
-    includeGlobal,
-  });
+  const unreadCount = await countUnreadNotifications(
+    context.crmUser.id,
+    notificationAccess,
+    { includeGlobal },
+  );
 
   return NextResponse.json({
     notifications,

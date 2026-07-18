@@ -173,7 +173,7 @@ export function LeadStatusForm({
   }
 
   return (
-    <div>
+    <div className="min-w-0">
       <CelebrationPanel celebration={celebration} onClose={() => setCelebration(null)} className="mb-4" />
       <div className="mb-4 flex items-center justify-between gap-3 border-b border-white/10 pb-4">
         <div>
@@ -185,7 +185,7 @@ export function LeadStatusForm({
         />
       </div>
       <div className="grid gap-4">
-        <label className="space-y-2">
+        <label className="min-w-0 space-y-2">
           <span className="text-xs font-semibold uppercase tracking-[0.16em] text-white/70">Stage</span>
           <AdminSelect
             value={stage}
@@ -200,7 +200,7 @@ export function LeadStatusForm({
           </AdminSelect>
         </label>
 
-        <label className="space-y-2">
+        <label className="min-w-0 space-y-2">
           <span className="text-xs font-semibold uppercase tracking-[0.16em] text-white/70">Priority</span>
           <AdminSelect
             value={priority}
@@ -215,7 +215,7 @@ export function LeadStatusForm({
           </AdminSelect>
         </label>
 
-        <label className="space-y-2">
+        <label className="min-w-0 space-y-2">
           <span className="text-xs font-semibold uppercase tracking-[0.16em] text-white/70">Assigned owner</span>
           <AdminSelect
             value={assignedTo}
@@ -243,13 +243,13 @@ export function LeadStatusForm({
           </AdminSelect>
         </label>
 
-        <label className="space-y-2">
+        <label className="min-w-0 space-y-2">
           <span className="text-xs font-semibold uppercase tracking-[0.16em] text-white/70">Next follow-up</span>
           <input
             type="datetime-local"
             value={nextFollowUpAt}
             onChange={(event) => setNextFollowUpAt(event.target.value)}
-            className="admin-input ld-focus-ring h-12 w-full rounded-2xl px-4 text-sm outline-none"
+            className="admin-input ld-focus-ring h-12 w-full min-w-0 max-w-full rounded-2xl px-4 text-sm outline-none"
           />
         </label>
 

@@ -33,6 +33,7 @@ export function TeamAccessForm({
   const [scopeId, setScopeId] = useState("");
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState("");
+  const [activationUrl, setActivationUrl] = useState("");
 
   function handleAvatarFile(file?: File | null) {
     if (!file) {
@@ -68,6 +69,7 @@ export function TeamAccessForm({
 
     setIsSaving(true);
     setMessage("");
+    setActivationUrl("");
 
     try {
       const response = await fetch("/api/admin/users", {
@@ -88,7 +90,10 @@ export function TeamAccessForm({
         }),
       });
 
-      const payload = (await response.json().catch(() => null)) as { error?: string } | null;
+      const payload = (await response.json().catch(() => null)) as {
+        activationUrl?: string;
+        error?: string;
+      } | null;
       if (!response.ok) {
         setMessage(payload?.error ?? "We couldn't save this team access right now.");
         setIsSaving(false);
@@ -102,12 +107,22 @@ export function TeamAccessForm({
       setIsActive(true);
       setAccessScope("own");
       setScopeId("");
-      setMessage("Team access saved.");
+      setActivationUrl(payload?.activationUrl ?? "");
+      setMessage("Team access saved. Share the activation link securely.");
       setIsSaving(false);
       router.refresh();
     } catch {
       setMessage("We couldn't save this team access right now.");
       setIsSaving(false);
+    }
+  }
+
+  async function copyActivationLink() {
+    try {
+      await navigator.clipboard.writeText(activationUrl);
+      setMessage("Activation link copied.");
+    } catch {
+      setMessage("Select and copy the activation link below.");
     }
   }
 
@@ -199,6 +214,15 @@ export function TeamAccessForm({
         />
       </label>
       {message ? <p className="mt-3 text-sm text-white/70">{message}</p> : null}
+      {activationUrl ? (
+        <div className="mt-3 rounded-2xl border border-emerald-300/20 bg-emerald-300/[0.07] p-3">
+          <p className="mb-2 text-xs font-semibold uppercase tracking-[0.12em] text-emerald-100">Activation link</p>
+          <div className="flex flex-col gap-2 sm:flex-row">
+            <input readOnly aria-label="Activation link" value={activationUrl} onFocus={(event) => event.currentTarget.select()} className="admin-input h-11 min-w-0 flex-1 rounded-xl px-3 text-xs outline-none" />
+            <button type="button" onClick={() => void copyActivationLink()} className="admin-button-primary h-11 rounded-xl px-4 text-sm font-semibold">Copy link</button>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

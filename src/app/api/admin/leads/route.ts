@@ -107,6 +107,7 @@ export async function POST(request: Request) {
     context.accessLevel === "sales_rep"
       ? context.session.user?.email ?? null
       : parsed.data.assignedTo ?? null;
+  const affiliateReferrerId = context.role === "affiliate" ? context.crmUser?.id ?? null : null;
 
   if (
     context.accessLevel !== "sales_rep" &&
@@ -140,11 +141,27 @@ export async function POST(request: Request) {
   const wonAt = isWonStage ? nowIso : null;
   const lostAt = isLostStage ? nowIso : null;
 
+  if (affiliateReferrerId) {
+    const duplicate = await leadStore.findDuplicateLead({
+      source: parsed.data.source,
+      email: parsed.data.email ?? null,
+      whatsappNumber: parsed.data.whatsappNumber ?? null,
+    });
+    if (duplicate) {
+      return NextResponse.json(
+        { error: "A lead with these contact details already exists." },
+        { status: 409 },
+      );
+    }
+  }
+
   const result = await leadStore.upsertExternalLead({
     source: parsed.data.source,
     sourceId,
     stageId,
     sourceDetail: parsed.data.sourceDetail ?? "manual_entry",
+    alwaysCreateNewRecord: Boolean(affiliateReferrerId),
+    affiliateReferrerId,
     firstName: parsed.data.firstName,
     lastName: parsed.data.lastName ?? null,
     email: parsed.data.email ?? null,

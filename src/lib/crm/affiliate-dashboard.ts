@@ -61,30 +61,21 @@ function isLostLead(lead: LeadRecord) {
   return Boolean(lead.crmStatus === "lost" || lead.lostAt);
 }
 
-function isAssignedToEmail(lead: LeadRecord, email: string) {
-  const normalizedEmail = normalizeEmail(email);
-  if (!normalizedEmail) {
-    return false;
-  }
-
-  if (normalizeEmail(lead.assignedTo) === normalizedEmail) {
-    return true;
-  }
-
-  return lead.assignedToList.some((assignee) => normalizeEmail(assignee) === normalizedEmail);
-}
-
 export function buildAffiliateDashboardSummary(input: {
   leads: LeadRecord[];
   tasks: LeadTaskRecord[];
+  affiliateUserId?: string | null;
   affiliateEmail?: string | null;
   commissionRatePercent?: number;
   now?: Date;
 }): AffiliateDashboardSummary {
   const affiliateEmail = normalizeEmail(input.affiliateEmail);
+  const affiliateUserId = input.affiliateUserId?.trim() ?? "";
   const now = input.now ?? new Date();
   const commissionRatePercent = Math.max(0, input.commissionRatePercent ?? 0);
-  const affiliateLeads = input.leads.filter((lead) => isAssignedToEmail(lead, affiliateEmail));
+  const affiliateLeads = input.leads.filter(
+    (lead) => Boolean(affiliateUserId) && lead.affiliateReferrerId === affiliateUserId,
+  );
   const affiliateLeadIds = new Set(affiliateLeads.map((lead) => lead.id));
   const activeLeads = affiliateLeads.filter((lead) => !isLeadClosed(lead));
   const wonLeads = affiliateLeads.filter(isWonLead);
@@ -93,7 +84,7 @@ export function buildAffiliateDashboardSummary(input: {
       return false;
     }
 
-    return normalizeEmail(task.assignedTo) === affiliateEmail || affiliateLeadIds.has(task.leadId);
+    return affiliateLeadIds.has(task.leadId);
   });
   const wonValue = wonLeads.reduce((sum, lead) => sum + getLeadValue(lead), 0);
   const pipelineValue = activeLeads

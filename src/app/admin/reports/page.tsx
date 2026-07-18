@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { AdminShell } from "@/components/admin/AdminShell";
 import { AdminSignOutButton } from "@/components/admin/AdminSignOutButton";
@@ -5,7 +6,10 @@ import { EmptyState } from "@/components/admin/EmptyState";
 import { ErrorState } from "@/components/admin/ErrorState";
 import { MetricCard } from "@/components/admin/MetricCard";
 import { GlassSurface } from "@/components/admin/ui/GlassSurface";
-import { SalesCommandReports } from "@/components/admin/SalesCommandReports";
+import {
+  SalesCommandReports,
+  type SalesCommandReportView,
+} from "@/components/admin/SalesCommandReports";
 import { SectionHeader } from "@/components/admin/SectionHeader";
 import { getAdminAccessContext } from "@/lib/admin";
 import { isLocalAdminPreviewEmail } from "@/lib/admin-access";
@@ -22,7 +26,7 @@ import {
 import { listLeadIntakeEvents } from "@/lib/crm/intake-runtime";
 import { getCrmPageErrorCopy, logCrmPageError } from "@/lib/crm/runtime";
 import { mergeSalesDashboardSummary } from "@/lib/crm/sales-metrics";
-import { getActiveGlobalSalesTarget } from "@/lib/crm/sales-targets-admin";
+import { getResolvedSalesTargetForUser } from "@/lib/crm/sales-targets-admin";
 import { getCompanySettings } from "@/lib/crm/workspace-settings-server";
 import { leadStore } from "@/lib/storage";
 
@@ -150,7 +154,13 @@ function buildDevelopmentReportsData() {
   };
 }
 
-export default async function AdminReportsPage() {
+export default async function AdminReportsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ tab?: string | string[] }>;
+}) {
+  const requestedTabValue = (await searchParams).tab;
+  const requestedTab = Array.isArray(requestedTabValue) ? requestedTabValue[0] : requestedTabValue;
   const {
     session,
     role,
@@ -161,13 +171,27 @@ export default async function AdminReportsPage() {
     crmUser,
   } =
     await getAdminAccessContext(appRoutes.reports);
-  if (!canAccessReports(accessLevel, permissions)) {
-    redirect(appRoutes.dashboard);
-  }
   const showTeamOnly = accessLevel === "lead_sales_rep";
   const showPersonalOnly = accessLevel === "sales_rep";
+  if (!showPersonalOnly && !canAccessReports(accessLevel, permissions)) {
+    redirect(appRoutes.dashboard);
+  }
   const showSourceAndCampaignReports =
     canManageIntegrationsAccess(accessLevel, role, permissions);
+  const reportTabs: Array<{ id: SalesCommandReportView; label: string }> = showPersonalOnly
+    ? [
+        { id: "overview", label: "Overview" },
+        { id: "pipeline", label: "Pipeline" },
+      ]
+    : [
+        { id: "overview", label: "Overview" },
+        { id: "pipeline", label: "Pipeline" },
+        { id: "team", label: "Team" },
+        ...(showSourceAndCampaignReports ? [{ id: "sources" as const, label: "Sources" }] : []),
+      ];
+  const activeTab = reportTabs.some((tab) => tab.id === requestedTab)
+    ? (requestedTab as SalesCommandReportView)
+    : "overview";
   let pageData:
     | {
         leadDistribution: Awaited<ReturnType<typeof leadStore.getLeadDistributionReport>>;
@@ -177,7 +201,7 @@ export default async function AdminReportsPage() {
         sourceReport: Awaited<ReturnType<typeof leadStore.getSourceReport>>;
         campaignReport: Awaited<ReturnType<typeof leadStore.getCampaignReport>>;
         intakeEvents: Awaited<ReturnType<typeof listLeadIntakeEvents>>;
-        activeTarget: Awaited<ReturnType<typeof getActiveGlobalSalesTarget>>;
+        activeTarget: Awaited<ReturnType<typeof getResolvedSalesTargetForUser>>;
         workspaceCurrency: string;
       }
     | null = null;
@@ -191,13 +215,19 @@ export default async function AdminReportsPage() {
       leadStore.getLeadDistributionReport(reportFilters),
       leadStore.getDashboardStats(reportFilters),
       leadStore.getSalesPipelineAggregate(reportFilters),
-      leadStore.getTeamPerformance(reportFilters),
+      leadStore.getTeamPerformance(reportFilters).then((rows) =>
+        showPersonalOnly
+          ? rows.filter(
+              (row) => row.email.toLowerCase() === session.user?.email?.toLowerCase(),
+            )
+          : rows,
+      ),
       showSourceAndCampaignReports ? leadStore.getSourceReport(reportFilters) : Promise.resolve([]),
       showSourceAndCampaignReports ? leadStore.getCampaignReport() : Promise.resolve([]),
       accessLevel === "master_admin" || accessLevel === "general_admin"
         ? listLeadIntakeEvents({ limit: 8 })
         : Promise.resolve([]),
-      getActiveGlobalSalesTarget(),
+      getResolvedSalesTargetForUser(crmUser),
       getCompanySettings(),
     ]);
 
@@ -294,24 +324,57 @@ export default async function AdminReportsPage() {
       actions={<AdminSignOutButton />}
     >
       <div className="space-y-6">
+        <nav
+          className="ld-glass-panel flex min-w-0 gap-1.5 overflow-x-auto rounded-[20px] p-1.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+          aria-label="Report sections"
+        >
+          {reportTabs.map((tab) => {
+            const isActive = activeTab === tab.id;
+
+            return (
+              <Link
+                key={tab.id}
+                href={`${appRoutes.reports}?tab=${tab.id}`}
+                aria-current={isActive ? "page" : undefined}
+                className={
+                  isActive
+                    ? "ld-glass-active shrink-0 rounded-[14px] px-4 py-2.5 text-sm font-semibold text-white"
+                    : "shrink-0 rounded-[14px] px-4 py-2.5 text-sm font-semibold text-white/65 transition-colors hover:bg-white/[0.05] hover:text-white"
+                }
+              >
+                {tab.label}
+              </Link>
+            );
+          })}
+        </nav>
         {showPersonalOnly ? null : (
           <SalesCommandReports
             summary={salesReportSummary}
             workspaceCurrency={workspaceCurrency}
+            view={activeTab}
           />
         )}
         {showPersonalOnly ? (
           <>
-            <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
-              <MetricCard label="Assigned leads" value={salesAggregate.totalLeads} supporting="Leads currently in your queue." tone="accent" />
-              <MetricCard label="Contacted" value={personalRow?.contactedLeads ?? 0} supporting="Leads you have moved past new." />
-              <MetricCard label="Qualified" value={personalRow?.qualifiedLeads ?? 0} supporting="Leads progressing well." tone="warning" />
-              <MetricCard label="Converted" value={personalRow?.convertedLeads ?? 0} supporting="Leads already closed." tone="positive" />
-              <MetricCard label="Completed tasks" value={personalRow?.completedTasks ?? 0} supporting="Tasks you have already finished." />
-            </section>
+            {activeTab === "overview" ? (
+              <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-6">
+                <MetricCard label="Assigned leads" value={salesAggregate.totalLeads} supporting="Leads currently in your queue." tone="accent" />
+                <MetricCard label="Contacted" value={personalRow?.contactedLeads ?? 0} supporting="Leads you have moved past new." />
+                <MetricCard label="Qualified" value={personalRow?.qualifiedLeads ?? 0} supporting="Leads progressing well." tone="warning" />
+                <MetricCard label="Converted" value={personalRow?.convertedLeads ?? 0} supporting="Leads already closed." tone="positive" />
+                <MetricCard label="Completed tasks" value={personalRow?.completedTasks ?? 0} supporting="Tasks you have already finished." />
+                <MetricCard
+                  label="Target progress"
+                  value={salesReportSummary.target ? `${salesReportSummary.target.progressPercent}%` : "Not set"}
+                  supporting={salesReportSummary.target?.name ?? "No active target applies to you."}
+                  tone={salesReportSummary.target ? "accent" : "default"}
+                />
+              </section>
+            ) : null}
 
             <section className="grid gap-6 xl:grid-cols-12">
-              <div className="space-y-6 xl:col-span-7">
+              {activeTab === "pipeline" ? (
+              <div className="space-y-6 xl:col-span-12">
                 <GlassSurface as="section" className="rounded-[24px] p-5 ld-animate-fade-in-up">
                   <SectionHeader
                     eyebrow="Pipeline"
@@ -335,8 +398,10 @@ export default async function AdminReportsPage() {
                   </div>
                 </GlassSurface>
               </div>
+              ) : null}
 
-              <div className="space-y-6 xl:col-span-5">
+              {activeTab === "overview" ? (
+              <div className="space-y-6 xl:col-span-12">
                 <GlassSurface as="section" className="rounded-[24px] p-5 ld-animate-fade-in-up">
                   <SectionHeader
                     eyebrow="Focus"
@@ -350,24 +415,30 @@ export default async function AdminReportsPage() {
                   </div>
                 </GlassSurface>
               </div>
+              ) : null}
             </section>
           </>
         ) : (
           <>
-            <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
-              <MetricCard label="Total leads" value={salesAggregate.totalLeads} supporting="Leads visible in this reporting view." tone="accent" />
-              <MetricCard label="Converted" value={converted} supporting="Leads marked converted." tone="positive" />
-              <MetricCard label="Progressing" value={progressing} supporting="Leads moving forward in the pipeline." />
-              <MetricCard label="High intent" value={highIntentLeads} supporting="Human-support requests or high-priority signals." tone="warning" />
-              <MetricCard
-                label="Active reps"
-                value={teamRows.length}
-                supporting="Team members with current lead or task activity."
-              />
-            </section>
+            {activeTab === "overview" ? (
+              <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
+                <MetricCard label="Total leads" value={salesAggregate.totalLeads} supporting="Leads visible in this reporting view." tone="accent" />
+                <MetricCard label="Converted" value={converted} supporting="Leads marked converted." tone="positive" />
+                <MetricCard label="Progressing" value={progressing} supporting="Leads moving forward in the pipeline." />
+                <MetricCard label="High intent" value={highIntentLeads} supporting="Human-support requests or high-priority signals." tone="warning" />
+                <MetricCard
+                  label="Active reps"
+                  value={teamRows.length}
+                  supporting="Team members with current lead or task activity."
+                />
+              </section>
+            ) : null}
 
-            <section className="grid gap-6 xl:grid-cols-12">
-              <div className="space-y-6 xl:col-span-7">
+            {activeTab === "overview" ? null : (
+            <section className="grid min-w-0 gap-6 xl:grid-cols-12">
+              {activeTab === "team" || activeTab === "sources" ? (
+              <div className="min-w-0 space-y-6 xl:col-span-12">
+                {activeTab === "team" ? (
                 <GlassSurface as="section" className="rounded-[24px] p-5 ld-animate-fade-in-up">
                   <SectionHeader
                     eyebrow="Team performance"
@@ -402,8 +473,9 @@ export default async function AdminReportsPage() {
                     )}
                   </div>
                 </GlassSurface>
+                ) : null}
 
-                {showSourceAndCampaignReports ? (
+                {activeTab === "sources" && showSourceAndCampaignReports ? (
                   <GlassSurface as="section" className="rounded-[24px] p-5 ld-animate-fade-in-up">
                     <SectionHeader
                       eyebrow="Lead sources"
@@ -437,8 +509,11 @@ export default async function AdminReportsPage() {
                   </GlassSurface>
                 ) : null}
               </div>
+              ) : null}
 
-              <div className="space-y-6 xl:col-span-5">
+              {activeTab === "pipeline" || activeTab === "sources" ? (
+              <div className="min-w-0 space-y-6 xl:col-span-12">
+                {activeTab === "pipeline" ? (
                 <GlassSurface as="section" className="rounded-[24px] p-5 ld-animate-fade-in-up">
                     <SectionHeader
                     eyebrow="Pipeline status"
@@ -461,7 +536,9 @@ export default async function AdminReportsPage() {
                     )}
                   </div>
                 </GlassSurface>
+                ) : null}
 
+                {activeTab === "pipeline" ? (
                 <GlassSurface as="section" className="rounded-[24px] p-5 ld-animate-fade-in-up">
                   <SectionHeader
                     eyebrow="Demand"
@@ -503,8 +580,9 @@ export default async function AdminReportsPage() {
                     </div>
                   </div>
                 </GlassSurface>
+                ) : null}
 
-                {showSourceAndCampaignReports ? (
+                {activeTab === "sources" && showSourceAndCampaignReports ? (
                   <GlassSurface as="section" className="rounded-[24px] p-5 ld-animate-fade-in-up">
                     <SectionHeader
                       eyebrow="Campaign performance"
@@ -543,7 +621,9 @@ export default async function AdminReportsPage() {
                   </GlassSurface>
                 ) : null}
               </div>
+              ) : null}
             </section>
+            )}
           </>
         )}
       </div>

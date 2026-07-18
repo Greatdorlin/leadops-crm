@@ -8,6 +8,7 @@ import { GradientText } from "@/components/admin/ui/GradientText";
 import { AnimatedCard } from "@/components/admin/ui/AnimatedCard";
 import { SectionHeader } from "@/components/admin/ui/SectionHeader";
 import { AdminSelect } from "@/components/admin/AdminSelect";
+import { AdminOverlayPortal } from "@/components/admin/AdminOverlayPortal";
 import {
   AUTOMATION_TASK_DUE_PRESETS,
   OPPORTUNITY_RULE_STATUSES,
@@ -413,11 +414,12 @@ export function FormRulesEditor({
       </SmoothButton>
 
       {editingRule && (
-        <div className="fixed inset-0 z-[100] flex items-end justify-center sm:items-center">
+        <AdminOverlayPortal>
+        <div className="fixed inset-0 z-[160] flex items-end justify-center sm:items-center sm:p-6">
           <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={closeEditor} />
           <GlassSurface
             intensity="strong"
-            className="relative z-10 flex max-h-[90vh] w-full flex-col rounded-t-[28px] border border-white/15 sm:max-w-lg sm:rounded-[28px]"
+            className="relative z-10 flex max-h-[90dvh] w-full flex-col overflow-hidden rounded-t-[28px] border border-white/15 sm:max-w-lg sm:rounded-[28px]"
           >
             <div className="flex items-center justify-between border-b border-white/10 px-6 py-4">
               <h3 className="text-lg font-semibold text-white">
@@ -606,6 +608,7 @@ export function FormRulesEditor({
             </div>
           </GlassSurface>
         </div>
+        </AdminOverlayPortal>
       )}
     </div>
   );

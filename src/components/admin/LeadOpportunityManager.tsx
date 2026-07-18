@@ -72,7 +72,7 @@ function formatMoney(value: number | null | undefined, currency: string) {
 }
 
 function inputClassName() {
-  return "admin-input h-11 w-full rounded-2xl px-4 text-sm outline-none";
+  return "admin-input h-11 w-full min-w-0 max-w-full rounded-2xl px-4 text-sm outline-none";
 }
 
 function isPipelineStatus(status: LeadOpportunityStatus) {
@@ -289,7 +289,7 @@ export function LeadOpportunityManager({
           return (
             <div
               key={opportunity.localId}
-              className="rounded-[24px] border border-white/10 bg-white/[0.045] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]"
+              className="min-w-0 rounded-[24px] border border-white/10 bg-white/[0.045] p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] sm:p-4"
             >
               <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
                 <div>
@@ -341,8 +341,8 @@ export function LeadOpportunityManager({
                 </div>
               </div>
 
-              <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-                <label className="space-y-2 md:col-span-2 xl:col-span-1">
+              <div className="grid min-w-0 gap-3 md:grid-cols-2 xl:grid-cols-3">
+                <label className="min-w-0 space-y-2 md:col-span-2 xl:col-span-1">
                   <span className="text-xs font-semibold uppercase tracking-[0.16em] text-white/70">
                     Offer name
                   </span>

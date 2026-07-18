@@ -18,7 +18,7 @@ export default async function FormFieldsPage({ params }: { params: Promise<{ id:
         initialFields={fields}
         customFieldOptions={customFields.map((field) => ({
           value: `customField_${field.id}`,
-          label: field.label,
+          label: field.label.trim().toLowerCase() === "notes from form" ? "Notes" : field.label,
         }))}
       />
     </div>

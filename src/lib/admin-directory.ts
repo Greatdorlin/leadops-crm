@@ -6,6 +6,18 @@ import {
 import { isCrmConfigurationError } from "@/lib/crm/runtime";
 import { leadStore } from "@/lib/storage";
 
+export function canAccessAdminWorkspace(input: {
+  hasActiveStoredUser: boolean;
+  isInitialAdmin: boolean;
+  isEmailDomainAllowed: boolean;
+}) {
+  if (input.isInitialAdmin) {
+    return input.isEmailDomainAllowed;
+  }
+
+  return input.hasActiveStoredUser;
+}
+
 export async function getStoredAdminUserByEmail(email?: string | null) {
   const normalizedEmail = email ? normalizeAdminEmail(email) : "";
   if (!normalizedEmail) {
@@ -27,14 +39,10 @@ export async function hasAdminWorkspaceAccess(email?: string | null) {
     return false;
   }
 
-  if (!isEmailDomainAllowed(email)) {
-    return false;
-  }
-
-  if (isInitialAdminEmail(email)) {
-    return true;
-  }
-
   const user = await getStoredAdminUserByEmail(email);
-  return Boolean(user?.isActive);
+  return canAccessAdminWorkspace({
+    hasActiveStoredUser: Boolean(user?.isActive),
+    isInitialAdmin: isInitialAdminEmail(email),
+    isEmailDomainAllowed: isEmailDomainAllowed(email),
+  });
 }

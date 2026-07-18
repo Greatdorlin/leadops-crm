@@ -86,3 +86,26 @@ export function resolvePermissionList(
 ): readonly PermissionKey[] {
   return permissions ?? DEFAULT_ROLE_PERMISSIONS[fallbackRole];
 }
+
+export function applyPermissionOverrides(
+  rolePermissions: readonly PermissionKey[],
+  overrides: readonly { permission: string; enabled: boolean }[],
+): PermissionKey[] {
+  const resolved = new Set(rolePermissions);
+
+  for (const override of overrides) {
+    if (!isPermissionKey(override.permission)) {
+      continue;
+    }
+
+    if (override.enabled) {
+      resolved.add(override.permission);
+    } else {
+      resolved.delete(override.permission);
+    }
+  }
+
+  return PERMISSION_DEFINITIONS
+    .map((permission) => permission.key)
+    .filter((permission) => resolved.has(permission));
+}

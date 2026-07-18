@@ -19,6 +19,12 @@ import { leadStore } from "@/lib/storage";
 import { getDb } from "@/lib/db/client";
 import { branches, departments, teams } from "@/lib/db/schema";
 import { asc, eq } from "drizzle-orm";
+import {
+  buildDefaultRolePermissionRows,
+  listRolePermissions,
+  listUserPermissionOverrides,
+} from "@/lib/crm/role-permissions";
+import { isPermissionKey } from "@/lib/crm/role-permissions-contract";
 
 export const dynamic = "force-dynamic";
 
@@ -90,17 +96,21 @@ export default async function AdminSettingsTeamPage() {
   let branchOptions: Array<{ id: string; name: string }> = [];
   let departmentOptions: Array<{ id: string; name: string }> = [];
   let teamOptions: Array<{ id: string; name: string }> = [];
+  let rolePermissionRows = buildDefaultRolePermissionRows();
+  let permissionOverrides: Awaited<ReturnType<typeof listUserPermissionOverrides>> = [];
 
   if (isLocalAdminPreviewEmail(session.user?.email)) {
     users = buildDevelopmentTeamData();
   } else try {
     const db = getDb();
-    [users, branchOptions, departmentOptions, teamOptions] = await Promise.all([
+    [users, branchOptions, departmentOptions, teamOptions, rolePermissionRows] = await Promise.all([
       leadStore.listCrmUsers(),
       db.select({ id: branches.id, name: branches.name }).from(branches).where(eq(branches.archived, false)).orderBy(asc(branches.name)),
       db.select({ id: departments.id, name: departments.name }).from(departments).where(eq(departments.archived, false)).orderBy(asc(departments.name)),
       db.select({ id: teams.id, name: teams.name }).from(teams).where(eq(teams.archived, false)).orderBy(asc(teams.name)),
+      listRolePermissions(),
     ]);
+    permissionOverrides = await listUserPermissionOverrides(users.map((user) => user.id));
   } catch (error) {
     pageError = error;
     logCrmPageError("settings-team", error);
@@ -163,6 +173,16 @@ export default async function AdminSettingsTeamPage() {
       branchId: user.branchId,
       departmentId: user.departmentId,
       teamId: user.teamId,
+      rolePermissions: rolePermissionRows
+        .filter((row) => row.role === user.role && row.enabled && isPermissionKey(row.permission))
+        .map((row) => row.permission),
+      permissionOverrides: permissionOverrides
+        .filter((override) => override.userId === user.id)
+        .flatMap((override) =>
+          isPermissionKey(override.permission)
+            ? [{ permission: override.permission, enabled: override.enabled }]
+            : [],
+        ),
     };
   });
 

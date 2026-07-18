@@ -1,12 +1,13 @@
-import { eq } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
-import { rolePermissions } from "@/lib/db/schema";
+import { rolePermissions, userPermissionOverrides } from "@/lib/db/schema";
 import type { CrmUserRole } from "@/lib/crm/types";
 import { and, asc, sql } from "drizzle-orm";
 import {
   DEFAULT_ROLE_PERMISSIONS,
   PERMISSION_DEFINITIONS,
   ROLE_PERMISSION_ROLES,
+  applyPermissionOverrides,
   type PermissionKey,
 } from "@/lib/crm/role-permissions-contract";
 
@@ -89,6 +90,58 @@ export async function listEnabledRolePermissions(role: CrmUserRole) {
       DEFAULT_ROLE_PERMISSIONS[role].includes(permission.key),
     )
     .map((permission) => permission.key);
+}
+
+export async function listUserPermissionOverrides(userIds: readonly string[]) {
+  if (userIds.length === 0) {
+    return [];
+  }
+
+  const db = getDb();
+  return db.query.userPermissionOverrides.findMany({
+    where: (override) => inArray(override.userId, [...userIds]),
+    orderBy: [asc(userPermissionOverrides.permission)],
+  });
+}
+
+export async function listEnabledUserPermissions(userId: string, role: CrmUserRole) {
+  if (role === "admin") {
+    return listEnabledRolePermissions(role);
+  }
+
+  const [rolePermissionList, overrides] = await Promise.all([
+    listEnabledRolePermissions(role),
+    listUserPermissionOverrides([userId]),
+  ]);
+
+  return applyPermissionOverrides(rolePermissionList, overrides);
+}
+
+export async function setUserPermissionOverride(
+  userId: string,
+  permission: PermissionKey,
+  enabled: boolean,
+) {
+  const db = getDb();
+  await db
+    .insert(userPermissionOverrides)
+    .values({ userId, permission, enabled })
+    .onConflictDoUpdate({
+      target: [userPermissionOverrides.userId, userPermissionOverrides.permission],
+      set: { enabled, updatedAt: new Date() },
+    });
+}
+
+export async function clearUserPermissionOverride(userId: string, permission: PermissionKey) {
+  const db = getDb();
+  await db
+    .delete(userPermissionOverrides)
+    .where(
+      and(
+        eq(userPermissionOverrides.userId, userId),
+        eq(userPermissionOverrides.permission, permission),
+      ),
+    );
 }
 
 export async function setRolePermission(role: CrmUserRole, permission: PermissionKey, enabled: boolean) {

@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
+  applyPermissionOverrides,
   DEFAULT_ROLE_PERMISSIONS,
   PERMISSION_DEFINITIONS,
   ROLE_PERMISSION_ROLES,
@@ -23,6 +24,20 @@ test("an explicit empty permission list remains authoritative", () => {
   assert.deepEqual(resolvePermissionList(["canViewLeads"], "manager"), [
     "canViewLeads",
   ]);
+});
+
+test("user overrides add and remove role permissions while ignoring unknown keys", () => {
+  assert.deepEqual(
+    applyPermissionOverrides(
+      ["canViewLeads", "canCreateLeads"],
+      [
+        { permission: "canCreateLeads", enabled: false },
+        { permission: "canViewReports", enabled: true },
+        { permission: "not-a-permission", enabled: true },
+      ],
+    ),
+    ["canViewLeads", "canViewReports"],
+  );
 });
 
 test("default role permissions contain only known permissions without duplicates", () => {

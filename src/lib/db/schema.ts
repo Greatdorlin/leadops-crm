@@ -637,6 +637,27 @@ export const rolePermissions = pgTable(
   }),
 );
 
+export const userPermissionOverrides = pgTable(
+  "user_permission_overrides",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => crmUsers.id, { onDelete: "cascade" }),
+    permission: text("permission").notNull(),
+    enabled: boolean("enabled").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => ({
+    userPermissionUnique: uniqueIndex("user_permission_overrides_user_permission_unique").on(
+      table.userId,
+      table.permission,
+    ),
+    userIdx: index("user_permission_overrides_user_id_idx").on(table.userId),
+  }),
+);
+
 export const leadEvents = pgTable(
   "lead_events",
   {

@@ -16,6 +16,8 @@ import { TeamMemberAccessButton } from "./TeamMemberAccessButton";
 import { TeamMemberProfileForm } from "./TeamMemberProfileForm";
 import type { ScopeOption } from "./LeadAccessScopeFields";
 import type { LeadAccessScope } from "@/lib/crm/types";
+import type { PermissionKey } from "@/lib/crm/role-permissions-contract";
+import { UserPermissionOverridesManager } from "./UserPermissionOverridesManager";
 
 type TeamSettingsMember = {
   id: string;
@@ -29,6 +31,8 @@ type TeamSettingsMember = {
   branchId: string | null;
   departmentId: string | null;
   teamId: string | null;
+  rolePermissions: PermissionKey[];
+  permissionOverrides: Array<{ permission: PermissionKey; enabled: boolean }>;
 };
 
 export function TeamSettingsWorkspace({
@@ -312,7 +316,13 @@ export function TeamSettingsWorkspace({
                   />
 
                   {canEditRoster && member.canManageMember ? (
-                    <div className="mt-4 border-t border-white/10 pt-4">
+                    <div className="mt-4 flex flex-wrap gap-2 border-t border-white/10 pt-4">
+                      <UserPermissionOverridesManager
+                        userId={member.id}
+                        userName={member.fullName || member.email}
+                        rolePermissions={member.rolePermissions}
+                        initialOverrides={member.permissionOverrides}
+                      />
                       <TeamMemberAccessButton
                         userId={member.id}
                         isActive={member.isActive}

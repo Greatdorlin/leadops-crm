@@ -26,6 +26,7 @@ import { isCrmConfigurationError } from "@/lib/crm/runtime";
 import {
   DEFAULT_ROLE_PERMISSIONS,
   listEnabledRolePermissions,
+  listEnabledUserPermissions,
 } from "@/lib/crm/role-permissions";
 import type { PermissionKey } from "@/lib/crm/role-permissions-contract";
 import type { CrmUserRecord } from "@/lib/crm/types";
@@ -48,9 +49,12 @@ function buildLocalPreviewSession(): Session {
 
 const loadEffectivePermissions = cache(async function loadEffectivePermissions(
   role: CrmUserRecord["role"],
+  userId?: string | null,
 ): Promise<PermissionKey[]> {
   try {
-    return await listEnabledRolePermissions(role);
+    return userId
+      ? await listEnabledUserPermissions(userId, role)
+      : await listEnabledRolePermissions(role);
   } catch (error) {
     const logger = isCrmConfigurationError(error) ? console.warn : console.error;
     logger("[admin:role-permissions]", error);
@@ -133,7 +137,7 @@ export async function getAdminAccessContext(callbackPath = "/dashboard") {
     : role;
   const permissions = isLocalPreview
     ? [...DEFAULT_ROLE_PERMISSIONS[permissionRole]]
-    : await loadEffectivePermissions(permissionRole);
+    : await loadEffectivePermissions(permissionRole, requestedAccessLevel ? null : crmUser?.id);
 
   return {
     session,
@@ -211,7 +215,7 @@ export async function getAdminRequestContext() {
     : role;
   const permissions = isLocalPreview
     ? [...DEFAULT_ROLE_PERMISSIONS[permissionRole]]
-    : await loadEffectivePermissions(permissionRole);
+    : await loadEffectivePermissions(permissionRole, requestedAccessLevel ? null : crmUser?.id);
 
   return {
     session,

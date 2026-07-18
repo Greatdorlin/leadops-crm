@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
-import { ArrowUpDown, Search } from "lucide-react";
+import { ArrowUpDown, Plus, Search, X } from "lucide-react";
 import type { AdminAccessLevel } from "@/lib/admin-permissions";
 import { formatAdminAccessLevelLabel } from "@/lib/crm/formatters";
 import { appRoutes } from "@/lib/app-routes";
@@ -60,6 +60,7 @@ export function TeamSettingsWorkspace({
   const [statusFilter, setStatusFilter] = useState<"active" | "inactive" | "all">("active");
   const [accessFilter, setAccessFilter] = useState<"all" | AdminAccessLevel>("all");
   const [sortBy, setSortBy] = useState<"name" | "access" | "status">("name");
+  const [showAddUser, setShowAddUser] = useState(false);
 
   const summary = useMemo(() => {
     const activeMembers = members.filter((member) => member.isActive);
@@ -123,6 +124,23 @@ export function TeamSettingsWorkspace({
 
   return (
     <div className="space-y-6">
+      {canGrantAccess ? (
+        <div className="flex justify-end">
+          <button type="button" onClick={() => setShowAddUser(true)} className="admin-button-primary inline-flex h-11 w-full items-center justify-center rounded-2xl px-5 text-sm font-semibold sm:w-auto">
+            <Plus className="mr-2 h-4 w-4" /> Add user
+          </button>
+        </div>
+      ) : null}
+
+      {showAddUser ? (
+        <div className="fixed inset-0 z-[160] flex items-end justify-center bg-slate-950/75 backdrop-blur-md sm:items-center sm:p-6" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setShowAddUser(false); }}>
+          <section role="dialog" aria-modal="true" aria-labelledby="add-user-title" className="admin-surface max-h-[88dvh] w-full max-w-2xl overflow-y-auto rounded-t-[28px] p-5 sm:rounded-[28px] sm:p-6">
+            <div className="mb-5 flex items-center justify-between gap-3"><h2 id="add-user-title" className="text-xl font-bold text-white">Add workspace user</h2><button type="button" onClick={() => setShowAddUser(false)} aria-label="Close add user" className="ld-focus-ring inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-white/[0.06]"><X className="h-4 w-4" /></button></div>
+            <TeamAccessForm grantableAccessLevels={grantableAccessLevels} branches={branches} departments={departments} teams={teams} />
+          </section>
+        </div>
+      ) : null}
+
       <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-5">
         <GlassCard glassStyle="soft" className="p-5">
           <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/70">
@@ -349,24 +367,6 @@ export function TeamSettingsWorkspace({
               >
                 Open profile
               </Link>
-            </GlassCard>
-          ) : null}
-
-          {canGrantAccess ? (
-            <GlassCard glassStyle="soft" className="p-5">
-              <SectionHeader
-                eyebrow="Invite or add"
-                title="Create team access"
-                description="Add a new person with the right access level and optional profile photo."
-              />
-              <div className="mt-4">
-                <TeamAccessForm
-                  grantableAccessLevels={grantableAccessLevels}
-                  branches={branches}
-                  departments={departments}
-                  teams={teams}
-                />
-              </div>
             </GlassCard>
           ) : null}
 

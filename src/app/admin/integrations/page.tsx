@@ -21,6 +21,7 @@ import { hasConfiguredEnvValue } from "@/lib/env-utils";
 import { redirect } from "next/navigation";
 import { leadStore } from "@/lib/storage";
 import { appRoutes } from "@/lib/app-routes";
+import Link from "next/link";
 
 export const dynamic = "force-dynamic";
 
@@ -138,7 +139,9 @@ function inferFallbackStatus(provider: IntegrationProvider): IntegrationRecord["
   return "not_configured";
 }
 
-export default async function AdminIntegrationsPage() {
+export default async function AdminIntegrationsPage({ searchParams }: { searchParams: Promise<{ tab?: string }> }) {
+  const requestedTab = (await searchParams).tab;
+  const activeTab = ["connections", "catalog", "activity"].includes(requestedTab ?? "") ? requestedTab : "connections";
   const { session, role, accessLevel, actualAccessLevel, canSwitchAccessViews, permissions } =
     await getAdminAccessContext(appRoutes.integrations);
   if (!canManageIntegrations(accessLevel, role, permissions)) {
@@ -210,6 +213,11 @@ export default async function AdminIntegrationsPage() {
       <div className="space-y-6">
         {pageData ? (
           <>
+            <nav className="flex gap-2 overflow-x-auto rounded-[20px] border border-white/10 bg-white/[0.035] p-1.5" aria-label="Integration sections">
+              {[["connections", "Connections"], ["catalog", "Add tools"], ["activity", "Activity"]].map(([id, label]) => (
+                <Link key={id} href={`${appRoutes.integrations}?tab=${id}`} className={activeTab === id ? "shrink-0 rounded-[14px] bg-white/[0.12] px-4 py-2.5 text-sm font-semibold text-white" : "shrink-0 rounded-[14px] px-4 py-2.5 text-sm font-semibold text-white/65 hover:text-white"}>{label}</Link>
+              ))}
+            </nav>
             <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
               <MetricCard
                 label="Connected"
@@ -242,7 +250,7 @@ export default async function AdminIntegrationsPage() {
               />
             </section>
 
-            <section className="admin-surface rounded-[24px] p-5">
+            {activeTab === "connections" ? <section className="admin-surface rounded-[24px] p-5">
               <SectionHeader
                 eyebrow="Connected tools"
                 title="Tool health"
@@ -258,9 +266,9 @@ export default async function AdminIntegrationsPage() {
                   </div>
                 ))}
               </div>
-            </section>
+            </section> : null}
 
-            <section className="admin-surface rounded-[24px] p-5">
+            {activeTab === "catalog" ? <section className="admin-surface rounded-[24px] p-5">
               <SectionHeader
                 eyebrow="Connector catalog"
                 title="Capture, migration, and marketing paths"
@@ -269,9 +277,9 @@ export default async function AdminIntegrationsPage() {
               <div className="mt-5">
                 <ConnectorCatalog />
               </div>
-            </section>
+            </section> : null}
 
-            <section className="admin-surface rounded-[24px] p-5">
+            {activeTab === "activity" ? <section className="admin-surface rounded-[24px] p-5">
               <SectionHeader
                 eyebrow="Operations"
                 title="Sync history"
@@ -304,7 +312,7 @@ export default async function AdminIntegrationsPage() {
                   />
                 )}
               </div>
-            </section>
+            </section> : null}
           </>
         ) : (
           <ErrorState

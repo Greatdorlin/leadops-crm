@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { ChevronDown } from "lucide-react";
 import { startTransition, useState } from "react";
-import type { AdminAccessLevel } from "@/lib/admin-permissions";
+import { ADMIN_ACCESS_LEVELS, type AdminAccessLevel } from "@/lib/admin-permissions";
 import { cn } from "@/lib/cn";
 import { formatAdminAccessLevelLabel } from "@/lib/crm/formatters";
 import { SmoothButton } from "./ui/SmoothButton";
@@ -65,9 +65,7 @@ export function AdminAccessViewSwitcher({
 
       {isOpen ? (
         <div className="mt-3 flex flex-wrap gap-2 border-t border-white/10 pt-3">
-          {(
-            ["master_admin", "general_admin", "lead_sales_rep", "sales_rep"] as AdminAccessLevel[]
-          ).map((level) => {
+          {ADMIN_ACCESS_LEVELS.map((level) => {
             const isActive = level === activeAccessLevel;
             const isPending = pendingLevel === level;
 

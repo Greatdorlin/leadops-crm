@@ -75,6 +75,48 @@ export function BranchSettingsManager({ initialBranches = [], demoMode = false }
   const [branches, setBranches] = useState<BranchRow[]>(initialBranches);
   const [loading, setLoading] = useState(!demoMode);
   const [error, setError] = useState("");
+  const [name, setName] = useState("");
+  const [location, setLocation] = useState("");
+  const [currency, setCurrency] = useState("USD");
+  const [creating, setCreating] = useState(false);
+
+  async function createBranch() {
+    if (name.trim().length < 2) {
+      setError("Add a branch name.");
+      return;
+    }
+
+    if (demoMode) {
+      setError("Branch creation is disabled in preview mode.");
+      return;
+    }
+
+    setCreating(true);
+    setError("");
+
+    try {
+      const response = await fetch("/api/admin/branches", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, location: location || null, currency }),
+      });
+      const payload = (await response.json().catch(() => null)) as { error?: string } | null;
+
+      if (!response.ok) {
+        setError(payload?.error ?? "Could not create branch.");
+        return;
+      }
+
+      setName("");
+      setLocation("");
+      setCurrency("USD");
+      await fetchBranches();
+    } catch {
+      setError("Could not create branch. Check your connection and try again.");
+    } finally {
+      setCreating(false);
+    }
+  }
 
   const fetchBranches = useCallback(async () => {
     setLoading(true);
@@ -111,6 +153,19 @@ export function BranchSettingsManager({ initialBranches = [], demoMode = false }
         title="Branch settings"
         description="Manage branch locations and set the currency used for each branch."
       />
+
+      <div className="admin-surface grid min-w-0 gap-3 rounded-[24px] p-4 sm:grid-cols-2 lg:grid-cols-[1fr_1fr_220px_auto] lg:items-end">
+        <label className="grid min-w-0 gap-2">
+          <span className="text-xs font-semibold uppercase tracking-[0.14em] text-white/70">Branch name</span>
+          <input value={name} onChange={(event) => setName(event.target.value)} className="admin-input h-11 w-full rounded-2xl px-4 text-sm" placeholder="Lagos office" />
+        </label>
+        <label className="grid min-w-0 gap-2">
+          <span className="text-xs font-semibold uppercase tracking-[0.14em] text-white/70">Location</span>
+          <input value={location} onChange={(event) => setLocation(event.target.value)} className="admin-input h-11 w-full rounded-2xl px-4 text-sm" placeholder="Lagos, Nigeria" />
+        </label>
+        <CurrencySelect value={currency} onChange={setCurrency} label="Branch currency" />
+        <button type="button" onClick={() => void createBranch()} disabled={creating} className="admin-button-primary h-11 w-full rounded-2xl px-5 text-sm font-semibold lg:w-auto">{creating ? "Adding..." : "Add branch"}</button>
+      </div>
 
       {error ? <p className="text-sm font-medium text-rose-200">{error}</p> : null}
 

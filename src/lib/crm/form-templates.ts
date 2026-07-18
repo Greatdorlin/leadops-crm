@@ -421,9 +421,9 @@ export const FORM_TEMPLATES: FormTemplateDefinition[] = [
   },
   {
     key: "travel_education_consultation",
-    label: "Travel / Education Consultation",
-    tagline: "Consultation capture",
-    description: "Capture destination, timing, and consultation fit without exposing legacy product language.",
+    label: "Market Consultation",
+    tagline: "Consultation intake",
+    description: "Capture market interest, timing, and consultation fit.",
     visualStyle: "Vertical Preset",
     backgroundPreset: "Botanical Bloom",
     suggestedName: "Consultation request form",
@@ -435,7 +435,7 @@ export const FORM_TEMPLATES: FormTemplateDefinition[] = [
     fields: createLeadBasics([
       {
         fieldType: "text",
-        label: "Preferred destination or market",
+        label: "Preferred market",
         mapsToLeadField: "customField_destination_interest",
       },
       {

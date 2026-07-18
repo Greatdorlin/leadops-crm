@@ -348,13 +348,13 @@ export const VERTICAL_PRESET_DEFINITIONS: Record<IndustryPresetKey, VerticalPres
   },
   travel_education_agency: {
     key: "travel_education_agency",
-    label: "Travel / Education Agency",
-    description: "Preset fields, sources, and stages for travel or education sales teams.",
-    stageNames: ["New Inquiry", "Contacted", "Consultation Booked", "Documents Pending", "Application Started", "Won", "Lost"],
+    label: "Consulting Agency",
+    description: "Preset fields, sources, and stages for consultation-led sales teams.",
+    stageNames: ["New Inquiry", "Contacted", "Consultation Booked", "Information Pending", "Engagement Started", "Won", "Lost"],
     sourceNames: ["Website", "Referral", "Call", "Walk-in", "Manual Entry", "Other"],
     recommendedCustomFields: [
-      { key: "destination", label: "Destination", type: "text" },
-      { key: "program_level", label: "Program Level", type: "text" },
+      { key: "destination", label: "Target Market", type: "text" },
+      { key: "program_level", label: "Service Interest", type: "text" },
       { key: "timeline", label: "Timeline", type: "text" },
     ],
     leadPreviewDefaults: ["name", "phone", "source", "stage", "owner", "next_follow_up", "created_date"],

@@ -118,7 +118,7 @@ export async function getAdminAccessContext(callbackPath = "/dashboard") {
   const session = await requireAdminSession(callbackPath);
   const isLocalPreview = isLocalAdminPreviewEmail(session.user?.email);
   const crmUser = isLocalPreview ? null : await getCrmUserByEmail(session.user?.email);
-  const role = crmUser?.role ?? (isLocalPreview ? ("admin" satisfies CrmUserRecord["role"]) : null);
+  const role = crmUser?.role ?? (isLocalPreview ? ("manager" satisfies CrmUserRecord["role"]) : null);
   if (!role) {
     redirect(`/login?callbackUrl=${encodeURIComponent(callbackPath)}&error=AccessDenied`);
   }
@@ -196,7 +196,7 @@ export async function getAdminRequestContext() {
 
   const isLocalPreview = isLocalAdminPreviewEmail(session.user.email);
   const crmUser = isLocalPreview ? null : await getCrmUserByEmail(session.user.email);
-  const role = crmUser?.role ?? (isLocalPreview ? ("admin" satisfies CrmUserRecord["role"]) : null);
+  const role = crmUser?.role ?? (isLocalPreview ? ("manager" satisfies CrmUserRecord["role"]) : null);
   if (!role) {
     return null;
   }

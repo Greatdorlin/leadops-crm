@@ -12,7 +12,7 @@ import {
 import { AnimatedCard } from "@/components/admin/ui/AnimatedCard";
 import { GlassSurface } from "@/components/admin/ui/GlassSurface";
 import { SmoothButton } from "@/components/admin/ui/SmoothButton";
-import { SectionHeader } from "@/components/admin/ui/SectionHeader";
+import { AdminDisclosure } from "@/components/admin/AdminDisclosure";
 import { appRoutes } from "@/lib/app-routes";
 import { cn } from "@/lib/cn";
 import {
@@ -31,8 +31,7 @@ type CreateDraft = {
 
 const STEPS = [
   { number: 1, label: "Template" },
-  { number: 2, label: "Name" },
-  { number: 3, label: "Create" },
+  { number: 2, label: "Details" },
 ] as const;
 
 function buildDraft(template: FormTemplateDefinition): CreateDraft {
@@ -78,11 +77,6 @@ export function FormCreateStudio() {
   }
 
   function goToStep(nextStep: number) {
-    if (nextStep > 2 && (!draft.name.trim() || !slugifyFormName(draft.slug))) {
-      setError("Add a form name before continuing.");
-      return;
-    }
-
     setError(null);
     setStep(nextStep);
   }
@@ -169,13 +163,6 @@ export function FormCreateStudio() {
 
   return (
     <div className="space-y-5">
-      <SectionHeader
-        eyebrow="Built-in forms"
-        title="Create a form"
-        description="Pick a starting point, name it, then build."
-        variant="large"
-      />
-
       <nav aria-label="Form creation progress" className="flex items-center gap-2">
         {STEPS.map((item, index) => (
           <div key={item.number} className="flex min-w-0 flex-1 items-center gap-2">
@@ -207,8 +194,8 @@ export function FormCreateStudio() {
         ))}
       </nav>
 
-      <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_360px]">
-        <GlassSurface intensity="medium" className="rounded-[28px] p-5 sm:p-6">
+      <GlassSurface intensity="medium" className="grid min-w-0 overflow-hidden rounded-[28px] xl:grid-cols-[minmax(0,1fr)_360px]">
+        <div className="min-w-0 p-5 sm:p-6">
           {step === 1 ? (
             <section>
               <div className="flex items-end justify-between gap-4">
@@ -274,11 +261,8 @@ export function FormCreateStudio() {
                     className="admin-input h-12 w-full rounded-2xl px-4 text-base outline-none"
                   />
                 </label>
-                <details className="group rounded-2xl border border-white/10 bg-white/[0.035] px-4 py-3">
-                  <summary className="cursor-pointer list-none text-sm font-semibold text-white/72 marker:hidden">
-                    Edit link <span className="font-normal text-white/40">(optional)</span>
-                  </summary>
-                  <label className="mt-4 block space-y-2">
+                <AdminDisclosure label="Edit public link" optional>
+                  <label className="mt-2 block space-y-2">
                     <span className="text-xs font-semibold uppercase tracking-[0.14em] text-white/50">Public link</span>
                     <div className="flex h-11 items-center rounded-2xl border border-white/10 bg-black/10 px-4 focus-within:border-white/20">
                       <span className="shrink-0 text-sm text-white/38">/forms/</span>
@@ -290,7 +274,7 @@ export function FormCreateStudio() {
                       />
                     </div>
                   </label>
-                </details>
+                </AdminDisclosure>
                 <label className="flex items-center justify-between gap-4 rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3">
                   <span>
                     <span className="block text-sm font-semibold text-white/82">Publish after creation</span>
@@ -305,32 +289,6 @@ export function FormCreateStudio() {
                     className="admin-toggle"
                   />
                 </label>
-              </div>
-            </section>
-          ) : null}
-
-          {step === 3 ? (
-            <section>
-              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/55">Step 3</p>
-              <h2 className="mt-1 text-xl font-semibold tracking-[-0.04em] text-white">Ready to build</h2>
-              <div className="mt-6 grid gap-3 sm:grid-cols-3">
-                <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
-                  <p className="text-xs text-white/45">Template</p>
-                  <p className="mt-1 text-sm font-semibold text-white">{selectedTemplate.label}</p>
-                </div>
-                <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
-                  <p className="text-xs text-white/45">Fields</p>
-                  <p className="mt-1 text-sm font-semibold text-white">{selectedTemplate.fields.length} ready</p>
-                </div>
-                <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
-                  <p className="text-xs text-white/45">Access</p>
-                  <p className="mt-1 text-sm font-semibold text-white">{draft.isPublic ? "Published" : "Private"}</p>
-                </div>
-              </div>
-              <div className="mt-4 rounded-2xl border border-white/10 bg-black/10 px-4 py-3">
-                <p className="text-xs text-white/45">Form name</p>
-                <p className="mt-1 font-semibold text-white">{draft.name}</p>
-                <p className="mt-1 text-xs text-white/42">/forms/{draft.slug}</p>
               </div>
             </section>
           ) : null}
@@ -351,7 +309,7 @@ export function FormCreateStudio() {
                 Back
               </SmoothButton>
             )}
-            {step < 3 ? (
+            {step < 2 ? (
               <SmoothButton variant="primary" icon={<ArrowRight className="h-4 w-4" />} onClick={() => goToStep(step + 1)}>
                 Continue
               </SmoothButton>
@@ -367,9 +325,9 @@ export function FormCreateStudio() {
               </SmoothButton>
             )}
           </div>
-        </GlassSurface>
+        </div>
 
-        <GlassSurface intensity="soft" className="h-fit rounded-[28px] p-5 sm:p-6">
+        <aside className="min-w-0 border-t border-white/10 bg-black/10 p-5 sm:p-6 xl:border-l xl:border-t-0">
           <div className="flex items-center gap-2">
             <Layers3 className="h-4 w-4 text-[var(--ld-color-accent)]" />
             <div className="min-w-0">
@@ -404,8 +362,8 @@ export function FormCreateStudio() {
           <button type="button" disabled className="admin-button-primary mt-5 h-10 w-full rounded-xl text-sm opacity-70">
             Submit
           </button>
-        </GlassSurface>
-      </div>
+        </aside>
+      </GlassSurface>
     </div>
   );
 }

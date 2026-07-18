@@ -6,6 +6,7 @@ import { ErrorState } from "@/components/admin/ErrorState";
 import { RolePermissionsManager } from "@/components/admin/RolePermissionsManager";
 import { getAdminAccessContext } from "@/lib/admin";
 import { isLocalAdminPreviewEmail } from "@/lib/admin-access";
+import { canManageOwnerOnlySettings } from "@/lib/admin-permissions";
 import { appRoutes } from "@/lib/app-routes";
 import { canManageAdminSettings } from "@/lib/crm/authz";
 import { buildDefaultRolePermissionRows, listRolePermissions } from "@/lib/crm/role-permissions";
@@ -23,11 +24,14 @@ export default async function RolePermissionsPage() {
     permissions: effectivePermissions,
   } = await getAdminAccessContext(appRoutes.settingsRolePermissions);
 
-  if (!canManageAdminSettings({
-    accessLevel,
-    permissions: effectivePermissions,
-    role,
-  })) {
+  if (
+    !canManageOwnerOnlySettings(actualAccessLevel, accessLevel) ||
+    !canManageAdminSettings({
+      accessLevel,
+      permissions: effectivePermissions,
+      role,
+    })
+  ) {
     redirect(appRoutes.settings);
   }
 

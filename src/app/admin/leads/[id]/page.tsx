@@ -23,6 +23,7 @@ import { LeadNoteForm } from "@/components/admin/LeadNoteForm";
 import { LeadQuickNoteDialog } from "@/components/admin/LeadQuickNoteDialog";
 import { LeadOpportunityManager } from "@/components/admin/LeadOpportunityManager";
 import { AdminCollapsibleSection } from "@/components/admin/AdminCollapsibleSection";
+import { AdminDisclosure } from "@/components/admin/AdminDisclosure";
 import { LeadProfileForm } from "@/components/admin/LeadProfileForm";
 import { LeadStatusForm } from "@/components/admin/LeadStatusForm";
 import { LeadSyncActions } from "@/components/admin/LeadSyncActions";
@@ -58,6 +59,7 @@ import { loadAdminLeadReadContext } from "@/lib/crm/admin-read-context";
 import { listCustomFields } from "@/lib/crm/custom-fields-admin";
 import { listLeadOpportunities } from "@/lib/crm/lead-opportunities";
 import { formatLeadAuditChanges } from "@/lib/crm/lead-audit-events";
+import { listLeadSources } from "@/lib/crm/lead-sources-admin";
 import { listLeadStages } from "@/lib/crm/lead-stages-admin";
 import { getCrmPageErrorCopy, logCrmPageError } from "@/lib/crm/runtime";
 import type { CrmStatus } from "@/lib/crm/types";
@@ -268,13 +270,15 @@ export default async function AdminLeadDetailPage({
   let readContext: Awaited<ReturnType<typeof loadAdminLeadReadContext>>;
   let editableCustomFields: Awaited<ReturnType<typeof listCustomFields>>;
   let configuredStageOptions: Awaited<ReturnType<typeof listLeadStages>>;
+  let configuredSourceOptions: Awaited<ReturnType<typeof listLeadSources>>;
   let opportunityRows: Awaited<ReturnType<typeof listLeadOpportunities>>;
 
   try {
-    [readContext, editableCustomFields, configuredStageOptions, opportunityRows] = await Promise.all([
+    [readContext, editableCustomFields, configuredStageOptions, configuredSourceOptions, opportunityRows] = await Promise.all([
       loadAdminLeadReadContext([lead], { includeCustomFields: true }),
       listCustomFields(),
       listLeadStages(),
+      listLeadSources(),
       listLeadOpportunities(lead.id),
     ]);
   } catch (relatedModelError) {
@@ -292,6 +296,7 @@ export default async function AdminLeadDetailPage({
     };
     editableCustomFields = [];
     configuredStageOptions = [];
+    configuredSourceOptions = [];
     opportunityRows = [];
   }
 
@@ -624,11 +629,8 @@ export default async function AdminLeadDetailPage({
             ))}
           </div>
           {leadView.intakeAnswers.length > 0 ? (
-            <details className="group rounded-2xl border border-white/10 bg-white/[0.035] px-4 py-3">
-              <summary className="cursor-pointer list-none text-sm font-semibold text-white marker:hidden">
-                All captured answers <span className="text-white/50">({leadView.intakeAnswers.length})</span>
-              </summary>
-              <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+            <AdminDisclosure label={`All captured answers (${leadView.intakeAnswers.length})`}>
+              <div className="mt-2 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
                 {leadView.intakeAnswers.map(({ label, value }) => (
                   <div key={label} className="rounded-xl bg-black/10 px-3 py-3">
                     <p className="text-xs font-semibold uppercase tracking-[0.12em] text-white/60">{label}</p>
@@ -636,7 +638,7 @@ export default async function AdminLeadDetailPage({
                   </div>
                 ))}
               </div>
-            </details>
+            </AdminDisclosure>
           ) : null}
         </AdminCollapsibleSection>
 
@@ -725,7 +727,6 @@ export default async function AdminLeadDetailPage({
                     initialLastName={leadView.profile.lastName}
                     initialEmail={leadView.profile.email}
                     initialWhatsappNumber={leadView.profile.whatsappNumber}
-                    initialState={leadView.profile.state}
                     initialCountry={leadView.profile.country}
                     initialRegion={leadView.profile.region}
                     initialCity={leadView.profile.city}
@@ -733,12 +734,19 @@ export default async function AdminLeadDetailPage({
                     initialPostalCode={leadView.profile.postalCode}
                     initialCompanyName={leadView.profile.companyName}
                     initialLeadCustomerType={leadView.profile.leadCustomerType}
-                    initialEstimatedValue={leadView.estimatedValue}
-                    initialCloseProbability={leadView.closeProbability}
-                    initialExpectedCloseDate={leadView.expectedCloseDate}
-                    initialNextFollowUpAt={leadView.nextFollowUpAt}
-                    initialWonValue={leadView.wonValue}
-                    initialLostReason={leadView.lostReason}
+                    initialSourceId={lead.sourceId}
+                    initialSourceDetail={lead.sourceDetail}
+                    initialCampaignLabel={lead.campaignLabel}
+                    initialUtmSource={lead.utmSource}
+                    initialUtmMedium={lead.utmMedium}
+                    initialUtmCampaign={lead.utmCampaign}
+                    initialUtmContent={lead.utmContent}
+                    initialUtmTerm={lead.utmTerm}
+                    initialLandingPage={lead.landingPage}
+                    sourceOptions={configuredSourceOptions.map((source) => ({
+                      value: source.id,
+                      label: source.name,
+                    }))}
                     customFieldDefinitions={editableCustomFields}
                     initialCustomFieldValues={readContext.customFieldValuesByLeadId.get(lead.id) ?? []}
                   />

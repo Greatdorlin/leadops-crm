@@ -27,7 +27,11 @@ Large migrations should use a worker deployment that consumes the same staged le
 - `adapter_ready`: the provider-neutral contract exists, but credentials and a production adapter are still required
 - `planned`: not presented as connected
 
-Available lead-capture paths include built-in forms, generic signed webhooks, Meta lead intake, Google Ads lead intake, TikTok lead intake, and LinkedIn lead intake. Email marketing providers and the future Leads Desk email product should integrate through a provider-neutral outbound event adapter rather than writing provider-specific logic into lead records.
+Every `available` catalog entry must link to a real setup path and health path. Connectors with retained failed deliveries must also link to their retry controls. Environment values alone indicate setup readiness, not a healthy or tested connection.
+
+Available lead-capture paths include built-in forms, key-protected generic webhooks, verified Meta lead intake, key-protected Google Ads lead intake, shared-secret TikTok lead intake, and verified LinkedIn lead intake. Sender and other email-marketing providers are adapter-ready only; no production email-marketing adapter is active. Their provider-neutral server contract is documented in [`EXTENSION_CONTRACTS.md`](./EXTENSION_CONTRACTS.md).
+
+Mapped CRM migration currently normalizes the lead/contact object types listed in `src/lib/migrations/sources.ts`. Other exported objects may be retained for reconciliation but are not claimed as fully migrated.
 
 ## Pre-Migration Checklist
 

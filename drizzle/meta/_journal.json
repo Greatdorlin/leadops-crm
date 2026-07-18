@@ -120,6 +120,13 @@
       "when": 1784338700075,
       "tag": "0016_email_first_invitations",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1784370839270,
+      "tag": "0017_approved_domain_registration",
+      "breakpoints": true
     }
   ]
 }

@@ -94,7 +94,7 @@ export default async function AdminGoogleAdsIntegrationPage() {
           />
         ) : (
           <>
-            <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
+            <section id="health" className="scroll-mt-24 grid gap-3 md:grid-cols-2 xl:grid-cols-5">
               <MetricCard
                 label="Customer ID"
                 value={customerId || "Missing"}
@@ -226,7 +226,7 @@ export default async function AdminGoogleAdsIntegrationPage() {
               </div>
             </section>
 
-            <section className="admin-surface rounded-[24px] p-5">
+            <section id="failed-imports" className="admin-surface scroll-mt-24 rounded-[24px] p-5">
               <SectionHeader
                 eyebrow="Failed imports"
                 title="Lead payloads needing review"
@@ -265,7 +265,7 @@ export default async function AdminGoogleAdsIntegrationPage() {
           </>
         )}
 
-        <section className="admin-surface rounded-[24px] p-5">
+        <section id="setup" className="admin-surface scroll-mt-24 rounded-[24px] p-5">
           <SectionHeader
             eyebrow="Setup checklist"
             title="Google Ads setup"

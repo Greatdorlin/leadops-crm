@@ -77,10 +77,6 @@ const providers: Array<{
       label: "Retry failed lead imports",
     },
   },
-  {
-    provider: "sender",
-    href: appRoutes.integrations,
-  },
 ];
 
 function inferFallbackStatus(provider: IntegrationProvider): IntegrationRecord["status"] {
@@ -106,6 +102,9 @@ function inferFallbackStatus(provider: IntegrationProvider): IntegrationRecord["
   if (
     provider === "google_ads" &&
     ((hasConfiguredEnvValue(process.env.GOOGLE_ADS_DEVELOPER_TOKEN) &&
+      hasConfiguredEnvValue(process.env.GOOGLE_ADS_CLIENT_ID) &&
+      hasConfiguredEnvValue(process.env.GOOGLE_ADS_CLIENT_SECRET) &&
+      hasConfiguredEnvValue(process.env.GOOGLE_ADS_REFRESH_TOKEN) &&
       hasConfiguredEnvValue(process.env.GOOGLE_ADS_CUSTOMER_ID)) ||
       hasConfiguredEnvValue(process.env.GOOGLE_ADS_WEBHOOK_KEY))
   ) {
@@ -122,18 +121,6 @@ function inferFallbackStatus(provider: IntegrationProvider): IntegrationRecord["
     hasConfiguredEnvValue(process.env.LINKEDIN_ACCESS_TOKEN)
   ) {
     return "pending_sync";
-  }
-
-  if (
-    provider === "sender" &&
-    hasConfiguredEnvValue(process.env.SENDER_API_KEY) &&
-    hasConfiguredEnvValue(process.env.SENDER_DEFAULT_GROUP_ID)
-  ) {
-    return "pending_sync";
-  }
-
-  if (provider === "website" && hasConfiguredEnvValue(process.env.CRM_INTAKE_SECRET)) {
-    return "healthy";
   }
 
   return "not_configured";

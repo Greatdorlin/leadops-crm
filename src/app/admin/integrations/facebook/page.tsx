@@ -60,6 +60,10 @@ export default async function AdminFacebookIntegrationPage() {
   const baseUrl =
     normalizeEnvValue(process.env.CRM_PUBLIC_BASE_URL) ||
     normalizeEnvValue(process.env.NEXT_PUBLIC_APP_URL);
+  const credentialsConfigured =
+    Boolean(normalizeEnvValue(process.env.META_APP_SECRET)) &&
+    Boolean(normalizeEnvValue(process.env.META_VERIFY_TOKEN)) &&
+    Boolean(normalizeEnvValue(process.env.META_PAGE_ACCESS_TOKEN));
 
   return (
     <AdminShell
@@ -75,12 +79,12 @@ export default async function AdminFacebookIntegrationPage() {
       <div className="space-y-6">
         {pageData ? (
           <>
-            <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+            <section id="health" className="scroll-mt-24 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
               <MetricCard
                 label="Lead intake URL"
-                value={baseUrl ? "Configured" : "Missing base URL"}
+                value={baseUrl && credentialsConfigured ? "Ready for test" : "Setup incomplete"}
                 supporting={baseUrl ? `${baseUrl}/api/integrations/facebook/webhook` : "Add CRM_PUBLIC_BASE_URL or NEXT_PUBLIC_APP_URL"}
-                tone={baseUrl ? "positive" : "danger"}
+                tone={baseUrl && credentialsConfigured ? "positive" : "danger"}
               />
               <MetricCard
                 label="Imported leads"
@@ -127,7 +131,7 @@ export default async function AdminFacebookIntegrationPage() {
               </div>
             </section>
 
-            <section className="admin-surface rounded-[24px] p-5">
+            <section id="failed-imports" className="admin-surface scroll-mt-24 rounded-[24px] p-5">
               <SectionHeader
                 eyebrow="Failed imports"
                 title="Imports needing review"
@@ -170,7 +174,7 @@ export default async function AdminFacebookIntegrationPage() {
           />
         )}
 
-        <section className="admin-surface rounded-[24px] p-5">
+        <section id="setup" className="admin-surface scroll-mt-24 rounded-[24px] p-5">
           <SectionHeader
             eyebrow="Setup checklist"
             title="Meta setup"

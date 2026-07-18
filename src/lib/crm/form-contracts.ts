@@ -65,6 +65,18 @@ const baseLeadAdminInputShape = {
   customFieldValues: z.record(z.string(), z.unknown()).optional().default({}),
 };
 
+const leadBusinessAttributionInputShape = {
+  sourceId: z.string().uuid().nullable().optional(),
+  sourceDetail: z.string().trim().nullable().optional(),
+  campaignLabel: z.string().trim().nullable().optional(),
+  utmSource: z.string().trim().nullable().optional(),
+  utmMedium: z.string().trim().nullable().optional(),
+  utmCampaign: z.string().trim().nullable().optional(),
+  utmContent: z.string().trim().nullable().optional(),
+  utmTerm: z.string().trim().nullable().optional(),
+  landingPage: z.string().trim().nullable().optional(),
+};
+
 export const adminLeadCaptureInputSchema = z
   .object({
     ...baseLeadAdminInputShape,
@@ -91,7 +103,19 @@ export type AdminLeadCaptureInput = z.infer<typeof adminLeadCaptureInputSchema>;
 
 export const adminLeadProfileInputSchema = z
   .object({
-    ...baseLeadAdminInputShape,
+    firstName: baseLeadAdminInputShape.firstName,
+    lastName: baseLeadAdminInputShape.lastName,
+    email: baseLeadAdminInputShape.email,
+    whatsappNumber: baseLeadAdminInputShape.whatsappNumber,
+    country: baseLeadAdminInputShape.country,
+    region: baseLeadAdminInputShape.region,
+    city: baseLeadAdminInputShape.city,
+    address: baseLeadAdminInputShape.address,
+    postalCode: baseLeadAdminInputShape.postalCode,
+    companyName: baseLeadAdminInputShape.companyName,
+    leadCustomerType: baseLeadAdminInputShape.leadCustomerType,
+    customFieldValues: baseLeadAdminInputShape.customFieldValues,
+    ...leadBusinessAttributionInputShape,
   })
   .superRefine((value, ctx) => {
     if (!value.email && !value.whatsappNumber) {
@@ -213,7 +237,6 @@ export function normalizeAdminLeadProfilePayload(payload: Record<string, unknown
     lastName: pickAliasString(payload, ["lastName"]),
     email: pickAliasString(payload, ["email"]),
     whatsappNumber: pickAliasString(payload, ["whatsappNumber"]),
-    state: pickAliasString(payload, ["state"]),
     country: pickAliasString(payload, ["country"]),
     region: pickAliasString(payload, ["region", "stateProvinceRegion"]),
     city: pickAliasString(payload, ["city"]),
@@ -223,21 +246,15 @@ export function normalizeAdminLeadProfilePayload(payload: Record<string, unknown
     leadCustomerType: includesLeadCustomerType
       ? pickAliasEnum(payload, ["leadCustomerType", "customerType", "leadType"], LEAD_CUSTOMER_TYPES)
       : undefined,
-    estimatedValue:
-      payload.estimatedValue === undefined || payload.estimatedValue === null || payload.estimatedValue === ""
-        ? null
-        : Number(payload.estimatedValue),
-    closeProbability:
-      payload.closeProbability === undefined || payload.closeProbability === null || payload.closeProbability === ""
-        ? null
-        : Number(payload.closeProbability),
-    expectedCloseDate: pickAliasString(payload, ["expectedCloseDate"]),
-    nextFollowUpAt: pickAliasString(payload, ["nextFollowUpAt"]),
-    wonValue:
-      payload.wonValue === undefined || payload.wonValue === null || payload.wonValue === ""
-        ? null
-        : Number(payload.wonValue),
-    lostReason: pickAliasString(payload, ["lostReason"]),
+    sourceId: pickAliasString(payload, ["sourceId"]),
+    sourceDetail: pickAliasString(payload, ["sourceDetail"]),
+    campaignLabel: pickAliasString(payload, ["campaignLabel"]),
+    utmSource: pickAliasString(payload, ["utmSource"]),
+    utmMedium: pickAliasString(payload, ["utmMedium"]),
+    utmCampaign: pickAliasString(payload, ["utmCampaign"]),
+    utmContent: pickAliasString(payload, ["utmContent"]),
+    utmTerm: pickAliasString(payload, ["utmTerm"]),
+    landingPage: pickAliasString(payload, ["landingPage"]),
     customFieldValues:
       typeof payload.customFieldValues === "object" && payload.customFieldValues
         ? (payload.customFieldValues as Record<string, unknown>)

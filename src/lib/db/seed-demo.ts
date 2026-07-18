@@ -82,7 +82,7 @@ interface DemoLeadSeed {
 }
 
 const DEMO_USERS: DemoUserSeed[] = [
-  { email: "preview@local.leadsdesk.test", fullName: "Local Preview", role: "admin" },
+  { email: "preview@local.leadsdesk.test", fullName: "Local Preview", role: "manager" },
   { email: "owner@example.com", fullName: "Owner Admin", role: "admin" },
   { email: "manager@example.com", fullName: "Sales Manager", role: "manager" },
   { email: "lead@example.com", fullName: "Team Lead", role: "consultant" },

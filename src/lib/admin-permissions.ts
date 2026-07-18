@@ -299,6 +299,13 @@ export function canAccessLeadTrash(
   return accessLevel === "master_admin" || accessLevel === "general_admin";
 }
 
+export function canManageOwnerOnlySettings(
+  actualAccessLevel: AdminAccessLevel,
+  effectiveAccessLevel: AdminAccessLevel = actualAccessLevel,
+) {
+  return actualAccessLevel === "master_admin" && effectiveAccessLevel === "master_admin";
+}
+
 export function canCreateLeadRecords(permissions?: readonly PermissionKey[]) {
   return getConfiguredPermission(permissions, "canCreateLeads") ?? true;
 }

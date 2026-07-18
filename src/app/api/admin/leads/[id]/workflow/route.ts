@@ -47,7 +47,8 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> },
 ) {
   const context = await getAdminRequestContext();
-  if (!context) {
+  const actorEmail = context?.session.user?.email?.trim();
+  if (!context || !actorEmail) {
     return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
   }
 
@@ -201,7 +202,6 @@ export async function PATCH(
       : hasOwnKey(parsed.data, "nextFollowUpAt")
         ? parsed.data.nextFollowUpAt ?? null
         : undefined;
-    const actorEmail = context.session.user?.email ?? null;
     const updatedLead = await leadStore.updateLeadWorkflow(
       id,
       {

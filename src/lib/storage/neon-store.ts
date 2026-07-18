@@ -1065,7 +1065,9 @@ export class NeonLeadStore implements LeadStorage {
 
   async addLeadNote(input: LeadNoteCreateInput) {
     const db = this.getDatabase();
-    const [created] = await db
+    return db.transaction(async (transaction) => {
+    const activityAt = new Date();
+    const [created] = await transaction
       .insert(leadNotes)
       .values({
         leadId: input.leadId,
@@ -1074,16 +1076,28 @@ export class NeonLeadStore implements LeadStorage {
       })
       .returning();
 
-    await this.addLeadEvent({
+    await transaction.insert(leadEvents).values({
       leadId: input.leadId,
       eventType: leadEventTypes.noteAdded,
       eventData: {
         preview: input.note.trim().slice(0, 140),
+        changes: buildLeadAuditChanges([{
+          field: "note",
+          label: "Note",
+          before: null,
+          after: input.note.trim().slice(0, 140),
+        }]),
       },
       createdBy: input.createdBy ?? null,
     });
 
+    await transaction
+      .update(leads)
+      .set({ updatedAt: activityAt, lastActivityAt: activityAt })
+      .where(eq(leads.id, input.leadId));
+
     return mapLeadNoteRecord(created);
+    });
   }
 
   async listLeadNotes(leadId: string) {
@@ -1116,7 +1130,9 @@ export class NeonLeadStore implements LeadStorage {
 
   async addLeadTask(input: LeadTaskCreateInput) {
     const db = this.getDatabase();
-    const [created] = await db
+    return db.transaction(async (transaction) => {
+    const activityAt = new Date();
+    const [created] = await transaction
       .insert(leadTasks)
       .values({
         leadId: input.leadId,
@@ -1128,18 +1144,29 @@ export class NeonLeadStore implements LeadStorage {
       })
       .returning();
 
-    await this.addLeadEvent({
+    await transaction.insert(leadEvents).values({
       leadId: input.leadId,
       eventType: leadEventTypes.taskCreated,
       eventData: {
         title: created.title,
         dueAt: toIsoString(created.dueAt),
         assignedTo: created.assignedTo,
+        changes: buildLeadAuditChanges([
+          { field: "title", label: "Task", before: null, after: created.title },
+          { field: "dueAt", label: "Due at", before: null, after: created.dueAt },
+          { field: "assignedTo", label: "Assigned to", before: null, after: created.assignedTo },
+        ]),
       },
       createdBy: input.createdBy ?? null,
     });
 
+    await transaction
+      .update(leads)
+      .set({ updatedAt: activityAt, lastActivityAt: activityAt })
+      .where(eq(leads.id, input.leadId));
+
     return mapLeadTaskRecord(created);
+    });
   }
 
   async listLeadTasks(filters: LeadTaskListFilters = {}) {
@@ -1234,7 +1261,9 @@ export class NeonLeadStore implements LeadStorage {
 
   async completeLeadTask(taskId: string, completedBy?: string | null) {
     const db = this.getDatabase();
-    const existing = await db.query.leadTasks.findFirst({
+    return db.transaction(async (transaction) => {
+    const activityAt = new Date();
+    const existing = await transaction.query.leadTasks.findFirst({
       where: eq(leadTasks.id, taskId),
     });
 
@@ -1246,25 +1275,37 @@ export class NeonLeadStore implements LeadStorage {
       return mapLeadTaskRecord(existing);
     }
 
-    const [updated] = await db
+    const [updated] = await transaction
       .update(leadTasks)
       .set({
-        completedAt: new Date(),
+        completedAt: activityAt,
       })
       .where(eq(leadTasks.id, taskId))
       .returning();
 
-    await this.addLeadEvent({
+    await transaction.insert(leadEvents).values({
       leadId: existing.leadId,
       eventType: leadEventTypes.taskCompleted,
       eventData: {
         taskId,
         title: existing.title,
+        changes: buildLeadAuditChanges([{
+          field: "completedAt",
+          label: "Completed at",
+          before: null,
+          after: updated?.completedAt ?? null,
+        }]),
       },
       createdBy: completedBy ?? null,
     });
 
+    await transaction
+      .update(leads)
+      .set({ updatedAt: activityAt, lastActivityAt: activityAt })
+      .where(eq(leads.id, existing.leadId));
+
     return updated ? mapLeadTaskRecord(updated) : null;
+    });
   }
 
   async assignLead(id: string, assignedTo: string | null, changedBy?: string | null) {
@@ -1358,9 +1399,8 @@ export class NeonLeadStore implements LeadStorage {
     changedBy?: string | null,
   ) {
     const db = this.getDatabase();
-    const existing = await db.query.leads.findFirst({
-      where: eq(leads.id, id),
-    });
+    return db.transaction(async (transaction) => {
+    const existing = await transaction.query.leads.findFirst({ where: eq(leads.id, id) });
 
     if (!existing) {
       return null;
@@ -1419,7 +1459,7 @@ export class NeonLeadStore implements LeadStorage {
       return mapLeadRecord(existing);
     }
 
-    const [updated] = await db
+    const [updated] = await transaction
       .update(leads)
       .set({
         assignedTo: nextAssignedTo,
@@ -1449,6 +1489,12 @@ export class NeonLeadStore implements LeadStorage {
         eventData: {
           from: parseLeadAssignees(existing.assignedTo),
           to: parseLeadAssignees(nextAssignedTo),
+          changes: buildLeadAuditChanges([{
+            field: "owners",
+            label: "Owners",
+            before: parseLeadAssignees(existing.assignedTo),
+            after: parseLeadAssignees(nextAssignedTo),
+          }]),
         },
         createdBy: changedBy ?? null,
       });
@@ -1462,6 +1508,12 @@ export class NeonLeadStore implements LeadStorage {
           fromStageId: existing.stageId,
           toStageId: nextStageId,
           to: input.stageKey ?? null,
+          changes: buildLeadAuditChanges([{
+            field: "stage",
+            label: "Stage",
+            before: existing.stageId,
+            after: input.stageKey ?? nextStageId,
+          }]),
         },
         createdBy: changedBy ?? null,
       });
@@ -1474,6 +1526,12 @@ export class NeonLeadStore implements LeadStorage {
         eventData: {
           from: existing.priority,
           to: nextPriority,
+          changes: buildLeadAuditChanges([{
+            field: "priority",
+            label: "Priority",
+            before: existing.priority,
+            after: nextPriority,
+          }]),
         },
         createdBy: changedBy ?? null,
       });
@@ -1486,6 +1544,12 @@ export class NeonLeadStore implements LeadStorage {
         eventData: {
           from: toIsoString(existing.nextFollowUpAt),
           to: toIsoString(nextFollowUpAt),
+          changes: buildLeadAuditChanges([{
+            field: "nextFollowUpAt",
+            label: "Next follow-up",
+            before: existing.nextFollowUpAt,
+            after: nextFollowUpAt,
+          }]),
         },
         createdBy: changedBy ?? null,
       });
@@ -1506,11 +1570,17 @@ export class NeonLeadStore implements LeadStorage {
       });
     }
 
-    for (const event of events) {
-      await this.addLeadEvent(event);
+    if (events.length > 0) {
+      await transaction.insert(leadEvents).values(events.map((event) => ({
+        leadId: event.leadId,
+        eventType: event.eventType,
+        eventData: event.eventData ?? null,
+        createdBy: event.createdBy ?? null,
+      })));
     }
 
     return mapLeadRecord(updated);
+    });
   }
 
   async updateLeadProfile(id: string, input: LeadProfileUpdateInput, changedBy?: string | null) {

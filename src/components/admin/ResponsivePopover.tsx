@@ -144,7 +144,7 @@ export function ResponsivePopover({
     };
   }, [anchorRef, onClose, open]);
 
-  usePreservedBodyScrollLock(open && isMobile);
+  usePreservedBodyScrollLock(open);
 
   if (!open || typeof document === "undefined") {
     return null;

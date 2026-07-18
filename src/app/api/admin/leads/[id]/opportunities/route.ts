@@ -16,7 +16,8 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> },
 ) {
   const context = await getAdminRequestContext();
-  if (!context) {
+  const actorEmail = context?.session.user?.email?.trim();
+  if (!context || !actorEmail) {
     return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
   }
 
@@ -47,7 +48,8 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> },
 ) {
   const context = await getAdminRequestContext();
-  if (!context) {
+  const actorEmail = context?.session.user?.email?.trim();
+  if (!context || !actorEmail) {
     return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
   }
 
@@ -91,7 +93,7 @@ export async function PUT(
       createCallTasksForNewlyQualified: parsed.data.createCallTasksForNewlyQualified,
       callTaskDueAt: parsed.data.callTaskDueAt,
       assignedTo: lead.assignedTo,
-      createdBy: context.session.user?.email ?? null,
+      createdBy: actorEmail,
       globalCurrency: companySettings.globalCurrency,
     });
     const refreshedLead = await leadStore.getById(id);

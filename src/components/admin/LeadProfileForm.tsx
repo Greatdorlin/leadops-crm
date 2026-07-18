@@ -7,9 +7,10 @@ import {
   type CustomFieldDefinitionWithOptions,
 } from "@/lib/crm/custom-field-values";
 import type { LeadCustomerType } from "@/lib/crm/types";
+import { AdminSelect } from "./AdminSelect";
 import { CustomFieldValueInputs } from "./CustomFieldValueInputs";
-import { SmoothButton } from "./ui/SmoothButton";
 import { CitySearchInput, CountrySearchInput } from "./CountrySearchInput";
+import { SmoothButton } from "./ui/SmoothButton";
 
 type ProfileInputProps = {
   label: string;
@@ -20,13 +21,36 @@ type ProfileInputProps = {
   className?: string;
 };
 
+type LeadProfileFormProps = {
+  leadId: string;
+  initialFirstName: string;
+  initialLastName: string;
+  initialEmail: string;
+  initialWhatsappNumber: string;
+  initialCountry?: string | null;
+  initialRegion?: string | null;
+  initialCity?: string | null;
+  initialAddress?: string | null;
+  initialPostalCode?: string | null;
+  initialCompanyName?: string | null;
+  initialLeadCustomerType?: LeadCustomerType | null;
+  initialSourceId?: string | null;
+  initialSourceDetail?: string | null;
+  initialCampaignLabel?: string | null;
+  initialUtmSource?: string | null;
+  initialUtmMedium?: string | null;
+  initialUtmCampaign?: string | null;
+  initialUtmContent?: string | null;
+  initialUtmTerm?: string | null;
+  initialLandingPage?: string | null;
+  sourceOptions: Array<{ value: string; label: string }>;
+  customFieldDefinitions?: CustomFieldDefinitionWithOptions[];
+  initialCustomFieldValues?: Array<{ customFieldId: string; value: unknown }>;
+};
+
 const labelClass = "text-xs font-semibold uppercase tracking-[0.16em] text-white/70";
 const panelClass =
   "mt-4 space-y-3 rounded-[24px] border border-white/10 bg-white/[0.045] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]";
-
-function formatDateTimeLocalValue(value?: string | null) {
-  return value ? value.slice(0, 16) : "";
-}
 
 function ProfileInput({ label, value, onChange, placeholder, type = "text", className }: ProfileInputProps) {
   return (
@@ -49,7 +73,6 @@ export function LeadProfileForm({
   initialLastName,
   initialEmail,
   initialWhatsappNumber,
-  initialState,
   initialCountry,
   initialRegion,
   initialCity,
@@ -57,37 +80,19 @@ export function LeadProfileForm({
   initialPostalCode,
   initialCompanyName,
   initialLeadCustomerType,
-  initialEstimatedValue,
-  initialCloseProbability,
-  initialExpectedCloseDate,
-  initialNextFollowUpAt,
-  initialWonValue,
-  initialLostReason,
+  initialSourceId,
+  initialSourceDetail,
+  initialCampaignLabel,
+  initialUtmSource,
+  initialUtmMedium,
+  initialUtmCampaign,
+  initialUtmContent,
+  initialUtmTerm,
+  initialLandingPage,
+  sourceOptions,
   customFieldDefinitions = [],
   initialCustomFieldValues = [],
-}: {
-  leadId: string;
-  initialFirstName: string;
-  initialLastName: string;
-  initialEmail: string;
-  initialWhatsappNumber: string;
-  initialState: string | null;
-  initialCountry?: string | null;
-  initialRegion?: string | null;
-  initialCity?: string | null;
-  initialAddress?: string | null;
-  initialPostalCode?: string | null;
-  initialCompanyName?: string | null;
-  initialLeadCustomerType?: LeadCustomerType | null;
-  initialEstimatedValue?: number | null;
-  initialCloseProbability?: number | null;
-  initialExpectedCloseDate?: string | null;
-  initialNextFollowUpAt?: string | null;
-  initialWonValue?: number | null;
-  initialLostReason?: string | null;
-  customFieldDefinitions?: CustomFieldDefinitionWithOptions[];
-  initialCustomFieldValues?: Array<{ customFieldId: string; value: unknown }>;
-}) {
+}: LeadProfileFormProps) {
   const customFieldInputModel = buildCustomFieldInputModel(
     customFieldDefinitions.filter((field) => field.showInForm),
     initialCustomFieldValues,
@@ -97,7 +102,6 @@ export function LeadProfileForm({
   const [lastName, setLastName] = useState(initialLastName);
   const [email, setEmail] = useState(initialEmail);
   const [whatsappNumber, setWhatsappNumber] = useState(initialWhatsappNumber);
-  const [state, setState] = useState(initialState ?? "");
   const [country, setCountry] = useState(initialCountry ?? "");
   const [region, setRegion] = useState(initialRegion ?? "");
   const [city, setCity] = useState(initialCity ?? "");
@@ -107,12 +111,15 @@ export function LeadProfileForm({
   const [leadCustomerType, setLeadCustomerType] = useState<LeadCustomerType>(
     initialLeadCustomerType ?? "direct",
   );
-  const [estimatedValue, setEstimatedValue] = useState(initialEstimatedValue == null ? "" : String(initialEstimatedValue));
-  const [closeProbability, setCloseProbability] = useState(initialCloseProbability == null ? "" : String(initialCloseProbability));
-  const [expectedCloseDate, setExpectedCloseDate] = useState(formatDateTimeLocalValue(initialExpectedCloseDate));
-  const [nextFollowUpAt, setNextFollowUpAt] = useState(formatDateTimeLocalValue(initialNextFollowUpAt));
-  const [wonValue, setWonValue] = useState(initialWonValue == null ? "" : String(initialWonValue));
-  const [lostReason, setLostReason] = useState(initialLostReason ?? "");
+  const [sourceId, setSourceId] = useState(initialSourceId ?? "");
+  const [sourceDetail, setSourceDetail] = useState(initialSourceDetail ?? "");
+  const [campaignLabel, setCampaignLabel] = useState(initialCampaignLabel ?? "");
+  const [utmSource, setUtmSource] = useState(initialUtmSource ?? "");
+  const [utmMedium, setUtmMedium] = useState(initialUtmMedium ?? "");
+  const [utmCampaign, setUtmCampaign] = useState(initialUtmCampaign ?? "");
+  const [utmContent, setUtmContent] = useState(initialUtmContent ?? "");
+  const [utmTerm, setUtmTerm] = useState(initialUtmTerm ?? "");
+  const [landingPage, setLandingPage] = useState(initialLandingPage ?? "");
   const [customFieldValues, setCustomFieldValues] = useState<Record<string, unknown>>(() =>
     Object.fromEntries(customFieldInputModel.map((field) => [field.fieldId, field.value])),
   );
@@ -124,7 +131,6 @@ export function LeadProfileForm({
       setMessage("Add the lead's first name before saving.");
       return;
     }
-
     if (!email.trim() && !whatsappNumber.trim()) {
       setMessage("Add an email or WhatsApp number before saving.");
       return;
@@ -142,7 +148,6 @@ export function LeadProfileForm({
           lastName: lastName.trim() || null,
           email: email.trim() || null,
           whatsappNumber: whatsappNumber.trim() || null,
-          state: state || null,
           country: country.trim() || null,
           region: region.trim() || null,
           city: city.trim() || null,
@@ -150,18 +155,19 @@ export function LeadProfileForm({
           postalCode: postalCode.trim() || null,
           companyName: companyName.trim() || null,
           leadCustomerType,
-          estimatedValue: estimatedValue ? Number(estimatedValue) : null,
-          closeProbability: closeProbability ? Number(closeProbability) : null,
-          expectedCloseDate: expectedCloseDate || null,
-          nextFollowUpAt: nextFollowUpAt || null,
-          wonValue: wonValue ? Number(wonValue) : null,
-          lostReason: lostReason.trim() || null,
+          sourceId: sourceId || null,
+          sourceDetail: sourceDetail.trim() || null,
+          campaignLabel: campaignLabel.trim() || null,
+          utmSource: utmSource.trim() || null,
+          utmMedium: utmMedium.trim() || null,
+          utmCampaign: utmCampaign.trim() || null,
+          utmContent: utmContent.trim() || null,
+          utmTerm: utmTerm.trim() || null,
+          landingPage: landingPage.trim() || null,
           customFieldValues,
         }),
       });
-
       const payload = (await response.json().catch(() => null)) as { error?: string } | null;
-
       if (!response.ok) {
         setMessage(payload?.error ?? "We couldn't update this lead right now.");
         setIsSaving(false);
@@ -212,7 +218,6 @@ export function LeadProfileForm({
         <ProfileInput label="Last name" value={lastName} onChange={setLastName} placeholder="Okafor" />
         <ProfileInput label="Email" type="email" value={email} onChange={setEmail} placeholder="lead@example.com" />
         <ProfileInput label="WhatsApp" value={whatsappNumber} onChange={setWhatsappNumber} placeholder="+234 801 234 5678" />
-        <ProfileInput label="Previous region" value={state} onChange={setState} placeholder="Lagos" />
         <CountrySearchInput value={country} onChange={setCountry} />
         <ProfileInput label="Company" value={companyName} onChange={setCompanyName} placeholder="Northwind Ventures" />
         <ProfileInput label="State/Province/Region" value={region} onChange={setRegion} placeholder="Lagos State" />
@@ -222,27 +227,28 @@ export function LeadProfileForm({
       </div>
 
       <section className={panelClass}>
-        <p className={labelClass}>Sales details</p>
+        <p className={labelClass}>Source and campaign</p>
         <p className="text-sm leading-6 text-white/70">
-          Use these top-line fields for the overall lead. For multiple offers with separate
-          qualification outcomes, use the offer tracking section on this page.
+          Keep business attribution clear. Connected-tool IDs and referral attribution remain read-only.
         </p>
         <div className="grid gap-3 sm:grid-cols-2">
-          <ProfileInput label="Next follow-up" type="datetime-local" value={nextFollowUpAt} onChange={setNextFollowUpAt} />
-          <ProfileInput label="Estimated value" type="number" value={estimatedValue} onChange={setEstimatedValue} />
-          <ProfileInput label="Close probability" type="number" value={closeProbability} onChange={setCloseProbability} />
-          <ProfileInput label="Expected close" type="datetime-local" value={expectedCloseDate} onChange={setExpectedCloseDate} />
-          <ProfileInput label="Won value" type="number" value={wonValue} onChange={setWonValue} />
-          <label className="space-y-2 sm:col-span-2">
-            <span className={labelClass}>Lost reason</span>
-            <textarea
-              value={lostReason}
-              onChange={(event) => setLostReason(event.target.value)}
-              rows={3}
-              placeholder="Why the lead was lost, if known."
-              className="admin-textarea ld-focus-ring min-h-[104px] w-full rounded-2xl px-4 py-3 text-sm outline-none"
-            />
+          <label className="space-y-2">
+            <span className={labelClass}>Source</span>
+            <AdminSelect value={sourceId} onChange={(event) => setSourceId(event.target.value)} className="h-11">
+              <option value="">Not assigned</option>
+              {sourceOptions.map((option) => (
+                <option key={option.value} value={option.value}>{option.label}</option>
+              ))}
+            </AdminSelect>
           </label>
+          <ProfileInput label="Source detail" value={sourceDetail} onChange={setSourceDetail} placeholder="Referral event or channel detail" />
+          <ProfileInput label="Campaign name" value={campaignLabel} onChange={setCampaignLabel} placeholder="Q3 business campaign" />
+          <ProfileInput label="UTM campaign" value={utmCampaign} onChange={setUtmCampaign} placeholder="q3_business" />
+          <ProfileInput label="UTM source" value={utmSource} onChange={setUtmSource} placeholder="newsletter" />
+          <ProfileInput label="UTM medium" value={utmMedium} onChange={setUtmMedium} placeholder="email" />
+          <ProfileInput label="UTM content" value={utmContent} onChange={setUtmContent} placeholder="hero_cta" />
+          <ProfileInput label="UTM term" value={utmTerm} onChange={setUtmTerm} placeholder="sales software" />
+          <ProfileInput label="Landing page" value={landingPage} onChange={setLandingPage} placeholder="https://example.com/contact" className="sm:col-span-2" />
         </div>
       </section>
 
@@ -260,17 +266,10 @@ export function LeadProfileForm({
       ) : null}
 
       <div className="mt-4 flex flex-col gap-3 border-t border-white/10 pt-4">
-        <SmoothButton
-          variant="primary"
-          size="lg"
-          onClick={() => void saveLeadProfile()}
-          loading={isSaving}
-          className="w-full"
-        >
+        <SmoothButton variant="primary" size="lg" onClick={() => void saveLeadProfile()} loading={isSaving} className="w-full">
           Save profile
         </SmoothButton>
       </div>
-
       {message ? <p className="mt-3 text-sm text-white/70">{message}</p> : null}
     </div>
   );

@@ -29,7 +29,7 @@ import { GlassCard } from "@/components/admin/GlassCard";
 import { InfoTip } from "@/components/admin/ui/InfoTip";
 import { getAdminAccessContext } from "@/lib/admin";
 import { isLocalAdminPreviewEmail } from "@/lib/admin-access";
-import { canEditTeamAccess } from "@/lib/admin-permissions";
+import { canEditTeamAccess, canManageOwnerOnlySettings } from "@/lib/admin-permissions";
 import {
   canManageAppearanceSettings,
   canManageCustomFields,
@@ -63,7 +63,7 @@ function buildDevelopmentSettingsData() {
       id: "demo-user-preview",
       email: "preview@local.leadsdesk.test",
       fullName: "Local Preview",
-      role: "admin",
+      role: "manager",
       isActive: true,
       avatarUrl: null,
       createdAt: now,
@@ -120,7 +120,8 @@ export default async function AdminSettingsPage() {
   const canOpenDashboard = canManageDashboardSettings(subject);
   const canOpenIndustry = canManageIndustryPresets(subject);
   const canOpenSystemStatus = canViewSystemStatus(subject);
-  const canOpenRolePermissions = canManageAdminSettings(subject);
+  const canOpenOwnerAccess = canManageOwnerOnlySettings(actualAccessLevel, accessLevel);
+  const canOpenRolePermissions = canOpenOwnerAccess && canManageAdminSettings(subject);
   const canOpenCurrency = canManageCurrencySettings(subject);
   const canOpenBranches = canManageBranches(subject);
   const canOpenIntegrations = canManageIntegrations(accessLevel, role, permissions);
@@ -190,6 +191,7 @@ export default async function AdminSettingsPage() {
         { label: "Branches", href: appRoutes.settingsBranches, enabled: canOpenBranches, copy: "Locations and branch ownership.", icon: Building2 },
         { label: "Currency", href: appRoutes.settingsCurrency, enabled: canOpenCurrency, copy: "Default value and target currency.", icon: CircleDollarSign },
         { label: "Role permissions", href: appRoutes.settingsRolePermissions, enabled: canOpenRolePermissions, copy: "What each role can touch.", icon: ShieldCheck },
+        { label: "Access and registration", href: appRoutes.settingsAccess, enabled: canOpenOwnerAccess, copy: "Approved domains and safe account creation.", icon: ShieldCheck },
       ],
     },
     {

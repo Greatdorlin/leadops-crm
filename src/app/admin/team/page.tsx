@@ -136,7 +136,7 @@ export default async function AdminTeamPage() {
 
         <section className="grid gap-6 xl:grid-cols-[minmax(0,1.45fr)_minmax(320px,0.9fr)]">
           <div>
-            <GlassSurface as="section" className="rounded-[28px] p-5 md:p-6 ld-animate-fade-in-up">
+            <GlassSurface as="section" className="min-w-0 max-w-full overflow-hidden rounded-[28px] p-5 md:p-6 ld-animate-fade-in-up">
               <SectionHeader
                 eyebrow="Sales rep performance"
                 title="Rep performance"
@@ -214,7 +214,7 @@ export default async function AdminTeamPage() {
                 title="Follow-up pressure"
                 description="The clearest signals shaping team workload right now."
               />
-              <div className="mt-4 grid min-w-0 gap-3 sm:grid-cols-2 xl:grid-cols-1">
+              <div className="mt-4 grid min-w-0 max-w-full gap-3 sm:grid-cols-2 xl:grid-cols-1 [&>*]:min-w-0">
                 <MetricCard
                   label="Overdue tasks"
                   value={safeNumber(overdueTaskCount)}

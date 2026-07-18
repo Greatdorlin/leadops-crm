@@ -29,6 +29,7 @@ Production schema changes use `npm run db:migrate`. `npm run db:push` is for dis
 - [Coolify](./DEPLOY_COOLIFY.md)
 - [Backup and restore](./BACKUP_AND_RESTORE.md)
 - [CRM migration and connector boundaries](./docs/MIGRATIONS_AND_CONNECTORS.md)
+- [Provider-neutral extension contracts](./docs/EXTENSION_CONTRACTS.md)
 - [Architecture and scale contract](./docs/ARCHITECTURE.md)
 - [Security and permissions](./docs/SECURITY_AND_PERMISSIONS.md)
 

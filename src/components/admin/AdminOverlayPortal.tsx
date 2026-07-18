@@ -4,14 +4,23 @@ import type { ReactNode } from "react";
 import { useEffect } from "react";
 import { createPortal } from "react-dom";
 
-export function usePreservedBodyScrollLock(active: boolean) {
-  useEffect(() => {
-    if (!active) {
-      return;
-    }
+type PreservedBodyStyles = {
+  left: string;
+  overflow: string;
+  position: string;
+  right: string;
+  top: string;
+  width: string;
+};
 
-    const scrollY = window.scrollY;
-    const previous = {
+let bodyScrollLockCount = 0;
+let preservedBodyStyles: PreservedBodyStyles | null = null;
+let preservedScrollY = 0;
+
+function lockBodyScroll() {
+  if (bodyScrollLockCount === 0) {
+    preservedScrollY = window.scrollY;
+    preservedBodyStyles = {
       left: document.body.style.left,
       overflow: document.body.style.overflow,
       position: document.body.style.position,
@@ -21,21 +30,40 @@ export function usePreservedBodyScrollLock(active: boolean) {
     };
 
     document.body.style.position = "fixed";
-    document.body.style.top = `-${scrollY}px`;
+    document.body.style.top = `-${preservedScrollY}px`;
     document.body.style.left = "0";
     document.body.style.right = "0";
     document.body.style.width = "100%";
     document.body.style.overflow = "hidden";
+  }
 
-    return () => {
-      document.body.style.position = previous.position;
-      document.body.style.top = previous.top;
-      document.body.style.left = previous.left;
-      document.body.style.right = previous.right;
-      document.body.style.width = previous.width;
-      document.body.style.overflow = previous.overflow;
-      window.scrollTo({ top: scrollY, left: 0, behavior: "instant" });
-    };
+  bodyScrollLockCount += 1;
+}
+
+function unlockBodyScroll() {
+  bodyScrollLockCount = Math.max(0, bodyScrollLockCount - 1);
+  if (bodyScrollLockCount > 0 || !preservedBodyStyles) {
+    return;
+  }
+
+  document.body.style.position = preservedBodyStyles.position;
+  document.body.style.top = preservedBodyStyles.top;
+  document.body.style.left = preservedBodyStyles.left;
+  document.body.style.right = preservedBodyStyles.right;
+  document.body.style.width = preservedBodyStyles.width;
+  document.body.style.overflow = preservedBodyStyles.overflow;
+  preservedBodyStyles = null;
+  window.scrollTo({ top: preservedScrollY, left: 0, behavior: "instant" });
+}
+
+export function usePreservedBodyScrollLock(active: boolean) {
+  useEffect(() => {
+    if (!active) {
+      return;
+    }
+
+    lockBodyScroll();
+    return unlockBodyScroll;
   }, [active]);
 }
 

@@ -1,0 +1,2 @@
+ALTER TABLE "company_settings" ADD COLUMN "domain_registration_enabled" boolean DEFAULT false NOT NULL;--> statement-breakpoint
+ALTER TABLE "company_settings" ADD COLUMN "approved_registration_domains" text[] DEFAULT ARRAY[]::text[] NOT NULL;

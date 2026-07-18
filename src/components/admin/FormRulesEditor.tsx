@@ -320,12 +320,12 @@ export function FormRulesEditor({
   return (
     <div className="space-y-4">
       <SectionHeader
-        title="Conditional Rules"
-        description="Automatically qualify leads and trigger actions based on form responses."
+        title="Conditional rules"
+        description="Route leads from their answers."
         variant="compact"
         actions={
           <SmoothButton size="sm" icon={<Plus className="h-4 w-4" />} onClick={startCreating}>
-            Add Rule
+            Add rule
           </SmoothButton>
         }
       />
@@ -340,12 +340,12 @@ export function FormRulesEditor({
       <div className="space-y-3">
         {rules.length === 0 ? (
           <GlassSurface intensity="soft" className="py-12 text-center">
-            <p className="text-sm text-white/70">No rules yet. Click Add Rule to automate lead qualification.</p>
+            <p className="text-sm text-white/70">No rules yet. Add one to route matching leads.</p>
           </GlassSurface>
         ) : (
           rules.map((rule, idx) => (
             <AnimatedCard key={rule.id} variant="subtle" delay={idx * 50}>
-              <div className="flex items-start gap-3 p-4">
+              <div className="flex min-w-0 flex-col gap-3 p-4 sm:flex-row sm:items-start">
                 <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-[12px] border border-white/10 bg-white/[0.06] text-[var(--ld-color-accent)]">
                   <Zap className="h-4 w-4" />
                 </div>
@@ -367,7 +367,7 @@ export function FormRulesEditor({
                     {buildRuleSummary(rule, fields)}
                   </p>
                 </div>
-                <div className="flex shrink-0 items-center gap-1">
+                <div className="flex shrink-0 items-center gap-1 self-end sm:self-start">
                   <SmoothButton
                     variant="ghost"
                     size="sm"
@@ -410,7 +410,7 @@ export function FormRulesEditor({
         onClick={startCreating}
         className="w-full sm:w-auto"
       >
-        Add Another Rule
+        Add another rule
       </SmoothButton>
 
       {editingRule && (
@@ -433,7 +433,7 @@ export function FormRulesEditor({
               </button>
             </div>
 
-            <div className="flex-1 overflow-y-auto px-6 py-5">
+            <div className="flex-1 overflow-y-auto px-4 py-4 sm:px-6 sm:py-5">
               <div className="space-y-5">
                 <div>
                   <label className="mb-2 block text-sm font-medium text-white/90">Rule Name</label>
@@ -446,7 +446,7 @@ export function FormRulesEditor({
                   />
                 </div>
 
-                <div className="rounded-[18px] border-l-4 border-l-[var(--ld-color-primary)]/60 bg-white/[0.03] p-4">
+                <section className="border-t border-white/10 pt-4">
                   <div className="mb-3 flex items-center gap-2">
                     <span className="inline-flex h-6 w-6 items-center justify-center rounded-[8px] bg-[var(--ld-color-primary)]/20 text-xs font-bold text-[var(--ld-color-primary)]">
                       IF
@@ -493,9 +493,9 @@ export function FormRulesEditor({
                       </div>
                     )}
                   </div>
-                </div>
+                </section>
 
-                <div className="rounded-[18px] border-l-4 border-l-[var(--ld-color-accent)]/60 bg-white/[0.03] p-4">
+                <section className="border-t border-white/10 pt-4">
                   <div className="mb-3 flex items-center gap-2">
                     <span className="inline-flex h-6 w-6 items-center justify-center rounded-[8px] bg-[var(--ld-color-accent)]/20 text-xs font-bold text-[var(--ld-color-accent)]">
                       THEN
@@ -574,7 +574,7 @@ export function FormRulesEditor({
                       )}
                     </div>
                   </div>
-                </div>
+                </section>
 
                 <div className="rounded-[14px] border border-white/10 bg-white/[0.03] px-4 py-3">
                   <p className="text-xs font-semibold uppercase tracking-wider text-white/50">Preview</p>
@@ -586,7 +586,7 @@ export function FormRulesEditor({
               </div>
             </div>
 
-            <div className="flex items-center justify-end gap-2 border-t border-white/10 px-6 py-4">
+            <div className="flex items-center justify-end gap-2 border-t border-white/10 px-4 py-4 sm:px-6">
               <SmoothButton variant="ghost" onClick={closeEditor}>
                 Cancel
               </SmoothButton>

@@ -20,7 +20,8 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> },
 ) {
   const context = await getAdminRequestContext();
-  if (!context) {
+  const actorEmail = context?.session.user?.email?.trim();
+  if (!context || !actorEmail) {
     return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
   }
 
@@ -91,7 +92,7 @@ export async function POST(
     description: parsed.data.description ?? null,
     dueAt: parsed.data.dueAt ?? null,
     assignedTo: parsed.data.assignedTo ?? null,
-    createdBy: context.session.user?.email ?? null,
+    createdBy: actorEmail,
   });
 
   return NextResponse.json({ task });

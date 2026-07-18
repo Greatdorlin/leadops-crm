@@ -3,6 +3,7 @@ import type { IntakeEventAdminRow } from "@/lib/crm/intake-runtime";
 import { formatCrmDateTime } from "@/lib/crm/formatters";
 import { appRoutes } from "@/lib/app-routes";
 import { EmptyState } from "./EmptyState";
+import { AdminDisclosure } from "./AdminDisclosure";
 
 function statusTone(status: IntakeEventAdminRow["status"]) {
   switch (status) {
@@ -89,14 +90,11 @@ export function IntakeEventTable({
           ) : null}
 
           {showRawPayload && event.rawPayload ? (
-            <details className="mt-4 rounded-2xl border border-white/10 bg-white/[0.045] px-4 py-3">
-              <summary className="cursor-pointer text-sm font-medium text-white/70">
-                Advanced payload
-              </summary>
-              <pre className="mt-3 overflow-x-auto rounded-2xl bg-black/80 p-4 text-xs leading-6 text-white/90">
+            <AdminDisclosure label="Advanced payload" className="mt-4">
+              <pre className="mt-2 max-w-full overflow-x-auto rounded-2xl bg-black/80 p-4 text-xs leading-6 text-white/90">
                 {JSON.stringify(event.rawPayload, null, 2)}
               </pre>
-            </details>
+            </AdminDisclosure>
           ) : null}
         </article>
       ))}

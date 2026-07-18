@@ -1,11 +1,10 @@
 import type {
   AdminLeadCaptureInput,
   AdminLeadFilterInput,
-  AdminLeadProfileInput,
 } from "@/lib/crm/form-contracts";
 import type { LeadSalesCommandUpdateInput } from "@/lib/crm/sales-command";
 import type { ParsedLeadImportRow } from "@/lib/crm/csv";
-import type { LeadListFilters, LeadProfileUpdateInput } from "@/lib/storage/types";
+import type { LeadListFilters } from "@/lib/storage/types";
 
 export function mapAdminCaptureInputToLegacyLeadPayload(input: AdminLeadCaptureInput) {
   return {
@@ -23,22 +22,6 @@ export function mapAdminCaptureInputToLegacyLeadPayload(input: AdminLeadCaptureI
     assignedTo: input.assignedTo ?? null,
     source: input.source,
     sourceDetail: input.sourceDetail ?? null,
-  };
-}
-
-export function mapAdminProfileInputToLegacyLeadProfile(input: AdminLeadProfileInput): LeadProfileUpdateInput {
-  return {
-    firstName: input.firstName?.trim(),
-    lastName: input.lastName ?? null,
-    email: input.email ?? null,
-    whatsappNumber: input.whatsappNumber ?? null,
-    state: input.state ?? null,
-    country: input.country ?? null,
-    region: input.region ?? null,
-    city: input.city ?? null,
-    address: input.address ?? null,
-    postalCode: input.postalCode ?? null,
-    companyName: input.companyName ?? null,
   };
 }
 

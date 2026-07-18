@@ -3,7 +3,7 @@
 ## Runtime
 
 - Next.js App Router with server-rendered admin pages and focused client controls
-- Auth.js with invite-only email/password, optional secondary Google OAuth, and database-backed roles
+- Auth.js with invite-only email/password, optional approved-domain sales-rep registration, optional secondary Google OAuth, and database-backed roles
 - PostgreSQL through `DATABASE_URL`
 - Drizzle ORM with journaled SQL migrations
 - Postgres.js with pooler-compatible prepared statements disabled
@@ -28,6 +28,8 @@ Lead value is offer-aware. One lead can be qualified for one product and unquali
 - reports: database-side aggregation instead of transferring operational lead rows for summary charts
 - exports: bounded server-side batches with spreadsheet-formula neutralization
 - integrations: available, mapped-import, adapter-ready, and planned states are kept distinct
+
+Optional email-marketing and AI implementations must stay behind the server-only, provider-neutral contracts in [`EXTENSION_CONTRACTS.md`](./EXTENSION_CONTRACTS.md). The current AI capability registry is fully disabled and does not represent a product feature.
 
 Always-visible navigation disables speculative route prefetch so one screen does not fan out into unrelated database reads. Raw source payload JSON is retained for traceability but excluded from queue, dashboard, task, and report list reads.
 

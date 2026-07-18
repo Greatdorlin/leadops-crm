@@ -52,20 +52,20 @@ export function SalesCommandReports({
         </section>
 
         <section className="grid min-w-0 gap-6 xl:grid-cols-2">
-          <section className="admin-surface min-w-0 overflow-hidden rounded-[24px] p-4 sm:p-5">
+          <section className="admin-surface min-w-0 max-w-full overflow-hidden rounded-[24px] p-4 sm:p-5">
             <SectionHeader
               eyebrow="Follow-up pressure"
               title="What needs action now"
               description="Due, overdue, and stalled work in this reporting view."
             />
-            <div className="mt-4 grid min-w-0 gap-3 sm:grid-cols-3 xl:grid-cols-1 2xl:grid-cols-3">
+            <div className="mt-4 grid min-w-0 max-w-full gap-3 sm:grid-cols-3 xl:grid-cols-1 2xl:grid-cols-3 [&>*]:min-w-0">
               <MetricCard label="Overdue" value={summary.overdueFollowUps} supporting="Past due." tone={summary.overdueFollowUps > 0 ? "danger" : "positive"} />
               <MetricCard label="Due today" value={summary.dueTodayFollowUps} supporting="Due today." tone="warning" />
               <MetricCard label="Stuck leads" value={summary.stuckLeads} supporting="No recent movement." tone={summary.stuckLeads > 0 ? "warning" : "positive"} />
             </div>
           </section>
 
-          <section className="admin-surface min-w-0 overflow-hidden rounded-[24px] p-4 sm:p-5">
+          <section className="admin-surface min-w-0 max-w-full overflow-hidden rounded-[24px] p-4 sm:p-5">
             <SectionHeader
               eyebrow="Who needs attention"
               title="Rep follow-up load"
@@ -125,13 +125,13 @@ export function SalesCommandReports({
         />
         {summary.repPerformance.length > 0 ? (
           <div
-            className="mt-4 flex min-w-0 snap-x snap-proximity touch-pan-x gap-3 overflow-x-auto overscroll-x-contain pb-3 [scrollbar-color:color-mix(in_srgb,var(--ld-color-primary)_45%,transparent)_transparent]"
+            className="mt-4 grid min-w-0 max-w-full gap-3 sm:grid-cols-2 xl:grid-cols-3"
             aria-label="Rep performance cards"
           >
             {summary.repPerformance.map((rep) => (
               <article
                 key={rep.id}
-                className="ld-solid-panel w-[min(82vw,19rem)] shrink-0 snap-start rounded-[20px] p-4 sm:w-[19rem]"
+                className="ld-solid-panel min-w-0 max-w-full rounded-[20px] p-4"
               >
                 <p className="truncate text-sm font-semibold text-white">{rep.label}</p>
                 <p className="mt-1 text-sm text-white/65">{rep.assignedLeads} assigned leads</p>

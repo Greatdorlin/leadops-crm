@@ -120,11 +120,11 @@ export function MetricCard({
               {label}
             </p>
           </div>
-          <div className="flex shrink-0 items-center gap-2">
+          <div className="flex max-w-full shrink-0 flex-wrap items-center gap-2">
             {highlightLabel ? (
               <span
                 className={cn(
-                  "inline-flex min-w-[3.75rem] items-center justify-center rounded-full border px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.14em]",
+                  "inline-flex min-w-0 items-center justify-center rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] sm:min-w-[3.75rem] sm:text-[11px] sm:tracking-[0.14em]",
                   highlightClass,
                 )}
               >

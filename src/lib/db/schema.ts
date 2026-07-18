@@ -396,6 +396,11 @@ export const companySettings = pgTable(
     leadPreviewConfig: jsonb("lead_preview_config").$type<Record<string, unknown> | null>(),
     industryPreset: text("industry_preset").notNull().default("general_business"),
     globalCurrency: text("global_currency").notNull().default("USD"),
+    domainRegistrationEnabled: boolean("domain_registration_enabled").notNull().default(false),
+    approvedRegistrationDomains: text("approved_registration_domains")
+      .array()
+      .notNull()
+      .default(sql`ARRAY[]::text[]`),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },

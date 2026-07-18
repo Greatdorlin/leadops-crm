@@ -195,8 +195,16 @@ export interface LeadProfileUpdateInput {
   postalCode?: string | null;
   companyName?: string | null;
   leadCustomerType?: LeadCustomerType | null;
+  sourceId?: string | null;
+  sourceDetail?: string | null;
   campaignId?: string | null;
   campaignLabel?: string | null;
+  utmSource?: string | null;
+  utmMedium?: string | null;
+  utmCampaign?: string | null;
+  utmContent?: string | null;
+  utmTerm?: string | null;
+  landingPage?: string | null;
   assignedUserId?: string | null;
   teamId?: string | null;
   branchId?: string | null;

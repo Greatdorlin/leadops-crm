@@ -14,6 +14,7 @@ export const appRoutes = {
   formsNew: "/forms/new",
   profile: "/profile",
   settings: "/settings",
+  settingsAccess: "/settings/access",
   settingsAppearance: "/settings/appearance",
   settingsDashboard: "/settings/dashboard",
   settingsFields: "/settings/fields",

@@ -20,7 +20,7 @@ export default async function AdminProfilePage() {
     fullName: session.user?.name || "Demo workspace owner",
     email: session.user?.email || "preview@local.leadsdesk.test",
     avatarUrl: session.user?.image ?? null,
-    role: "admin" as const,
+    role: "manager" as const,
     isActive: true,
   } : null);
 

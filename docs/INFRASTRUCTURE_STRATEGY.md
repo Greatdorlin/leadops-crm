@@ -247,6 +247,7 @@ Default auth:
 - single-use activation links
 - optional secondary Google OAuth when explicitly enabled
 - optional allowed-domain restriction
+- optional database-backed approved-domain registration, disabled by default and fixed to the sales-rep role
 - role and scope checks from Postgres-backed user data
 
 Rules:

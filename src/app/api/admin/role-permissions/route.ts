@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getAdminRequestContext } from "@/lib/admin";
+import { canManageOwnerOnlySettings } from "@/lib/admin-permissions";
 import { canManageAdminSettings } from "@/lib/crm/authz";
 import { listRolePermissions, setRolePermission, resetRolePermissionsToDefaults } from "@/lib/crm/role-permissions";
 import {
@@ -13,7 +14,10 @@ export async function GET() {
     return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
   }
 
-  if (!canManageAdminSettings(context)) {
+  if (
+    !canManageOwnerOnlySettings(context.actualAccessLevel, context.accessLevel) ||
+    !canManageAdminSettings(context)
+  ) {
     return NextResponse.json({ error: "Forbidden." }, { status: 403 });
   }
 
@@ -32,7 +36,10 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
   }
 
-  if (!canManageAdminSettings(context)) {
+  if (
+    !canManageOwnerOnlySettings(context.actualAccessLevel, context.accessLevel) ||
+    !canManageAdminSettings(context)
+  ) {
     return NextResponse.json({ error: "Forbidden." }, { status: 403 });
   }
 

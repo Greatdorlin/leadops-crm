@@ -5,7 +5,6 @@ import {
   type ConnectorAvailability,
   type ConnectorCategory,
 } from "@/lib/integrations/connector-registry";
-import { appRoutes } from "@/lib/app-routes";
 
 const categoryLabels: Record<ConnectorCategory, string> = {
   lead_capture: "Lead capture",
@@ -17,28 +16,11 @@ const categoryLabels: Record<ConnectorCategory, string> = {
 };
 
 const availabilityMeta: Record<ConnectorAvailability, { label: string; className: string }> = {
-  available: { label: "Available", className: "border-emerald-300/22 bg-emerald-400/10 text-emerald-100" },
+  available: { label: "Setup available", className: "border-emerald-300/22 bg-emerald-400/10 text-emerald-100" },
   mapped_import: { label: "Mapped import", className: "border-cyan-300/22 bg-cyan-400/10 text-cyan-100" },
   adapter_ready: { label: "Adapter ready", className: "border-amber-300/22 bg-amber-400/10 text-amber-100" },
   planned: { label: "Planned", className: "border-white/12 bg-white/[0.06] text-white/64" },
 };
-
-function connectorHref(id: string, availability: ConnectorAvailability) {
-  if (availability === "mapped_import") {
-    return `${appRoutes.leads}?composer=import&migrationSource=${encodeURIComponent(id)}#lead-action-center`;
-  }
-
-  const routes: Record<string, string> = {
-    website_forms: appRoutes.forms,
-    custom_webhook: appRoutes.settingsFormSources,
-    meta_lead_ads: appRoutes.integration("facebook"),
-    google_ads: appRoutes.integration("google-ads"),
-    tiktok: appRoutes.integration("tiktok"),
-    linkedin: appRoutes.integration("linkedin"),
-    google_sheets: appRoutes.integration("google-sheets"),
-  };
-  return routes[id] ?? null;
-}
 
 export function ConnectorCatalog() {
   const categories = Object.keys(categoryLabels) as ConnectorCategory[];
@@ -58,7 +40,6 @@ export function ConnectorCatalog() {
             <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
               {connectors.map((connector) => {
                 const status = availabilityMeta[connector.availability];
-                const href = connectorHref(connector.id, connector.availability);
                 const StatusIcon = connector.availability === "available"
                   ? Check
                   : connector.availability === "mapped_import"
@@ -76,14 +57,30 @@ export function ConnectorCatalog() {
                         {status.label}
                       </span>
                     </div>
-                    {href ? (
-                      <Link href={href} className="mt-4 inline-flex items-center gap-1.5 text-sm font-semibold text-[var(--ld-color-accent)] transition hover:text-white">
-                        {connector.availability === "mapped_import" ? "Start migration" : "Open setup"}
-                        <ArrowUpRight className="h-3.5 w-3.5" />
-                      </Link>
+                    {connector.operations ? (
+                      <div className="mt-4 flex flex-wrap gap-x-4 gap-y-2">
+                        <Link href={connector.operations.setupPath} className="inline-flex items-center gap-1.5 text-sm font-semibold text-[var(--ld-color-accent)] transition hover:text-white">
+                          {connector.availability === "mapped_import" ? "Start migration" : "Setup"}
+                          <ArrowUpRight className="h-3.5 w-3.5" />
+                        </Link>
+                        {connector.operations.healthPath ? (
+                          <Link href={connector.operations.healthPath} className="inline-flex items-center gap-1.5 text-sm font-semibold text-white/70 transition hover:text-white">
+                            Health
+                            <ArrowUpRight className="h-3.5 w-3.5" />
+                          </Link>
+                        ) : null}
+                        {connector.operations.retryPath ? (
+                          <Link href={connector.operations.retryPath} className="inline-flex items-center gap-1.5 text-sm font-semibold text-white/70 transition hover:text-white">
+                            Retry
+                            <ArrowUpRight className="h-3.5 w-3.5" />
+                          </Link>
+                        ) : null}
+                      </div>
                     ) : (
                       <p className="mt-4 text-xs font-medium text-white/52">
-                        Requires a deployment adapter before activation.
+                        {connector.availability === "planned"
+                          ? "No connection path is available yet."
+                          : "Requires a server-side deployment adapter before activation."}
                       </p>
                     )}
                   </article>

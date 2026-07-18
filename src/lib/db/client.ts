@@ -9,7 +9,7 @@ type PostgresClient = Sql;
 
 export type DatabaseExecutor = Pick<
   Database,
-  "delete" | "insert" | "query" | "select" | "update"
+  "delete" | "insert" | "query" | "select" | "transaction" | "update"
 >;
 
 const globalDatabase = globalThis as typeof globalThis & {

@@ -11,7 +11,8 @@ export async function PATCH(
   { params }: { params: Promise<{ taskId: string }> },
 ) {
   const context = await getAdminRequestContext();
-  if (!context) {
+  const actorEmail = context?.session.user?.email?.trim();
+  if (!context || !actorEmail) {
     return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
   }
 
@@ -47,7 +48,7 @@ export async function PATCH(
     return NextResponse.json({ error: "Forbidden." }, { status: 403 });
   }
 
-  const task = await leadStore.completeLeadTask(taskId, context.session.user?.email ?? null);
+  const task = await leadStore.completeLeadTask(taskId, actorEmail);
 
   if (!task) {
     return NextResponse.json({ error: "Task not found." }, { status: 404 });

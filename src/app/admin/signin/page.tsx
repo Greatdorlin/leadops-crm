@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { AdminSignInButton } from "@/components/admin/AdminSignInButton";
+import { ApprovedDomainRegistrationForm } from "@/components/admin/ApprovedDomainRegistrationForm";
 import { EmailPasswordSignInForm } from "@/components/admin/EmailPasswordSignInForm";
 import { LeadsDeskWordmark } from "@/components/brand/LeadsDeskWordmark";
 import {
@@ -13,6 +14,7 @@ import {
   isLocalAdminPreviewEnabled,
 } from "@/lib/admin-access";
 import { appRoutes } from "@/lib/app-routes";
+import { getDomainRegistrationPolicy } from "@/lib/auth-registration";
 
 export const dynamic = "force-dynamic";
 
@@ -48,7 +50,10 @@ export default async function AdminSignInPage({
   const googleLoginEnabled = isGoogleAuthConfigured();
   const canShowSetupMessage = !authReady && process.env.NODE_ENV !== "production";
   const canUseLocalPreview = !authReady && isLocalAdminPreviewEnabled();
-  const settings = await getCompanySettings();
+  const [settings, registrationPolicy] = await Promise.all([
+    getCompanySettings(),
+    getDomainRegistrationPolicy(),
+  ]);
   const themeVariables = buildThemeCssVariables(settings);
 
   return (
@@ -135,6 +140,16 @@ export default async function AdminSignInPage({
                   </div>
                 ) : null}
                 {googleLoginEnabled ? <AdminSignInButton callbackUrl={callbackUrl} /> : null}
+                {registrationPolicy.enabled ? (
+                  <>
+                    <div className="flex items-center gap-3 text-[11px] font-medium uppercase tracking-[0.16em] text-white/40">
+                      <span className="h-px flex-1 bg-white/10" />
+                      approved team
+                      <span className="h-px flex-1 bg-white/10" />
+                    </div>
+                    <ApprovedDomainRegistrationForm />
+                  </>
+                ) : null}
               </div>
             )}
           </div>

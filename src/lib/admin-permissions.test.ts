@@ -7,6 +7,7 @@ import {
   canManageTeamMember,
   canManageTaskRecord,
   canManageIntegrationsAccess,
+  canManageOwnerOnlySettings,
   canViewLeadRecord,
   canSoftDeleteLead,
   getGrantableAccessLevels,
@@ -383,6 +384,12 @@ test("normal roster management cannot grant owner access", () => {
     "sales_rep",
     "affiliate",
   ]);
+});
+
+test("owner-only settings reject general admin, demo-level access, and owner preview mode", () => {
+  assert.equal(canManageOwnerOnlySettings("master_admin"), true);
+  assert.equal(canManageOwnerOnlySettings("general_admin"), false);
+  assert.equal(canManageOwnerOnlySettings("master_admin", "general_admin"), false);
 });
 
 test("general admin can grant operational, finance, and affiliate access", () => {

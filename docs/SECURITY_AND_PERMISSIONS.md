@@ -202,7 +202,12 @@ Audit logging foundation is required for:
 
 ## Invitation And Password Rules
 
-- there is no open registration endpoint
+- there is no unrestricted open-registration endpoint
+- approved-domain self-registration is optional, database-backed, and disabled by default
+- when enabled, only exact configured domains are accepted; subdomains require their own entry
+- self-registered users are always created as `sales_rep` with `own` scope and must complete the existing single-use activation/password flow
+- public registration responses never expose activation tokens, and existing invited accounts are never overwritten or re-invited
+- admin-invited active users remain valid even when their email domain is outside the self-registration list
 - admins create active CRM users and issue or renew activation links
 - only token hashes are stored; raw activation tokens appear only in the generated link
 - issuing a replacement link invalidates earlier unused links
@@ -210,6 +215,8 @@ Audit logging foundation is required for:
 - passwords use bcrypt and are stored separately from CRM user profiles
 - repeated failed logins use database-backed lockout state
 - public authentication and activation failures remain generic
+
+Only the owner can change approved-domain registration or role-wide permission policy. General admins and local demo/preview access cannot perform these owner-only actions.
 
 ## Security Review Checklist
 

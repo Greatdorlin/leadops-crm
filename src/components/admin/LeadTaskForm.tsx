@@ -12,6 +12,7 @@ import {
 } from "@/lib/crm/schedule-presets";
 import { SmoothButton } from "./ui/SmoothButton";
 import { AdminSelect } from "./AdminSelect";
+import { AdminDisclosure } from "./AdminDisclosure";
 
 interface TaskOption {
   label: string;
@@ -209,11 +210,8 @@ export function LeadTaskForm({
         </label>
       </div>
 
-      <details className="group rounded-[18px] border border-white/10 bg-white/[0.035] px-4 py-3">
-        <summary className="cursor-pointer list-none text-sm font-semibold text-white/72 marker:hidden">
-          Details and owner <span className="text-white/42 group-open:hidden">(optional)</span>
-        </summary>
-        <div className="mt-4 grid gap-3">
+      <AdminDisclosure label="Details and owner" optional>
+        <div className="mt-2 grid gap-3">
           <textarea
             value={description}
             onChange={(event) => setDescription(event.target.value)}
@@ -234,7 +232,7 @@ export function LeadTaskForm({
             ))}
           </AdminSelect>
         </div>
-      </details>
+      </AdminDisclosure>
 
       <div className="flex flex-col gap-3 border-t border-white/10 pt-4 sm:flex-row sm:items-center sm:justify-between">
         <p

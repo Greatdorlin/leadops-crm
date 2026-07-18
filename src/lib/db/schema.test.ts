@@ -315,6 +315,8 @@ test("premium UI pass adds additive company settings storage for runtime customi
     "leadPreviewConfig",
     "industryPreset",
     "globalCurrency",
+    "domainRegistrationEnabled",
+    "approvedRegistrationDomains",
     "createdAt",
     "updatedAt",
   ]);

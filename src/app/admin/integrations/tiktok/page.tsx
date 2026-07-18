@@ -67,7 +67,7 @@ export default async function AdminTikTokIntegrationPage() {
       <div className="space-y-6">
         {pageData ? (
           <>
-            <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+            <section id="health" className="scroll-mt-24 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
               <MetricCard
                 label="Lead intake URL"
                 value={baseUrl ? "Configured" : "Missing base URL"}
@@ -111,7 +111,7 @@ export default async function AdminTikTokIntegrationPage() {
               />
             </section>
 
-            <section className="admin-surface rounded-[24px] p-5">
+            <section id="failed-imports" className="admin-surface scroll-mt-24 rounded-[24px] p-5">
               <SectionHeader
                 eyebrow="Failed imports"
                 title="Imports needing review"
@@ -154,7 +154,7 @@ export default async function AdminTikTokIntegrationPage() {
           />
         )}
 
-        <section className="admin-surface rounded-[24px] p-5">
+        <section id="setup" className="admin-surface scroll-mt-24 rounded-[24px] p-5">
           <SectionHeader
             eyebrow="Setup checklist"
             title="TikTok setup"

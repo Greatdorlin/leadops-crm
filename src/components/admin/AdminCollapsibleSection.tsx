@@ -1,7 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { useState } from "react";
+import { useId, useState } from "react";
 import { ChevronDown } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { SmoothButton } from "./ui/SmoothButton";
@@ -28,6 +28,7 @@ export function AdminCollapsibleSection({
   children: ReactNode;
 }) {
   const [isOpen, setIsOpen] = useState(defaultOpen);
+  const contentId = useId();
   const useDescriptionTip = Boolean(description && description.length > 48);
 
   return (
@@ -71,6 +72,7 @@ export function AdminCollapsibleSection({
             size="sm"
             icon={<ChevronDown className={cn("h-4 w-4 transition", isOpen ? "rotate-180" : "")} />}
             onClick={() => setIsOpen((current) => !current)}
+            aria-controls={contentId}
             aria-expanded={isOpen}
             aria-label={isOpen ? "Collapse section" : "Expand section"}
             title={isOpen ? "Collapse section" : "Expand section"}
@@ -83,7 +85,7 @@ export function AdminCollapsibleSection({
 
       {isOpen ? (
         <>
-          <div className={cn("relative mt-4 ld-animate-fade-in-up", bodyClassName)}>{children}</div>
+          <div id={contentId} role="region" className={cn("relative mt-4 ld-animate-fade-in-up", bodyClassName)}>{children}</div>
           <div className="ld-divider mt-5" />
         </>
       ) : null}

@@ -355,7 +355,7 @@ export function LeadOpportunityManager({
                     className={inputClassName()}
                   />
                 </label>
-                <label className="space-y-2">
+                <label className="min-w-0 space-y-2">
                   <span className="text-xs font-semibold uppercase tracking-[0.16em] text-white/70">
                     Status
                   </span>
@@ -375,7 +375,7 @@ export function LeadOpportunityManager({
                     ))}
                   </AdminSelect>
                 </label>
-                <label className="space-y-2">
+                <label className="min-w-0 space-y-2">
                   <span className="text-xs font-semibold uppercase tracking-[0.16em] text-white/70">
                     Potential value
                   </span>
@@ -448,7 +448,7 @@ export function LeadOpportunityManager({
                     />
                   </label>
                 ) : null}
-                <label className="space-y-2">
+                <label className="min-w-0 space-y-2">
                   <span className="text-xs font-semibold uppercase tracking-[0.16em] text-white/70">
                     Close probability
                   </span>
@@ -466,7 +466,7 @@ export function LeadOpportunityManager({
                     className={inputClassName()}
                   />
                 </label>
-                <label className="space-y-2">
+                <label className="min-w-0 space-y-2">
                   <span className="text-xs font-semibold uppercase tracking-[0.16em] text-white/70">
                     Expected close
                   </span>

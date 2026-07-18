@@ -38,10 +38,17 @@ function createLeadBasics(extraFields: FormTemplateFieldDefinition[] = []) {
   return [
     {
       fieldType: "text" as const,
-      label: "Full name",
-      placeholder: "Ada Okafor",
+      label: "First name",
+      placeholder: "Ada",
       isRequired: true,
       mapsToLeadField: "firstName",
+    },
+    {
+      fieldType: "text" as const,
+      label: "Last name",
+      placeholder: "Okafor",
+      isRequired: true,
+      mapsToLeadField: "lastName",
     },
     {
       fieldType: "email" as const,

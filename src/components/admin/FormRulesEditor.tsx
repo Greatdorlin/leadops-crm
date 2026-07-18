@@ -183,7 +183,7 @@ export function FormRulesEditor({
     return {
       id: createTempRuleId(),
       formId,
-      name: "",
+      name: "Answer routing",
       conditionFieldId: fields[0]?.id ?? "",
       conditionOperator: "equals",
       conditionValue: "",
@@ -320,11 +320,11 @@ export function FormRulesEditor({
   return (
     <div className="space-y-4">
       <SectionHeader
-        title="Conditional rules"
-        description="Route leads from their answers."
+        title="Answer automation"
+        description="Choose an answer, then choose what happens."
         variant="compact"
         actions={
-          <SmoothButton size="sm" icon={<Plus className="h-4 w-4" />} onClick={startCreating}>
+          <SmoothButton size="sm" icon={<Plus className="h-4 w-4" />} onClick={startCreating} disabled={fields.length === 0}>
             Add rule
           </SmoothButton>
         }
@@ -340,7 +340,9 @@ export function FormRulesEditor({
       <div className="space-y-3">
         {rules.length === 0 ? (
           <GlassSurface intensity="soft" className="py-12 text-center">
-            <p className="text-sm text-white/70">No rules yet. Add one to route matching leads.</p>
+            <p className="text-sm text-white/70">
+              {fields.length === 0 ? "Add a form question before creating automation." : "No automation yet."}
+            </p>
           </GlassSurface>
         ) : (
           rules.map((rule, idx) => (
@@ -408,6 +410,7 @@ export function FormRulesEditor({
         size="md"
         icon={<Plus className="h-4 w-4" />}
         onClick={startCreating}
+        disabled={fields.length === 0}
         className="w-full sm:w-auto"
       >
         Add another rule
@@ -415,13 +418,13 @@ export function FormRulesEditor({
 
       {editingRule && (
         <AdminOverlayPortal>
-        <div className="fixed inset-0 z-[160] flex items-end justify-center sm:items-center sm:p-6">
+        <div className="fixed inset-0 z-[160] flex items-end justify-center p-2 sm:items-center sm:p-6">
           <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={closeEditor} />
           <GlassSurface
             intensity="strong"
-            className="relative z-10 flex max-h-[90dvh] w-full flex-col overflow-hidden rounded-t-[28px] border border-white/15 sm:max-w-lg sm:rounded-[28px]"
+            className="relative z-10 flex max-h-[calc(100dvh-1rem)] min-w-0 w-full flex-col overflow-hidden rounded-[24px] border border-white/15 sm:max-h-[90dvh] sm:max-w-lg sm:rounded-[28px]"
           >
-            <div className="flex items-center justify-between border-b border-white/10 px-6 py-4">
+            <div className="flex items-center justify-between border-b border-white/10 px-4 py-4 sm:px-6">
               <h3 className="text-lg font-semibold text-white">
                 <GradientText>{isCreating ? "New Rule" : "Edit Rule"}</GradientText>
               </h3>
@@ -436,12 +439,12 @@ export function FormRulesEditor({
             <div className="flex-1 overflow-y-auto px-4 py-4 sm:px-6 sm:py-5">
               <div className="space-y-5">
                 <div>
-                  <label className="mb-2 block text-sm font-medium text-white/90">Rule Name</label>
+                  <label className="mb-2 block text-sm font-medium text-white/90">Automation name</label>
                   <input
                     type="text"
                     value={editingRule.name}
                     onChange={(e) => updateDraft({ name: e.target.value })}
-                    placeholder="e.g., High Budget Qualifier"
+                    placeholder="High-budget enquiry"
                     className="admin-input w-full"
                   />
                 </div>
@@ -468,7 +471,7 @@ export function FormRulesEditor({
                       </AdminSelect>
                     </div>
                     <div>
-                      <label className="mb-1 block text-xs text-white/70">Operator</label>
+                      <label className="mb-1 block text-xs text-white/70">Match</label>
                       <AdminSelect
                         value={editingRule.conditionOperator}
                         onChange={(e) => updateDraft({ conditionOperator: e.target.value as RuleOperator })}
@@ -482,12 +485,12 @@ export function FormRulesEditor({
                     </div>
                     {operatorNeedsValue(editingRule.conditionOperator) && (
                       <div>
-                        <label className="mb-1 block text-xs text-white/70">Value</label>
+                        <label className="mb-1 block text-xs text-white/70">Answer</label>
                         <input
                           type="text"
                           value={editingRule.conditionValue ?? ""}
                           onChange={(e) => updateDraft({ conditionValue: e.target.value || null })}
-                          placeholder="Expected value"
+                          placeholder="Answer to match"
                           className="admin-input w-full"
                         />
                       </div>
@@ -504,7 +507,7 @@ export function FormRulesEditor({
                   </div>
                   <div className="space-y-3">
                     <div>
-                      <label className="mb-1 block text-xs text-white/70">Action Type</label>
+                      <label className="mb-1 block text-xs text-white/70">What should happen?</label>
                       <AdminSelect
                         value={editingRule.actionType}
                         onChange={(e) => {
@@ -548,7 +551,7 @@ export function FormRulesEditor({
                           ? "Potential value"
                           : isTaskAction
                             ? "Task due"
-                            : "Routing value"}
+                            : "Choose value"}
                       </label>
                       {editingRule.actionType === "set_opportunity_value" ? (
                         <input
@@ -586,7 +589,7 @@ export function FormRulesEditor({
               </div>
             </div>
 
-            <div className="flex items-center justify-end gap-2 border-t border-white/10 px-4 py-4 sm:px-6">
+            <div className="grid grid-cols-2 gap-2 border-t border-white/10 px-4 py-4 pb-[max(1rem,env(safe-area-inset-bottom))] sm:flex sm:items-center sm:justify-end sm:px-6">
               <SmoothButton variant="ghost" onClick={closeEditor}>
                 Cancel
               </SmoothButton>
@@ -603,7 +606,7 @@ export function FormRulesEditor({
                 }
                 onClick={() => handleSave(editingRule)}
               >
-                {isCreating ? "Create Rule" : "Save Changes"}
+                {isCreating ? "Create automation" : "Save changes"}
               </SmoothButton>
             </div>
           </GlassSurface>

@@ -230,7 +230,7 @@ export function FormCreateStudio() {
                         <div className="flex items-start justify-between gap-3">
                           <div className="min-w-0">
                             <p className="truncate text-sm font-semibold text-white">{template.label}</p>
-                            <p className="mt-1 text-xs text-white/52">{template.fields.length} fields</p>
+                            <p className="mt-1 line-clamp-1 text-xs text-white/52">{template.tagline}</p>
                           </div>
                           {isActive ? (
                             <span className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[var(--ld-color-accent)]/18 text-[var(--ld-color-accent)]">
@@ -243,6 +243,21 @@ export function FormCreateStudio() {
                   );
                 })}
               </div>
+
+              <details className="mt-4 rounded-2xl border border-white/10 bg-white/[0.035] p-4 xl:hidden">
+                <summary className="cursor-pointer list-none text-sm font-semibold text-white/82">
+                  Preview {selectedTemplate.fields.length} questions
+                </summary>
+                <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                  {selectedTemplate.fields.length > 0 ? selectedTemplate.fields.map((field, index) => (
+                    <div key={`${selectedTemplate.key}-mobile-${field.label}-${index}`} className="min-w-0 rounded-xl border border-white/8 bg-black/10 px-3 py-2">
+                      <p className="truncate text-xs font-semibold text-white/74">{field.label}{field.isRequired ? " *" : ""}</p>
+                    </div>
+                  )) : (
+                    <p className="text-sm text-white/48">Start empty and add questions next.</p>
+                  )}
+                </div>
+              </details>
             </section>
           ) : null}
 
@@ -327,7 +342,7 @@ export function FormCreateStudio() {
           </div>
         </div>
 
-        <aside className="min-w-0 border-t border-white/10 bg-black/10 p-5 sm:p-6 xl:border-l xl:border-t-0">
+        <aside className="hidden min-w-0 border-t border-white/10 bg-black/10 p-5 sm:p-6 xl:block xl:border-l xl:border-t-0">
           <div className="flex items-center gap-2">
             <Layers3 className="h-4 w-4 text-[var(--ld-color-accent)]" />
             <div className="min-w-0">

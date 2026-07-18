@@ -1,9 +1,13 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { drizzle } from "drizzle-orm/postgres-js";
+import { PgDialect } from "drizzle-orm/pg-core";
 import {
   buildAssignedLeadNotification,
   buildFollowUpNotification,
   buildLeadClosedNotification,
+  buildNotificationLinkedLeadPredicate,
+  buildUserNotificationListQuery,
   buildLeadStageChangedNotification,
   buildWebhookLeadNotification,
   canAccessGlobalNotifications,
@@ -11,6 +15,7 @@ import {
   resolveNotificationLeadScope,
 } from "@/lib/crm/notification-events";
 import type { CrmUserRecord } from "@/lib/crm/types";
+import { getDb } from "@/lib/db/client";
 
 function scopedUser(overrides: Partial<CrmUserRecord> = {}): CrmUserRecord {
   return {
@@ -165,4 +170,36 @@ test("notification scope respects team boundaries and fails closed when incomple
     }),
     { mode: "denied" },
   );
+});
+
+test("linked notification visibility excludes trashed leads", () => {
+  const predicate = buildNotificationLinkedLeadPredicate({
+    accessLevel: "sales_rep",
+    currentUserEmail: "rep@example.com",
+    currentUser: scopedUser(),
+    permissions: ["canViewLeads"],
+  });
+  const query = new PgDialect().sqlToQuery(predicate);
+
+  assert.match(query.sql, /"leads"\."deleted_at" is null/);
+});
+
+test("notification list SQL correlates linked leads through the active outer alias", () => {
+  const db = drizzle.mock() as ReturnType<typeof getDb>;
+  const query = buildUserNotificationListQuery(
+    db,
+    "user-1",
+    {
+      accessLevel: "sales_rep",
+      currentUserEmail: "rep@example.com",
+      currentUser: scopedUser(),
+      permissions: ["canViewLeads"],
+    },
+    { includeRead: true },
+  ).toSQL();
+
+  assert.match(query.sql, /from "notification_events" "notificationEvents"/);
+  assert.match(query.sql, /"leads"\."id" = "notificationEvents"\."lead_id"/);
+  assert.match(query.sql, /"leads"\."deleted_at" is null/);
+  assert.doesNotMatch(query.sql, /"notification_events"\."lead_id"/);
 });

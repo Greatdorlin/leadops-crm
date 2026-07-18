@@ -318,11 +318,11 @@ export function PublicFormRenderer({ form, fields, previewMode = false }: Public
 
   return (
     <div
-      className="mx-auto w-full max-w-3xl overflow-hidden rounded-[28px] border border-white/14 bg-[#091120]/76 p-4 shadow-[0_30px_80px_rgba(0,0,0,0.34)] backdrop-blur-[22px] sm:rounded-[32px] sm:p-8"
+      className="mx-auto w-full max-w-3xl overflow-hidden rounded-[22px] border border-white/14 bg-[#091120]/76 p-3 shadow-[0_30px_80px_rgba(0,0,0,0.34)] backdrop-blur-[22px] sm:rounded-[32px] sm:p-8"
       style={brandStyle}
     >
       <div
-        className="mb-4 rounded-[22px] border border-white/10 px-4 py-4 sm:mb-6 sm:rounded-[28px] sm:px-6 sm:py-5"
+        className="mb-5 rounded-[18px] border border-white/10 px-4 py-4 sm:mb-6 sm:rounded-[28px] sm:px-6 sm:py-5"
         style={{
           background: `linear-gradient(145deg, ${primaryColor}18, rgba(5,10,20,0.82) 58%, ${accentColor}18)`,
         }}
@@ -356,14 +356,14 @@ export function PublicFormRenderer({ form, fields, previewMode = false }: Public
           {form.description ? (
             <p className="mt-2 max-w-2xl text-sm leading-6 text-white/68 sm:text-base sm:leading-7">{form.description}</p>
           ) : (
-            <p className="mt-3 max-w-2xl text-base leading-7 text-white/62">
-              Share one link, capture the right details, and route every lead into your private workspace.
+            <p className="mt-2 max-w-2xl text-sm leading-6 text-white/62 sm:text-base sm:leading-7">
+              Complete the form and we&apos;ll follow up.
             </p>
           )}
         </div>
       </div>
 
-      <div className="rounded-[22px] border border-white/10 bg-black/12 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] sm:rounded-[28px] sm:p-6">
+      <div className="p-1 sm:rounded-[28px] sm:border sm:border-white/10 sm:bg-black/12 sm:p-6 sm:shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
         <form onSubmit={handleSubmit} noValidate className="space-y-6">
           {visibleFields.map((field) => (
             <PublicFormField

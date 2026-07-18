@@ -20,7 +20,7 @@ export default async function PublicFormPage({ params }: { params: Promise<{ slu
   const fields = buildPublicFormFields(result.fields);
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-[#030712] px-4 py-5 sm:px-6 sm:py-10">
+    <div className="relative min-h-screen overflow-x-hidden bg-[#030712] px-2 py-3 sm:px-6 sm:py-10">
       <div
         className="absolute inset-0 bg-[url('/backgrounds/bg-butterfly-glass.png')] bg-cover bg-center opacity-90"
         aria-hidden="true"

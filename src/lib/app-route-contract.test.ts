@@ -17,6 +17,7 @@ const cleanPageRoutes = [
   appRoutes.formsNew,
   appRoutes.profile,
   appRoutes.settings,
+  appRoutes.settingsAccess,
   appRoutes.settingsAppearance,
   appRoutes.settingsDashboard,
   appRoutes.settingsFields,

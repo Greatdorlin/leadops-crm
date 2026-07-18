@@ -1,4 +1,5 @@
 import { and, desc, eq, exists, inArray, isNull, lt, or, sql, type SQL } from "drizzle-orm";
+import { alias, type PgColumn } from "drizzle-orm/pg-core";
 import { scopeLeadListFilters, type AdminAccessLevel } from "@/lib/admin-permissions";
 import type { NotificationChannel, NotificationStatus, NotificationType } from "@/lib/crm/domain";
 import type { PermissionKey } from "@/lib/crm/role-permissions-contract";
@@ -109,9 +110,15 @@ function buildAssignedLeadPredicate(email: string) {
   ) as SQL<unknown>;
 }
 
-function buildNotificationLeadVisibilityPredicate(access: NotificationAccessContext) {
+export function buildNotificationLinkedLeadPredicate(
+  access: NotificationAccessContext,
+  notificationLeadId: PgColumn = notificationEvents.leadId,
+) {
   const scope = resolveNotificationLeadScope(access);
-  const leadPredicates: SQL<unknown>[] = [eq(leads.id, notificationEvents.leadId)];
+  const leadPredicates: SQL<unknown>[] = [
+    eq(leads.id, notificationLeadId),
+    isNull(leads.deletedAt),
+  ];
 
   if (scope.mode === "denied") {
     leadPredicates.push(sql`false`);
@@ -127,13 +134,21 @@ function buildNotificationLeadVisibilityPredicate(access: NotificationAccessCont
     leadPredicates.push(eq(leads.teamId, scope.id));
   }
 
+  return and(...leadPredicates) as SQL<unknown>;
+}
+
+function buildNotificationLeadVisibilityPredicate(
+  access: NotificationAccessContext,
+  db = getDb(),
+  notificationLeadId: PgColumn = notificationEvents.leadId,
+) {
   return or(
-    isNull(notificationEvents.leadId),
+    isNull(notificationLeadId),
     exists(
-      getDb()
+      db
         .select({ id: leads.id })
         .from(leads)
-        .where(and(...leadPredicates)),
+        .where(buildNotificationLinkedLeadPredicate(access, notificationLeadId)),
     ),
   ) as SQL<unknown>;
 }
@@ -177,44 +192,56 @@ export async function listUserNotifications(
   options: NotificationListOptions = {},
 ) {
   const db = getDb();
+  const query = buildUserNotificationListQuery(db, recipientUserId, access, options);
+  const rows = await query;
+
+  return rows.map(toRecord);
+}
+
+export function buildUserNotificationListQuery(
+  db: ReturnType<typeof getDb>,
+  recipientUserId: string,
+  access: NotificationAccessContext,
+  options: NotificationListOptions = {},
+) {
+  const notificationRows = alias(notificationEvents, "notificationEvents");
   const recipientPredicates: [SQL<unknown>, ...SQL<unknown>[]] = [
-    eq(notificationEvents.recipientUserId, recipientUserId),
+    eq(notificationRows.recipientUserId, recipientUserId),
   ];
   if (options.includeGlobal && canAccessGlobalNotifications(access)) {
-    recipientPredicates.push(isNull(notificationEvents.recipientUserId));
+    recipientPredicates.push(isNull(notificationRows.recipientUserId));
   }
 
   const wherePredicates: SQL<unknown>[] = [
     combineOrPredicates(recipientPredicates),
-    buildNotificationLeadVisibilityPredicate(access),
+    buildNotificationLeadVisibilityPredicate(access, db, notificationRows.leadId),
   ];
   if (!options.includeRead) {
-    wherePredicates.push(isNull(notificationEvents.readAt));
+    wherePredicates.push(isNull(notificationRows.readAt));
   }
   if (options.types?.length) {
-    wherePredicates.push(inArray(notificationEvents.type, options.types));
+    wherePredicates.push(inArray(notificationRows.type, options.types));
   }
   const cursor = decodeNotificationCursor(options.cursor);
   if (cursor) {
     const cursorDate = new Date(cursor.createdAt);
     wherePredicates.push(
       or(
-        lt(notificationEvents.createdAt, cursorDate),
+        lt(notificationRows.createdAt, cursorDate),
         and(
-          eq(notificationEvents.createdAt, cursorDate),
-          lt(notificationEvents.id, cursor.id),
+          eq(notificationRows.createdAt, cursorDate),
+          lt(notificationRows.id, cursor.id),
         ),
       ) as SQL<unknown>,
     );
   }
 
-  const rows = await db.query.notificationEvents.findMany({
-    where: and(...wherePredicates),
-    orderBy: [desc(notificationEvents.createdAt), desc(notificationEvents.id)],
-    limit: Math.min(Math.max(options.limit ?? 30, 1), 100),
-  });
-
-  return rows.map(toRecord);
+  return db
+    .select()
+    .from(notificationRows)
+    .where(and(...wherePredicates))
+    .orderBy(desc(notificationRows.createdAt), desc(notificationRows.id))
+    .limit(Math.min(Math.max(options.limit ?? 30, 1), 100));
 }
 
 export async function countUnreadNotifications(

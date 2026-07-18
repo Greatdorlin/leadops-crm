@@ -565,13 +565,13 @@ export function FormFieldEditor({
 
       {editingField && canEdit && (
         <AdminOverlayPortal>
-        <div className="fixed inset-0 z-[160] flex items-end justify-center sm:items-center sm:p-6">
+        <div className="fixed inset-0 z-[160] flex items-end justify-center p-2 sm:items-center sm:p-6">
           <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={closeEditor} />
           <GlassSurface
             intensity="strong"
-            className="relative z-10 flex max-h-[90dvh] w-full flex-col overflow-hidden rounded-t-[28px] border border-white/15 sm:max-w-lg sm:rounded-[28px]"
+            className="relative z-10 flex max-h-[calc(100dvh-1rem)] min-w-0 w-full flex-col overflow-hidden rounded-[24px] border border-white/15 sm:max-h-[90dvh] sm:max-w-lg sm:rounded-[28px]"
           >
-            <div className="flex items-center justify-between border-b border-white/10 px-6 py-4">
+            <div className="flex items-center justify-between border-b border-white/10 px-4 py-4 sm:px-6">
               <h3 className="text-lg font-semibold text-white">
                 <GradientText>{isCreating ? "New question" : "Edit question"}</GradientText>
               </h3>
@@ -583,11 +583,11 @@ export function FormFieldEditor({
               </button>
             </div>
 
-            <div className="flex-1 overflow-y-auto px-6 py-5">
+            <div className="flex-1 overflow-y-auto px-4 py-4 sm:px-6 sm:py-5">
               <div className="space-y-5">
                 <div>
                   <label className="mb-2 block text-sm font-medium text-white/90">Answer type</label>
-                   <div className="grid grid-cols-3 gap-2 sm:grid-cols-5">
+                   <div className="grid grid-cols-2 gap-2 min-[390px]:grid-cols-3 sm:grid-cols-5">
                      {CREATABLE_FIELD_TYPES.map((type) => {
                       const Icon = FIELD_TYPE_ICONS[type];
                       const active = editingField.fieldType === type;
@@ -616,7 +616,7 @@ export function FormFieldEditor({
                     type="text"
                     value={editingField.label}
                     onChange={(e) => updateDraft({ label: e.target.value })}
-                    placeholder="e.g., Full Name"
+                    placeholder="e.g., First name"
                     className="admin-input w-full"
                   />
                 </div>
@@ -689,27 +689,27 @@ export function FormFieldEditor({
                         <p className="text-xs text-white/40">No options yet. Click Add to create one.</p>
                       ) : (
                         (editingField.options ?? []).map((opt, idx) => (
-                          <div key={idx} className="flex items-center gap-2">
+                          <div key={idx} className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] gap-2">
                             <input
                               type="text"
                               value={opt.label}
                               onChange={(e) => updateOption(idx, e.target.value, opt.value)}
                               placeholder="Label"
-                              className="admin-input flex-1 text-sm"
+                              className="admin-input col-start-1 row-start-1 min-w-0 text-sm"
                             />
                             <input
                               type="text"
                               value={opt.value}
                               onChange={(e) => updateOption(idx, opt.label, e.target.value)}
                               placeholder="Value"
-                              className="admin-input flex-1 text-sm"
+                              className="admin-input col-start-1 row-start-2 min-w-0 text-sm"
                             />
                             <SmoothButton
                               variant="ghost"
                               size="sm"
                               icon={<Trash2 className="h-3.5 w-3.5" />}
                               onClick={() => removeOption(idx)}
-                              className="h-8 w-8 shrink-0 px-0 text-red-400 hover:text-red-300"
+                              className="col-start-2 row-span-2 row-start-1 h-8 w-8 shrink-0 self-center px-0 text-red-400 hover:text-red-300"
                             >
                               <span className="sr-only">Remove option</span>
                             </SmoothButton>
@@ -872,7 +872,7 @@ export function FormFieldEditor({
               </div>
             </div>
 
-            <div className="flex items-center justify-end gap-2 border-t border-white/10 px-6 py-4">
+            <div className="grid grid-cols-2 gap-2 border-t border-white/10 px-4 py-4 pb-[max(1rem,env(safe-area-inset-bottom))] sm:flex sm:items-center sm:justify-end sm:px-6">
               <SmoothButton variant="ghost" onClick={closeEditor}>
                 Cancel
               </SmoothButton>

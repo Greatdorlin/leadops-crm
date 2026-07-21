@@ -57,6 +57,16 @@ export const formSettingsPayloadSchema = z.object({
   defaultOwnerId: z.string().uuid().nullable(),
 });
 
+export function resolveFormAvailability(
+  status: "draft" | "active" | "archived",
+  isPublic: boolean,
+) {
+  return {
+    isActive: status === "active",
+    isPublic: status === "archived" ? false : isPublic,
+  };
+}
+
 const formNameSchema = z.string().trim().min(1, "Form name is required.").max(120);
 const formSlugSchema = z
   .string()

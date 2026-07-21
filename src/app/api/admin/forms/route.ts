@@ -9,6 +9,7 @@ import {
 import {
   formCreatePayloadSchema,
   formDuplicatePayloadSchema,
+  resolveFormAvailability,
 } from "@/lib/crm/form-settings-contract";
 import { listLeadStages } from "@/lib/crm/lead-stages-admin";
 import { leadStore } from "@/lib/storage";
@@ -94,13 +95,14 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Choose an active default owner." }, { status: 400 });
     }
 
+    const initialStatus = parsed.data.isPublic ? "active" : "draft";
+    const availability = resolveFormAvailability(initialStatus, parsed.data.isPublic);
     const created = await createFormWithFields({
       name: parsed.data.name,
       slug: parsed.data.slug,
       description: parsed.data.description,
-      status: "draft",
-      isActive: false,
-      isPublic: parsed.data.isPublic,
+      status: initialStatus,
+      ...availability,
       successMessage: parsed.data.successMessage,
       redirectUrl: null,
       primaryColor: null,

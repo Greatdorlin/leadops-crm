@@ -7,7 +7,7 @@ import {
   updateForm,
   deleteForm,
 } from "@/lib/crm/form-builder-store";
-import { formSettingsPayloadSchema } from "@/lib/crm/form-settings-contract";
+import { formSettingsPayloadSchema, resolveFormAvailability } from "@/lib/crm/form-settings-contract";
 import { listLeadStages } from "@/lib/crm/lead-stages-admin";
 import { leadStore } from "@/lib/storage";
 
@@ -124,13 +124,12 @@ export async function PUT(
       }
     }
 
+    const availability = resolveFormAvailability(parsed.data.status, parsed.data.isPublic);
     const form = await updateForm(id, {
       ...parsed.data,
+      ...availability,
       defaultStatus: defaultStageKey,
       autoQualifyRules: parsed.data.autoQualifyRules,
-      ...(parsed.data.status === "archived"
-        ? { isActive: false, isPublic: false }
-        : {}),
     });
     return NextResponse.json({ form });
   } catch (error) {

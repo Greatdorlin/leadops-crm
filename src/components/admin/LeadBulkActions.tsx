@@ -113,8 +113,8 @@ export function LeadBulkActions({
           {selectedIds.length > 0 ? <span className="inline-flex h-11 items-center rounded-full border border-white/10 bg-white/[0.05] px-3 text-xs font-semibold text-white/68">{selectedIds.length} selected</span> : null}
         </div>
 
-        <div className="grid min-w-0 flex-1 gap-2 sm:grid-cols-[140px_minmax(160px,280px)_auto] sm:justify-end">
-          <AdminSelect value={action} onChange={(event) => changeAction(event.target.value as BulkAction)} aria-label="Mass change type">
+        <div className="grid min-w-0 flex-1 gap-2 sm:grid-cols-[180px_minmax(220px,320px)_auto] sm:justify-end">
+          <AdminSelect className="text-[13px] sm:text-sm" value={action} onChange={(event) => changeAction(event.target.value as BulkAction)} aria-label="Mass change type">
             {allowAssignment ? <option value="assign">Assign owner</option> : null}
             <option value="stage">Change stage</option>
           </AdminSelect>

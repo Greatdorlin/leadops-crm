@@ -1,6 +1,10 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { formCreatePayloadSchema, formSettingsPayloadSchema } from "@/lib/crm/form-settings-contract";
+import {
+  formCreatePayloadSchema,
+  formSettingsPayloadSchema,
+  resolveFormAvailability,
+} from "@/lib/crm/form-settings-contract";
 
 const validSettings = {
   name: "Qualified enquiry",
@@ -80,4 +84,19 @@ test("form creation validates starter fields as one request", () => {
   });
   assert.equal(parsed.success, true);
   if (parsed.success) assert.equal(parsed.data.fields.length, 1);
+});
+
+test("form status cannot drift from response availability", () => {
+  assert.deepEqual(resolveFormAvailability("active", true), {
+    isActive: true,
+    isPublic: true,
+  });
+  assert.deepEqual(resolveFormAvailability("draft", true), {
+    isActive: false,
+    isPublic: true,
+  });
+  assert.deepEqual(resolveFormAvailability("archived", true), {
+    isActive: false,
+    isPublic: false,
+  });
 });

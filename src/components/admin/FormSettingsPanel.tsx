@@ -296,21 +296,15 @@ export function FormSettingsPanel({
               <label className="inline-flex cursor-pointer items-center gap-2 rounded-[14px] border border-white/10 bg-white/[0.04] px-3 py-2.5">
                 <input
                   type="checkbox"
-                  checked={draft.isActive}
-                  onChange={(e) => updateDraft({ isActive: e.target.checked })}
-                  className="h-4 w-4 accent-[var(--ld-color-primary)]"
-                />
-                <span className="text-sm text-white/90">Active</span>
-              </label>
-              <label className="inline-flex cursor-pointer items-center gap-2 rounded-[14px] border border-white/10 bg-white/[0.04] px-3 py-2.5">
-                <input
-                  type="checkbox"
                   checked={draft.isPublic}
                   onChange={(e) => updateDraft({ isPublic: e.target.checked })}
                   className="h-4 w-4 accent-[var(--ld-color-primary)]"
                 />
                 <span className="text-sm text-white/90">Public</span>
               </label>
+              <p className="flex items-center text-xs text-white/52">
+                Active forms accept responses. Draft forms stay unavailable.
+              </p>
             </div>
           </div>
           <div className="sm:col-span-2">

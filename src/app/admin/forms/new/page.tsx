@@ -30,7 +30,7 @@ export default async function AdminNewFormPage() {
         <>
           <Link
             href={appRoutes.forms}
-            className="admin-button-secondary inline-flex h-10 items-center justify-center rounded-full px-4 text-sm font-medium"
+            className="admin-button-secondary h-10 items-center justify-center rounded-full px-4 text-sm font-medium max-sm:!hidden"
           >
             Back to forms
           </Link>

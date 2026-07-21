@@ -146,8 +146,50 @@ export function FormCreateStudio() {
     }
   }
 
+  const navigationActions = (
+    <>
+      {step === 1 ? (
+        <Link
+          href={appRoutes.forms}
+          className="inline-flex h-11 items-center justify-center rounded-full px-3 text-sm font-semibold text-white/62 transition hover:bg-white/[0.06] hover:text-white"
+        >
+          Cancel
+        </Link>
+      ) : (
+        <SmoothButton
+          variant="ghost"
+          icon={<ArrowLeft className="h-4 w-4" />}
+          onClick={() => goToStep(step - 1)}
+        >
+          Back
+        </SmoothButton>
+      )}
+      {step < 2 ? (
+        <SmoothButton
+          variant="primary"
+          className="min-w-[9rem]"
+          icon={<ArrowRight className="h-4 w-4" />}
+          onClick={() => goToStep(step + 1)}
+        >
+          Continue
+        </SmoothButton>
+      ) : (
+        <SmoothButton
+          variant="primary"
+          size="lg"
+          className="min-w-[10.5rem]"
+          icon={<FilePlus2 className="h-4 w-4" />}
+          loading={isCreating}
+          onClick={() => void createForm()}
+        >
+          {isCreating ? "Creating..." : "Create and build"}
+        </SmoothButton>
+      )}
+    </>
+  );
+
   return (
-    <div className="space-y-5 pb-24 sm:pb-0">
+    <div className="space-y-4 sm:space-y-5">
       <nav aria-label="Form creation progress" className="flex items-center gap-2">
         {STEPS.map((item, index) => (
           <div key={item.number} className="flex min-w-0 flex-1 items-center gap-2">
@@ -178,6 +220,10 @@ export function FormCreateStudio() {
           </div>
         ))}
       </nav>
+
+      <div className="sticky top-[4.75rem] z-30 -mx-1 isolate flex min-w-0 items-center justify-between gap-2 rounded-[18px] border border-white/14 bg-[#080b18]/[0.98] p-2 shadow-[0_16px_42px_rgba(0,0,0,0.48)] backdrop-blur-2xl sm:hidden [&>button:last-child]:min-w-0 [&>button:last-child]:flex-1">
+        {navigationActions}
+      </div>
 
       <GlassSurface intensity="medium" className="grid min-w-0 overflow-hidden rounded-[28px] xl:grid-cols-[minmax(0,1fr)_360px]">
         <div className="min-w-0 p-5 sm:p-6">
@@ -299,31 +345,8 @@ export function FormCreateStudio() {
             </div>
           ) : null}
 
-          <div className="fixed inset-x-3 bottom-[max(0.75rem,env(safe-area-inset-bottom))] z-50 flex flex-col-reverse gap-3 rounded-[22px] border border-white/14 bg-[color:color-mix(in_srgb,var(--ld-color-background)_86%,transparent)] p-3 shadow-[0_18px_54px_rgba(0,0,0,0.46)] backdrop-blur-2xl sm:static sm:mt-6 sm:flex-row sm:items-center sm:justify-between sm:rounded-none sm:border-x-0 sm:border-b-0 sm:border-t sm:border-white/10 sm:bg-transparent sm:p-0 sm:pt-5 sm:shadow-none sm:backdrop-blur-none">
-            {step === 1 ? (
-              <Link href={appRoutes.forms} className="text-center text-sm font-semibold text-white/58 hover:text-white">
-                Cancel
-              </Link>
-            ) : (
-              <SmoothButton variant="ghost" icon={<ArrowLeft className="h-4 w-4" />} onClick={() => goToStep(step - 1)}>
-                Back
-              </SmoothButton>
-            )}
-            {step < 2 ? (
-              <SmoothButton variant="primary" icon={<ArrowRight className="h-4 w-4" />} onClick={() => goToStep(step + 1)}>
-                Continue
-              </SmoothButton>
-            ) : (
-              <SmoothButton
-                variant="primary"
-                size="lg"
-                icon={<FilePlus2 className="h-4 w-4" />}
-                loading={isCreating}
-                onClick={() => void createForm()}
-              >
-                {isCreating ? "Creating..." : "Create and build"}
-              </SmoothButton>
-            )}
+          <div className="mt-6 hidden items-center justify-between border-t border-white/10 pt-5 sm:flex">
+            {navigationActions}
           </div>
         </div>
 

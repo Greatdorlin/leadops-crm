@@ -327,8 +327,8 @@ export function PublicFormRenderer({ form, fields, previewMode = false }: Public
           background: `linear-gradient(145deg, ${primaryColor}18, rgba(5,10,20,0.82) 58%, ${accentColor}18)`,
         }}
       >
-        <div className="flex flex-wrap items-center gap-3">
-          {form.logoUrl ? (
+        {form.logoUrl ? (
+          <div className="flex items-center">
             <div className="flex h-12 max-w-[220px] items-center rounded-2xl border border-white/10 bg-white/[0.06] px-4">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
@@ -337,16 +337,9 @@ export function PublicFormRenderer({ form, fields, previewMode = false }: Public
                 className="h-10 max-w-[180px] object-contain"
               />
             </div>
-          ) : (
-            <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.06] px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.14em] text-white/72">
-              Private intake
-            </div>
-          )}
-          <div className="inline-flex items-center rounded-full border border-white/10 bg-white/[0.05] px-3 py-1 text-xs font-semibold text-white/62">
-            Secure form
           </div>
-        </div>
-        <div className="mt-4 sm:mt-5">
+        ) : null}
+        <div className={form.logoUrl ? "mt-4 sm:mt-5" : undefined}>
           <h1
             className="text-[1.7rem] font-bold leading-tight tracking-[-0.04em] text-white sm:text-4xl"
             style={{ fontFamily: "var(--font-heading-active), var(--font-fallback), sans-serif" }}
@@ -410,10 +403,6 @@ export function PublicFormRenderer({ form, fields, previewMode = false }: Public
             </button>
           </div>
 
-          <p className="text-center text-xs text-white/38">
-            Powered by{" "}
-            <span className="font-semibold text-white/56">Leads Desk</span>
-          </p>
         </form>
       </div>
     </div>

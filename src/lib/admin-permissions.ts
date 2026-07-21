@@ -35,7 +35,17 @@ function normalizeEmail(value?: string | null) {
   return value ? normalizeAdminEmail(value) : "";
 }
 
-function leadMatchesStoredScope(lead: LeadRecord, user?: CrmUserRecord | null) {
+type LeadAccessRecord = Pick<
+  LeadRecord,
+  | "affiliateReferrerId"
+  | "assignedTo"
+  | "assignedToList"
+  | "branchId"
+  | "departmentId"
+  | "teamId"
+>;
+
+function leadMatchesStoredScope(lead: LeadAccessRecord, user?: CrmUserRecord | null) {
   if (!user || user.accessScope === "all") {
     return true;
   }
@@ -336,7 +346,7 @@ export function canViewTechnicalLeadContext(
 
 export function canViewLeadRecord(
   accessLevel: AdminAccessLevel,
-  lead: LeadRecord,
+  lead: LeadAccessRecord,
   currentUserEmail?: string | null,
   permissions?: readonly PermissionKey[],
   currentUser?: CrmUserRecord | null,
@@ -370,7 +380,7 @@ export function canViewLeadRecord(
 
 export function canManageLeadRecord(
   accessLevel: AdminAccessLevel,
-  lead: LeadRecord,
+  lead: LeadAccessRecord,
   currentUserEmail?: string | null,
   permissions?: readonly PermissionKey[],
   currentUser?: CrmUserRecord | null,

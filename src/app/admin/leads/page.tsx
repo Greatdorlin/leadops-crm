@@ -8,6 +8,7 @@ import { AdminSelect } from "@/components/admin/AdminSelect";
 import { ErrorState } from "@/components/admin/ErrorState";
 import { FilterBar } from "@/components/admin/FilterBar";
 import { LeadDataTable } from "@/components/admin/LeadDataTable";
+import { LeadBulkActions } from "@/components/admin/LeadBulkActions";
 import { LeadComposerLauncher } from "@/components/admin/LeadComposerLauncher";
 import { LeadLifecycleButton } from "@/components/admin/LeadLifecycleButton";
 import { ResponsiveFilterFields } from "@/components/admin/ResponsiveFilterFields";
@@ -21,6 +22,7 @@ import { listCustomFields } from "@/lib/crm/custom-fields-admin";
 import { LEAD_PRIORITIES, LEAD_SOURCES } from "@/lib/crm/constants";
 import {
   canAssignLeads,
+  canEditLeads,
   canExportLeads,
   canViewLeads,
 } from "@/lib/crm/authz";
@@ -479,6 +481,7 @@ export default async function AdminLeadsPage({
   });
   const canImportLeads = canImportLeadRecords(accessLevel, permissions);
   const canReassignOwner = canAssignLeads({ accessLevel, permissions, role });
+  const canBulkEdit = canEditLeads({ accessLevel, permissions, role });
   const assigneeOptions = canReassignOwner
     ? users
         .filter((user) => user.isActive)
@@ -711,6 +714,14 @@ export default async function AdminLeadsPage({
         </FilterBar>
 
         <section className="space-y-4">
+          {canBulkEdit ? (
+            <LeadBulkActions
+              assigneeOptions={assigneeOptions.map(({ label, value }) => ({ label, value }))}
+              stageOptions={stages.filter((stage) => !stage.archived).map((stage) => ({ label: stage.name, value: stage.id }))}
+              allowAssignment={canReassignOwner}
+              previewMode={usingDevelopmentDemoData}
+            />
+          ) : null}
           <LeadDataTable
             leads={leadRows}
             emptyTitle="No leads match this view"
@@ -725,6 +736,7 @@ export default async function AdminLeadsPage({
             previewConfig={previewConfig}
             currency={workspaceCurrency}
             previewMode={usingDevelopmentDemoData}
+            bulkSelectionEnabled={canBulkEdit && !usingDevelopmentDemoData}
             renderActions={(lead) => (
               <>
                   <Link

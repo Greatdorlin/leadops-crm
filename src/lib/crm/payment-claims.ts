@@ -1,7 +1,7 @@
 import { and, desc, eq, inArray, isNull } from "drizzle-orm";
 import { z } from "zod";
 import { getDb } from "@/lib/db/client";
-import { leadEvents, leads, paymentClaims } from "@/lib/db/schema";
+import { leadEvents, leads, notificationEvents, paymentClaims } from "@/lib/db/schema";
 import { isSupportedCurrency } from "@/lib/currency";
 
 export const PAYMENT_CLAIM_STATUSES = ["pending", "approved", "rejected"] as const;
@@ -51,6 +51,8 @@ export const financeBatchActionSchema = z
   .object({
     claimIds: z.array(z.string().uuid()).min(1).max(250),
     action: z.enum(["approve", "reject", "confirm_commission"]),
+    reason: z.string().trim().min(5, "Add a short reason for this mass change.").max(500),
+    confirmation: z.literal("MAX CHANGE", "Type MAX CHANGE to confirm."),
     rejectionReason: z.string().trim().max(500).optional().nullable(),
   })
   .superRefine((value, context) => {
@@ -214,10 +216,22 @@ export async function applyFinanceBatchAction(input: {
           amount: Number.parseFloat(claim.amount),
           currency: claim.currency,
           rejectionReason: parsed.action === "reject" ? parsed.rejectionReason : null,
+          massChangeReason: parsed.reason,
         },
         createdBy: actorEmail,
       })),
     );
+
+    await tx.insert(notificationEvents).values({
+      type: "bulk_change_completed",
+      channel: "in_app",
+      recipientUserId: null,
+      leadId: null,
+      title: "Mass finance change completed",
+      message: `${actorEmail || "Finance reviewer"} applied ${parsed.action.replaceAll("_", " ")} to ${existing.length} payment claim${existing.length === 1 ? "" : "s"}. Reason: ${parsed.reason}.`,
+      status: "sent",
+      createdAt: now,
+    });
 
     return { updated: existing.length, action: parsed.action };
   });

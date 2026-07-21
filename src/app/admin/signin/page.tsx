@@ -76,8 +76,10 @@ export default async function AdminSignInPage({
       data-glass-style={settings.glassEnabled ? "vibrant" : "off"}
     >
       <div className="ld-bg-overlay" aria-hidden="true" />
-      <div className="w-full max-w-[34rem]">
-        <section className="ld-glass ld-glass-vibrant ld-glass-card ld-inner-highlight rounded-[34px] p-6 shadow-[0_28px_90px_rgba(0,0,0,0.42)] sm:p-8">
+      <div className="pointer-events-none absolute left-[8%] top-[12%] h-52 w-52 rounded-full bg-[color:var(--ld-color-primary)]/18 blur-3xl" aria-hidden="true" />
+      <div className="pointer-events-none absolute bottom-[8%] right-[6%] h-64 w-64 rounded-full bg-[color:var(--ld-color-accent)]/16 blur-3xl" aria-hidden="true" />
+      <div className="relative w-full max-w-[34rem]">
+        <section className="ld-glass ld-glass-vibrant ld-glass-card ld-inner-highlight rounded-[34px] border-white/16 p-5 shadow-[0_32px_110px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.16)] sm:p-8">
           <div className="flex justify-center">
             <div className="rounded-[22px] border border-white/10 bg-white/[0.07] px-5 py-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.1)]">
               <LeadsDeskWordmark
@@ -100,7 +102,7 @@ export default async function AdminSignInPage({
             <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/60">
               Private workspace
             </p>
-            <h1 className="mt-3 break-words font-[family:var(--font-heading)] text-[2.15rem] leading-[1.1] tracking-[-0.055em] text-white sm:text-[2.7rem] sm:leading-[1.04]">
+            <h1 className="mt-3 break-words font-[family:var(--font-heading)] text-[2.15rem] font-bold leading-[1.1] tracking-[-0.055em] text-white drop-shadow-[0_8px_28px_rgba(0,0,0,0.3)] sm:text-[2.7rem] sm:leading-[1.04]">
               {settings.loginHeadline}
             </h1>
             <p className="mt-3 text-sm leading-7 text-white/70 sm:text-base">

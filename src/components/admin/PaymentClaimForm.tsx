@@ -67,7 +67,7 @@ export function PaymentClaimForm({
         <label className="min-w-0 space-y-2">
           <span className="text-xs font-semibold uppercase tracking-[0.14em] text-white/65">Amount</span>
           <input
-            className="admin-input h-12 w-full min-w-0"
+            className="admin-input h-12 w-full min-w-0 px-4 text-base"
             inputMode="decimal"
             min="0"
             step="0.01"
@@ -81,7 +81,7 @@ export function PaymentClaimForm({
         <label className="min-w-0 space-y-2">
           <span className="text-xs font-semibold uppercase tracking-[0.14em] text-white/65">Commission</span>
           <input
-            className="admin-input h-12 w-full min-w-0"
+            className="admin-input h-12 w-full min-w-0 px-4 text-base"
             inputMode="decimal"
             min="0"
             step="0.01"

@@ -10,6 +10,7 @@ export const NOTIFICATION_TYPES = [
   "import_completed",
   "export_completed",
   "target_milestone_reached",
+  "bulk_change_completed",
 ] as const;
 
 export const NOTIFICATION_CHANNELS = ["in_app", "email"] as const;

@@ -144,8 +144,8 @@ export default async function AdminIntakePage({
                 </option>
               ))}
             </select>
-            <input name="dateFrom" type="date" defaultValue={dateFrom} className="admin-input h-11 rounded-2xl px-4 text-sm outline-none" />
-            <input name="dateTo" type="date" defaultValue={dateTo} className="admin-input h-11 rounded-2xl px-4 text-sm outline-none" />
+            <input name="dateFrom" type="date" defaultValue={dateFrom} className="admin-input h-11 w-full min-w-0 rounded-2xl px-4 text-sm outline-none" />
+            <input name="dateTo" type="date" defaultValue={dateTo} className="admin-input h-11 w-full min-w-0 rounded-2xl px-4 text-sm outline-none" />
             <div className="flex gap-2">
               <button type="submit" className="admin-button-primary inline-flex h-11 flex-1 items-center justify-center rounded-2xl px-5 text-sm font-semibold">
                 Apply

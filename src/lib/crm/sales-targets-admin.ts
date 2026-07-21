@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, gte, lte } from "drizzle-orm";
+import { and, asc, desc, eq, gte, isNull, lte, ne } from "drizzle-orm";
 import { z } from "zod";
 import type { SalesTarget, SalesTargetPeriod, SalesTargetScope } from "@/lib/crm/domain";
 import { SALES_TARGET_PERIODS, SALES_TARGET_SCOPES } from "@/lib/crm/domain";
@@ -265,21 +265,30 @@ export async function getSalesTarget(id: string) {
 export async function createSalesTarget(input: AdminSalesTargetInput) {
   await assertSalesTargetScopeExists(input);
   const db = getDb();
-  const [created] = await db
-    .insert(salesTargets)
-    .values({
-      name: input.name.trim(),
-      scope: input.scope,
-      scopeId: input.scope === "global" ? null : input.scopeId ?? null,
-      period: input.period,
-      targetValue: input.targetValue.toFixed(2),
-      currency: (input.currency ?? "USD").trim().toUpperCase(),
-      startDate: input.startDate,
-      endDate: input.endDate,
-      isActive: input.isActive ?? true,
-      archived: false,
-    })
-    .returning();
+  const created = await db.transaction(async (tx) => {
+    const scopeId = input.scope === "global" ? null : input.scopeId ?? null;
+    if (input.isActive ?? true) {
+      await tx.update(salesTargets).set({ isActive: false, updatedAt: new Date() }).where(and(
+        eq(salesTargets.scope, input.scope),
+        scopeId ? eq(salesTargets.scopeId, scopeId) : isNull(salesTargets.scopeId),
+        eq(salesTargets.archived, false),
+        eq(salesTargets.isActive, true),
+      ));
+    }
+    const [row] = await tx.insert(salesTargets).values({
+        name: input.name.trim(),
+        scope: input.scope,
+        scopeId,
+        period: input.period,
+        targetValue: input.targetValue.toFixed(2),
+        currency: (input.currency ?? "USD").trim().toUpperCase(),
+        startDate: input.startDate,
+        endDate: input.endDate,
+        isActive: input.isActive ?? true,
+        archived: false,
+      }).returning();
+    return row;
+  });
 
   return created ? mapSalesTarget(created) : null;
 }
@@ -287,12 +296,21 @@ export async function createSalesTarget(input: AdminSalesTargetInput) {
 export async function updateSalesTarget(id: string, input: AdminSalesTargetInput) {
   await assertSalesTargetScopeExists(input);
   const db = getDb();
-  const [updated] = await db
-    .update(salesTargets)
-    .set({
+  const updated = await db.transaction(async (tx) => {
+    const scopeId = input.scope === "global" ? null : input.scopeId ?? null;
+    if (input.isActive ?? true) {
+      await tx.update(salesTargets).set({ isActive: false, updatedAt: new Date() }).where(and(
+        ne(salesTargets.id, id),
+        eq(salesTargets.scope, input.scope),
+        scopeId ? eq(salesTargets.scopeId, scopeId) : isNull(salesTargets.scopeId),
+        eq(salesTargets.archived, false),
+        eq(salesTargets.isActive, true),
+      ));
+    }
+    const [row] = await tx.update(salesTargets).set({
       name: input.name.trim(),
       scope: input.scope,
-      scopeId: input.scope === "global" ? null : input.scopeId ?? null,
+      scopeId,
       period: input.period,
       targetValue: input.targetValue.toFixed(2),
       currency: (input.currency ?? "USD").trim().toUpperCase(),
@@ -300,9 +318,9 @@ export async function updateSalesTarget(id: string, input: AdminSalesTargetInput
       endDate: input.endDate,
       isActive: input.isActive ?? true,
       updatedAt: new Date(),
-    })
-    .where(eq(salesTargets.id, id))
-    .returning();
+      }).where(eq(salesTargets.id, id)).returning();
+    return row;
+  });
 
   if (!updated) {
     throw new SalesTargetAdminError("Sales target not found.", 404);
@@ -332,21 +350,39 @@ export async function archiveSalesTarget(id: string) {
 
 export async function restoreSalesTarget(id: string) {
   const db = getDb();
-  const [updated] = await db
-    .update(salesTargets)
-    .set({
-      archived: false,
-      isActive: true,
-      updatedAt: new Date(),
-    })
-    .where(eq(salesTargets.id, id))
-    .returning();
+  const updated = await db.transaction(async (tx) => {
+    const [target] = await tx.select({ scope: salesTargets.scope, scopeId: salesTargets.scopeId }).from(salesTargets).where(eq(salesTargets.id, id)).limit(1);
+    if (!target) return null;
+    await tx.update(salesTargets).set({ isActive: false, updatedAt: new Date() }).where(and(
+      ne(salesTargets.id, id),
+      eq(salesTargets.scope, target.scope),
+      target.scopeId ? eq(salesTargets.scopeId, target.scopeId) : isNull(salesTargets.scopeId),
+      eq(salesTargets.archived, false),
+      eq(salesTargets.isActive, true),
+    ));
+    const [row] = await tx.update(salesTargets).set({ archived: false, isActive: true, updatedAt: new Date() }).where(eq(salesTargets.id, id)).returning();
+    return row;
+  });
 
   if (!updated) {
     throw new SalesTargetAdminError("Sales target not found.", 404);
   }
 
   return mapSalesTarget(updated);
+}
+
+export async function deleteSalesTarget(id: string) {
+  const db = getDb();
+  const [deleted] = await db
+    .delete(salesTargets)
+    .where(eq(salesTargets.id, id))
+    .returning({ id: salesTargets.id });
+
+  if (!deleted) {
+    throw new SalesTargetAdminError("Sales target not found.", 404);
+  }
+
+  return deleted;
 }
 
 export async function getActiveGlobalSalesTarget(now = new Date()) {

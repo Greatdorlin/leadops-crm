@@ -3,6 +3,7 @@ import { getAdminRequestContext } from "@/lib/admin";
 import { canManageSalesTargets } from "@/lib/crm/authz";
 import {
   archiveSalesTarget,
+  deleteSalesTarget,
   normalizeAdminSalesTargetPayload,
   restoreSalesTarget,
   SalesTargetAdminError,
@@ -25,10 +26,18 @@ export async function PATCH(
   const { id } = await params;
   const payload = (await request.json().catch(() => null)) as Record<string, unknown> | null;
   const action = typeof payload?.action === "string" ? payload.action : null;
+  const confirmation = typeof payload?.confirmation === "string" ? payload.confirmation : "";
 
   try {
     if (action === "archive") {
+      if (confirmation !== "PROCEED") return NextResponse.json({ error: "Type PROCEED to archive this workspace target." }, { status: 400 });
       const target = await archiveSalesTarget(id);
+      return NextResponse.json({ target });
+    }
+
+    if (action === "delete") {
+      if (confirmation !== "PROCEED") return NextResponse.json({ error: "Type PROCEED to permanently delete this workspace target." }, { status: 400 });
+      const target = await deleteSalesTarget(id);
       return NextResponse.json({ target });
     }
 
@@ -43,6 +52,10 @@ export async function PATCH(
         { error: parsed.error.issues[0]?.message ?? "Invalid sales target payload." },
         { status: 400 },
       );
+    }
+
+    if (parsed.data.isActive === false && confirmation !== "PROCEED") {
+      return NextResponse.json({ error: "Type PROCEED to turn off this workspace target." }, { status: 400 });
     }
 
     const target = await updateSalesTarget(id, parsed.data);

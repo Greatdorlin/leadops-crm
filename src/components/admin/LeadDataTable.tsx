@@ -225,6 +225,7 @@ export function LeadDataTable({
   previewConfig = DEFAULT_LEAD_PREVIEW_CONFIG,
   currency = "USD",
   previewMode = false,
+  bulkSelectionEnabled = false,
 }: {
   leads: AdminLeadListItem[];
   emptyTitle: string;
@@ -236,6 +237,7 @@ export function LeadDataTable({
   previewConfig?: LeadPreviewCustomizationConfig;
   currency?: string;
   previewMode?: boolean;
+  bulkSelectionEnabled?: boolean;
 }) {
   if (leads.length === 0) {
     return <EmptyState title={emptyTitle} description={emptyDescription} />;
@@ -290,7 +292,11 @@ export function LeadDataTable({
             style={{ animationDelay: `${Math.min(index * 50, 400)}ms` }}
           >
             <div className="flex flex-col items-stretch gap-3 sm:flex-row sm:items-start sm:justify-between">
-              <div className="min-w-0">
+              <div className="flex min-w-0 items-start gap-3">
+                {bulkSelectionEnabled ? (
+                  <input type="checkbox" value={lead.id} data-lead-bulk-checkbox aria-label={`Select ${lead.displayName}`} className="ld-focus-ring mt-1.5 h-5 w-5 shrink-0 accent-[color:var(--ld-color-accent)]" />
+                ) : null}
+                <div className="min-w-0">
                 <Link
                   href={appRoutes.lead(lead.id)}
                   prefetch={false}
@@ -301,6 +307,7 @@ export function LeadDataTable({
                 <p className="mt-1 text-sm leading-6 text-white/70 [overflow-wrap:anywhere]">
                   {lead.interestLabel}
                 </p>
+                </div>
               </div>
               <div className="min-w-0 self-start">
                 {interactiveWorkflow ? (
@@ -502,7 +509,11 @@ export function LeadDataTable({
                   style={{ animationDelay: `${Math.min(index * 50, 400)}ms` }}
                 >
                   <td className="ld-table-sticky-lead sticky left-0 z-20 px-4 py-3.5 transition-colors group-hover:bg-[color:color-mix(in_srgb,var(--ld-color-card-strong)_97%,white_3%)]">
-                    <div className="min-w-0">
+                    <div className="flex min-w-0 items-start gap-3">
+                      {bulkSelectionEnabled ? (
+                        <input type="checkbox" value={lead.id} data-lead-bulk-checkbox aria-label={`Select ${lead.displayName}`} className="ld-focus-ring mt-1 h-5 w-5 shrink-0 accent-[color:var(--ld-color-accent)]" />
+                      ) : null}
+                      <div className="min-w-0">
                       <Link
                         href={appRoutes.lead(lead.id)}
                         prefetch={false}
@@ -523,6 +534,7 @@ export function LeadDataTable({
                       <p className="mt-1.5 text-xs font-medium uppercase tracking-[0.14em] text-white/70">
                         {lead.completionLabel}
                       </p>
+                      </div>
                     </div>
                   </td>
                   <td className="ld-table-sticky-action sticky left-[280px] z-20 px-4 py-3.5 text-left align-middle whitespace-nowrap transition-colors group-hover:bg-[color:color-mix(in_srgb,var(--ld-color-card-strong)_97%,white_3%)]">

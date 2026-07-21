@@ -12,6 +12,7 @@ import { SALES_TARGET_PERIODS, SALES_TARGET_SCOPES } from "@/lib/crm/domain";
 import { AdminSelect } from "./AdminSelect";
 import { CurrencySelect } from "./CurrencySelect";
 import { InfoTip } from "./ui/InfoTip";
+import { WorkspaceImpactConfirmation } from "./WorkspaceImpactConfirmation";
 
 type TargetDraft = {
   name: string;
@@ -358,6 +359,11 @@ export function SalesTargetManager({
   const [drafts, setDrafts] = useState<Record<string, TargetDraft>>({});
   const [messages, setMessages] = useState<Record<string, string>>({});
   const [savingById, setSavingById] = useState<Record<string, boolean>>({});
+  const [pendingImpact, setPendingImpact] = useState<{
+    targetId: string;
+    action: "deactivate" | "archive" | "delete";
+    targetName: string;
+  } | null>(null);
 
   const activeTargets = useMemo(
     () => initialTargets.filter((target) => !target.archived),
@@ -405,7 +411,7 @@ export function SalesTargetManager({
     }
   }
 
-  async function updateTarget(targetId: string) {
+  async function updateTarget(targetId: string, confirmation?: "PROCEED") {
     const draft = drafts[targetId];
     if (!draft) {
       return;
@@ -419,7 +425,7 @@ export function SalesTargetManager({
       const response = await fetch(`/api/admin/sales-targets/${targetId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(buildPayload(draft)),
+        body: JSON.stringify({ ...buildPayload(draft), confirmation }),
       });
       const payload = (await response.json().catch(() => null)) as { error?: string } | null;
       if (!response.ok) {
@@ -432,6 +438,7 @@ export function SalesTargetManager({
       }
 
       setMessages((current) => ({ ...current, [targetId]: "Sales target updated." }));
+      setPendingImpact(null);
       setSavingById((current) => ({ ...current, [targetId]: false }));
       startTransition(() => router.refresh());
     } catch {
@@ -443,7 +450,7 @@ export function SalesTargetManager({
     }
   }
 
-  async function toggleArchive(targetId: string, action: "archive" | "restore") {
+  async function applyTargetAction(targetId: string, action: "archive" | "restore" | "delete", confirmation?: "PROCEED") {
     if (demoMode) { setMessages((current) => ({ ...current, [targetId]: `Target ${action === "archive" ? "archived" : "restored"} for this preview.` })); return; }
     setSavingById((current) => ({ ...current, [targetId]: true }));
     setMessages((current) => ({ ...current, [targetId]: "" }));
@@ -452,7 +459,7 @@ export function SalesTargetManager({
       const response = await fetch(`/api/admin/sales-targets/${targetId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action }),
+        body: JSON.stringify({ action, confirmation }),
       });
       const payload = (await response.json().catch(() => null)) as { error?: string } | null;
       if (!response.ok) {
@@ -465,6 +472,7 @@ export function SalesTargetManager({
       }
 
       setSavingById((current) => ({ ...current, [targetId]: false }));
+      setPendingImpact(null);
       startTransition(() => router.refresh());
     } catch {
       setMessages((current) => ({
@@ -514,11 +522,11 @@ export function SalesTargetManager({
                 </div>
                 <div className="flex flex-wrap gap-2">
                   {target.isActive ? (
-                    <span className="rounded-full border border-emerald-300/24 bg-emerald-300/12 px-3 py-1 text-xs font-semibold text-emerald-100">
+                    <span className="inline-flex h-8 items-center justify-center rounded-full border border-emerald-300/24 bg-emerald-300/12 px-3 text-xs font-semibold leading-none text-emerald-100">
                       Active
                     </span>
                   ) : (
-                    <span className="rounded-full border border-white/12 bg-white/[0.06] px-3 py-1 text-xs font-semibold text-white/60">
+                    <span className="inline-flex h-8 items-center justify-center rounded-full border border-white/12 bg-white/[0.06] px-3 text-xs font-semibold leading-none text-white/60">
                       Paused
                     </span>
                   )}
@@ -535,7 +543,7 @@ export function SalesTargetManager({
                   <button
                     type="button"
                     disabled={savingById[target.id]}
-                    onClick={() => void toggleArchive(target.id, "archive")}
+                    onClick={() => setPendingImpact({ targetId: target.id, action: "archive", targetName: target.name })}
                     className="inline-flex h-10 items-center justify-center rounded-2xl border border-rose-300/20 bg-rose-400/10 px-4 text-sm font-semibold text-rose-100 transition hover:bg-rose-400/16 disabled:opacity-60"
                   >
                     Archive
@@ -558,7 +566,13 @@ export function SalesTargetManager({
                     title="Edit Sales Target"
                     draft={draft}
                     onChange={(next) => setDrafts((current) => ({ ...current, [target.id]: next }))}
-                    onSave={() => void updateTarget(target.id)}
+                    onSave={() => {
+                      if (target.isActive && !draft.isActive) {
+                        setPendingImpact({ targetId: target.id, action: "deactivate", targetName: target.name });
+                      } else {
+                        void updateTarget(target.id);
+                      }
+                    }}
                     isSaving={Boolean(savingById[target.id])}
                     message={messages[target.id] ?? ""}
                     saveLabel="Save changes"
@@ -608,15 +622,18 @@ export function SalesTargetManager({
                     {crmLabelize(target.scope)} • {target.currency} {target.targetValue.toLocaleString()}
                   </p>
                 </div>
-                <button
-                  type="button"
-                  disabled={savingById[target.id]}
-                  onClick={() => void toggleArchive(target.id, "restore")}
-                  className="inline-flex h-10 items-center justify-center rounded-2xl border border-emerald-300/24 bg-emerald-300/12 px-4 text-sm font-semibold text-emerald-100 transition hover:bg-emerald-300/18 disabled:opacity-60"
-                >
-                  <RotateCcw className="mr-2 h-4 w-4" />
-                  Restore
-                </button>
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    disabled={savingById[target.id]}
+                    onClick={() => void applyTargetAction(target.id, "restore")}
+                    className="inline-flex h-10 items-center justify-center rounded-2xl border border-emerald-300/24 bg-emerald-300/12 px-4 text-sm font-semibold text-emerald-100 transition hover:bg-emerald-300/18 disabled:opacity-60"
+                  >
+                    <RotateCcw className="mr-2 h-4 w-4" />
+                    Restore
+                  </button>
+                  <button type="button" disabled={savingById[target.id]} onClick={() => setPendingImpact({ targetId: target.id, action: "delete", targetName: target.name })} className="inline-flex h-10 items-center justify-center rounded-2xl border border-rose-300/20 bg-rose-400/10 px-4 text-sm font-semibold text-rose-100 transition hover:bg-rose-400/16 disabled:opacity-60">Delete</button>
+                </div>
               </div>
             </div>
           ))
@@ -626,6 +643,22 @@ export function SalesTargetManager({
           </div>
         )}
       </div>
+      <WorkspaceImpactConfirmation
+        open={Boolean(pendingImpact)}
+        title={pendingImpact?.action === "delete" ? "Delete sales target?" : pendingImpact?.action === "archive" ? "Archive sales target?" : "Turn off sales target?"}
+        description={pendingImpact?.action === "delete"
+          ? `This permanently removes ${pendingImpact.targetName} from the workspace and cannot be undone.`
+          : pendingImpact?.action === "archive"
+            ? `This removes ${pendingImpact.targetName} from active workspace tracking until it is restored.`
+            : `This turns off ${pendingImpact?.targetName ?? "this target"} for the entire workspace. Dashboards using it will stop tracking progress.`}
+        busy={Boolean(pendingImpact && savingById[pendingImpact.targetId])}
+        onCancel={() => setPendingImpact(null)}
+        onConfirm={() => {
+          if (!pendingImpact) return;
+          if (pendingImpact.action === "deactivate") void updateTarget(pendingImpact.targetId, "PROCEED");
+          else void applyTargetAction(pendingImpact.targetId, pendingImpact.action, "PROCEED");
+        }}
+      />
     </div>
   );
 }

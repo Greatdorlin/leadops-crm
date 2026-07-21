@@ -18,8 +18,9 @@ test("commission confirmation requires approved payment", () => {
 });
 
 test("finance batch actions are bounded and rejection requires a reason", () => {
-  assert.equal(financeBatchActionSchema.safeParse({ claimIds: [], action: "approve" }).success, false);
-  assert.equal(financeBatchActionSchema.safeParse({ claimIds: ["2511d6ef-cdfa-4b9f-8660-f5a73a7a22d5"], action: "reject" }).success, false);
+  assert.equal(financeBatchActionSchema.safeParse({ claimIds: [], action: "approve", reason: "Verified by finance.", confirmation: "MAX CHANGE" }).success, false);
+  assert.equal(financeBatchActionSchema.safeParse({ claimIds: ["2511d6ef-cdfa-4b9f-8660-f5a73a7a22d5"], action: "reject", reason: "Rejected by finance.", confirmation: "MAX CHANGE" }).success, false);
+  assert.equal(financeBatchActionSchema.safeParse({ claimIds: ["2511d6ef-cdfa-4b9f-8660-f5a73a7a22d5"], action: "approve", reason: "Verified by finance.", confirmation: "max change" }).success, false);
 });
 
 test("commissions require both an amount and recipient", () => {

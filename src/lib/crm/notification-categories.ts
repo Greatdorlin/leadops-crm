@@ -19,7 +19,7 @@ const categoryTypes: Record<Exclude<NotificationCategory, "all">, NotificationTy
   action: ["new_lead_assigned", "follow_up_due", "follow_up_overdue"],
   pipeline: ["lead_stage_changed", "lead_marked_won", "lead_marked_lost", "lead_offer_qualified", "target_milestone_reached"],
   intake: ["webhook_lead_captured", "import_completed"],
-  system: ["export_completed"],
+  system: ["export_completed", "bulk_change_completed"],
 };
 
 export function parseNotificationCategory(value?: string | null): NotificationCategory {

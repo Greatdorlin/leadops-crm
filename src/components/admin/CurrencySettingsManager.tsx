@@ -150,7 +150,7 @@ export function CurrencySettingsManager({
             1 {initialGlobalCurrency} equals how many {currency}?
           </label>
           <input
-            className="admin-input mt-2 w-full sm:max-w-sm"
+            className="admin-input mt-2 h-12 w-full px-4 text-base sm:max-w-sm"
             inputMode="decimal"
             min="0"
             step="any"
@@ -177,7 +177,7 @@ export function CurrencySettingsManager({
           <label className="block text-sm font-semibold text-white/80">
             Rate
             <input
-              className="admin-input mt-2 w-full"
+              className="admin-input mt-2 h-12 w-full px-4 text-base"
               inputMode="decimal"
               min="0"
               step="any"

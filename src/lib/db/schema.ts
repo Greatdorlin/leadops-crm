@@ -544,7 +544,7 @@ export const leadOpportunities = pgTable(
     id: uuid("id").defaultRandom().primaryKey(),
     leadId: uuid("lead_id")
       .notNull()
-      .references(() => leads.id, { onDelete: "cascade" }),
+      .references(() => leads.id, { onDelete: "restrict" }),
     offerLabel: text("offer_label").notNull(),
     status: leadOpportunityStatusEnum("status").notNull().default("active"),
     estimatedValue: numeric("estimated_value", { precision: 12, scale: 2 }),

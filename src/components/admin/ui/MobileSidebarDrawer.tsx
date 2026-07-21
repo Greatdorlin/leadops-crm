@@ -36,7 +36,7 @@ export function MobileSidebarDrawer({
       {/* Backdrop */}
       <div
         className={cn(
-          "fixed inset-0 z-40 bg-black/50 backdrop-blur-sm transition-opacity duration-300 md:hidden",
+          "fixed inset-0 z-40 bg-black/50 backdrop-blur-sm transition-opacity duration-300 xl:hidden",
           isOpen
             ? "opacity-100 pointer-events-auto"
             : "opacity-0 pointer-events-none"
@@ -49,7 +49,7 @@ export function MobileSidebarDrawer({
       <div
         {...props}
         className={cn(
-          "fixed inset-y-0 left-0 z-50 flex h-[100dvh] w-[min(20rem,88vw)] max-w-none flex-col md:hidden",
+          "fixed inset-y-0 left-0 z-50 flex h-[100dvh] w-[min(20rem,88vw)] max-w-none flex-col xl:hidden",
           "ld-glass-sidebar ld-animate-slide-in-right",
           "transition-transform duration-300 ease-[cubic-bezier(0.32,0.72,0,1.02)]",
           "touch-44",

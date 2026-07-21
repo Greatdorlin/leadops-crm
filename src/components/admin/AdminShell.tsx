@@ -2,8 +2,9 @@
 
 import type { CSSProperties, PropsWithChildren, ReactNode } from "react";
 import { useState } from "react";
-import { Menu } from "lucide-react";
+import { ArrowLeft, Menu } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   getStoredRoleForAccessLevel,
   type AdminAccessLevel,
@@ -83,6 +84,7 @@ export function AdminShell({
   children,
 }: AdminShellProps) {
   const workspaceSettings = useAdminWorkspaceSettings();
+  const router = useRouter();
   const contextPermissions = useAdminPermissions();
   const fallbackRole = getStoredRoleForAccessLevel(accessLevel);
   const resolvedPermissions = resolvePermissionList(
@@ -145,7 +147,19 @@ export function AdminShell({
               userAvatarUrl={userAvatarUrl}
             />
           <div className="min-w-0">
-            <div className="flex min-w-0 items-center gap-2 pb-2 xl:hidden">
+            <div className="sticky top-0 z-40 -mx-1 flex min-w-0 items-center gap-2 rounded-[20px] border border-white/10 bg-[color:color-mix(in_srgb,var(--ld-color-background)_82%,transparent)] px-2 py-2 shadow-[0_14px_34px_rgba(0,0,0,0.24)] backdrop-blur-2xl xl:hidden">
+              <SmoothButton
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  if (window.history.length > 1) router.back();
+                  else router.push("/admin");
+                }}
+                icon={<ArrowLeft className="h-5 w-5" />}
+                aria-label="Go back"
+              >
+                Back
+              </SmoothButton>
               <SmoothButton
                 variant="ghost"
                 size="sm"
@@ -163,7 +177,7 @@ export function AdminShell({
                 logoUrlLightMode={workspaceSettings.logoUrlLightMode}
                 logoUrlDarkMode={workspaceSettings.logoUrlDarkMode}
                 surfaceMode="dark"
-                className="min-w-0"
+                className="ml-auto min-w-0"
               />
             </div>
             <AdminTopbar

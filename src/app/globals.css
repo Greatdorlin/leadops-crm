@@ -549,6 +549,11 @@ body {
 .admin-input,
 .admin-select,
 .admin-textarea {
+  box-sizing: border-box;
+  display: block;
+  inline-size: 100%;
+  min-inline-size: 0;
+  max-inline-size: 100%;
   color-scheme: dark;
   border: 1px solid rgba(255, 255, 255, 0.10);
   border-radius: var(--ld-control-radius);
@@ -811,9 +816,17 @@ body {
   .admin-input[type="date"],
   .admin-input[type="datetime-local"],
   .admin-input[type="time"] {
+    display: block;
+    inline-size: 100% !important;
+    min-inline-size: 0 !important;
+    max-inline-size: 100% !important;
     padding-left: 0.75rem;
     padding-right: 2.5rem;
     font-size: 0.8125rem;
+  }
+
+  .admin-shell :is(.grid, label, fieldset, form, section, article, div) {
+    min-inline-size: 0;
   }
 }
 

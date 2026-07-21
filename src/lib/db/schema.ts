@@ -388,6 +388,7 @@ export const companySettings = pgTable(
     celebrationsEnabled: boolean("celebrations_enabled").notNull().default(true),
     stageCelebrationsEnabled: boolean("stage_celebrations_enabled").notNull().default(true),
     targetCelebrationsEnabled: boolean("target_celebrations_enabled").notNull().default(true),
+    celebrationStyle: text("celebration_style").notNull().default("balanced"),
     loginBackgroundUrl: text("login_background_url"),
     loginHeadline: text("login_headline"),
     loginSubheadline: text("login_subheadline"),
@@ -544,7 +545,7 @@ export const leadOpportunities = pgTable(
     id: uuid("id").defaultRandom().primaryKey(),
     leadId: uuid("lead_id")
       .notNull()
-      .references(() => leads.id, { onDelete: "restrict" }),
+      .references(() => leads.id, { onDelete: "cascade" }),
     offerLabel: text("offer_label").notNull(),
     status: leadOpportunityStatusEnum("status").notNull().default("active"),
     estimatedValue: numeric("estimated_value", { precision: 12, scale: 2 }),
@@ -668,7 +669,7 @@ export const paymentClaims = pgTable(
     id: uuid("id").defaultRandom().primaryKey(),
     leadId: uuid("lead_id")
       .notNull()
-      .references(() => leads.id, { onDelete: "cascade" }),
+      .references(() => leads.id, { onDelete: "restrict" }),
     amount: numeric("amount", { precision: 12, scale: 2 }).notNull(),
     currency: text("currency").notNull(),
     status: text("status").notNull().default("pending"),

@@ -118,6 +118,9 @@ export async function updateCompanySettings(
       ...(patch.targetCelebrationsEnabled !== undefined
         ? { targetCelebrationsEnabled: patch.targetCelebrationsEnabled }
         : {}),
+      ...(patch.celebrationStyle !== undefined
+        ? { celebrationStyle: patch.celebrationStyle }
+        : {}),
       ...(patch.loginBackgroundUrl !== undefined
         ? { loginBackgroundUrl: patch.loginBackgroundUrl }
         : {}),

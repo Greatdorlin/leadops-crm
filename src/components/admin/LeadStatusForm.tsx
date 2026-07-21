@@ -82,6 +82,7 @@ export function LeadStatusForm({
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState("");
   const [celebration, setCelebration] = useState<CelebrationMoment | null>(null);
+  const [savedStageValue, setSavedStageValue] = useState(initialStage);
 
   function toggleAdditionalOwner(email: string) {
     setAssignedToList((current) => {
@@ -138,10 +139,14 @@ export function LeadStatusForm({
 
       if (workspaceSettings.celebrationsEnabled && workspaceSettings.stageCelebrationsEnabled) {
         const activeStage = stageOptions.find((option) => option.value === stage);
-        const previousStatus = stageKeys.includes(
-          (initialStageKey ?? initialStage) as (typeof stageKeys)[number],
-        )
-          ? ((initialStageKey ?? initialStage) as (typeof stageKeys)[number])
+        const savedStageOption = stageOptions.find((option) => option.value === savedStageValue);
+        const savedStageKey = savedStageOption?.isWon
+          ? "converted"
+          : savedStageOption?.isLost
+            ? "lost"
+            : savedStageOption?.key ?? initialStageKey ?? initialStage;
+        const previousStatus = stageKeys.includes(savedStageKey as (typeof stageKeys)[number])
+          ? (savedStageKey as (typeof stageKeys)[number])
           : null;
         const nextStatus = activeStage?.isWon
           ? "converted"
@@ -151,7 +156,7 @@ export function LeadStatusForm({
               ? (activeStage?.key as (typeof stageKeys)[number])
               : null;
         setCelebration(
-          previousStatus && nextStatus
+          savedStageValue !== stage && previousStatus && nextStatus
             ? buildLeadStageCelebration({
                 previousStatus,
                 nextStatus,
@@ -162,6 +167,8 @@ export function LeadStatusForm({
       } else {
         setCelebration(null);
       }
+
+      setSavedStageValue(stage);
 
       setMessage("Lead details updated.");
       setIsSaving(false);
@@ -174,7 +181,7 @@ export function LeadStatusForm({
 
   return (
     <div className="min-w-0">
-      <CelebrationPanel celebration={celebration} onClose={() => setCelebration(null)} className="mb-4" />
+      <CelebrationPanel celebration={celebration} onClose={() => setCelebration(null)} className="mb-4" styleMode={workspaceSettings.celebrationStyle} />
       <div className="mb-4 flex items-center justify-between gap-3 border-b border-white/10 pb-4">
         <div>
           <p className="text-sm font-semibold text-white">Lead routing</p>

@@ -1,0 +1,1 @@
+ALTER TABLE "company_settings" ADD COLUMN "celebration_style" text DEFAULT 'balanced' NOT NULL;

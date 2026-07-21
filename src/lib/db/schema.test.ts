@@ -322,6 +322,7 @@ test("premium UI pass adds additive company settings storage for runtime customi
     "celebrationsEnabled",
     "stageCelebrationsEnabled",
     "targetCelebrationsEnabled",
+    "celebrationStyle",
     "loginBackgroundUrl",
     "loginHeadline",
     "loginSubheadline",

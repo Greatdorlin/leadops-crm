@@ -134,6 +134,7 @@ export interface WorkspaceAppearanceSettings {
   celebrationsEnabled: boolean;
   stageCelebrationsEnabled: boolean;
   targetCelebrationsEnabled: boolean;
+  celebrationStyle: CelebrationStyle;
   loginBackgroundUrl: string | null;
   loginHeadline: string;
   loginSubheadline: string;
@@ -147,6 +148,9 @@ export interface ResolvedWorkspaceSettings extends WorkspaceAppearanceSettings {
   leadPreview: LeadPreviewCustomizationConfig;
   industryPreset: IndustryPresetKey;
 }
+
+export const CELEBRATION_STYLES = ["subtle", "balanced", "bold"] as const;
+export type CelebrationStyle = (typeof CELEBRATION_STYLES)[number];
 
 type WorkspaceSettingsScalarRow = {
   [Key in Exclude<keyof WorkspaceAppearanceSettings, "fontScale">]?:
@@ -293,6 +297,7 @@ export const DEFAULT_WORKSPACE_APPEARANCE: WorkspaceAppearanceSettings = {
   celebrationsEnabled: true,
   stageCelebrationsEnabled: true,
   targetCelebrationsEnabled: true,
+  celebrationStyle: "balanced",
   loginBackgroundUrl: "/backgrounds/bg-butterfly-glass.png",
   loginHeadline: "Welcome back",
   loginSubheadline:
@@ -513,6 +518,7 @@ export const appearanceSettingsSchema = z.object({
   celebrationsEnabled: z.boolean(),
   stageCelebrationsEnabled: z.boolean(),
   targetCelebrationsEnabled: z.boolean(),
+  celebrationStyle: z.enum(CELEBRATION_STYLES),
   loginBackgroundUrl: urlOrRootPathSchema("Login background URL").optional().nullable(),
   loginHeadline: z.string().trim().min(1, "Login headline is required."),
   loginSubheadline: z.string().trim().min(1, "Login subheadline is required."),
@@ -675,6 +681,9 @@ export function resolveStoredWorkspaceSettings(
       row?.stageCelebrationsEnabled ?? DEFAULT_WORKSPACE_APPEARANCE.stageCelebrationsEnabled,
     targetCelebrationsEnabled:
       row?.targetCelebrationsEnabled ?? DEFAULT_WORKSPACE_APPEARANCE.targetCelebrationsEnabled,
+    celebrationStyle: CELEBRATION_STYLES.includes((row?.celebrationStyle ?? "") as CelebrationStyle)
+      ? (row?.celebrationStyle as CelebrationStyle)
+      : DEFAULT_WORKSPACE_APPEARANCE.celebrationStyle,
     loginBackgroundUrl: normalizeOptionalString(row?.loginBackgroundUrl),
     loginHeadline: normalizeDisplayString(row?.loginHeadline, DEFAULT_WORKSPACE_APPEARANCE.loginHeadline),
     loginSubheadline: normalizeDisplayString(

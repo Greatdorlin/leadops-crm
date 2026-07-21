@@ -1116,8 +1116,9 @@ body {
   position: absolute;
   inset: 0;
   background:
-    radial-gradient(circle at top left, rgba(250, 204, 21, 0.22), transparent 28%),
-    radial-gradient(circle at top right, rgba(96, 165, 250, 0.16), transparent 24%);
+    radial-gradient(circle at top left, color-mix(in srgb, var(--ld-color-primary) 34%, transparent), transparent 34%),
+    radial-gradient(circle at top right, color-mix(in srgb, var(--ld-color-accent) 28%, transparent), transparent 30%),
+    linear-gradient(110deg, transparent 18%, rgba(255, 255, 255, 0.055) 48%, transparent 76%);
   pointer-events: none;
 }
 

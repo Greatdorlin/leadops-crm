@@ -5,23 +5,26 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Sparkles, Trophy } from "lucide-react";
 import { cn } from "@/lib/cn";
 import type { CelebrationMoment } from "@/lib/crm/celebrations";
+import type { CelebrationStyle } from "@/lib/crm/workspace-settings";
 
-const intensityClasses = {
-  soft: "from-sky-50 via-white to-emerald-50 border-sky-200/80",
-  strong: "from-violet-50 via-white to-sky-50 border-violet-200/80",
-  burst: "from-amber-500/20 via-white/30 to-emerald-500/20 border-amber-300/20/80",
-} as const;
+const styleStrength: Record<CelebrationStyle, { primary: number; accent: number; glow: number }> = {
+  subtle: { primary: 10, accent: 7, glow: 14 },
+  balanced: { primary: 19, accent: 13, glow: 24 },
+  bold: { primary: 31, accent: 23, glow: 38 },
+};
 
 export function CelebrationPanel({
   celebration,
   onClose,
   className,
   autoHideMs = 5000,
+  styleMode = "balanced",
 }: {
   celebration: CelebrationMoment | null;
   onClose?: () => void;
   className?: string;
   autoHideMs?: number;
+  styleMode?: CelebrationStyle;
 }) {
   const celebrationKey = celebration
     ? `${celebration.title}:${celebration.badge}:${celebration.intensity}`
@@ -48,8 +51,7 @@ export function CelebrationPanel({
         id: index,
         left: `${(index * 11) % 100}%`,
         delay: `${index * 0.06}s`,
-        color:
-          index % 3 === 0 ? "#f4b400" : index % 3 === 1 ? "#60a5fa" : "#34d399",
+        color: index % 2 === 0 ? "var(--ld-color-primary)" : "var(--ld-color-accent)",
         drift: `${(index % 2 === 0 ? 1 : -1) * (16 + (index % 5) * 6)}px`,
       })),
     [celebration?.intensity],
@@ -63,14 +65,15 @@ export function CelebrationPanel({
           animate={{ opacity: 1, y: 0, scale: 1 }}
           exit={{ opacity: 0, y: -8, scale: 0.98 }}
           transition={{ duration: 0.28, ease: "easeOut" }}
-          className={cn(
-            "celebration-glow relative overflow-hidden rounded-[26px] border bg-gradient-to-br p-4 shadow-[0_20px_40px_rgba(15,23,42,0.08)]",
-            intensityClasses[celebration.intensity],
-            className,
-          )}
-          style={celebration.intensity !== "soft" ? { animation: "celebrationPulse 2.4s ease-in-out 1" } : undefined}
+          className={cn("celebration-glow relative overflow-hidden rounded-[26px] border p-4", className)}
+          style={{
+            background: `linear-gradient(135deg, color-mix(in srgb, var(--ld-color-primary) ${styleStrength[styleMode].primary}%, var(--ld-color-card-strong)), color-mix(in srgb, var(--ld-color-accent) ${styleStrength[styleMode].accent}%, var(--ld-color-surface)))`,
+            borderColor: `color-mix(in srgb, var(--ld-color-accent) ${Math.max(styleStrength[styleMode].accent, 16)}%, rgba(255,255,255,0.12))`,
+            boxShadow: `0 22px 52px color-mix(in srgb, var(--ld-color-primary) ${styleStrength[styleMode].glow}%, transparent), inset 0 1px 0 rgba(255,255,255,0.12)`,
+            ...(celebration.intensity !== "soft" && styleMode !== "subtle" ? { animation: "celebrationPulse 2.4s ease-in-out 1" } : {}),
+          }}
         >
-          {celebration.intensity !== "soft" ? (
+          {celebration.intensity !== "soft" && styleMode !== "subtle" ? (
             <div className="pointer-events-none absolute inset-x-0 top-0 h-32 overflow-hidden">
               {pieces.map((piece) => (
                 <span

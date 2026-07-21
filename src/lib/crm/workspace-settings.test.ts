@@ -95,6 +95,7 @@ test("appearance settings validation rejects malformed colors and keeps concise 
     celebrationsEnabled: true,
     stageCelebrationsEnabled: true,
     targetCelebrationsEnabled: true,
+    celebrationStyle: "balanced",
     loginHeadline: "Welcome back",
     loginSubheadline: "Manage leads in one private workspace.",
     loginBackgroundUrl: "/backgrounds/bg-dark-luxury.png",

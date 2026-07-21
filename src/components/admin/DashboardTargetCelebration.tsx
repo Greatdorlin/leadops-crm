@@ -29,7 +29,7 @@ export function DashboardTargetCelebration({
       return;
     }
 
-    const storageKey = `leads-desk:target-celebration:${target.id}:${Math.round(target.progressPercent)}`;
+    const storageKey = `leads-desk:target-celebration:${target.id}`;
     if (window.localStorage.getItem(storageKey) === "seen") {
       return;
     }
@@ -56,6 +56,7 @@ export function DashboardTargetCelebration({
       onClose={() => setActiveTargetKey(null)}
       className="mb-6"
       autoHideMs={7000}
+      styleMode={settings.celebrationStyle}
     />
   );
 }

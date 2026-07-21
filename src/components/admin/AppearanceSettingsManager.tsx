@@ -11,6 +11,7 @@ import { appRoutes } from "@/lib/app-routes";
 import {
   buildThemeCssVariables,
   DEFAULT_WORKSPACE_APPEARANCE,
+  CELEBRATION_STYLES,
   FONT_PRESETS,
   getWorkspaceAppearanceContrastIssues,
   type ResolvedWorkspaceSettings,
@@ -48,6 +49,7 @@ type AppearanceDraft = Pick<
   | "celebrationsEnabled"
   | "stageCelebrationsEnabled"
   | "targetCelebrationsEnabled"
+  | "celebrationStyle"
   | "loginBackgroundUrl"
   | "loginHeadline"
   | "loginSubheadline"
@@ -492,6 +494,7 @@ export function AppearanceSettingsManager({
     celebrationsEnabled: initialSettings.celebrationsEnabled,
     stageCelebrationsEnabled: initialSettings.stageCelebrationsEnabled,
     targetCelebrationsEnabled: initialSettings.targetCelebrationsEnabled,
+    celebrationStyle: initialSettings.celebrationStyle,
     loginBackgroundUrl: initialSettings.loginBackgroundUrl || DEFAULT_BACKGROUND,
     loginHeadline: initialSettings.loginHeadline,
     loginSubheadline: initialSettings.loginSubheadline,
@@ -892,6 +895,30 @@ export function AppearanceSettingsManager({
                 <span>{label}</span>
               </label>
             ))}
+          </div>
+          <div className="mt-4 grid gap-2 sm:grid-cols-3">
+            {CELEBRATION_STYLES.map((style) => {
+              const active = draft.celebrationStyle === style;
+              return (
+                <button
+                  key={style}
+                  type="button"
+                  onClick={() => update("celebrationStyle", style)}
+                  className={cn(
+                    "ld-focus-ring flex h-12 items-center justify-between rounded-2xl border px-4 text-sm font-semibold capitalize transition",
+                    active
+                      ? "border-[color:var(--ld-color-accent)]/45 bg-[color:var(--ld-color-accent)]/12 text-white"
+                      : "border-white/10 bg-white/[0.045] text-white/68 hover:bg-white/[0.075] hover:text-white",
+                  )}
+                >
+                  {style}
+                  <span className="flex items-center -space-x-1.5" aria-hidden="true">
+                    <span className="h-4 w-4 rounded-full border border-white/30 bg-[color:var(--ld-color-primary)]" />
+                    <span className="h-4 w-4 rounded-full border border-white/30 bg-[color:var(--ld-color-accent)]" />
+                  </span>
+                </button>
+              );
+            })}
           </div>
         </ThemeSection>
         <AnimatedCard variant="default" animation="fadeInUp" delay={640} className="p-5">

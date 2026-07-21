@@ -11,6 +11,7 @@ import {
 } from "@/lib/crm/schedule-presets";
 import { formatCrmDateTime } from "@/lib/crm/formatters";
 import { ResponsivePopover } from "./ResponsivePopover";
+import { AdminDateTimeInput } from "./AdminDateTimeInput";
 
 const presetOptions: Array<{ id: QuickSchedulePreset; label: string }> = [
   { id: "later_today", label: "Later today" },
@@ -181,12 +182,12 @@ export function LeadFollowUpQuickChange({
               Exact time
             </span>
             <div className="flex gap-2">
-              <input
-                type="datetime-local"
+              <AdminDateTimeInput
                 value={exactValue}
                 min={toLocalDateTimeInputValue(new Date())}
                 onChange={(event) => setExactValue(event.target.value)}
-                className="admin-input h-11 min-w-0 flex-1 rounded-[14px] px-3 text-sm"
+                aria-label="Exact follow-up date and time"
+                pickerLabel="Choose follow-up date and time"
               />
               <button
                 type="button"

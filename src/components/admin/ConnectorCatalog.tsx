@@ -5,6 +5,7 @@ import {
   type ConnectorAvailability,
   type ConnectorCategory,
 } from "@/lib/integrations/connector-registry";
+import { getConnectorSetupState } from "@/lib/integrations/connector-runtime";
 
 const categoryLabels: Record<ConnectorCategory, string> = {
   lead_capture: "Lead capture",
@@ -39,6 +40,7 @@ export function ConnectorCatalog() {
             </div>
             <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
               {connectors.map((connector) => {
+                const isConfigured = getConnectorSetupState(connector.id);
                 const status = availabilityMeta[connector.availability];
                 const StatusIcon = connector.availability === "available"
                   ? Check
@@ -60,16 +62,16 @@ export function ConnectorCatalog() {
                     {connector.operations ? (
                       <div className="mt-4 flex flex-wrap gap-x-4 gap-y-2">
                         <Link href={connector.operations.setupPath} className="inline-flex items-center gap-1.5 text-sm font-semibold text-[var(--ld-color-accent)] transition hover:text-white">
-                          {connector.availability === "mapped_import" ? "Start migration" : "Setup"}
+                          {connector.availability === "mapped_import" ? "Start migration" : isConfigured ? "Open setup" : "Configure"}
                           <ArrowUpRight className="h-3.5 w-3.5" />
                         </Link>
-                        {connector.operations.healthPath ? (
+                        {isConfigured && connector.operations.healthPath ? (
                           <Link href={connector.operations.healthPath} className="inline-flex items-center gap-1.5 text-sm font-semibold text-white/70 transition hover:text-white">
                             Health
                             <ArrowUpRight className="h-3.5 w-3.5" />
                           </Link>
                         ) : null}
-                        {connector.operations.retryPath ? (
+                        {isConfigured && connector.operations.retryPath ? (
                           <Link href={connector.operations.retryPath} className="inline-flex items-center gap-1.5 text-sm font-semibold text-white/70 transition hover:text-white">
                             Retry
                             <ArrowUpRight className="h-3.5 w-3.5" />

@@ -275,6 +275,10 @@ export function FormFieldEditor({
   };
 
   const handleSave = async (field: FormFieldData) => {
+    if (!field.label.trim()) {
+      setError("Add a question before saving.");
+      return;
+    }
     setSaving(true);
     setError(null);
     try {
@@ -569,7 +573,7 @@ export function FormFieldEditor({
           <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={closeEditor} />
           <GlassSurface
             intensity="strong"
-            className="relative z-10 flex max-h-[calc(100dvh-1rem)] min-w-0 w-full flex-col overflow-hidden rounded-[24px] border border-white/15 sm:max-h-[90dvh] sm:max-w-lg sm:rounded-[28px]"
+            className="relative z-10 flex max-h-[calc(100dvh-1rem)] min-w-0 w-full flex-col overflow-hidden rounded-[24px] border border-white/15 sm:max-h-[90dvh] sm:max-w-2xl sm:rounded-[28px]"
           >
             <div className="flex items-center justify-between border-b border-white/10 px-4 py-4 sm:px-6">
               <h3 className="text-lg font-semibold text-white">
@@ -617,7 +621,7 @@ export function FormFieldEditor({
                     value={editingField.label}
                     onChange={(e) => updateDraft({ label: e.target.value })}
                     placeholder="e.g., First name"
-                    className="admin-input w-full"
+                    className="admin-input h-11 w-full rounded-2xl px-4"
                   />
                 </div>
 
@@ -629,7 +633,7 @@ export function FormFieldEditor({
                       value={editingField.placeholder ?? ""}
                       onChange={(e) => updateDraft({ placeholder: e.target.value || null })}
                       placeholder="e.g., Enter your name"
-                      className="admin-input w-full"
+                      className="admin-input h-11 w-full rounded-2xl px-4"
                     />
                   </div>
                   <div>
@@ -639,7 +643,7 @@ export function FormFieldEditor({
                       value={editingField.helpText ?? ""}
                       onChange={(e) => updateDraft({ helpText: e.target.value || null })}
                       placeholder="Short hint for the user"
-                      className="admin-input w-full"
+                      className="admin-input h-11 w-full rounded-2xl px-4"
                     />
                   </div>
                 </div>
@@ -672,7 +676,7 @@ export function FormFieldEditor({
                     value={editingField.defaultValue ?? ""}
                     onChange={(e) => updateDraft({ defaultValue: e.target.value || null })}
                     placeholder="Pre-fill value (optional)"
-                    className="admin-input w-full"
+                    className="admin-input h-11 w-full rounded-2xl px-4"
                   />
                 </div>
 
@@ -872,7 +876,7 @@ export function FormFieldEditor({
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-2 border-t border-white/10 px-4 py-4 pb-[max(1rem,env(safe-area-inset-bottom))] sm:flex sm:items-center sm:justify-end sm:px-6">
+            <div className="grid grid-cols-2 gap-2 border-t border-white/10 bg-black/15 px-4 py-4 pb-[max(1rem,env(safe-area-inset-bottom))] sm:flex sm:items-center sm:justify-end sm:px-6">
               <SmoothButton variant="ghost" onClick={closeEditor}>
                 Cancel
               </SmoothButton>
@@ -880,7 +884,7 @@ export function FormFieldEditor({
                 variant="primary"
                 icon={<Save className="h-4 w-4" />}
                 loading={saving}
-                disabled={!editingField.label.trim()}
+                className="min-h-11 min-w-36 shadow-[0_12px_30px_rgba(124,58,237,0.28)]"
                 onClick={() => handleSave(editingField)}
               >
                 {isCreating ? "Add question" : "Save changes"}

@@ -1,7 +1,7 @@
 "use client";
 
-import { useId, useMemo, useRef, useState } from "react";
-import { Check, ChevronDown, LoaderCircle, Search, X } from "lucide-react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
+import { Check, ChevronDown, ChevronUp, LoaderCircle, Search, X } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { ResponsivePopover } from "./ResponsivePopover";
 import { TeamAvatar } from "./TeamAvatar";
@@ -28,6 +28,7 @@ export function LeadOwnerQuickAssign({
 }) {
   const listboxId = useId();
   const buttonRef = useRef<HTMLButtonElement>(null);
+  const listRef = useRef<HTMLDivElement>(null);
   const [assignedTo, setAssignedTo] = useState(initialAssignedTo ?? "");
   const [savedAssignedTo, setSavedAssignedTo] = useState(initialAssignedTo ?? "");
   const [isOpen, setIsOpen] = useState(false);
@@ -35,6 +36,8 @@ export function LeadOwnerQuickAssign({
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState("");
   const [hasError, setHasError] = useState(false);
+  const [canScrollUp, setCanScrollUp] = useState(false);
+  const [canScrollDown, setCanScrollDown] = useState(false);
   const selectedOption = assigneeOptions.find((option) => option.value === assignedTo) ?? null;
   const selectedLabel = selectedOption?.label ?? (assignedTo || "Unassigned");
   const filteredOptions = useMemo(() => {
@@ -49,6 +52,28 @@ export function LeadOwnerQuickAssign({
         .includes(normalizedQuery),
     );
   }, [assigneeOptions, query]);
+
+  function updateScrollAffordance() {
+    const list = listRef.current;
+    if (!list) return;
+    setCanScrollUp(list.scrollTop > 6);
+    setCanScrollDown(list.scrollTop + list.clientHeight < list.scrollHeight - 6);
+  }
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const frame = requestAnimationFrame(updateScrollAffordance);
+    return () => cancelAnimationFrame(frame);
+  }, [filteredOptions.length, isOpen]);
+
+  function scrollOwnerList(direction: -1 | 1) {
+    const list = listRef.current;
+    if (!list) return;
+    list.scrollBy({
+      behavior: "smooth",
+      top: direction * Math.max(144, list.clientHeight * 0.62),
+    });
+  }
 
   function closePopover() {
     setIsOpen(false);
@@ -125,7 +150,7 @@ export function LeadOwnerQuickAssign({
           className={cn(
             "group flex w-full min-w-0 items-center justify-between gap-2 border border-white/12 bg-white/[0.06] text-left text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.09),0_12px_24px_rgba(0,0,0,0.18)] transition hover:border-white/22 hover:bg-white/[0.09] disabled:cursor-wait disabled:opacity-75",
             variant === "compact"
-              ? "h-11 max-w-full rounded-full py-1 pl-1.5 pr-2.5 sm:h-10 sm:max-w-[13rem]"
+              ? "h-10 max-w-full rounded-full py-1 pl-1.5 pr-2.5 sm:max-w-[13rem]"
               : "h-12 rounded-[18px] py-1.5 pl-2 pr-3",
           )}
           aria-controls={listboxId}
@@ -199,7 +224,25 @@ export function LeadOwnerQuickAssign({
               />
             </label>
 
-            <div className="mt-2 min-h-0 flex-1 overflow-y-auto overscroll-contain pr-1" role="listbox">
+            <div className="relative mt-2 flex min-h-0 flex-1 overflow-hidden rounded-[18px]">
+              {canScrollUp ? (
+                <div className="pointer-events-none absolute inset-x-0 top-0 z-10 flex h-12 items-start justify-center bg-gradient-to-b from-[#070b18] via-[#070b18]/90 to-transparent pt-1">
+                  <button
+                    type="button"
+                    onClick={() => scrollOwnerList(-1)}
+                    className="ld-focus-ring pointer-events-auto inline-flex h-7 w-12 items-center justify-center rounded-full border border-white/12 bg-white/[0.09] text-white/72 shadow-lg backdrop-blur-xl transition hover:bg-white/[0.14] hover:text-white"
+                    aria-label="Scroll to earlier team members"
+                  >
+                    <ChevronUp className="h-4 w-4" />
+                  </button>
+                </div>
+              ) : null}
+              <div
+                ref={listRef}
+                className="ld-popover-scroll min-h-0 flex-1 overflow-y-auto overscroll-contain pr-1"
+                role="listbox"
+                onScroll={updateScrollAffordance}
+              >
               <button
                 type="button"
                 onClick={() => handleAssignedToChange("")}
@@ -244,6 +287,19 @@ export function LeadOwnerQuickAssign({
               ) : (
                 <p className="px-3 py-5 text-sm text-white/64">No matching team member.</p>
               )}
+              </div>
+              {canScrollDown ? (
+                <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 flex h-12 items-end justify-center bg-gradient-to-t from-[#070b18] via-[#070b18]/90 to-transparent pb-1">
+                  <button
+                    type="button"
+                    onClick={() => scrollOwnerList(1)}
+                    className="ld-focus-ring pointer-events-auto inline-flex h-7 w-12 items-center justify-center rounded-full border border-white/12 bg-white/[0.09] text-white/72 shadow-lg backdrop-blur-xl transition hover:bg-white/[0.14] hover:text-white"
+                    aria-label="Scroll to more team members"
+                  >
+                    <ChevronDown className="h-4 w-4" />
+                  </button>
+                </div>
+              ) : null}
             </div>
           </div>
         </ResponsivePopover>

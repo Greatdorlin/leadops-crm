@@ -108,6 +108,19 @@ export function FormCreateStudio() {
           defaultPriority: selectedTemplate.defaultPriority,
           defaultSource: selectedTemplate.defaultSource,
           defaultOwnerId: null,
+          fields: selectedTemplate.fields.map((field, index) => ({
+            ...field,
+            order: index,
+            isRequired: field.isRequired === true,
+            isVisible: true,
+            placeholder: field.placeholder ?? null,
+            helpText: field.helpText ?? null,
+            mapsToLeadField: field.mapsToLeadField ?? null,
+            options: field.options ?? null,
+            validationRules: null,
+            showWhen: null,
+            defaultValue: field.defaultValue ?? null,
+          })),
         }),
       });
 
@@ -117,37 +130,6 @@ export function FormCreateStudio() {
 
       if (!createResponse.ok || !createPayload?.form?.id) {
         throw new Error(createPayload?.error ?? "We couldn't create this form right now.");
-      }
-
-      for (const [index, field] of selectedTemplate.fields.entries()) {
-        const fieldResponse = await fetch(
-          `/api/admin/forms/${createPayload.form.id}/fields`,
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              ...field,
-              order: index,
-              isRequired: field.isRequired === true,
-              isVisible: true,
-              placeholder: field.placeholder ?? null,
-              helpText: field.helpText ?? null,
-              mapsToLeadField: field.mapsToLeadField ?? null,
-              options: field.options ?? null,
-              defaultValue: field.defaultValue ?? null,
-            }),
-          },
-        );
-
-        if (!fieldResponse.ok) {
-          const fieldPayload = (await fieldResponse.json().catch(() => null)) as
-            | { error?: string }
-            | null;
-          throw new Error(
-            fieldPayload?.error ??
-              "The form was created, but its starter fields did not finish saving.",
-          );
-        }
       }
 
       window.location.assign(`${appRoutes.form(createPayload.form.id)}/fields`);

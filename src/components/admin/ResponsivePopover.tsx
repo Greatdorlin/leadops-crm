@@ -162,10 +162,12 @@ export function ResponsivePopover({
         ref={panelRef}
         role="dialog"
         aria-label={ariaLabel}
+        aria-modal={isMobile || undefined}
+        data-responsive-popover="true"
         className={cn(
           "ld-glass-panel fixed z-[150] flex min-h-0 flex-col overflow-hidden border border-white/14 bg-[#070b18]/[0.97] shadow-[0_28px_90px_rgba(0,0,0,0.58),inset_0_1px_0_rgba(255,255,255,0.11)]",
           isMobile
-            ? "inset-x-3 bottom-[max(0.75rem,env(safe-area-inset-bottom))] max-h-[min(82dvh,620px)] rounded-[28px] p-2.5"
+            ? "inset-x-2.5 bottom-[max(0.625rem,env(safe-area-inset-bottom))] max-h-[min(86dvh,680px)] max-w-[calc(100vw-1.25rem)] rounded-[26px] p-2.5"
             : "rounded-[24px] p-2.5",
           className,
         )}

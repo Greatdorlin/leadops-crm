@@ -3,7 +3,7 @@ import { getAdminRequestContext } from "@/lib/admin";
 import { canManageForms } from "@/lib/crm/authz";
 import {
   listForms,
-  createForm,
+  createFormWithFields,
   duplicateForm,
 } from "@/lib/crm/form-builder-store";
 import {
@@ -94,7 +94,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Choose an active default owner." }, { status: 400 });
     }
 
-    const form = await createForm({
+    const created = await createFormWithFields({
       name: parsed.data.name,
       slug: parsed.data.slug,
       description: parsed.data.description,
@@ -112,8 +112,8 @@ export async function POST(request: Request) {
       defaultPriority: parsed.data.defaultPriority,
       defaultSource: parsed.data.defaultSource,
       defaultOwnerId: parsed.data.defaultOwnerId,
-    });
-    return NextResponse.json({ form }, { status: 201 });
+    }, parsed.data.fields);
+    return NextResponse.json(created, { status: 201 });
   } catch (error) {
     if (hasDatabaseErrorCode(error, "23505")) {
       return NextResponse.json(

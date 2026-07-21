@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { formSettingsPayloadSchema } from "@/lib/crm/form-settings-contract";
+import { formCreatePayloadSchema, formSettingsPayloadSchema } from "@/lib/crm/form-settings-contract";
 
 const validSettings = {
   name: "Qualified enquiry",
@@ -60,4 +60,24 @@ test("form settings reject malformed automation and unsafe presentation values",
     }).success,
     false,
   );
+});
+
+test("form creation validates starter fields as one request", () => {
+  const parsed = formCreatePayloadSchema.safeParse({
+    name: "Quote request",
+    slug: "quote-request",
+    defaultStatus: "new",
+    fields: [
+      {
+        fieldType: "text",
+        label: "First name",
+        isRequired: true,
+        isVisible: true,
+        order: 0,
+        mapsToLeadField: "firstName",
+      },
+    ],
+  });
+  assert.equal(parsed.success, true);
+  if (parsed.success) assert.equal(parsed.data.fields.length, 1);
 });

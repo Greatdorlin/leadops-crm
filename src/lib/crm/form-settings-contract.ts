@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { LEAD_PRIORITIES, LEAD_SOURCES } from "@/lib/crm/constants";
 import { autoQualifyRulesSchema } from "@/lib/crm/form-submission-routing";
+import { formFieldPayloadSchema } from "@/lib/crm/form-field-contract";
 import { isSafeImageSource, isSafeNavigationTarget } from "@/lib/security/url-safety";
 
 const optionalImageSourceSchema = z
@@ -79,6 +80,7 @@ export const formCreatePayloadSchema = z.object({
   defaultPriority: z.enum(LEAD_PRIORITIES).default("medium"),
   defaultSource: z.enum(LEAD_SOURCES).default("website_form"),
   defaultOwnerId: z.string().uuid().nullable().default(null),
+  fields: z.array(formFieldPayloadSchema).max(100).default([]),
 });
 
 export const formDuplicatePayloadSchema = z.object({

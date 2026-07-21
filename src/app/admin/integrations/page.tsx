@@ -17,11 +17,11 @@ import {
 } from "@/lib/crm/formatters";
 import { getCrmPageErrorCopy, logCrmPageError } from "@/lib/crm/runtime";
 import type { IntegrationProvider, IntegrationRecord } from "@/lib/crm/types";
-import { hasConfiguredEnvValue } from "@/lib/env-utils";
 import { redirect } from "next/navigation";
 import { leadStore } from "@/lib/storage";
 import { appRoutes } from "@/lib/app-routes";
 import Link from "next/link";
+import { isConnectorConfigured, isConnectorOperationConfigured } from "@/lib/integrations/connector-runtime";
 
 export const dynamic = "force-dynamic";
 
@@ -80,50 +80,7 @@ const providers: Array<{
 ];
 
 function inferFallbackStatus(provider: IntegrationProvider): IntegrationRecord["status"] {
-  if (
-    provider === "facebook" &&
-    hasConfiguredEnvValue(process.env.META_APP_SECRET) &&
-    hasConfiguredEnvValue(process.env.META_PAGE_ACCESS_TOKEN) &&
-    hasConfiguredEnvValue(process.env.META_VERIFY_TOKEN)
-  ) {
-    return "pending_sync";
-  }
-
-  if (
-    provider === "google_sheets" &&
-    hasConfiguredEnvValue(process.env.GOOGLE_SHEETS_SPREADSHEET_ID) &&
-    hasConfiguredEnvValue(process.env.GOOGLE_SHEETS_WORKSHEET_NAME) &&
-    hasConfiguredEnvValue(process.env.GOOGLE_SHEETS_CLIENT_EMAIL) &&
-    hasConfiguredEnvValue(process.env.GOOGLE_SHEETS_PRIVATE_KEY)
-  ) {
-    return "pending_sync";
-  }
-
-  if (
-    provider === "google_ads" &&
-    ((hasConfiguredEnvValue(process.env.GOOGLE_ADS_DEVELOPER_TOKEN) &&
-      hasConfiguredEnvValue(process.env.GOOGLE_ADS_CLIENT_ID) &&
-      hasConfiguredEnvValue(process.env.GOOGLE_ADS_CLIENT_SECRET) &&
-      hasConfiguredEnvValue(process.env.GOOGLE_ADS_REFRESH_TOKEN) &&
-      hasConfiguredEnvValue(process.env.GOOGLE_ADS_CUSTOMER_ID)) ||
-      hasConfiguredEnvValue(process.env.GOOGLE_ADS_WEBHOOK_KEY))
-  ) {
-    return "pending_sync";
-  }
-
-  if (provider === "tiktok" && hasConfiguredEnvValue(process.env.TIKTOK_WEBHOOK_SECRET)) {
-    return "pending_sync";
-  }
-
-  if (
-    provider === "linkedin" &&
-    hasConfiguredEnvValue(process.env.LINKEDIN_CLIENT_SECRET) &&
-    hasConfiguredEnvValue(process.env.LINKEDIN_ACCESS_TOKEN)
-  ) {
-    return "pending_sync";
-  }
-
-  return "not_configured";
+  return isConnectorConfigured(provider) ? "pending_sync" : "not_configured";
 }
 
 export default async function AdminIntegrationsPage({ searchParams }: { searchParams: Promise<{ tab?: string }> }) {
@@ -247,7 +204,9 @@ export default async function AdminIntegrationsPage({ searchParams }: { searchPa
                 {cards.map((card) => (
                   <div key={card.integration.provider} className="space-y-3">
                     <IntegrationHealthCard integration={card.integration} href={card.href} />
-                    {card.action ? (
+                    {card.action &&
+                    isConnectorOperationConfigured(card.integration.provider, card.action.endpoint) &&
+                    !["not_configured", "disabled"].includes(card.integration.status) ? (
                       <AdminActionButton endpoint={card.action.endpoint} label={card.action.label} previewMode={isLocalAdminPreviewEmail(session.user?.email)} />
                     ) : null}
                   </div>

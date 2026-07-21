@@ -3,11 +3,37 @@ import { getAdminRequestContext } from "@/lib/admin";
 import { canManageLeadStages } from "@/lib/crm/authz";
 import {
   archiveLeadStage,
+  deleteLeadStage,
   LeadStageAdminError,
   normalizeAdminLeadStagePayload,
   restoreLeadStage,
   updateLeadStage,
 } from "@/lib/crm/lead-stages-admin";
+
+export async function DELETE(
+  _request: Request,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  const context = await getAdminRequestContext();
+  if (!context) {
+    return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
+  }
+  if (!canManageLeadStages(context)) {
+    return NextResponse.json({ error: "Forbidden." }, { status: 403 });
+  }
+
+  try {
+    const { id } = await params;
+    await deleteLeadStage(id);
+    return NextResponse.json({ deleted: true });
+  } catch (error) {
+    if (error instanceof LeadStageAdminError) {
+      return NextResponse.json({ error: error.message }, { status: error.status });
+    }
+    console.error("[lead-stages:delete]", error);
+    return NextResponse.json({ error: "We couldn't delete this lead stage right now." }, { status: 500 });
+  }
+}
 
 export async function PATCH(
   request: Request,

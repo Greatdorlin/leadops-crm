@@ -277,7 +277,7 @@ export function LeadDataTable({
     );
 
   return (
-    <>
+    <div className="ld-lead-data-table">
       <div className="ld-glass-card ld-glass-soft overflow-hidden rounded-[28px] lg:hidden">
         {leads.map((lead, index) => (
           <article
@@ -577,6 +577,6 @@ export function LeadDataTable({
           </table>
         </div>
       </div>
-    </>
+    </div>
   );
 }

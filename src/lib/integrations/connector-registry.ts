@@ -179,6 +179,14 @@ export const connectorRegistry: ConnectorDefinition[] = [
     description: "Provider-neutral contract ready; deployment adapter required.",
   },
   {
+    id: "official_mailbox",
+    label: "Official team mailbox",
+    category: "communication",
+    availability: "adapter_ready",
+    connectionMethods: ["api_key", "oauth2"],
+    description: "Server-side SMTP foundation for Hostinger or custom mailboxes; Google and Microsoft OAuth adapters can use the same contract.",
+  },
+  {
     id: "whatsapp_business",
     label: "WhatsApp Business",
     category: "communication",

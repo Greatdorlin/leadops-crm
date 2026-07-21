@@ -1,7 +1,9 @@
-import { asc, eq, ne, and } from "drizzle-orm";
+import { asc, count, eq, ne, and, inArray, sql } from "drizzle-orm";
 import { z } from "zod";
 import { getDb } from "@/lib/db/client";
-import { leadStages } from "@/lib/db/schema";
+import { formRules, forms, formSources, leads, leadStages } from "@/lib/db/schema";
+
+const STAGE_COLOR_PATTERN = /^#[0-9a-f]{6}$/i;
 
 export class LeadStageAdminError extends Error {
   constructor(
@@ -57,7 +59,12 @@ export const adminLeadStageSchema = z
   .object({
     name: z.string().trim().min(1, "Stage name is required."),
     key: z.string().trim().optional().nullable(),
-    color: z.string().trim().optional().nullable(),
+    color: z
+      .string()
+      .trim()
+      .regex(STAGE_COLOR_PATTERN, "Choose a valid stage color.")
+      .optional()
+      .nullable(),
     sortOrder: z.coerce.number().int().default(0),
     isWon: z.boolean().optional().default(false),
     isLost: z.boolean().optional().default(false),
@@ -196,4 +203,83 @@ export async function restoreLeadStage(id: string) {
   }
 
   return mapLeadStage(updated);
+}
+
+export interface LeadStageReferenceCounts {
+  leads: number;
+  formSources: number;
+  forms: number;
+  formRules: number;
+}
+
+function totalReferences(counts: LeadStageReferenceCounts) {
+  return counts.leads + counts.formSources + counts.forms + counts.formRules;
+}
+
+export function formatLeadStageDeleteConflict(counts: LeadStageReferenceCounts) {
+  const references = [
+    counts.leads ? `${counts.leads} lead${counts.leads === 1 ? "" : "s"}` : null,
+    counts.formSources ? `${counts.formSources} form source${counts.formSources === 1 ? "" : "s"}` : null,
+    counts.forms ? `${counts.forms} form${counts.forms === 1 ? "" : "s"}` : null,
+    counts.formRules ? `${counts.formRules} automation rule${counts.formRules === 1 ? "" : "s"}` : null,
+  ].filter(Boolean);
+
+  return `This stage is still used by ${references.join(", ")}. Reassign or update them, then try again.`;
+}
+
+export async function deleteLeadStage(id: string) {
+  const db = getDb();
+
+  return db.transaction(async (tx) => {
+    const [stage] = await tx
+      .select({ id: leadStages.id, key: leadStages.key })
+      .from(leadStages)
+      .where(eq(leadStages.id, id))
+      .for("update")
+      .limit(1);
+
+    if (!stage) {
+      throw new LeadStageAdminError("Lead stage not found.", 404);
+    }
+
+    const [leadCount] = await tx.select({ value: count() }).from(leads).where(eq(leads.stageId, id));
+    const [sourceCount] = await tx
+      .select({ value: count() })
+      .from(formSources)
+      .where(eq(formSources.defaultStageId, id));
+    const [formCount] = await tx
+      .select({ value: count() })
+      .from(forms)
+      .where(sql`${forms.defaultStatus} = ${stage.key} or ${forms.autoQualifyRules} @> ${JSON.stringify([{ stageKey: stage.key }])}::jsonb`);
+    const [ruleCount] = await tx
+      .select({ value: count() })
+      .from(formRules)
+      .where(
+        and(
+          inArray(formRules.actionType, ["set_stage", "set_status"]),
+          eq(formRules.actionValue, stage.key),
+        ),
+      );
+
+    const references: LeadStageReferenceCounts = {
+      leads: Number(leadCount?.value ?? 0),
+      formSources: Number(sourceCount?.value ?? 0),
+      forms: Number(formCount?.value ?? 0),
+      formRules: Number(ruleCount?.value ?? 0),
+    };
+
+    if (totalReferences(references) > 0) {
+      throw new LeadStageAdminError(formatLeadStageDeleteConflict(references), 409);
+    }
+
+    const [deleted] = await tx
+      .delete(leadStages)
+      .where(eq(leadStages.id, id))
+      .returning({ id: leadStages.id });
+    if (!deleted) {
+      throw new LeadStageAdminError("Lead stage not found.", 404);
+    }
+
+    return deleted;
+  });
 }

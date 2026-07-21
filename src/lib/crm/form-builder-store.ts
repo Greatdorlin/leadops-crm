@@ -82,6 +82,33 @@ export async function deleteForm(id: string): Promise<boolean> {
   return rows.length > 0;
 }
 
+export async function createFormWithFields(
+  input: Omit<NewFormRow, "id" | "createdAt" | "updatedAt">,
+  fieldsInput: Array<Omit<NewFormFieldRow, "id" | "formId" | "createdAt" | "updatedAt">>,
+): Promise<{ form: FormRow; fields: FormFieldRow[] }> {
+  const db = getDb();
+
+  return db.transaction(async (tx) => {
+    const [form] = await tx.insert(forms).values(input).returning();
+    if (!form) {
+      throw new Error("Form creation did not return a record.");
+    }
+
+    const fields = fieldsInput.length > 0
+      ? await tx
+          .insert(formFields)
+          .values(fieldsInput.map((field) => ({ ...field, formId: form.id })))
+          .returning()
+      : [];
+
+    if (fields.length !== fieldsInput.length) {
+      throw new Error("Starter fields were not saved completely.");
+    }
+
+    return { form, fields };
+  });
+}
+
 function remapFormFieldReferences(value: unknown, fieldIdMap: Map<string, string>): unknown {
   if (typeof value === "string") {
     return fieldIdMap.get(value) ?? value;

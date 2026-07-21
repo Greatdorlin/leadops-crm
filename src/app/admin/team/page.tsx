@@ -102,8 +102,8 @@ export default async function AdminTeamPage() {
         </>
       }
     >
-      <div className="space-y-6">
-        <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
+      <div className="max-w-full min-w-0 space-y-6 overflow-x-clip">
+        <section className="grid min-w-0 gap-3 md:grid-cols-2 xl:grid-cols-5 [&>*]:min-w-0">
           <MetricCard
             label="Active reps"
             value={safeNumber(teamRows.length)}
@@ -134,15 +134,66 @@ export default async function AdminTeamPage() {
           />
         </section>
 
-        <section className="grid gap-6 xl:grid-cols-[minmax(0,1.45fr)_minmax(320px,0.9fr)]">
-          <div>
+        <section className="grid min-w-0 max-w-full gap-6 xl:grid-cols-[minmax(0,1.45fr)_minmax(320px,0.9fr)]">
+          <div className="min-w-0 max-w-full">
             <GlassSurface as="section" className="min-w-0 max-w-full overflow-hidden rounded-[28px] p-5 md:p-6 ld-animate-fade-in-up">
               <SectionHeader
                 eyebrow="Sales rep performance"
                 title="Rep performance"
                 description="See who is carrying the queue, where follow-ups are slipping, and who has room for more."
               />
-              <div className="ld-scroll-region mt-4 overflow-x-auto rounded-[22px] border border-white/10 bg-[color:color-mix(in_srgb,var(--ld-color-background)_94%,#060812_6%)]">
+              {teamRows.length > 0 ? (
+                <div className="mt-4 grid gap-3 md:hidden">
+                  {teamRows.map((row) => (
+                    <article
+                      key={row.id}
+                      className="min-w-0 rounded-[20px] border border-white/10 bg-white/[0.045] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.07)]"
+                    >
+                      <div className="flex min-w-0 items-center gap-3">
+                        <TeamAvatar
+                          name={row.fullName}
+                          email={row.email}
+                          avatarUrl={row.avatarUrl}
+                          size="sm"
+                        />
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate font-semibold text-white">{row.fullName || row.email}</p>
+                          <p className="truncate text-xs text-white/58">{row.email}</p>
+                        </div>
+                        <span className="shrink-0 rounded-full border border-white/10 bg-white/[0.06] px-2.5 py-1 text-[11px] font-semibold text-white/68">
+                          {crmLabelize(row.accessLevel)}
+                        </span>
+                      </div>
+                      <dl className="mt-4 grid grid-cols-2 gap-2">
+                        {[
+                          ["Assigned", row.assignedLeads],
+                          ["Open tasks", row.openTasks],
+                          ["Overdue", row.overdueTasks],
+                          ["Won", row.convertedLeads],
+                        ].map(([label, value]) => (
+                          <div
+                            key={label}
+                            className="min-w-0 rounded-[15px] border border-white/[0.07] bg-black/10 px-3 py-2.5"
+                          >
+                            <dt className="truncate text-[10px] font-semibold uppercase tracking-[0.12em] text-white/48">
+                              {label}
+                            </dt>
+                            <dd className="mt-1 text-lg font-semibold tabular-nums text-white">{value}</dd>
+                          </div>
+                        ))}
+                      </dl>
+                    </article>
+                  ))}
+                </div>
+              ) : (
+                <div className="mt-4 md:hidden">
+                  <EmptyState
+                    title="No sales team activity yet"
+                    description="Rep performance will appear here once leads and tasks are assigned."
+                  />
+                </div>
+              )}
+              <div className="ld-scroll-region mt-4 hidden overflow-x-auto rounded-[22px] border border-white/10 bg-[color:color-mix(in_srgb,var(--ld-color-background)_94%,#060812_6%)] md:block">
                 {teamRows.length > 0 ? (
                   <table className="ld-readable-table min-w-[760px] text-left text-sm">
                     <thead className="border-b border-white/10 text-white/60">
@@ -207,8 +258,8 @@ export default async function AdminTeamPage() {
             </GlassSurface>
           </div>
 
-          <div className="space-y-6">
-            <GlassSurface as="section" className="rounded-[28px] p-5 md:p-6 ld-animate-fade-in-up">
+          <div className="min-w-0 max-w-full space-y-6">
+            <GlassSurface as="section" className="min-w-0 max-w-full overflow-hidden rounded-[28px] p-5 md:p-6 ld-animate-fade-in-up">
               <SectionHeader
                 eyebrow="Pressure points"
                 title="Follow-up pressure"
@@ -235,7 +286,7 @@ export default async function AdminTeamPage() {
               </div>
             </GlassSurface>
 
-            <GlassSurface as="section" className="rounded-[28px] p-5 md:p-6 ld-animate-fade-in-up">
+            <GlassSurface as="section" className="min-w-0 max-w-full overflow-hidden rounded-[28px] p-5 md:p-6 ld-animate-fade-in-up">
               <SectionHeader
                 eyebrow="Task assignment"
                 title="Who needs attention"

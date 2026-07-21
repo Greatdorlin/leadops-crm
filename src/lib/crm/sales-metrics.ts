@@ -75,6 +75,7 @@ export interface SalesDashboardSummary {
         progressPercent: number;
         periodLabel: string;
         currency: string;
+        progressAvailable: boolean;
       }
     | null;
 }
@@ -153,10 +154,20 @@ export function mergeSalesDashboardSummary(
   input: {
     intakeEvents?: IntakeEventAdminRow[];
     activeTarget?: AdminSalesTargetRecord | null;
+    workspaceCurrency?: string;
+    targetExchangeRate?: number | null;
   } = {},
 ): SalesDashboardSummary {
   const intakeEvents = input.intakeEvents ?? [];
   const activeTarget = input.activeTarget ?? null;
+  const targetExchangeRate = activeTarget
+    ? activeTarget.currency === (input.workspaceCurrency ?? activeTarget.currency)
+      ? 1
+      : input.targetExchangeRate ?? null
+    : null;
+  const targetWonValue = targetExchangeRate === null
+    ? 0
+    : roundMoney(aggregate.wonValue * targetExchangeRate);
 
   return {
     ...aggregate,
@@ -167,14 +178,15 @@ export function mergeSalesDashboardSummary(
           id: activeTarget.id,
           name: activeTarget.name,
           targetValue: activeTarget.targetValue,
-          wonValue: aggregate.wonValue,
-          remainingValue: roundMoney(Math.max(0, activeTarget.targetValue - aggregate.wonValue)),
+          wonValue: targetWonValue,
+          remainingValue: roundMoney(Math.max(0, activeTarget.targetValue - targetWonValue)),
           progressPercent:
-            activeTarget.targetValue > 0
-              ? Number.parseFloat(((aggregate.wonValue / activeTarget.targetValue) * 100).toFixed(1))
+            activeTarget.targetValue > 0 && targetExchangeRate !== null
+              ? Number.parseFloat(((targetWonValue / activeTarget.targetValue) * 100).toFixed(1))
               : 0,
           periodLabel: formatTargetPeriodLabel(activeTarget),
           currency: activeTarget.currency,
+          progressAvailable: targetExchangeRate !== null,
         }
       : null,
   };
@@ -293,6 +305,8 @@ export function buildSalesDashboardSummary(input: {
   users: CrmUserRecord[];
   intakeEvents?: IntakeEventAdminRow[];
   activeTarget?: AdminSalesTargetRecord | null;
+  workspaceCurrency?: string;
+  targetExchangeRate?: number | null;
   now?: Date;
 }) : SalesDashboardSummary {
   const now = input.now ?? new Date();
@@ -335,5 +349,7 @@ export function buildSalesDashboardSummary(input: {
   return mergeSalesDashboardSummary(aggregate, {
     activeTarget: input.activeTarget,
     intakeEvents,
+    workspaceCurrency: input.workspaceCurrency,
+    targetExchangeRate: input.targetExchangeRate,
   });
 }

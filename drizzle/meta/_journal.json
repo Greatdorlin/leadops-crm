@@ -127,6 +127,13 @@
       "when": 1784370839270,
       "tag": "0017_approved_domain_registration",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1784658007547,
+      "tag": "0018_marvelous_alice",
+      "breakpoints": true
     }
   ]
 }

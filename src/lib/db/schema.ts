@@ -221,7 +221,7 @@ export const leadCustomFieldValues = pgTable(
     id: uuid("id").defaultRandom().primaryKey(),
     leadId: uuid("lead_id")
       .notNull()
-      .references(() => leads.id, { onDelete: "cascade" }),
+      .references(() => leads.id, { onDelete: "restrict" }),
     customFieldId: uuid("custom_field_id")
       .notNull()
       .references(() => customFields.id, { onDelete: "cascade" }),
@@ -602,6 +602,40 @@ export const leadOpportunities = pgTable(
   }),
 );
 
+export const currencyExchangeRates = pgTable(
+  "currency_exchange_rates",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    baseCurrency: text("base_currency").notNull(),
+    quoteCurrency: text("quote_currency").notNull(),
+    rate: numeric("rate", { precision: 18, scale: 8 }).notNull(),
+    source: text("source").notNull().default("manual"),
+    updatedBy: text("updated_by"),
+    fetchedAt: timestamp("fetched_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => ({
+    pairUnique: uniqueIndex("currency_exchange_rates_pair_unique").on(
+      table.baseCurrency,
+      table.quoteCurrency,
+    ),
+    sourceIdx: index("currency_exchange_rates_source_idx").on(table.source),
+    positiveRateCheck: check(
+      "currency_exchange_rates_positive_rate_check",
+      sql`${table.rate} > 0`,
+    ),
+    differentCurrencyCheck: check(
+      "currency_exchange_rates_different_currency_check",
+      sql`${table.baseCurrency} <> ${table.quoteCurrency}`,
+    ),
+    sourceCheck: check(
+      "currency_exchange_rates_source_check",
+      sql`${table.source} in ('manual', 'automatic')`,
+    ),
+  }),
+);
+
 export const crmUsers = pgTable(
   "crm_users",
   {
@@ -625,6 +659,68 @@ export const crmUsers = pgTable(
     branchIdx: index("crm_users_branch_id_idx").on(table.branchId),
     departmentIdx: index("crm_users_department_id_idx").on(table.departmentId),
     teamIdx: index("crm_users_team_id_idx").on(table.teamId),
+  }),
+);
+
+export const paymentClaims = pgTable(
+  "payment_claims",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    leadId: uuid("lead_id")
+      .notNull()
+      .references(() => leads.id, { onDelete: "cascade" }),
+    amount: numeric("amount", { precision: 12, scale: 2 }).notNull(),
+    currency: text("currency").notNull(),
+    status: text("status").notNull().default("pending"),
+    submittedByUserId: uuid("submitted_by_user_id").references(() => crmUsers.id, {
+      onDelete: "set null",
+    }),
+    submittedByEmail: text("submitted_by_email"),
+    reviewedByUserId: uuid("reviewed_by_user_id").references(() => crmUsers.id, {
+      onDelete: "set null",
+    }),
+    reviewedByEmail: text("reviewed_by_email"),
+    reviewedAt: timestamp("reviewed_at", { withTimezone: true }),
+    rejectionReason: text("rejection_reason"),
+    commissionAmount: numeric("commission_amount", { precision: 12, scale: 2 }),
+    commissionRecipientUserId: uuid("commission_recipient_user_id").references(
+      () => crmUsers.id,
+      { onDelete: "set null" },
+    ),
+    commissionConfirmedAt: timestamp("commission_confirmed_at", { withTimezone: true }),
+    commissionConfirmedByUserId: uuid("commission_confirmed_by_user_id").references(
+      () => crmUsers.id,
+      { onDelete: "set null" },
+    ),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => ({
+    leadIdIdx: index("payment_claims_lead_id_idx").on(table.leadId),
+    statusCreatedAtIdx: index("payment_claims_status_created_at_idx").on(
+      table.status,
+      table.createdAt,
+    ),
+    commissionRecipientIdx: index("payment_claims_commission_recipient_idx").on(
+      table.commissionRecipientUserId,
+    ),
+    amountCheck: check("payment_claims_amount_check", sql`${table.amount} > 0`),
+    commissionAmountCheck: check(
+      "payment_claims_commission_amount_check",
+      sql`${table.commissionAmount} is null or ${table.commissionAmount} >= 0`,
+    ),
+    statusCheck: check(
+      "payment_claims_status_check",
+      sql`${table.status} in ('pending', 'approved', 'rejected')`,
+    ),
+    reviewStateCheck: check(
+      "payment_claims_review_state_check",
+      sql`(${table.status} = 'pending' and ${table.reviewedAt} is null) or (${table.status} <> 'pending' and ${table.reviewedAt} is not null)`,
+    ),
+    commissionStateCheck: check(
+      "payment_claims_commission_state_check",
+      sql`${table.commissionConfirmedAt} is null or ${table.status} = 'approved'`,
+    ),
   }),
 );
 
@@ -1124,7 +1220,9 @@ export type LeadIntakeEventRow = typeof leadIntakeEvents.$inferSelect;
 export type NotificationEventRow = typeof notificationEvents.$inferSelect;
 export type SalesTargetRow = typeof salesTargets.$inferSelect;
 export type CompanySettingsRow = typeof companySettings.$inferSelect;
+export type CurrencyExchangeRateRow = typeof currencyExchangeRates.$inferSelect;
 export type CrmUserRow = typeof crmUsers.$inferSelect;
+export type PaymentClaimRow = typeof paymentClaims.$inferSelect;
 export type LeadEventRow = typeof leadEvents.$inferSelect;
 export type LeadNoteRow = typeof leadNotes.$inferSelect;
 export type LeadTaskRow = typeof leadTasks.$inferSelect;

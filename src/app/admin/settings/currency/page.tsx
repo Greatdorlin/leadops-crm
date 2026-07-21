@@ -8,6 +8,7 @@ import { getAdminAccessContext } from "@/lib/admin";
 import { isLocalAdminPreviewEmail } from "@/lib/admin-access";
 import { appRoutes } from "@/lib/app-routes";
 import { canManageCurrencySettings } from "@/lib/crm/authz";
+import { listCurrencyExchangeRates } from "@/lib/crm/currency-exchange";
 import { getCompanySettings } from "@/lib/crm/workspace-settings-server";
 import { getCrmPageErrorCopy, logCrmPageError } from "@/lib/crm/runtime";
 import { resolveStoredWorkspaceSettings } from "@/lib/crm/workspace-settings";
@@ -23,12 +24,17 @@ export default async function CurrencySettingsPage() {
   }
 
   let settings = null;
+  let exchangeRates = null;
   let pageError: unknown = null;
 
   if (isLocalAdminPreviewEmail(session.user?.email)) {
     settings = resolveStoredWorkspaceSettings(null);
+    exchangeRates = [];
   } else try {
-    settings = await getCompanySettings();
+    [settings, exchangeRates] = await Promise.all([
+      getCompanySettings(),
+      listCurrencyExchangeRates(),
+    ]);
   } catch (error) {
     logCrmPageError("settings-currency", error);
     pageError = error;
@@ -57,7 +63,11 @@ export default async function CurrencySettingsPage() {
     >
       {settings ? (
         <GlassSurface as="section" intensity="medium" className="rounded-[24px] p-5 sm:p-6 ld-animate-fade-in-up">
-          <CurrencySettingsManager initialGlobalCurrency={settings.globalCurrency} demoMode={isLocalAdminPreviewEmail(session.user?.email)} />
+          <CurrencySettingsManager
+            initialGlobalCurrency={settings.globalCurrency}
+            initialExchangeRates={exchangeRates ?? []}
+            demoMode={isLocalAdminPreviewEmail(session.user?.email)}
+          />
         </GlassSurface>
       ) : (
         <div className="rounded-[24px] border border-rose-300/20 bg-rose-400/[0.055] p-5 text-sm text-rose-100">

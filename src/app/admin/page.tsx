@@ -4,6 +4,7 @@ import { AdminCollapsibleSection } from "@/components/admin/AdminCollapsibleSect
 import { AffiliateDashboardPanel } from "@/components/admin/AffiliateDashboardPanel";
 import { DashboardRecentLeads } from "@/components/admin/DashboardRecentLeads";
 import { DashboardHeroClock } from "@/components/admin/DashboardHeroClock";
+import { FinancePaymentQueue } from "@/components/admin/FinancePaymentQueue";
 import { SalesCommandOverview } from "@/components/admin/SalesCommandOverview";
 import { AdminShell } from "@/components/admin/AdminShell";
 import { ErrorState } from "@/components/admin/ErrorState";
@@ -34,6 +35,8 @@ import {
   mergeSalesDashboardSummary,
 } from "@/lib/crm/sales-metrics";
 import { getResolvedSalesTargetForUser } from "@/lib/crm/sales-targets-admin";
+import { listPaymentClaims } from "@/lib/crm/payment-claims";
+import { resolveExchangeRate } from "@/lib/crm/currency-exchange";
 import { appRoutes } from "@/lib/app-routes";
 import {
   DASHBOARD_WIDGET_KEYS,
@@ -424,6 +427,7 @@ export default async function AdminPage({
         activeTarget: Awaited<ReturnType<typeof getResolvedSalesTargetForUser>>;
         stages: Awaited<ReturnType<typeof listLeadStages>>;
         trend: Awaited<ReturnType<typeof leadStore.getDashboardTrend>>;
+        financeClaims: Awaited<ReturnType<typeof listPaymentClaims>>;
       }
     | null = null;
   let usingDevelopmentDemoData = false;
@@ -432,10 +436,11 @@ export default async function AdminPage({
     pageData = {
       ...buildDevelopmentDashboardData(),
       salesAggregate: null,
+      financeClaims: [],
     };
     usingDevelopmentDemoData = true;
   } else try {
-    const [leads, salesAggregate, tasks, users, intakeEvents, activeTarget, stages, trend] = await Promise.all([
+    const [leads, salesAggregate, tasks, users, intakeEvents, activeTarget, stages, trend, financeClaims] = await Promise.all([
       leadStore.list({
         ...scopedFilters,
         limit: 120,
@@ -456,6 +461,7 @@ export default async function AdminPage({
       getResolvedSalesTargetForUser(crmUser),
       listLeadStages(),
       leadStore.getDashboardTrend(scopedFilters, 14),
+      accessLevel === "finance" ? listPaymentClaims({ limit: 250 }) : Promise.resolve([]),
     ]);
 
     pageData = {
@@ -467,6 +473,7 @@ export default async function AdminPage({
       activeTarget,
       stages,
       trend,
+      financeClaims,
     };
   } catch (error) {
     pageError = error;
@@ -476,6 +483,7 @@ export default async function AdminPage({
       pageData = {
         ...buildDevelopmentDashboardData(),
         salesAggregate: null,
+        financeClaims: [],
       };
       usingDevelopmentDemoData = true;
     }
@@ -516,7 +524,7 @@ export default async function AdminPage({
     );
   }
 
-  const { leads, salesAggregate, tasks, users, intakeEvents, activeTarget, stages, trend } = pageData;
+  const { leads, salesAggregate, tasks, users, intakeEvents, activeTarget, stages, trend, financeClaims } = pageData;
   const welcomeName = getFirstNameLabel(crmUser?.fullName || session.user?.name || session.user?.email);
   const recentLeads = [...leads]
     .sort((left, right) => new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime())
@@ -525,6 +533,9 @@ export default async function AdminPage({
   const workspaceSettings = usingDevelopmentDemoData
     ? resolveStoredWorkspaceSettings(null)
     : await getCompanySettings();
+  const targetExchangeRate = activeTarget && activeTarget.currency !== workspaceSettings.globalCurrency
+    ? await resolveExchangeRate(workspaceSettings.globalCurrency, activeTarget.currency)
+    : 1;
   const dashboardConfig = resolveDashboardConfig(workspaceSettings.dashboard);
   const visibleDashboardWidgetKeys = resolveDashboardWidgetOrder(
     DASHBOARD_WIDGET_KEYS.map((id) => ({ id })),
@@ -569,13 +580,20 @@ export default async function AdminPage({
     };
   });
   const salesDashboardSummary = salesAggregate
-    ? mergeSalesDashboardSummary(salesAggregate, { intakeEvents, activeTarget })
+    ? mergeSalesDashboardSummary(salesAggregate, {
+        intakeEvents,
+        activeTarget,
+        workspaceCurrency: workspaceSettings.globalCurrency,
+        targetExchangeRate,
+      })
     : buildSalesDashboardSummary({
         leads,
         tasks,
         users,
         intakeEvents,
         activeTarget,
+        workspaceCurrency: workspaceSettings.globalCurrency,
+        targetExchangeRate,
       });
   const affiliateDashboardSummary =
     accessLevel === "affiliate"
@@ -645,7 +663,9 @@ export default async function AdminPage({
           </AdminCollapsibleSection>
         ) : null}
 
-        {affiliateDashboardSummary ? (
+        {accessLevel === "finance" ? (
+          <FinancePaymentQueue claims={financeClaims} />
+        ) : affiliateDashboardSummary ? (
           <AffiliateDashboardPanel
             summary={affiliateDashboardSummary}
             currency={salesDashboardSummary.target?.currency ?? workspaceSettings.globalCurrency}
@@ -666,12 +686,12 @@ export default async function AdminPage({
               </Link>
             </div>
             <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-              <MetricCard label="My pipeline" value={`${salesDashboardSummary.target?.currency ?? workspaceSettings.globalCurrency} ${salesDashboardSummary.pipelineValue.toLocaleString()}`} supporting="Open expected value in your queue." />
-              <MetricCard label="My won value" value={`${salesDashboardSummary.target?.currency ?? workspaceSettings.globalCurrency} ${salesDashboardSummary.wonValue.toLocaleString()}`} supporting="Value closed in your reporting view." tone="positive" />
+              <MetricCard label="My pipeline" value={`${workspaceSettings.globalCurrency} ${salesDashboardSummary.pipelineValue.toLocaleString()}`} supporting="Open expected value in your queue." />
+              <MetricCard label="My won value" value={`${workspaceSettings.globalCurrency} ${salesDashboardSummary.wonValue.toLocaleString()}`} supporting="Value closed in your reporting view." tone="positive" />
               <MetricCard label="Converted" value={salesDashboardSummary.wonLeads} supporting="Leads you have closed." tone="positive" />
               <MetricCard
                 label="Target progress"
-                value={salesDashboardSummary.target ? `${salesDashboardSummary.target.progressPercent}%` : "Not set"}
+                value={salesDashboardSummary.target ? salesDashboardSummary.target.progressAvailable ? `${salesDashboardSummary.target.progressPercent}%` : "Rate needed" : "Not set"}
                 supporting={salesDashboardSummary.target?.name ?? "No active target applies to you."}
                 tone={salesDashboardSummary.target ? "accent" : "default"}
               />

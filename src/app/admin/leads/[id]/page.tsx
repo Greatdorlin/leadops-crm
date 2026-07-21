@@ -22,6 +22,7 @@ import { EmptyState } from "@/components/admin/EmptyState";
 import { LeadNoteForm } from "@/components/admin/LeadNoteForm";
 import { LeadQuickNoteDialog } from "@/components/admin/LeadQuickNoteDialog";
 import { LeadOpportunityManager } from "@/components/admin/LeadOpportunityManager";
+import { PaymentClaimForm } from "@/components/admin/PaymentClaimForm";
 import { AdminCollapsibleSection } from "@/components/admin/AdminCollapsibleSection";
 import { AdminDisclosure } from "@/components/admin/AdminDisclosure";
 import { LeadProfileForm } from "@/components/admin/LeadProfileForm";
@@ -41,6 +42,7 @@ import { isLocalAdminPreviewEmail } from "@/lib/admin-access";
 import { appRoutes } from "@/lib/app-routes";
 import {
   canAccessLeadTrash,
+  canManageLeadRecord,
   canSoftDeleteLead,
   canViewLeadRecord,
   canViewTechnicalLeadContext,
@@ -239,6 +241,13 @@ export default async function AdminLeadDetailPage({
   );
   const showAttributionDetails = accessLevel !== "sales_rep";
   const canReassignOwner = canAssignLeads({ accessLevel, permissions, role });
+  const canManageThisLead = canManageLeadRecord(
+    accessLevel,
+    lead,
+    session.user?.email,
+    permissions,
+    crmUser,
+  );
   const visibleUsers =
     accessLevel === "sales_rep"
       ? users.filter((user) => user.email === session.user?.email && user.isActive)
@@ -773,6 +782,16 @@ export default async function AdminLeadDetailPage({
                     defaultCurrency={branchCurrency}
                   />
                 )}
+                {!lead.deletedAt && canManageThisLead ? (
+                  <PaymentClaimForm
+                    leadId={lead.id}
+                    defaultCurrency={branchCurrency}
+                    recipientOptions={visibleUsers.map((user) => ({
+                      value: user.id,
+                      label: user.fullName || user.email,
+                    }))}
+                  />
+                ) : null}
               </div>
             </section>
 

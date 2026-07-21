@@ -3,6 +3,7 @@ import { z } from "zod";
 import type { SalesTarget, SalesTargetPeriod, SalesTargetScope } from "@/lib/crm/domain";
 import { SALES_TARGET_PERIODS, SALES_TARGET_SCOPES } from "@/lib/crm/domain";
 import { getDb } from "@/lib/db/client";
+import { isSupportedCurrency } from "@/lib/currency";
 import { branches, crmUsers, departments, salesTargets, teams } from "@/lib/db/schema";
 
 export class SalesTargetAdminError extends Error {
@@ -60,7 +61,7 @@ export const adminSalesTargetSchema = z
     scopeId: z.string().trim().optional().nullable(),
     period: z.enum(SALES_TARGET_PERIODS),
     targetValue: z.coerce.number().positive("Target value must be greater than zero."),
-    currency: z.string().trim().min(3).max(8).default("USD"),
+    currency: z.string().trim().transform((value) => value.toUpperCase()).refine(isSupportedCurrency, "Choose a supported currency.").default("USD"),
     startDate: z.string().trim().min(1, "Start date is required."),
     endDate: z.string().trim().min(1, "End date is required."),
     isActive: z.boolean().optional().default(true),

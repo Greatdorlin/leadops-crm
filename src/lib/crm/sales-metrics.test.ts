@@ -165,3 +165,65 @@ test("sales dashboard summary tracks overdue follow-ups, source performance, and
   assert.equal(summary.target?.progressPercent, 30);
   assert.equal(summary.target?.remainingValue, 350000);
 });
+
+test("cross-currency target progress converts value instead of relabelling it", () => {
+  const activeTarget: AdminSalesTargetRecord = {
+    id: "usd-target",
+    name: "Employee USD target",
+    scope: "user",
+    scopeId: "user-1",
+    period: "monthly",
+    targetValue: 100,
+    currency: "USD",
+    startDate: "2026-06-01",
+    endDate: "2026-06-30",
+    isActive: true,
+    archived: false,
+    createdAt: "2026-06-01T00:00:00.000Z",
+    updatedAt: "2026-06-01T00:00:00.000Z",
+  };
+  const summary = buildSalesDashboardSummary({
+    leads: [createLead({ crmStatus: "converted", wonAt: "2026-06-17T10:00:00.000Z", wonValue: 100_000 })],
+    tasks: [],
+    users: [createUser()],
+    activeTarget,
+    workspaceCurrency: "NGN",
+    targetExchangeRate: 0.00065,
+    now: new Date("2026-06-18T12:00:00.000Z"),
+  });
+
+  assert.equal(summary.wonValue, 100_000);
+  assert.equal(summary.target?.wonValue, 65);
+  assert.equal(summary.target?.progressPercent, 65);
+  assert.equal(summary.target?.progressAvailable, true);
+});
+
+test("cross-currency target progress fails closed when no rate is stored", () => {
+  const activeTarget: AdminSalesTargetRecord = {
+    id: "usd-target-no-rate",
+    name: "Employee USD target",
+    scope: "user",
+    scopeId: "user-1",
+    period: "monthly",
+    targetValue: 100,
+    currency: "USD",
+    startDate: "2026-06-01",
+    endDate: "2026-06-30",
+    isActive: true,
+    archived: false,
+    createdAt: "2026-06-01T00:00:00.000Z",
+    updatedAt: "2026-06-01T00:00:00.000Z",
+  };
+  const summary = buildSalesDashboardSummary({
+    leads: [createLead({ crmStatus: "converted", wonAt: "2026-06-17T10:00:00.000Z", wonValue: 100_000 })],
+    tasks: [],
+    users: [createUser()],
+    activeTarget,
+    workspaceCurrency: "NGN",
+    targetExchangeRate: null,
+    now: new Date("2026-06-18T12:00:00.000Z"),
+  });
+
+  assert.equal(summary.target?.progressAvailable, false);
+  assert.equal(summary.target?.progressPercent, 0);
+});

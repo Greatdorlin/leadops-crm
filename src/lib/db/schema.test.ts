@@ -4,6 +4,7 @@ import { getTableColumns } from "drizzle-orm";
 import {
   branches,
   companySettings,
+  currencyExchangeRates,
   crmUsers,
   customFieldOptions,
   customFields,
@@ -13,6 +14,7 @@ import {
   leadCustomFieldValues,
   leadIntakeEvents,
   leadOpportunities,
+  paymentClaims,
   leadSources,
   leadStages,
   leads,
@@ -83,6 +85,19 @@ test("phase 2C additive schema exports the first neutral tables", () => {
     "archived",
     "createdAt",
     "updatedAt",
+  ]);
+});
+
+test("currency and finance persistence stays additive and auditable", () => {
+  assert.deepEqual(Object.keys(getTableColumns(currencyExchangeRates)), [
+    "id", "baseCurrency", "quoteCurrency", "rate", "source", "updatedBy",
+    "fetchedAt", "createdAt", "updatedAt",
+  ]);
+  assert.deepEqual(Object.keys(getTableColumns(paymentClaims)), [
+    "id", "leadId", "amount", "currency", "status", "submittedByUserId",
+    "submittedByEmail", "reviewedByUserId", "reviewedByEmail", "reviewedAt",
+    "rejectionReason", "commissionAmount", "commissionRecipientUserId",
+    "commissionConfirmedAt", "commissionConfirmedByUserId", "createdAt", "updatedAt",
   ]);
 });
 

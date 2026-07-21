@@ -203,7 +203,7 @@ export function SalesCommandOverview({
   const widgetSet = new Set(visibleWidgets ?? []);
   const showAll = widgetSet.size === 0;
   const showWidget = (key: DashboardWidgetKey) => showAll || widgetSet.has(key);
-  const currency = summary.target?.currency ?? workspaceCurrency;
+  const currency = workspaceCurrency;
   const claimedStageRows = new Set<number>();
   const configuredStagePerformance = stageDefinitions.map((definition) => {
     const rowIndex = summary.stagePerformance.findIndex((row, index) => {
@@ -325,7 +325,7 @@ export function SalesCommandOverview({
       {showTargetProgress ? (
         <DashboardTargetCelebration
           target={
-            summary.target
+            summary.target?.progressAvailable
               ? {
                   id: summary.target.id,
                   name: summary.target.name,
@@ -421,7 +421,9 @@ export function SalesCommandOverview({
                 <span className="text-white/70">Remaining</span>
                 <span className="font-semibold text-white">
                   {summary.target ? (
-                    formatShortMoney(summary.target.remainingValue, currency)
+                    summary.target.progressAvailable
+                      ? formatShortMoney(summary.target.remainingValue, summary.target.currency)
+                      : "Rate needed"
                   ) : (
                     <Link href={salesTargetHref} className="text-white hover:text-[var(--ld-color-accent)]">
                       Set a target
@@ -644,20 +646,26 @@ export function SalesCommandOverview({
             >
               {summary.target ? (
                 <div className="grid gap-4">
-                  <CompactProgressRow
-                    label={summary.target.name}
-                    value={formatShortMoney(summary.target.targetValue, summary.target.currency)}
-                    meta={summary.target.periodLabel}
-                    percent={Math.min(summary.target.progressPercent, 100)}
-                    tone={summary.target.progressPercent >= 100 ? "success" : "warning"}
-                  />
-                  <CompactProgressRow
-                    label="Won so far"
-                    value={formatShortMoney(summary.target.wonValue, summary.target.currency)}
-                    meta={`${formatShortMoney(summary.target.remainingValue, summary.target.currency)} remaining`}
-                    percent={Math.min(summary.target.progressPercent, 100)}
-                    tone="success"
-                  />
+                  {summary.target.progressAvailable ? (
+                    <>
+                      <CompactProgressRow
+                        label={summary.target.name}
+                        value={formatShortMoney(summary.target.targetValue, summary.target.currency)}
+                        meta={summary.target.periodLabel}
+                        percent={Math.min(summary.target.progressPercent, 100)}
+                        tone={summary.target.progressPercent >= 100 ? "success" : "warning"}
+                      />
+                      <CompactProgressRow
+                        label="Won so far"
+                        value={formatShortMoney(summary.target.wonValue, summary.target.currency)}
+                        meta={`${formatShortMoney(summary.target.remainingValue, summary.target.currency)} remaining`}
+                        percent={Math.min(summary.target.progressPercent, 100)}
+                        tone="success"
+                      />
+                    </>
+                  ) : (
+                    <EmptyState title="Exchange rate needed" description={`Add the ${workspaceCurrency} to ${summary.target.currency} rate in Currency settings.`} />
+                  )}
                 </div>
               ) : (
                 <EmptyState

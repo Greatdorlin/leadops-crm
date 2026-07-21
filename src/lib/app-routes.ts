@@ -30,7 +30,7 @@ export const appRoutes = {
   settingsBranches: "/settings/branches",
   settingsTeam: "/settings/team",
   settingsRolePermissions: "/settings/role-permissions",
-  form: (id: string) => `/admin/forms/${id}`,
+  form: (id: string) => `/forms/manage/${id}`,
   integrations: "/integrations",
   integration: (slug: string) => `/integrations/${slug}`,
 } as const;

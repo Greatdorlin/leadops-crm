@@ -6,6 +6,7 @@ import { ErrorState } from "@/components/admin/ErrorState";
 import { IntakeEventTable } from "@/components/admin/IntakeEventTable";
 import { MetricCard } from "@/components/admin/MetricCard";
 import { SectionHeader } from "@/components/admin/SectionHeader";
+import { AdminDateTimeInput } from "@/components/admin/AdminDateTimeInput";
 import { getAdminAccessContext } from "@/lib/admin";
 import { isLocalAdminPreviewEmail } from "@/lib/admin-access";
 import { appRoutes } from "@/lib/app-routes";
@@ -144,8 +145,8 @@ export default async function AdminIntakePage({
                 </option>
               ))}
             </select>
-            <input name="dateFrom" type="date" defaultValue={dateFrom} className="admin-input h-11 w-full min-w-0 rounded-2xl px-4 text-sm outline-none" />
-            <input name="dateTo" type="date" defaultValue={dateTo} className="admin-input h-11 w-full min-w-0 rounded-2xl px-4 text-sm outline-none" />
+            <AdminDateTimeInput name="dateFrom" mode="date" defaultValue={dateFrom} className="h-11 rounded-2xl" />
+            <AdminDateTimeInput name="dateTo" mode="date" defaultValue={dateTo} className="h-11 rounded-2xl" />
             <div className="flex gap-2">
               <button type="submit" className="admin-button-primary inline-flex h-11 flex-1 items-center justify-center rounded-2xl px-5 text-sm font-semibold">
                 Apply

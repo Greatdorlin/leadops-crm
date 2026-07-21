@@ -21,7 +21,7 @@ export function AdminSelect({
           backgroundPosition: "0 0",
         }}
         className={cn(
-          "admin-select h-12 w-full min-w-0 appearance-none truncate rounded-[18px] pl-4 pr-12 text-sm outline-none transition-[border-color,background-color,box-shadow] duration-200 hover:border-white/20 hover:bg-white/[0.08]",
+          "admin-select h-12 w-full min-w-0 appearance-none truncate rounded-[18px] pl-4 pr-12 text-sm font-medium tracking-[-0.01em] outline-none transition-[border-color,background-color,box-shadow] duration-200 hover:border-white/20 hover:bg-white/[0.08]",
           "ld-focus-ring",
           className,
         )}

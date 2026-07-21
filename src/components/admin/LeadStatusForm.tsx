@@ -10,6 +10,7 @@ import type { LeadPriority } from "@/lib/crm/types";
 import { AdminSelect } from "./AdminSelect";
 import { InfoTip } from "./ui/InfoTip";
 import { SmoothButton } from "./ui/SmoothButton";
+import { AdminDateTimeInput } from "./AdminDateTimeInput";
 
 const stageKeys = [
   "new",
@@ -252,11 +253,10 @@ export function LeadStatusForm({
 
         <label className="min-w-0 space-y-2">
           <span className="text-xs font-semibold uppercase tracking-[0.16em] text-white/70">Next follow-up</span>
-          <input
-            type="datetime-local"
+          <AdminDateTimeInput
             value={nextFollowUpAt}
             onChange={(event) => setNextFollowUpAt(event.target.value)}
-            className="admin-input ld-focus-ring h-12 w-full min-w-0 max-w-full rounded-2xl px-4 text-sm outline-none"
+            className="h-12 rounded-2xl"
           />
         </label>
 

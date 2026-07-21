@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { cn } from "@/lib/cn";
+import { ActionConfirmationDialog } from "./ActionConfirmationDialog";
 import { GlassSurface } from "@/components/admin/ui/GlassSurface";
 import { SmoothButton } from "@/components/admin/ui/SmoothButton";
 import { GradientText } from "@/components/admin/ui/GradientText";
@@ -177,6 +178,7 @@ export function FormRulesEditor({
   const [isCreating, setIsCreating] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [rulePendingDelete, setRulePendingDelete] = useState<string | null>(null);
 
   const createDraft = (): FormRuleData => {
     const maxOrder = rules.length > 0 ? Math.max(...rules.map((r) => r.order)) : -1;
@@ -211,13 +213,13 @@ export function FormRulesEditor({
   };
 
   const handleDelete = async (ruleId: string) => {
-    if (!confirm("Delete this rule? This cannot be undone.")) return;
     try {
       const res = await fetch(`/api/admin/forms/${formId}/rules/${ruleId}`, {
         method: "DELETE",
       });
       if (!res.ok) throw new Error("Failed to delete rule");
       setRules(rules.filter((r) => r.id !== ruleId));
+      setRulePendingDelete(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Delete failed");
     }
@@ -393,7 +395,10 @@ export function FormRulesEditor({
                     variant="ghost"
                     size="sm"
                     icon={<Trash2 className="h-3.5 w-3.5" />}
-                    onClick={() => handleDelete(rule.id)}
+                    onClick={() => {
+                      setError(null);
+                      setRulePendingDelete(rule.id);
+                    }}
                     className="h-8 w-8 px-0 text-red-400 hover:text-red-300"
                   >
                     <span className="sr-only">Delete</span>
@@ -404,6 +409,17 @@ export function FormRulesEditor({
           ))
         )}
       </div>
+      <ActionConfirmationDialog
+        open={Boolean(rulePendingDelete)}
+        title="Delete this rule?"
+        description="This form logic will stop running immediately and cannot be restored."
+        confirmLabel="Delete rule"
+        error={error ?? undefined}
+        onCancel={() => setRulePendingDelete(null)}
+        onConfirm={() => {
+          if (rulePendingDelete) void handleDelete(rulePendingDelete);
+        }}
+      />
 
       <SmoothButton
         variant="secondary"

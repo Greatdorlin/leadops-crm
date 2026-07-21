@@ -15,16 +15,23 @@ export const bulkLeadWorkflowSchema = z
     action: z.enum(["assign", "stage"]),
     assignedTo: z.string().trim().email().optional(),
     stageId: z.string().uuid().optional(),
-    reason: z.string().trim().min(5, "Add a short reason for this mass change.").max(500),
-    confirmation: z.literal("MAX CHANGE", "Type MAX CHANGE to confirm."),
+    reason: z.string().trim().max(500).optional(),
+    confirmation: z.string().trim().optional(),
   })
   .strict()
   .superRefine((value, context) => {
+    const selectedLeadCount = new Set(value.leadIds).size;
     if (value.action === "assign" && !value.assignedTo) {
       context.addIssue({ code: "custom", message: "Choose a lead owner.", path: ["assignedTo"] });
     }
     if (value.action === "stage" && !value.stageId) {
       context.addIssue({ code: "custom", message: "Choose a lead stage.", path: ["stageId"] });
+    }
+    if (selectedLeadCount > 5 && (value.reason?.length ?? 0) < 5) {
+      context.addIssue({ code: "custom", message: "Add a short reason for this mass change.", path: ["reason"] });
+    }
+    if (selectedLeadCount > 5 && value.confirmation !== "MAX CHANGE") {
+      context.addIssue({ code: "custom", message: "Type MAX CHANGE to confirm.", path: ["confirmation"] });
     }
   });
 
@@ -42,6 +49,8 @@ export async function applyBulkLeadWorkflow(
 ) {
   const parsed = bulkLeadWorkflowSchema.parse(input);
   const leadIds = [...new Set(parsed.leadIds)];
+  const isMassChange = leadIds.length > 5;
+  const changeReason = parsed.reason?.trim() || "Applied from the leads list.";
   const actorEmail = normalizeAdminEmail(context.actorEmail);
   const db = getDb();
 
@@ -133,7 +142,7 @@ export async function applyBulkLeadWorkflow(
         } : stage.isLost || stage.key === "lost" ? {
           wonAt: null,
           lostAt: sql`coalesce(${leads.lostAt}, ${now})`,
-          lostReason: parsed.reason,
+          lostReason: changeReason,
           nextFollowUpAt: null,
         } : {
           wonAt: null,
@@ -156,8 +165,8 @@ export async function applyBulkLeadWorkflow(
       eventType: "bulk_workflow_changed",
       eventData: {
         batchId,
-        massChange: true,
-        reason: parsed.reason,
+        massChange: isMassChange,
+        reason: changeReason,
         action: parsed.action,
         before: parsed.action === "assign" ? lead.assignedTo : lead.stageId,
         after: owner?.email ?? stage?.key ?? null,
@@ -168,16 +177,18 @@ export async function applyBulkLeadWorkflow(
     })));
 
     const actionLabel = owner ? `assigned to ${owner.label}` : `moved to ${stage?.name}`;
-    await tx.insert(notificationEvents).values({
-      type: "bulk_change_completed",
-      channel: "in_app",
-      recipientUserId: null,
-      leadId: null,
-      title: "Mass lead change completed",
-      message: `${actorEmail} ${actionLabel} for ${leadIds.length} leads. Reason: ${parsed.reason}. Batch ${batchId}.`,
-      status: "sent",
-      createdAt: now,
-    });
+    if (isMassChange) {
+      await tx.insert(notificationEvents).values({
+        type: "bulk_change_completed",
+        channel: "in_app",
+        recipientUserId: null,
+        leadId: null,
+        title: "Mass lead change completed",
+        message: `${actorEmail} ${actionLabel} for ${leadIds.length} leads. Reason: ${changeReason}. Batch ${batchId}.`,
+        status: "sent",
+        createdAt: now,
+      });
+    }
 
     if (owner) {
       await tx.insert(notificationEvents).values(rows.map((lead) => ({

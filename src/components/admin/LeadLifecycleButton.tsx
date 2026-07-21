@@ -3,6 +3,7 @@
 import { Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { ActionConfirmationDialog } from "./ActionConfirmationDialog";
 
 const actionCopy = {
   trash: {
@@ -40,14 +41,13 @@ export function LeadLifecycleButton({
 }) {
   const router = useRouter();
   const [isSaving, setIsSaving] = useState(false);
+  const [isConfirming, setIsConfirming] = useState(false);
+  const [error, setError] = useState("");
 
   async function runAction() {
     const copy = actionCopy[action];
-    if (typeof window !== "undefined" && !window.confirm(copy.confirm)) {
-      return;
-    }
-
     setIsSaving(true);
+    setError("");
 
     try {
       const response = await fetch(`/api/admin/leads/${leadId}/trash`, {
@@ -56,12 +56,12 @@ export function LeadLifecycleButton({
 
       if (!response.ok) {
         const payload = (await response.json().catch(() => null)) as { error?: string } | null;
-        if (typeof window !== "undefined") {
-          window.alert(payload?.error ?? "We couldn't update this lead right now.");
-        }
+        setError(payload?.error ?? "We couldn't update this lead right now.");
         setIsSaving(false);
         return;
       }
+
+      setIsConfirming(false);
 
       if (onSuccessHref) {
         router.push(onSuccessHref);
@@ -71,30 +71,47 @@ export function LeadLifecycleButton({
 
       router.refresh();
     } catch {
-      if (typeof window !== "undefined") {
-        window.alert("We couldn't update this lead right now.");
-      }
+      setError("We couldn't update this lead right now.");
     } finally {
       setIsSaving(false);
     }
   }
 
   return (
-    <button
-      type="button"
-      onClick={() => void runAction()}
-      disabled={isSaving}
-      className={className}
-      aria-label={compact ? actionCopy[action].label : undefined}
-      title={compact ? actionCopy[action].label : undefined}
-    >
-      {isSaving ? (
-        actionCopy[action].loading
-      ) : compact && action === "trash" ? (
-        <Trash2 className="h-4 w-4" aria-hidden="true" />
-      ) : (
-        actionCopy[action].label
-      )}
-    </button>
+    <>
+      <button
+        type="button"
+        onClick={() => {
+          setError("");
+          setIsConfirming(true);
+        }}
+        disabled={isSaving}
+        className={className}
+        aria-label={compact ? actionCopy[action].label : undefined}
+        title={compact ? actionCopy[action].label : undefined}
+      >
+        {isSaving ? (
+          actionCopy[action].loading
+        ) : compact && action === "trash" ? (
+          <Trash2 className="h-4 w-4" aria-hidden="true" />
+        ) : (
+          actionCopy[action].label
+        )}
+      </button>
+      <ActionConfirmationDialog
+        open={isConfirming}
+        title={action === "delete" ? "Delete lead forever?" : action === "restore" ? "Restore this lead?" : "Move lead to trash?"}
+        description={actionCopy[action].confirm}
+        confirmLabel={actionCopy[action].label}
+        isPending={isSaving}
+        error={error}
+        tone={action === "restore" ? "primary" : "danger"}
+        onCancel={() => {
+          setError("");
+          setIsConfirming(false);
+        }}
+        onConfirm={() => void runAction()}
+      />
+    </>
   );
 }

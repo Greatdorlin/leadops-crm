@@ -13,6 +13,7 @@ import {
 import { SmoothButton } from "./ui/SmoothButton";
 import { AdminSelect } from "./AdminSelect";
 import { AdminDisclosure } from "./AdminDisclosure";
+import { AdminDateTimeInput } from "./AdminDateTimeInput";
 
 interface TaskOption {
   label: string;
@@ -194,17 +195,16 @@ export function LeadTaskForm({
             </button>
           ))}
         </div>
-        <label className="flex items-center gap-3 rounded-[18px] border border-white/10 bg-white/[0.045] p-3">
-          <CalendarClock className="h-4 w-4 shrink-0 text-white/64" />
-          <input
-            type="datetime-local"
+        <label className="block min-w-0">
+          <span className="sr-only">Exact task due time</span>
+          <AdminDateTimeInput
             value={dueAtLocal}
             min={toLocalDateTimeInputValue(new Date())}
             onChange={(event) => {
               setDueAtLocal(event.target.value);
               setDuePreset(event.target.value ? "custom" : "none");
             }}
-            className="admin-input h-10 min-w-0 flex-1 rounded-[13px] px-3 text-sm"
+            className="h-11 rounded-[16px]"
             aria-label="Exact task due time"
           />
         </label>

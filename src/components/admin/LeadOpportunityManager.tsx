@@ -10,6 +10,7 @@ import {
 } from "@/lib/crm/lead-opportunity-contract";
 import type { LeadOpportunityRecord, LeadOpportunityStatus } from "@/lib/crm/types";
 import { AdminSelect } from "./AdminSelect";
+import { AdminDateTimeInput } from "./AdminDateTimeInput";
 import { InfoTip } from "./ui/InfoTip";
 import { CurrencySelect } from "./CurrencySelect";
 import { useAdminWorkspaceSettings } from "./AdminWorkspaceSettingsProvider";
@@ -489,8 +490,7 @@ export function LeadOpportunityManager({
                   <span className="text-xs font-semibold uppercase tracking-[0.16em] text-white/70">
                     Expected close
                   </span>
-                  <input
-                    type="datetime-local"
+                  <AdminDateTimeInput
                     value={opportunity.expectedCloseDate}
                     onChange={(event) =>
                       updateOpportunity(opportunity.localId, {
@@ -527,7 +527,7 @@ export function LeadOpportunityManager({
                     }
                     required={requiresReason}
                     aria-required={requiresReason}
-                    className={inputClassName()}
+                    className="h-11 rounded-2xl"
                   />
                 </label>
                 <label className="space-y-2 md:col-span-2 xl:col-span-3">

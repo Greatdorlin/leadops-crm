@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import {
   ArrowLeft,
@@ -44,6 +45,7 @@ function buildDraft(template: FormTemplateDefinition): CreateDraft {
 }
 
 export function FormCreateStudio() {
+  const router = useRouter();
   const [draft, setDraft] = useState<CreateDraft>(() =>
     buildDraft(getFormTemplateByKey("sales_inquiry")),
   );
@@ -132,7 +134,8 @@ export function FormCreateStudio() {
         throw new Error(createPayload?.error ?? "We couldn't create this form right now.");
       }
 
-      window.location.assign(`${appRoutes.form(createPayload.form.id)}/fields`);
+      router.push(`${appRoutes.form(createPayload.form.id)}/fields`);
+      router.refresh();
     } catch (caughtError) {
       setError(
         caughtError instanceof Error

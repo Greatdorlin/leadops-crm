@@ -18,6 +18,7 @@ import { CustomFieldValueInputs } from "./CustomFieldValueInputs";
 import { AdminSelect } from "./AdminSelect";
 import { SmoothButton } from "./ui/SmoothButton";
 import { CitySearchInput, CountrySearchInput } from "./CountrySearchInput";
+import { AdminDateTimeInput } from "./AdminDateTimeInput";
 
 const manualSourceOptions: LeadSource[] = ["manual_entry", "agent", "referral"];
 const labelClass = "text-xs font-semibold uppercase tracking-[0.16em] text-white/70";
@@ -368,11 +369,10 @@ export function LeadCaptureForm({
         <div className="grid min-w-0 gap-3 sm:grid-cols-2">
           <label className="min-w-0 space-y-2">
             <span className={labelClass}>Next follow-up</span>
-            <input
-              type="datetime-local"
+            <AdminDateTimeInput
               value={nextFollowUpAt}
               onChange={(event) => setNextFollowUpAt(event.target.value)}
-              className="admin-input ld-focus-ring h-11 w-full rounded-2xl px-4 text-sm outline-none"
+              className="h-11 rounded-2xl"
             />
           </label>
           <label className="min-w-0 space-y-2">
@@ -402,11 +402,10 @@ export function LeadCaptureForm({
           </label>
           <label className="min-w-0 space-y-2">
             <span className={labelClass}>Expected close date</span>
-            <input
-              type="datetime-local"
+            <AdminDateTimeInput
               value={expectedCloseDate}
               onChange={(event) => setExpectedCloseDate(event.target.value)}
-              className="admin-input ld-focus-ring h-11 w-full rounded-2xl px-4 text-sm outline-none"
+              className="h-11 rounded-2xl"
             />
           </label>
         </div>

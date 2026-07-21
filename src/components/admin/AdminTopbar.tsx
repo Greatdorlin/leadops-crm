@@ -79,12 +79,13 @@ export function AdminTopbar({
     workspaceSettings.navigation,
     permissions,
   );
-  const isCollapsed = useSyncExternalStore(
+  const storedCollapseState = useSyncExternalStore(
     subscribeTopbarCollapse,
     getTopbarCollapseSnapshot,
     () => false,
   );
-  const canCollapse = Boolean(searchSlot || canSwitchAccessViews);
+  const canCollapse = activeNav !== "leads" && Boolean(searchSlot || canSwitchAccessViews);
+  const isCollapsed = canCollapse && storedCollapseState;
   const isDashboard = activeNav === "dashboard";
   const useDescriptionTip = Boolean(description && description.length > 48);
 

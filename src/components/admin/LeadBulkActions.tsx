@@ -61,8 +61,9 @@ export function LeadBulkActions({
     () => action === "assign" ? assigneeOptions : stageOptions,
     [action, assigneeOptions, stageOptions],
   );
+  const requiresMassConfirmation = selectedIds.length > 5;
   const canOpen = selectedIds.length > 0 && Boolean(destination);
-  const canSubmit = canOpen && reason.trim().length >= 5 && confirmation === "MAX CHANGE" && !isPending;
+  const canSubmit = canOpen && !isPending && (!requiresMassConfirmation || (reason.trim().length >= 5 && confirmation === "MAX CHANGE"));
 
   function changeAction(nextAction: BulkAction) {
     setAction(nextAction);
@@ -82,8 +83,7 @@ export function LeadBulkActions({
           leadIds: selectedIds,
           action,
           ...(action === "assign" ? { assignedTo: destination } : { stageId: destination }),
-          reason: reason.trim(),
-          confirmation,
+          ...(requiresMassConfirmation ? { reason: reason.trim(), confirmation } : {}),
         }),
       });
       const payload = await response.json().catch(() => null) as { error?: string } | null;
@@ -106,18 +106,14 @@ export function LeadBulkActions({
     <>
       <div className="ld-glass-card ld-glass-soft flex flex-col gap-3 rounded-[24px] p-3 sm:flex-row sm:items-center sm:p-4">
         <div className="flex items-center gap-2">
-          <button type="button" onClick={() => setPageSelection(true)} className="admin-button-secondary inline-flex h-11 items-center justify-center rounded-2xl px-4 text-sm font-semibold">
+          <button type="button" onClick={() => setPageSelection(selectedIds.length === 0)} className="admin-button-secondary inline-flex h-11 items-center justify-center rounded-2xl px-4 text-sm font-semibold">
             <CheckCheck className="h-4 w-4" />
-            Select page
+            {selectedIds.length > 0 ? "Unselect all" : "Select all"}
           </button>
-          {selectedIds.length > 0 ? (
-            <button type="button" onClick={() => setPageSelection(false)} className="ld-focus-ring h-11 rounded-2xl px-3 text-sm font-medium text-white/70 hover:bg-white/[0.07] hover:text-white">
-              Clear
-            </button>
-          ) : null}
+          {selectedIds.length > 0 ? <span className="inline-flex h-11 items-center rounded-full border border-white/10 bg-white/[0.05] px-3 text-xs font-semibold text-white/68">{selectedIds.length} selected</span> : null}
         </div>
 
-        <div className="grid min-w-0 flex-1 gap-2 sm:grid-cols-[150px_minmax(190px,1fr)_auto]">
+        <div className="grid min-w-0 flex-1 gap-2 sm:grid-cols-[140px_minmax(160px,280px)_auto] sm:justify-end">
           <AdminSelect value={action} onChange={(event) => changeAction(event.target.value as BulkAction)} aria-label="Mass change type">
             {allowAssignment ? <option value="assign">Assign owner</option> : null}
             <option value="stage">Change stage</option>
@@ -129,10 +125,10 @@ export function LeadBulkActions({
           <button
             type="button"
             disabled={!canOpen || previewMode}
-            onClick={() => setIsConfirming(true)}
+            onClick={() => requiresMassConfirmation ? setIsConfirming(true) : void initiate()}
             className="admin-button-primary inline-flex h-12 items-center justify-center rounded-[18px] px-5 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-45"
           >
-            {selectedIds.length > 0 ? `${selectedIds.length} selected` : "Select leads"}
+            {isPending ? "Applying..." : "Apply change"}
           </button>
         </div>
       </div>

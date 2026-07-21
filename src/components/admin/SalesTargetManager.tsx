@@ -13,6 +13,7 @@ import { AdminSelect } from "./AdminSelect";
 import { CurrencySelect } from "./CurrencySelect";
 import { InfoTip } from "./ui/InfoTip";
 import { WorkspaceImpactConfirmation } from "./WorkspaceImpactConfirmation";
+import { AdminDateTimeInput } from "./AdminDateTimeInput";
 
 type TargetDraft = {
   name: string;
@@ -298,20 +299,20 @@ function TargetEditor({
         <CurrencySelect value={draft.currency} onChange={(value) => onChange({ ...draft, currency: value })} label="Currency" />
         <label className="space-y-2">
           <span className="text-xs font-semibold uppercase tracking-[0.16em] text-white/52">Start date</span>
-          <input
-            type="date"
+          <AdminDateTimeInput
+            mode="date"
             value={draft.startDate}
             onChange={(event) => onChange({ ...draft, startDate: event.target.value })}
-            className="admin-input h-11 w-full rounded-2xl px-4 text-sm outline-none"
+            className="h-11 rounded-2xl"
           />
         </label>
         <label className="space-y-2">
           <span className="text-xs font-semibold uppercase tracking-[0.16em] text-white/52">End date</span>
-          <input
-            type="date"
+          <AdminDateTimeInput
+            mode="date"
             value={draft.endDate}
             onChange={(event) => onChange({ ...draft, endDate: event.target.value })}
-            className="admin-input h-11 w-full rounded-2xl px-4 text-sm outline-none"
+            className="h-11 rounded-2xl"
           />
         </label>
         <label className="inline-flex items-center justify-between gap-3 rounded-2xl border border-white/10 bg-white/[0.045] px-4 py-3 text-sm font-semibold text-white/72 sm:col-span-2">

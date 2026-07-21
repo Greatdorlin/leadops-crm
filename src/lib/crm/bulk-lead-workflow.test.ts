@@ -3,22 +3,38 @@ import test from "node:test";
 import { bulkLeadWorkflowSchema } from "@/lib/crm/bulk-lead-workflow";
 
 const leadIds = ["2511d6ef-cdfa-4b9f-8660-f5a73a7a22d5"];
+const massLeadIds = [
+  "2511d6ef-cdfa-4b9f-8660-f5a73a7a22d5",
+  "2511d6ef-cdfa-4b9f-8660-f5a73a7a22d6",
+  "2511d6ef-cdfa-4b9f-8660-f5a73a7a22d7",
+  "2511d6ef-cdfa-4b9f-8660-f5a73a7a22d8",
+  "2511d6ef-cdfa-4b9f-8660-f5a73a7a22d9",
+  "2511d6ef-cdfa-4b9f-8660-f5a73a7a22da",
+];
 
-test("mass lead changes require an exact confirmation and reason", () => {
+test("five or fewer lead changes do not require mass confirmation", () => {
   assert.equal(bulkLeadWorkflowSchema.safeParse({
     leadIds,
     action: "assign",
     assignedTo: "rep@example.com",
-    reason: "Redistribute the inbound queue.",
-    confirmation: "MAX CHANGE",
   }).success, true);
+});
+
+test("mass lead changes require an exact confirmation and reason", () => {
   assert.equal(bulkLeadWorkflowSchema.safeParse({
-    leadIds,
+    leadIds: massLeadIds,
     action: "assign",
     assignedTo: "rep@example.com",
     reason: "Redistribute the inbound queue.",
     confirmation: "max change",
   }).success, false);
+  assert.equal(bulkLeadWorkflowSchema.safeParse({
+    leadIds: massLeadIds,
+    action: "assign",
+    assignedTo: "rep@example.com",
+    reason: "Redistribute the inbound queue.",
+    confirmation: "MAX CHANGE",
+  }).success, true);
 });
 
 test("mass lead changes are bounded and action-specific", () => {

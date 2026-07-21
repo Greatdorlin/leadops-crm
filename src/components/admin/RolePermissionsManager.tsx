@@ -12,6 +12,7 @@ import { cn } from "@/lib/cn";
 import { GlassCard } from "./GlassCard";
 import { InfoTip } from "./ui/InfoTip";
 import { SmoothButton } from "./ui/SmoothButton";
+import { ActionConfirmationDialog } from "./ActionConfirmationDialog";
 
 const ROLE_LABELS: Record<CrmUserRole, string> = {
   admin: "Owner",
@@ -40,6 +41,7 @@ export function RolePermissionsManager({
   const [permissions, setPermissions] = useState(initialPermissions);
   const [saving, setSaving] = useState<Record<string, boolean>>({});
   const [resetting, setResetting] = useState(false);
+  const [isResetConfirming, setIsResetConfirming] = useState(false);
   const [toast, setToast] = useState<{ message: string; error?: boolean } | null>(null);
   const groupedByCategory = PERMISSION_DEFINITIONS.reduce<
     Record<string, Array<(typeof PERMISSION_DEFINITIONS)[number]>>
@@ -100,13 +102,10 @@ export function RolePermissionsManager({
   }
 
   async function resetPermissions() {
-    if (!window.confirm("Reset every role to the Leads Desk defaults?")) {
-      return;
-    }
-
     if (demoMode) {
       setPermissions(initialPermissions);
       showToast("Role defaults restored for this preview.");
+      setIsResetConfirming(false);
       return;
     }
 
@@ -128,6 +127,7 @@ export function RolePermissionsManager({
 
       setPermissions(payload.permissions);
       showToast("Role defaults restored.");
+      setIsResetConfirming(false);
     } catch {
       showToast("Permissions could not be reset.", true);
     } finally {
@@ -144,7 +144,7 @@ export function RolePermissionsManager({
         </div>
         <SmoothButton
           variant="secondary"
-          onClick={() => void resetPermissions()}
+          onClick={() => setIsResetConfirming(true)}
           disabled={resetting}
           icon={<RotateCcw className="h-4 w-4" />}
         >
@@ -236,6 +236,15 @@ export function RolePermissionsManager({
           {toast.message}
         </div>
       ) : null}
+      <ActionConfirmationDialog
+        open={isResetConfirming}
+        title="Reset role permissions?"
+        description="Every role will return to the Leads Desk defaults. Individual user overrides are not changed."
+        confirmLabel="Reset permissions"
+        isPending={resetting}
+        onCancel={() => setIsResetConfirming(false)}
+        onConfirm={() => void resetPermissions()}
+      />
     </div>
   );
 }

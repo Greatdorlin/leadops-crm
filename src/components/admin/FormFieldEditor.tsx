@@ -10,6 +10,7 @@ import { SectionHeader } from "@/components/admin/ui/SectionHeader";
 import { AdminSelect } from "@/components/admin/AdminSelect";
 import { AdminOverlayPortal } from "@/components/admin/AdminOverlayPortal";
 import { appRoutes } from "@/lib/app-routes";
+import { ActionConfirmationDialog } from "./ActionConfirmationDialog";
 import {
   GripVertical,
   Trash2,
@@ -164,6 +165,7 @@ export function FormFieldEditor({
   const [dragOverId, setDragOverId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [fieldPendingDelete, setFieldPendingDelete] = useState<string | null>(null);
 
   const createDraft = useCallback((): FormFieldData => {
     const maxOrder = fields.length > 0 ? Math.max(...fields.map((f) => f.order)) : -1;
@@ -262,13 +264,13 @@ export function FormFieldEditor({
   };
 
   const handleDelete = async (fieldId: string) => {
-    if (!confirm("Delete this field? This cannot be undone.")) return;
     try {
       const res = await fetch(`/api/admin/forms/${formId}/fields/${fieldId}`, {
         method: "DELETE",
       });
       if (!res.ok) throw new Error("Failed to delete field");
       setFields(fields.filter((f) => f.id !== fieldId));
+      setFieldPendingDelete(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Delete failed");
     }
@@ -496,7 +498,10 @@ export function FormFieldEditor({
                     variant="ghost"
                     size="sm"
                     icon={<Trash2 className="h-3.5 w-3.5" />}
-                    onClick={() => handleDelete(field.id)}
+                    onClick={() => {
+                      setError(null);
+                      setFieldPendingDelete(field.id);
+                    }}
                     className="h-8 w-8 px-0 text-red-400 hover:text-red-300"
                   >
                     <span className="sr-only">Delete</span>
@@ -566,6 +571,17 @@ export function FormFieldEditor({
           </Link>
         </aside>
       </div>
+      <ActionConfirmationDialog
+        open={Boolean(fieldPendingDelete)}
+        title="Delete this question?"
+        description="This question and its saved configuration will be removed permanently."
+        confirmLabel="Delete question"
+        error={error ?? undefined}
+        onCancel={() => setFieldPendingDelete(null)}
+        onConfirm={() => {
+          if (fieldPendingDelete) void handleDelete(fieldPendingDelete);
+        }}
+      />
 
       {editingField && canEdit && (
         <AdminOverlayPortal>

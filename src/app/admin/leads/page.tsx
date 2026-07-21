@@ -5,6 +5,7 @@ import { AdminShell } from "@/components/admin/AdminShell";
 import { AdminLeadExportButton } from "@/components/admin/AdminLeadExportButton";
 import { AdminSignOutButton } from "@/components/admin/AdminSignOutButton";
 import { AdminSelect } from "@/components/admin/AdminSelect";
+import { AdminDateTimeInput } from "@/components/admin/AdminDateTimeInput";
 import { ErrorState } from "@/components/admin/ErrorState";
 import { FilterBar } from "@/components/admin/FilterBar";
 import { LeadDataTable } from "@/components/admin/LeadDataTable";
@@ -673,20 +674,20 @@ export default async function AdminLeadsPage({
                 <div className="col-span-full grid gap-3 sm:grid-cols-2 lg:max-w-xl">
                   <label className="space-y-2">
                     <span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/70">Created from</span>
-                    <input
-                      type="date"
+                    <AdminDateTimeInput
+                      mode="date"
                       name="createdFrom"
                       defaultValue={typeof filters.createdFrom === "string" ? filters.createdFrom : ""}
-                      className="admin-input h-12 w-full rounded-[20px] px-4 text-sm outline-none"
+                      className="h-12 rounded-[20px]"
                     />
                   </label>
                   <label className="space-y-2">
                     <span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/70">Created to</span>
-                    <input
-                      type="date"
+                    <AdminDateTimeInput
+                      mode="date"
                       name="createdTo"
                       defaultValue={typeof filters.createdTo === "string" ? filters.createdTo : ""}
-                      className="admin-input h-12 w-full rounded-[20px] px-4 text-sm outline-none"
+                      className="h-12 rounded-[20px]"
                     />
                   </label>
                 </div>

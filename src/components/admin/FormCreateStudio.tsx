@@ -144,7 +144,7 @@ export function FormCreateStudio() {
   }
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-5 pb-24 sm:pb-0">
       <nav aria-label="Form creation progress" className="flex items-center gap-2">
         {STEPS.map((item, index) => (
           <div key={item.number} className="flex min-w-0 flex-1 items-center gap-2">
@@ -296,7 +296,7 @@ export function FormCreateStudio() {
             </div>
           ) : null}
 
-          <div className="mt-6 flex flex-col-reverse gap-3 border-t border-white/10 pt-5 sm:flex-row sm:items-center sm:justify-between">
+          <div className="fixed inset-x-3 bottom-[max(0.75rem,env(safe-area-inset-bottom))] z-50 flex flex-col-reverse gap-3 rounded-[22px] border border-white/14 bg-[color:color-mix(in_srgb,var(--ld-color-background)_86%,transparent)] p-3 shadow-[0_18px_54px_rgba(0,0,0,0.46)] backdrop-blur-2xl sm:static sm:mt-6 sm:flex-row sm:items-center sm:justify-between sm:rounded-none sm:border-x-0 sm:border-b-0 sm:border-t sm:border-white/10 sm:bg-transparent sm:p-0 sm:pt-5 sm:shadow-none sm:backdrop-blur-none">
             {step === 1 ? (
               <Link href={appRoutes.forms} className="text-center text-sm font-semibold text-white/58 hover:text-white">
                 Cancel

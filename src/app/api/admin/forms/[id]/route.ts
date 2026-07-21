@@ -143,7 +143,7 @@ export async function PUT(
 }
 
 export async function DELETE(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
   const context = await getAdminRequestContext();
@@ -156,6 +156,10 @@ export async function DELETE(
   }
 
   const { id } = await params;
+  const payload = (await request.json().catch(() => null)) as { confirmation?: unknown } | null;
+  if (payload?.confirmation !== "DELETE FORM") {
+    return NextResponse.json({ error: "Type DELETE FORM to permanently delete this form." }, { status: 400 });
+  }
   const existing = await getFormById(id);
   if (!existing) {
     return NextResponse.json({ error: "Form not found." }, { status: 404 });

@@ -24,6 +24,15 @@ export function PaymentClaimForm({
   const [message, setMessage] = useState("");
 
   async function submitClaim() {
+    const parsedAmount = Number(amount);
+    if (!amount.trim() || !Number.isFinite(parsedAmount) || parsedAmount <= 0) {
+      setMessage("Enter a payment amount greater than zero before submitting to finance.");
+      return;
+    }
+    if (Boolean(commissionAmount.trim()) !== Boolean(commissionRecipientUserId)) {
+      setMessage("Add both a commission amount and recipient, or leave both empty.");
+      return;
+    }
     setBusy(true);
     setMessage("");
     try {
@@ -67,7 +76,7 @@ export function PaymentClaimForm({
         <label className="min-w-0 space-y-2">
           <span className="text-xs font-semibold uppercase tracking-[0.14em] text-white/65">Amount</span>
           <input
-            className="admin-input h-12 w-full min-w-0 px-4 text-base"
+            className="admin-input h-12 w-full min-w-0 px-5 text-base"
             inputMode="decimal"
             min="0"
             step="0.01"
@@ -105,10 +114,10 @@ export function PaymentClaimForm({
         </label>
       </div>
       <div className="mt-3 flex flex-wrap items-center gap-3">
-        <SmoothButton variant="secondary" size="md" loading={busy} disabled={!amount} onClick={() => void submitClaim()}>
+        <SmoothButton variant="secondary" size="md" loading={busy} disabled={busy} onClick={() => void submitClaim()}>
           Submit to finance
         </SmoothButton>
-        {message ? <p className="text-sm text-white/70">{message}</p> : null}
+        {message ? <p role="status" aria-live="polite" className="text-sm text-white/70">{message}</p> : null}
       </div>
     </div>
   );

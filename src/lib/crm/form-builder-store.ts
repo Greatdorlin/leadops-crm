@@ -70,13 +70,7 @@ export async function updateForm(
 export async function deleteForm(id: string): Promise<boolean> {
   const db = getDb();
   const rows = await db
-    .update(forms)
-    .set({
-      status: "archived",
-      isActive: false,
-      isPublic: false,
-      updatedAt: new Date(),
-    })
+    .delete(forms)
     .where(eq(forms.id, id))
     .returning({ id: forms.id });
   return rows.length > 0;

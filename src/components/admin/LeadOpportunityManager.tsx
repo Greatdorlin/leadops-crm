@@ -2,7 +2,7 @@
 
 import { startTransition, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, RotateCcw, Trash2 } from "lucide-react";
+import { ChevronDown, ChevronUp, Plus, RotateCcw, Trash2 } from "lucide-react";
 import { crmLabelize } from "@/lib/crm/formatters";
 import {
   buildLeadOpportunityRollup,
@@ -101,6 +101,7 @@ export function LeadOpportunityManager({
   const [message, setMessage] = useState("");
   const [createCallTasks, setCreateCallTasks] = useState(true);
   const [callDuePreset, setCallDuePreset] = useState<QuickSchedulePreset>("tomorrow");
+  const [collapsedOffers, setCollapsedOffers] = useState<Set<string>>(new Set());
 
   const rollup = useMemo(
     () =>
@@ -142,6 +143,7 @@ export function LeadOpportunityManager({
 
       return next;
     });
+    setMessage("Offer removed. Save offer tracking to apply this change.");
   }
 
   function addOpportunity() {
@@ -285,6 +287,7 @@ export function LeadOpportunityManager({
             opportunity.status === "unqualified" || opportunity.status === "lost";
           const countsTowardPipeline = isPipelineStatus(opportunity.status);
           const hasValue = opportunity.estimatedValue.trim().length > 0;
+          const isCollapsed = collapsedOffers.has(opportunity.localId);
 
           return (
             <div
@@ -301,6 +304,20 @@ export function LeadOpportunityManager({
                   </p>
                 </div>
                 <div className="flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    aria-expanded={!isCollapsed}
+                    onClick={() => setCollapsedOffers((current) => {
+                      const next = new Set(current);
+                      if (next.has(opportunity.localId)) next.delete(opportunity.localId);
+                      else next.add(opportunity.localId);
+                      return next;
+                    })}
+                    className="inline-flex h-9 items-center justify-center gap-1.5 rounded-full border border-white/10 bg-white/[0.05] px-3 text-xs font-semibold text-white/72 transition hover:bg-white/[0.09] hover:text-white"
+                  >
+                    {isCollapsed ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronUp className="h-3.5 w-3.5" />}
+                    {isCollapsed ? "Expand" : "Collapse"}
+                  </button>
                   <span
                     className={[
                       "inline-flex items-center justify-center rounded-full border px-3 py-1.5 text-xs font-semibold transition",
@@ -330,18 +347,20 @@ export function LeadOpportunityManager({
                   >
                     {opportunity.isPrimary ? "Primary offer" : "Make primary"}
                   </button>
-                  <button
-                    type="button"
-                    onClick={() => removeOpportunity(opportunity.localId)}
-                    className="inline-flex h-9 items-center justify-center gap-1.5 rounded-full border border-rose-300/22 bg-rose-400/10 px-3 text-xs font-semibold text-rose-100 transition hover:bg-rose-400/16"
-                  >
-                    <Trash2 className="h-3.5 w-3.5" />
-                    Remove
-                  </button>
+                  {opportunity.id ? (
+                    <button
+                      type="button"
+                      onClick={() => removeOpportunity(opportunity.localId)}
+                      className="inline-flex h-9 items-center justify-center gap-1.5 rounded-full border border-rose-300/22 bg-rose-400/10 px-3 text-xs font-semibold text-rose-100 transition hover:bg-rose-400/16"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                      Delete
+                    </button>
+                  ) : null}
                 </div>
               </div>
 
-              <div className="grid min-w-0 gap-3 md:grid-cols-2 xl:grid-cols-3">
+              {!isCollapsed ? <div className="grid min-w-0 gap-3 md:grid-cols-2 xl:grid-cols-3">
                 <label className="min-w-0 space-y-2 md:col-span-2 xl:col-span-1">
                   <span className="text-xs font-semibold uppercase tracking-[0.16em] text-white/70">
                     Offer name
@@ -525,7 +544,7 @@ export function LeadOpportunityManager({
                     className="admin-textarea min-h-[104px] w-full rounded-2xl px-4 py-3 text-sm outline-none"
                   />
                 </label>
-              </div>
+              </div> : null}
 
             </div>
           );

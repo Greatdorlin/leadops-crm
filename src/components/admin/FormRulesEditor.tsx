@@ -589,7 +589,7 @@ export function FormRulesEditor({
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-2 border-t border-white/10 px-4 py-4 pb-[max(1rem,env(safe-area-inset-bottom))] sm:flex sm:items-center sm:justify-end sm:px-6">
+            <div className="grid shrink-0 grid-cols-2 gap-2 border-t border-white/10 bg-[color:color-mix(in_srgb,var(--ld-color-background)_88%,transparent)] px-4 py-4 pb-[max(1rem,env(safe-area-inset-bottom))] backdrop-blur-2xl sm:flex sm:items-center sm:justify-end sm:px-6">
               <SmoothButton variant="ghost" onClick={closeEditor}>
                 Cancel
               </SmoothButton>

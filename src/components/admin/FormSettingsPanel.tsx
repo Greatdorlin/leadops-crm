@@ -1,10 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { GlassSurface } from "@/components/admin/ui/GlassSurface";
 import { SmoothButton } from "@/components/admin/ui/SmoothButton";
 import { SectionHeader } from "@/components/admin/ui/SectionHeader";
 import { AdminSelect } from "@/components/admin/AdminSelect";
+import { AdminColorPicker } from "@/components/admin/AdminColorPicker";
 import { useFormDetail } from "@/components/admin/FormDetailProvider";
 import {
   Save,
@@ -246,7 +246,8 @@ export function FormSettingsPanel({
         </div>
       )}
 
-      <GlassSurface intensity="medium" className="p-5">
+      <div className="admin-surface overflow-hidden rounded-[26px]">
+        <section className="p-4 sm:p-5">
         <div className="mb-4 flex items-center gap-2">
           <Settings className="h-4 w-4 text-white/70" />
           <h3 className="text-sm font-semibold text-white/90">General</h3>
@@ -327,48 +328,24 @@ export function FormSettingsPanel({
             />
           </div>
         </div>
-      </GlassSurface>
+        </section>
 
-      <GlassSurface intensity="medium" className="p-5">
+        <section className="border-t border-white/10 p-4 sm:p-5">
         <div className="mb-4 flex items-center gap-2">
           <Palette className="h-4 w-4 text-white/70" />
           <h3 className="text-sm font-semibold text-white/90">Branding</h3>
         </div>
         <div className="grid gap-4 sm:grid-cols-2">
-          <div>
-            <label className="mb-2 block text-sm font-medium text-white/90">Primary Color</label>
-            <div className="flex items-center gap-3">
-              <input
-                type="color"
-                value={brandPrimaryColor}
-                onChange={(e) => updateDraft({ primaryColor: e.target.value })}
-                className="h-10 w-10 cursor-pointer overflow-hidden rounded-[10px] border border-white/20 bg-transparent p-0"
-              />
-              <input
-                type="text"
-                value={brandPrimaryColor}
-                onChange={(e) => updateDraft({ primaryColor: e.target.value })}
-                className="admin-input flex-1 text-sm"
-              />
-            </div>
-          </div>
-          <div>
-            <label className="mb-2 block text-sm font-medium text-white/90">Accent Color</label>
-            <div className="flex items-center gap-3">
-              <input
-                type="color"
-                value={brandAccentColor}
-                onChange={(e) => updateDraft({ accentColor: e.target.value })}
-                className="h-10 w-10 cursor-pointer overflow-hidden rounded-[10px] border border-white/20 bg-transparent p-0"
-              />
-              <input
-                type="text"
-                value={brandAccentColor}
-                onChange={(e) => updateDraft({ accentColor: e.target.value })}
-                className="admin-input flex-1 text-sm"
-              />
-            </div>
-          </div>
+          <AdminColorPicker
+            label="Primary color"
+            value={brandPrimaryColor}
+            onChange={(primaryColor) => updateDraft({ primaryColor })}
+          />
+          <AdminColorPicker
+            label="Accent color"
+            value={brandAccentColor}
+            onChange={(accentColor) => updateDraft({ accentColor })}
+          />
           <div className="sm:col-span-2">
             <label className="mb-2 block text-sm font-medium text-white/90">Logo URL</label>
             <div className="flex items-center gap-3">
@@ -462,9 +439,9 @@ export function FormSettingsPanel({
             </div>
           </div>
         </div>
-      </GlassSurface>
+        </section>
 
-      <GlassSurface intensity="medium" className="p-5">
+        <section className="border-t border-white/10 p-4 sm:p-5">
         <div className="mb-4 flex items-center gap-2">
           <UserCheck className="h-4 w-4 text-white/70" />
           <h3 className="text-sm font-semibold text-white/90">Lead Defaults</h3>
@@ -524,9 +501,9 @@ export function FormSettingsPanel({
             </AdminSelect>
           </div>
         </div>
-      </GlassSurface>
+        </section>
 
-      <GlassSurface intensity="medium" className="p-5">
+        <section className="border-t border-white/10 p-4 sm:p-5">
         <div className="mb-4 flex items-center gap-2">
           <Sparkles className="h-4 w-4 text-[var(--ld-color-accent)]" />
           <h3 className="text-sm font-semibold text-white/90">Auto-Qualify</h3>
@@ -543,7 +520,7 @@ export function FormSettingsPanel({
           </label>
 
           {draft.enableAutoQualify && (
-            <div className="rounded-[18px] border border-white/10 bg-white/[0.03] p-4">
+            <div className="border-t border-white/10 pt-4">
               <div className="mb-3 flex items-center justify-between gap-3">
                 <div>
                   <span className="text-sm font-semibold text-white/90">Routing rules</span>
@@ -562,7 +539,7 @@ export function FormSettingsPanel({
                   (draft.autoQualifyRules ?? []).map((rule, idx) => (
                     <div
                       key={idx}
-                      className="rounded-[16px] border border-white/10 bg-white/[0.04] p-3"
+                      className="border-t border-white/10 py-4 first:border-t-0 first:pt-1"
                     >
                       <div className="grid gap-3 xl:grid-cols-[minmax(0,1.1fr)_190px_minmax(0,1fr)_190px_auto]">
                         <label className="space-y-1">
@@ -650,7 +627,7 @@ export function FormSettingsPanel({
                           </SmoothButton>
                         </div>
                       </div>
-                      <div className="mt-3 rounded-[14px] border border-white/10 bg-black/10 px-3 py-2 text-xs text-white/58">
+                      <div className="mt-3 text-xs leading-5 text-white/58">
                         If{" "}
                         <span className="font-semibold text-white/78">
                           {fields.find((field) => field.id === String(rule.fieldId ?? ""))?.label ||
@@ -677,7 +654,8 @@ export function FormSettingsPanel({
             </div>
           )}
         </div>
-      </GlassSurface>
+        </section>
+      </div>
     </div>
   );
 }

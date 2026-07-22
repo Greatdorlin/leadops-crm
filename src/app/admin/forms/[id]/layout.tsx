@@ -6,7 +6,6 @@ import { AdminShell } from "@/components/admin/AdminShell";
 import { AdminSignOutButton } from "@/components/admin/AdminSignOutButton";
 import { FormTabNav } from "@/components/admin/FormTabNav";
 import { FormDetailProvider } from "@/components/admin/FormDetailProvider";
-import { GlassSurface } from "@/components/admin/ui/GlassSurface";
 import { getAdminAccessContext } from "@/lib/admin";
 import { isLocalAdminPreviewEmail } from "@/lib/admin-access";
 import { canAccessFormsWorkspace } from "@/lib/admin-permissions";
@@ -127,9 +126,9 @@ export default async function FormDetailLayout({
             formId={id}
             fields={fields}
           >
-            <GlassSurface as="section" intensity="medium" className="rounded-[24px] p-5 sm:p-6">
+            <section className="min-w-0">
               {children}
-            </GlassSurface>
+            </section>
           </FormDetailProvider>
         )}
       </div>

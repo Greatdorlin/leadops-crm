@@ -5,7 +5,6 @@ import { cn } from "@/lib/cn";
 import { ActionConfirmationDialog } from "./ActionConfirmationDialog";
 import { GlassSurface } from "@/components/admin/ui/GlassSurface";
 import { SmoothButton } from "@/components/admin/ui/SmoothButton";
-import { GradientText } from "@/components/admin/ui/GradientText";
 import { AnimatedCard } from "@/components/admin/ui/AnimatedCard";
 import { SectionHeader } from "@/components/admin/ui/SectionHeader";
 import { AdminSelect } from "@/components/admin/AdminSelect";
@@ -438,24 +437,32 @@ export function FormRulesEditor({
           <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={closeEditor} />
           <GlassSurface
             intensity="strong"
-            className="relative z-10 flex max-h-[calc(100dvh-1rem)] min-w-0 w-full flex-col overflow-hidden rounded-[24px] border border-white/15 sm:max-h-[90dvh] sm:max-w-lg sm:rounded-[28px]"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="form-rule-editor-title"
+            className="relative z-10 flex max-h-[calc(100dvh-1rem)] min-w-0 w-full flex-col overflow-hidden rounded-[24px] border border-white/15 sm:max-h-[90dvh] sm:max-w-2xl sm:rounded-[28px]"
           >
-            <div className="flex items-center justify-between border-b border-white/10 px-4 py-4 sm:px-6">
-              <h3 className="text-lg font-semibold text-white">
-                <GradientText>{isCreating ? "New Rule" : "Edit Rule"}</GradientText>
-              </h3>
+            <div className="flex items-center justify-between gap-4 border-b border-white/10 px-4 py-4 sm:px-6">
+              <div className="min-w-0">
+                <h3 id="form-rule-editor-title" className="text-lg font-bold tracking-[-0.025em] text-white">
+                  {isCreating ? "New automation" : "Edit automation"}
+                </h3>
+                <p className="mt-0.5 text-xs text-white/58">Match one answer to one clear action.</p>
+              </div>
               <button
+                type="button"
                 onClick={closeEditor}
-                className="inline-flex h-8 w-8 items-center justify-center rounded-[12px] border border-white/10 bg-white/[0.06] text-white/70 transition hover:bg-white/[0.12] hover:text-white"
+                aria-label="Close automation editor"
+                className="ld-focus-ring inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-white/10 bg-white/[0.06] text-white/70 transition hover:bg-white/[0.12] hover:text-white"
               >
                 <X className="h-4 w-4" />
               </button>
             </div>
 
-            <div className="flex-1 overflow-y-auto px-4 py-4 sm:px-6 sm:py-5">
-              <div className="space-y-5">
+            <div className="ld-popover-scroll min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-4 sm:px-6 sm:py-5">
+              <div className="space-y-6">
                 <div>
-                  <label className="mb-2 block text-sm font-medium text-white/90">Automation name</label>
+                  <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.14em] text-white/62">Rule name</label>
                   <input
                     type="text"
                     value={editingRule.name}
@@ -465,14 +472,14 @@ export function FormRulesEditor({
                   />
                 </div>
 
-                <section className="border-t border-white/10 pt-4">
+                <section className="border-t border-white/10 pt-5">
                   <div className="mb-3 flex items-center gap-2">
-                    <span className="inline-flex h-6 w-6 items-center justify-center rounded-[8px] bg-[var(--ld-color-primary)]/20 text-xs font-bold text-[var(--ld-color-primary)]">
+                    <span className="inline-flex h-6 min-w-8 items-center justify-center rounded-[8px] bg-[var(--ld-color-primary)]/20 px-2 text-[10px] font-bold text-[var(--ld-color-primary)]">
                       IF
                     </span>
                     <span className="text-sm font-semibold text-white/90">Condition</span>
                   </div>
-                  <div className="space-y-3">
+                  <div className="grid gap-3 sm:grid-cols-2">
                     <div>
                       <label className="mb-1 block text-xs text-white/70">Field</label>
                       <AdminSelect
@@ -500,13 +507,13 @@ export function FormRulesEditor({
                       </AdminSelect>
                     </div>
                     {operatorNeedsValue(editingRule.conditionOperator) && (
-                      <div>
-                        <label className="mb-1 block text-xs text-white/70">Answer</label>
+                      <div className="sm:col-span-2">
+                        <label className="mb-1.5 block text-xs text-white/70">Answer must match</label>
                         <input
                           type="text"
                           value={editingRule.conditionValue ?? ""}
                           onChange={(e) => updateDraft({ conditionValue: e.target.value || null })}
-                          placeholder="Answer to match"
+                          placeholder="Enter the answer"
                           className="admin-input w-full"
                         />
                       </div>
@@ -514,16 +521,16 @@ export function FormRulesEditor({
                   </div>
                 </section>
 
-                <section className="border-t border-white/10 pt-4">
+                <section className="border-t border-white/10 pt-5">
                   <div className="mb-3 flex items-center gap-2">
-                    <span className="inline-flex h-6 w-6 items-center justify-center rounded-[8px] bg-[var(--ld-color-accent)]/20 text-xs font-bold text-[var(--ld-color-accent)]">
+                    <span className="inline-flex h-6 min-w-10 items-center justify-center rounded-[8px] bg-[var(--ld-color-accent)]/20 px-2 text-[10px] font-bold text-[var(--ld-color-accent)]">
                       THEN
                     </span>
                     <span className="text-sm font-semibold text-white/90">Action</span>
                   </div>
-                  <div className="space-y-3">
-                    <div>
-                      <label className="mb-1 block text-xs text-white/70">What should happen?</label>
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <div className="sm:col-span-2">
+                      <label className="mb-1.5 block text-xs text-white/70">Action</label>
                       <AdminSelect
                         value={editingRule.actionType}
                         onChange={(e) => {
@@ -547,7 +554,7 @@ export function FormRulesEditor({
                     </div>
 
                     {isOpportunityAction || editingRule.actionType === "create_task" ? (
-                      <div>
+                      <div className="sm:col-span-2">
                         <label className="mb-1 block text-xs text-white/70">
                           {editingRule.actionType === "create_task" ? "Task title" : "Offer name"}
                         </label>
@@ -561,7 +568,7 @@ export function FormRulesEditor({
                       </div>
                     ) : null}
 
-                    <div>
+                    <div className="sm:col-span-2">
                       <label className="mb-1 block text-xs text-white/70">
                         {editingRule.actionType === "set_opportunity_value"
                           ? "Potential value"
@@ -595,9 +602,9 @@ export function FormRulesEditor({
                   </div>
                 </section>
 
-                <div className="rounded-[14px] border border-white/10 bg-white/[0.03] px-4 py-3">
-                  <p className="text-xs font-semibold uppercase tracking-wider text-white/50">Preview</p>
-                  <p className="mt-1 text-sm text-white/80">
+                <div className="border-t border-white/10 pt-4">
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/48">Rule summary</p>
+                  <p className="mt-2 text-sm leading-6 text-white/78">
                     <ArrowRight className="mr-1 inline h-3.5 w-3.5 text-white/40" />
                     {buildRuleSummary(editingRule, fields)}
                   </p>
@@ -605,7 +612,7 @@ export function FormRulesEditor({
               </div>
             </div>
 
-            <div className="grid shrink-0 grid-cols-2 gap-2 border-t border-white/10 bg-[color:color-mix(in_srgb,var(--ld-color-background)_88%,transparent)] px-4 py-4 pb-[max(1rem,env(safe-area-inset-bottom))] backdrop-blur-2xl sm:flex sm:items-center sm:justify-end sm:px-6">
+            <div className="grid shrink-0 grid-cols-[0.82fr_1.18fr] gap-2 border-t border-white/10 bg-[color:color-mix(in_srgb,var(--ld-color-background)_92%,transparent)] px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur-2xl sm:flex sm:items-center sm:justify-end sm:px-6 sm:py-4">
               <SmoothButton variant="ghost" onClick={closeEditor}>
                 Cancel
               </SmoothButton>
@@ -622,7 +629,7 @@ export function FormRulesEditor({
                 }
                 onClick={() => handleSave(editingRule)}
               >
-                {isCreating ? "Create automation" : "Save changes"}
+                {isCreating ? "Create rule" : "Save rule"}
               </SmoothButton>
             </div>
           </GlassSurface>

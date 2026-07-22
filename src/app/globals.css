@@ -568,6 +568,21 @@ body {
     border-color var(--ld-transition-fast) ease,
     box-shadow var(--ld-transition-fast) ease,
     background-color var(--ld-transition-fast) ease;
+  font-size: 0.875rem;
+  line-height: 1.35;
+}
+
+.admin-input,
+.admin-select {
+  min-block-size: 2.75rem;
+  padding-block: 0;
+  padding-inline: 1rem;
+}
+
+.admin-textarea {
+  min-block-size: 6rem;
+  padding: 0.8rem 1rem;
+  resize: vertical;
 }
 
 .admin-input:focus-within,
@@ -1486,22 +1501,26 @@ body {
   background-clip: padding-box;
 }
 
-.admin-shell ::-webkit-scrollbar {
+.admin-shell ::-webkit-scrollbar,
+[data-admin-overlay] ::-webkit-scrollbar {
   width: 10px;
   height: 10px;
 }
 
-.admin-shell ::-webkit-scrollbar-track {
+.admin-shell ::-webkit-scrollbar-track,
+[data-admin-overlay] ::-webkit-scrollbar-track {
   background: transparent;
 }
 
-.admin-shell ::-webkit-scrollbar-button {
+.admin-shell ::-webkit-scrollbar-button,
+[data-admin-overlay] ::-webkit-scrollbar-button {
   display: none;
   width: 0;
   height: 0;
 }
 
-.admin-shell ::-webkit-scrollbar-thumb {
+.admin-shell ::-webkit-scrollbar-thumb,
+[data-admin-overlay] ::-webkit-scrollbar-thumb {
   border: 3px solid transparent;
   border-radius: 999px;
   background:
@@ -1509,12 +1528,14 @@ body {
   box-shadow: 0 0 14px color-mix(in srgb, var(--ld-color-accent) 20%, transparent);
 }
 
-.admin-shell ::-webkit-scrollbar-thumb:hover {
+.admin-shell ::-webkit-scrollbar-thumb:hover,
+[data-admin-overlay] ::-webkit-scrollbar-thumb:hover {
   background:
     linear-gradient(180deg, var(--ld-color-accent), var(--ld-color-primary)) padding-box;
 }
 
-.admin-shell {
+.admin-shell,
+[data-admin-overlay] {
   scrollbar-width: thin;
   scrollbar-color: color-mix(in srgb, var(--ld-color-accent) 62%, var(--ld-color-primary)) transparent;
 }
@@ -1550,6 +1571,23 @@ body {
 }
 
 .ld-popover-scroll::-webkit-scrollbar-thumb {
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background: linear-gradient(180deg, var(--ld-color-accent), var(--ld-color-primary)) padding-box;
+  box-shadow: 0 0 12px color-mix(in srgb, var(--ld-color-accent) 24%, transparent);
+}
+
+[data-admin-overlay] ::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+[data-admin-overlay] ::-webkit-scrollbar-track {
+  margin-block: 8px;
+  background: transparent;
+}
+
+[data-admin-overlay] ::-webkit-scrollbar-thumb {
   border: 1px solid transparent;
   border-radius: 999px;
   background: linear-gradient(180deg, var(--ld-color-accent), var(--ld-color-primary)) padding-box;

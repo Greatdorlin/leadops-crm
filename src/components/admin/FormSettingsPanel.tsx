@@ -5,6 +5,7 @@ import { SmoothButton } from "@/components/admin/ui/SmoothButton";
 import { SectionHeader } from "@/components/admin/ui/SectionHeader";
 import { AdminSelect } from "@/components/admin/AdminSelect";
 import { AdminColorPicker } from "@/components/admin/AdminColorPicker";
+import { AdminImageUpload } from "@/components/admin/AdminImageUpload";
 import { useFormDetail } from "@/components/admin/FormDetailProvider";
 import {
   Save,
@@ -12,7 +13,7 @@ import {
   Palette,
   Settings,
   UserCheck,
-  Sparkles,
+  Workflow,
   Check,
 } from "lucide-react";
 
@@ -25,6 +26,7 @@ export interface FormSettingsData {
   isActive: boolean;
   isPublic: boolean;
   successMessage: string;
+  submitButtonLabel: string;
   redirectUrl?: string | null;
   primaryColor?: string | null;
   accentColor?: string | null;
@@ -93,6 +95,7 @@ function normalizeForm(data: Record<string, unknown> | null): FormSettingsData {
       isActive: true,
       isPublic: true,
       successMessage: "Thank you for your submission.",
+      submitButtonLabel: "Submit",
       redirectUrl: null,
       primaryColor: null,
       accentColor: null,
@@ -115,6 +118,7 @@ function normalizeForm(data: Record<string, unknown> | null): FormSettingsData {
     isActive: data.isActive === true,
     isPublic: data.isPublic !== false,
     successMessage: String(data.successMessage ?? "Thank you for your submission."),
+    submitButtonLabel: String(data.submitButtonLabel ?? "Submit"),
     redirectUrl: typeof data.redirectUrl === "string" ? data.redirectUrl : null,
     primaryColor: typeof data.primaryColor === "string" ? data.primaryColor : null,
     accentColor: typeof data.accentColor === "string" ? data.accentColor : null,
@@ -164,6 +168,7 @@ export function FormSettingsPanel({
           isActive: draft.isActive,
           isPublic: draft.isPublic,
           successMessage: draft.successMessage,
+          submitButtonLabel: draft.submitButtonLabel,
           redirectUrl: draft.redirectUrl,
           primaryColor: draft.primaryColor,
           accentColor: draft.accentColor,
@@ -309,7 +314,7 @@ export function FormSettingsPanel({
             </div>
           </div>
           <div className="sm:col-span-2">
-            <label className="mb-2 block text-sm font-medium text-white/90">Success Message</label>
+            <label className="mb-2 block text-sm font-medium text-white/90">Thank-you message</label>
             <textarea
               value={draft.successMessage}
               onChange={(e) => updateDraft({ successMessage: e.target.value })}
@@ -326,6 +331,10 @@ export function FormSettingsPanel({
               placeholder="https://example.com/thank-you"
               className="admin-input w-full"
             />
+          </div>
+          <div className="sm:col-span-2">
+            <label className="mb-2 block text-sm font-medium text-white/90">Button label</label>
+            <input type="text" maxLength={40} value={draft.submitButtonLabel} onChange={(event) => updateDraft({ submitButtonLabel: event.target.value })} placeholder="Submit" className="admin-input w-full" />
           </div>
         </div>
         </section>
@@ -346,31 +355,7 @@ export function FormSettingsPanel({
             value={brandAccentColor}
             onChange={(accentColor) => updateDraft({ accentColor })}
           />
-          <div className="sm:col-span-2">
-            <label className="mb-2 block text-sm font-medium text-white/90">Logo URL</label>
-            <div className="flex items-center gap-3">
-              <input
-                type="text"
-                value={draft.logoUrl ?? ""}
-                onChange={(e) => updateDraft({ logoUrl: e.target.value || null })}
-                placeholder="https://cdn.example.com/logo.png"
-                className="admin-input flex-1"
-              />
-              {draft.logoUrl && (
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-[10px] border border-white/10 bg-white/[0.06]">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={draft.logoUrl}
-                    alt="Logo preview"
-                    className="h-full w-full object-contain p-1"
-                    onError={(e) => {
-                      (e.target as HTMLImageElement).style.display = "none";
-                    }}
-                  />
-                </div>
-              )}
-            </div>
-          </div>
+          <AdminImageUpload className="sm:col-span-2" label="Form logo" value={draft.logoUrl} onChange={(logoUrl) => updateDraft({ logoUrl })} />
           <div className="sm:col-span-2">
             <div
               className="overflow-hidden rounded-[24px] border border-white/10"
@@ -424,7 +409,7 @@ export function FormSettingsPanel({
                       background: `linear-gradient(135deg, ${brandPrimaryColor}, ${brandAccentColor})`,
                     }}
                   >
-                    Submit form
+                    {draft.submitButtonLabel || "Submit"}
                   </div>
                   <div className="mt-4 grid gap-2">
                     <div className="rounded-[16px] border border-white/10 bg-white/[0.06] px-3 py-2.5 text-xs text-white/65">
@@ -505,7 +490,7 @@ export function FormSettingsPanel({
 
         <section className="border-t border-white/10 p-4 sm:p-5">
         <div className="mb-4 flex items-center gap-2">
-          <Sparkles className="h-4 w-4 text-[var(--ld-color-accent)]" />
+          <Workflow className="h-4 w-4 text-[var(--ld-color-accent)]" />
           <h3 className="text-sm font-semibold text-white/90">Auto-Qualify</h3>
         </div>
         <div className="space-y-4">

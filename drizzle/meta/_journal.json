@@ -148,6 +148,20 @@
       "when": 1784667350319,
       "tag": "0020_many_zuras",
       "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1784685181340,
+      "tag": "0021_misty_ironclad",
+      "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "7",
+      "when": 1784685882337,
+      "tag": "0022_gigantic_leech",
+      "breakpoints": true
     }
   ]
 }

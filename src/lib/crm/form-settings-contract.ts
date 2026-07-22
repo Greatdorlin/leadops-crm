@@ -45,6 +45,7 @@ export const formSettingsPayloadSchema = z.object({
   isActive: z.boolean(),
   isPublic: z.boolean(),
   successMessage: z.string().trim().min(1, "Success message is required.").max(500),
+  submitButtonLabel: z.string().trim().min(1, "Button label is required.").max(40).default("Submit"),
   redirectUrl: optionalNavigationTargetSchema,
   primaryColor: optionalHexSchema,
   accentColor: optionalHexSchema,

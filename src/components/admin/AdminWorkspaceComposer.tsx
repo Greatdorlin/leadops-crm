@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import {
   FileUp,
   ListTodo,
-  Sparkles,
+  ClipboardCheck as Sparkles,
   UserPlus,
   Users2,
 } from "lucide-react";

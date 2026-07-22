@@ -167,6 +167,46 @@ export const leadSources = pgTable(
   }),
 );
 
+export const workspaceAutomationRules = pgTable(
+  "workspace_automation_rules",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    name: text("name").notNull(),
+    conditionField: text("condition_field").notNull(),
+    conditionOperator: text("condition_operator").notNull().default("equals"),
+    conditionValue: text("condition_value").notNull(),
+    actionType: text("action_type").notNull(),
+    actionValue: text("action_value").notNull(),
+    isActive: boolean("is_active").notNull().default(true),
+    sortOrder: integer("sort_order").notNull().default(0),
+    createdBy: text("created_by"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => ({
+    activeOrderIdx: index("workspace_automation_rules_active_order_idx").on(
+      table.isActive,
+      table.sortOrder,
+    ),
+    conditionFieldIdx: index("workspace_automation_rules_condition_field_idx").on(
+      table.conditionField,
+    ),
+    conditionOperatorCheck: check(
+      "workspace_automation_rules_condition_operator_check",
+      sql`${table.conditionOperator} in ('equals', 'not_equals')`,
+    ),
+    conditionFieldCheck: check(
+      "workspace_automation_rules_condition_field_check",
+      sql`${table.conditionField} in ('source', 'stage', 'priority', 'country', 'customer_type')`,
+    ),
+    actionTypeCheck: check(
+      "workspace_automation_rules_action_type_check",
+      sql`${table.actionType} in ('assign_owner', 'set_stage', 'set_priority')`,
+    ),
+    sortOrderCheck: check("workspace_automation_rules_sort_order_check", sql`${table.sortOrder} >= 0`),
+  }),
+);
+
 export const customFields = pgTable(
   "custom_fields",
   {
@@ -987,6 +1027,7 @@ export const forms = pgTable(
     isActive: boolean("is_active").notNull().default(true),
     isPublic: boolean("is_public").notNull().default(true),
     successMessage: text("success_message").notNull().default("Thank you for your submission."),
+    submitButtonLabel: text("submit_button_label").notNull().default("Submit"),
     redirectUrl: text("redirect_url"),
     primaryColor: text("primary_color"),
     accentColor: text("accent_color"),
@@ -1212,6 +1253,8 @@ export type DepartmentRow = typeof departments.$inferSelect;
 export type TeamRow = typeof teams.$inferSelect;
 export type LeadStageRow = typeof leadStages.$inferSelect;
 export type LeadSourceRow = typeof leadSources.$inferSelect;
+export type WorkspaceAutomationRuleRow = typeof workspaceAutomationRules.$inferSelect;
+export type NewWorkspaceAutomationRuleRow = typeof workspaceAutomationRules.$inferInsert;
 export type CustomFieldRow = typeof customFields.$inferSelect;
 export type CustomFieldOptionRow = typeof customFieldOptions.$inferSelect;
 export type LeadCustomFieldValueRow = typeof leadCustomFieldValues.$inferSelect;

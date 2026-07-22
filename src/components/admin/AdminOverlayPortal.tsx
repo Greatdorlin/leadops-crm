@@ -67,10 +67,10 @@ export function usePreservedBodyScrollLock(active: boolean) {
   }, [active]);
 }
 
-export function AdminOverlayPortal({ children }: { children: ReactNode }) {
-  usePreservedBodyScrollLock(true);
+export function AdminOverlayPortal({ children, open = true }: { children: ReactNode; open?: boolean }) {
+  usePreservedBodyScrollLock(open);
 
-  return typeof document === "undefined"
+  return !open || typeof document === "undefined"
     ? null
     : createPortal(
         <div data-admin-overlay="true" className="contents">

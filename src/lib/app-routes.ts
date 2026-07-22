@@ -15,6 +15,7 @@ export const appRoutes = {
   profile: "/profile",
   settings: "/settings",
   settingsAccess: "/settings/access",
+  settingsAutomations: "/settings/automations",
   settingsAppearance: "/settings/appearance",
   settingsDashboard: "/settings/dashboard",
   settingsFields: "/settings/fields",

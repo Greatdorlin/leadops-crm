@@ -144,6 +144,7 @@ export async function duplicateForm(
         isActive: false,
         isPublic: source.isPublic,
         successMessage: source.successMessage,
+        submitButtonLabel: source.submitButtonLabel,
         redirectUrl: source.redirectUrl,
         primaryColor: source.primaryColor,
         accentColor: source.accentColor,

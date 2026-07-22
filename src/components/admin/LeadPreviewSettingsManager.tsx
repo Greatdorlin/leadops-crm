@@ -2,7 +2,7 @@
 
 import { startTransition, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Check, Monitor, RotateCcw, Smartphone, WandSparkles } from "lucide-react";
+import { Check, LayoutPanelTop, MessageCircle, Monitor, RotateCcw, Smartphone } from "lucide-react";
 import type { AdminCustomFieldRecord } from "@/lib/crm/custom-fields-admin";
 import type { AdminLeadListItem } from "@/lib/crm/view-models";
 import type {
@@ -124,6 +124,8 @@ export function LeadPreviewSettingsManager({
   const [desktopColumns, setDesktopColumns] = useState<LeadPreviewFieldKey[]>(initialSettings.leadPreview.desktopColumns);
   const [mobileFields, setMobileFields] = useState<LeadPreviewFieldKey[]>(initialSettings.leadPreview.mobileFields);
   const [maxCustomFieldColumns, setMaxCustomFieldColumns] = useState(initialSettings.leadPreview.maxCustomFieldColumns);
+  const [smsEnabled, setSmsEnabled] = useState(initialSettings.leadPreview.contactActions.sms);
+  const [whatsappEnabled, setWhatsappEnabled] = useState(initialSettings.leadPreview.contactActions.whatsapp);
   const [message, setMessage] = useState("");
   const [isSaving, setIsSaving] = useState(false);
   const draftPreviewConfig = {
@@ -131,6 +133,7 @@ export function LeadPreviewSettingsManager({
     desktopColumns,
     mobileFields,
     maxCustomFieldColumns,
+    contactActions: { sms: smsEnabled, whatsapp: whatsappEnabled },
   };
 
   const selectableCustomFields = useMemo(
@@ -167,6 +170,7 @@ export function LeadPreviewSettingsManager({
           desktopColumns,
           mobileFields,
           maxCustomFieldColumns,
+          contactActions: { sms: smsEnabled, whatsapp: whatsappEnabled },
         }),
       });
       const payload = (await response.json().catch(() => null)) as { error?: string } | null;
@@ -196,7 +200,7 @@ export function LeadPreviewSettingsManager({
         <div className="admin-surface-soft rounded-[26px] p-4 md:p-5 ld-animate-fade-in-up" style={{ animationDelay: "80ms" }}>
           <div className="flex items-start gap-3">
             <span className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl border border-violet-200/18 bg-violet-300/10 text-violet-100">
-              <WandSparkles className="h-5 w-5" />
+              <LayoutPanelTop className="h-5 w-5" />
             </span>
             <div>
               <p className="text-base font-semibold text-white">Quick layout recipes</p>
@@ -312,6 +316,32 @@ export function LeadPreviewSettingsManager({
         </label>
       </div>
 
+      <div className="admin-surface-soft space-y-4 rounded-[26px] p-4 md:p-5 ld-animate-fade-in-up">
+        <div className="flex items-start gap-3">
+          <span className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl border border-white/15 bg-white/[0.06] text-white/80">
+            <MessageCircle className="h-5 w-5" />
+          </span>
+          <div>
+            <p className="text-base font-semibold text-white">Contact actions</p>
+            <p className="mt-1 text-sm text-white/70">Choose which phone actions appear on lead details.</p>
+          </div>
+        </div>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <FieldChoice
+            label="Message"
+            hint="Open the device SMS app"
+            checked={smsEnabled}
+            onToggle={() => setSmsEnabled((current) => !current)}
+          />
+          <FieldChoice
+            label="WhatsApp"
+            hint="Open a WhatsApp conversation"
+            checked={whatsappEnabled}
+            onToggle={() => setWhatsappEnabled((current) => !current)}
+          />
+        </div>
+      </div>
+
       <div className="flex flex-col gap-3 border-t border-white/10 pt-4 sm:flex-row sm:items-center sm:justify-between">
         <SmoothButton
           variant="secondary"
@@ -321,6 +351,8 @@ export function LeadPreviewSettingsManager({
             setDesktopColumns(DEFAULT_LEAD_PREVIEW_CONFIG.desktopColumns);
             setMobileFields(DEFAULT_LEAD_PREVIEW_CONFIG.mobileFields);
             setMaxCustomFieldColumns(DEFAULT_LEAD_PREVIEW_CONFIG.maxCustomFieldColumns);
+            setSmsEnabled(DEFAULT_LEAD_PREVIEW_CONFIG.contactActions.sms);
+            setWhatsappEnabled(DEFAULT_LEAD_PREVIEW_CONFIG.contactActions.whatsapp);
           }}
         >
           Reset preview

@@ -50,6 +50,7 @@ import {
 import { canAssignLeads } from "@/lib/crm/authz";
 import {
   crmLabelize,
+  formatCrmDate,
   formatCrmDateTime,
   formatCrmRoleLabel,
   formatLeadEventLabel,
@@ -59,7 +60,7 @@ import {
 } from "@/lib/crm/formatters";
 import { loadAdminLeadReadContext } from "@/lib/crm/admin-read-context";
 import { listCustomFields } from "@/lib/crm/custom-fields-admin";
-import { listLeadOpportunities } from "@/lib/crm/lead-opportunities";
+import { buildLeadOpportunityRollup, listLeadOpportunities } from "@/lib/crm/lead-opportunities";
 import { formatLeadAuditChanges } from "@/lib/crm/lead-audit-events";
 import { listLeadSources } from "@/lib/crm/lead-sources-admin";
 import { listLeadStages } from "@/lib/crm/lead-stages-admin";
@@ -69,6 +70,7 @@ import { buildAdminLeadDetailView } from "@/lib/crm/view-models";
 import { buildDemoLeadDetail } from "@/lib/crm/demo-data";
 import { getBranchCurrency, getCompanySettings } from "@/lib/crm/workspace-settings-server";
 import { leadStore } from "@/lib/storage";
+import { formatCurrencyValue } from "@/lib/currency";
 
 export const dynamic = "force-dynamic";
 
@@ -335,6 +337,17 @@ export default async function AdminLeadDetailPage({
     customFieldDefinitions: readContext.customFieldDefinitionsByLeadId.get(lead.id) ?? [],
     customFieldValues: readContext.customFieldValuesByLeadId.get(lead.id) ?? [],
   });
+  const opportunityRollup = buildLeadOpportunityRollup(opportunityRows);
+  leadView.keyFacts = leadView.keyFacts.map((fact) => {
+    if (fact.label === "Pipeline value") {
+      const value = opportunityRollup.expectedValue ?? opportunityRollup.estimatedValue;
+      return { ...fact, value: value === null ? "No active offers" : formatCurrencyValue(value, currency) };
+    }
+    if (fact.label === "Expected close") {
+      return { ...fact, value: opportunityRollup.expectedCloseDate ? formatCrmDate(opportunityRollup.expectedCloseDate) : "Not scheduled" };
+    }
+    return fact;
+  });
   const stageOptions = configuredStageOptions.length > 0
     ? configuredStageOptions.map((stage) => ({
         value: stage.id,
@@ -571,11 +584,20 @@ export default async function AdminLeadDetailPage({
               >
                 Add next touch
               </a>
-              {whatsappHref ? (
+              {workspaceSettings.leadPreview.contactActions.whatsapp && whatsappHref ? (
                 <a
                   href={whatsappHref}
                   target="_blank"
                   rel="noreferrer"
+                  className="admin-button-secondary ld-focus-ring inline-flex h-12 w-full items-center justify-center rounded-2xl px-5 text-base font-medium sm:w-auto"
+                >
+                  <MessageCircle className="mr-2 h-5 w-5" />
+                  WhatsApp
+                </a>
+              ) : null}
+              {workspaceSettings.leadPreview.contactActions.sms && lead.whatsappNumber ? (
+                <a
+                  href={`sms:${lead.whatsappNumber}`}
                   className="admin-button-secondary ld-focus-ring inline-flex h-12 w-full items-center justify-center rounded-2xl px-5 text-base font-medium sm:w-auto"
                 >
                   <MessageCircle className="mr-2 h-5 w-5" />

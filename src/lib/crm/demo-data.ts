@@ -11,7 +11,7 @@ export function buildDemoForms(): DemoFormRecord[] {
   const updatedAt = new Date("2026-07-12T08:30:00.000Z");
   const shared = {
     workspaceId: "demo-workspace", status: "active", isActive: true, isPublic: true,
-    successMessage: "Thank you. A member of our team will contact you shortly.", redirectUrl: null,
+    successMessage: "Thank you. A member of our team will contact you shortly.", submitButtonLabel: "Send enquiry", redirectUrl: null,
     primaryColor: "#4f8cff", accentColor: "#5eead4", logoUrl: null,
     defaultStatus: "new", defaultPriority: "high", defaultSource: "website_form", defaultOwnerId: null,
     createdAt, updatedAt,

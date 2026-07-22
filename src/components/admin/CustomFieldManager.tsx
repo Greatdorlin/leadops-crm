@@ -2,7 +2,7 @@
 
 import { startTransition, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Archive, Check, Plus, RotateCcw, Settings2, TableProperties, WandSparkles } from "lucide-react";
+import { Archive, Check, LayoutTemplate, Plus, RotateCcw, Settings2, TableProperties } from "lucide-react";
 import { AdminSelect } from "@/components/admin/AdminSelect";
 import {
   type AdminCustomFieldRecord,
@@ -580,7 +580,7 @@ export function CustomFieldManager({
         <div className="admin-surface-soft rounded-[26px] p-4 md:p-5">
           <div className="flex items-start gap-3">
             <span className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl border border-violet-200/18 bg-violet-300/10 text-violet-100">
-              <WandSparkles className="h-5 w-5" />
+              <LayoutTemplate className="h-5 w-5" />
             </span>
             <div>
               <p className="text-base font-semibold text-white">Quick-start field templates</p>

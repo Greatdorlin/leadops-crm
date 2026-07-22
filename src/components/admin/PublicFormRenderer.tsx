@@ -12,6 +12,7 @@ export interface PublicFormConfig {
   slug: string;
   description?: string | null;
   successMessage?: string | null;
+  submitButtonLabel?: string | null;
   redirectUrl?: string | null;
   primaryColor?: string | null;
   accentColor?: string | null;
@@ -398,7 +399,7 @@ export function PublicFormRenderer({ form, fields, previewMode = false }: Public
                   Submitting...
                 </>
               ) : (
-                "Submit"
+                form.submitButtonLabel || "Submit"
               )}
             </button>
           </div>

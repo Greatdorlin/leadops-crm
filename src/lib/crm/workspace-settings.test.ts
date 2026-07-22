@@ -220,6 +220,13 @@ test("lead preview config filters duplicates and archived custom fields", () => 
   assert.deepEqual(preview.desktopColumns, ["name", "source", "custom:field-1"]);
   assert.deepEqual(preview.mobileFields, ["name", "custom:field-1"]);
   assert.equal(preview.maxCustomFieldColumns, 6);
+  assert.deepEqual(preview.contactActions, { sms: true, whatsapp: true });
+
+  const contactActions = resolveLeadPreviewConfig({
+    ...DEFAULT_LEAD_PREVIEW_CONFIG,
+    contactActions: { sms: false, whatsapp: true },
+  });
+  assert.deepEqual(contactActions.contactActions, { sms: false, whatsapp: true });
 });
 
 test("dashboard widget config resolves hidden widgets and saved order", () => {

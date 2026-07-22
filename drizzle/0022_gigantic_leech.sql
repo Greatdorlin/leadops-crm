@@ -1,0 +1,1 @@
+ALTER TABLE "forms" ADD COLUMN "submit_button_label" text DEFAULT 'Submit' NOT NULL;

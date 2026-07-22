@@ -1,36 +1,180 @@
-import type { ComponentPropsWithoutRef, ReactNode } from "react";
-import { ChevronDown } from "lucide-react";
+"use client";
+
+import {
+  Children,
+  isValidElement,
+  type ComponentPropsWithoutRef,
+  type ReactElement,
+  type ReactNode,
+  useEffect,
+  useId,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+import { Check, ChevronDown } from "lucide-react";
 import { cn } from "@/lib/cn";
+import { ResponsivePopover } from "./ResponsivePopover";
+
+interface SelectOption {
+  disabled: boolean;
+  group?: string;
+  label: string;
+  value: string;
+}
+
+function readOptions(children: ReactNode, group?: string): SelectOption[] {
+  return Children.toArray(children).flatMap((child) => {
+    if (!isValidElement(child)) return [];
+    const element = child as ReactElement<{ children?: ReactNode; disabled?: boolean; label?: string; value?: string | number }>;
+    if (element.type === "optgroup") {
+      return readOptions(element.props.children, element.props.label);
+    }
+    if (element.type !== "option") return [];
+    const label = Children.toArray(element.props.children).join("");
+    return [{
+      disabled: Boolean(element.props.disabled),
+      group,
+      label,
+      value: String(element.props.value ?? label),
+    }];
+  });
+}
 
 export function AdminSelect({
   children,
   className,
   icon,
+  onChange,
+  value,
+  defaultValue,
+  disabled,
+  multiple,
   ...props
-}: ComponentPropsWithoutRef<"select"> & {
-  icon?: ReactNode;
-}) {
-  return (
-    <div className="group relative min-w-0 focus-within:z-50">
+}: ComponentPropsWithoutRef<"select"> & { icon?: ReactNode }) {
+  const selectRef = useRef<HTMLSelectElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const listboxId = useId();
+  const options = useMemo(() => readOptions(children), [children]);
+  const initialValue = String(value ?? defaultValue ?? options[0]?.value ?? "");
+  const [internalValue, setInternalValue] = useState(initialValue);
+  const [open, setOpen] = useState(false);
+  const selectedValue = value === undefined ? internalValue : String(value);
+  const selected = options.find((option) => option.value === selectedValue) ?? options[0];
+
+  useEffect(() => {
+    const form = selectRef.current?.form;
+    if (!form) return;
+    const handleReset = () => requestAnimationFrame(() => {
+      setInternalValue(selectRef.current?.value ?? initialValue);
+    });
+    form.addEventListener("reset", handleReset);
+    return () => form.removeEventListener("reset", handleReset);
+  }, [initialValue]);
+
+  if (multiple) {
+    return (
       <select
         {...props}
-        style={{
-          ...(props.style || {}),
-          backgroundImage: "linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.01))",
-          backgroundSize: "100% 100%",
-          backgroundPosition: "0 0",
-        }}
-        className={cn(
-          "admin-select h-12 w-full min-w-0 appearance-none truncate rounded-[18px] pl-4 pr-12 text-sm font-medium tracking-[-0.01em] outline-none transition-[border-color,background-color,box-shadow] duration-200 hover:border-white/20 hover:bg-white/[0.08]",
-          "ld-focus-ring",
-          className,
-        )}
+        ref={selectRef}
+        multiple
+        disabled={disabled}
+        value={value}
+        defaultValue={defaultValue}
+        onChange={onChange}
+        className={cn("admin-select min-h-12 w-full rounded-[18px] px-4 py-3 text-sm outline-none", className)}
       >
         {children}
       </select>
-      <span className="pointer-events-none absolute inset-y-1.5 right-1.5 inline-flex w-9 items-center justify-center rounded-[13px] border border-white/10 bg-white/[0.08] text-white/70 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] transition-all duration-200 group-hover:border-white/20 group-hover:bg-white/[0.12] group-focus-within:border-white/20 group-focus-within:bg-white/[0.12]">
-        {icon ?? <ChevronDown className="h-4 w-4" />}
-      </span>
+    );
+  }
+
+  function choose(nextValue: string) {
+    const nativeSelect = selectRef.current;
+    if (!nativeSelect) return;
+    nativeSelect.value = nextValue;
+    setInternalValue(nextValue);
+    nativeSelect.dispatchEvent(new Event("change", { bubbles: true }));
+    setOpen(false);
+    requestAnimationFrame(() => triggerRef.current?.focus({ preventScroll: true }));
+  }
+
+  return (
+    <div className="relative min-w-0">
+      <select
+        {...props}
+        ref={selectRef}
+        value={value}
+        defaultValue={value === undefined ? defaultValue : undefined}
+        disabled={disabled}
+        onChange={(event) => {
+          setInternalValue(event.target.value);
+          onChange?.(event);
+        }}
+        tabIndex={-1}
+        aria-hidden="true"
+        className="pointer-events-none absolute h-px w-px overflow-hidden opacity-0"
+      >
+        {children}
+      </select>
+      <button
+        ref={triggerRef}
+        type="button"
+        disabled={disabled}
+        aria-expanded={open}
+        aria-controls={listboxId}
+        aria-haspopup="listbox"
+        aria-label={props["aria-label"]}
+        onClick={() => setOpen((current) => !current)}
+        className={cn(
+          "admin-select ld-focus-ring group flex h-12 w-full min-w-0 items-center rounded-[18px] pl-4 pr-1.5 text-left text-sm font-medium tracking-[-0.01em] outline-none transition duration-200",
+          "hover:border-white/20 hover:bg-white/[0.08] disabled:cursor-not-allowed disabled:opacity-50",
+          className,
+        )}
+      >
+        <span className="min-w-0 flex-1 truncate text-white/90">{selected?.label || "Choose an option"}</span>
+        <span className="ml-2 inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-[13px] border border-white/10 bg-white/[0.08] text-white/70 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] transition group-hover:border-white/20 group-hover:bg-white/[0.12]">
+          {icon ?? <ChevronDown className={cn("h-4 w-4 transition-transform", open && "rotate-180")} />}
+        </span>
+      </button>
+      <ResponsivePopover
+        anchorRef={triggerRef}
+        ariaLabel={props["aria-label"] || "Choose an option"}
+        desktopWidth={320}
+        onClose={() => setOpen(false)}
+        open={open}
+        className="p-2"
+      >
+        <div id={listboxId} role="listbox" className="ld-premium-scrollbar max-h-[min(60dvh,360px)] overflow-y-auto p-1">
+          {options.map((option, index) => {
+            const previousGroup = index > 0 ? options[index - 1]?.group : undefined;
+            return (
+              <div key={`${option.value}-${index}`}>
+                {option.group && option.group !== previousGroup ? (
+                  <p className="px-3 pb-1 pt-3 text-[10px] font-semibold uppercase tracking-[0.17em] text-white/45">{option.group}</p>
+                ) : null}
+                <button
+                  type="button"
+                  role="option"
+                  aria-selected={option.value === selectedValue}
+                  disabled={option.disabled}
+                  onClick={() => choose(option.value)}
+                  className={cn(
+                    "ld-focus-ring flex min-h-11 w-full items-center gap-3 rounded-[14px] px-3 py-2.5 text-left text-sm transition",
+                    option.value === selectedValue
+                      ? "bg-[color:var(--workspace-primary)]/20 text-white"
+                      : "text-white/78 hover:bg-white/[0.08] hover:text-white",
+                    option.disabled && "cursor-not-allowed opacity-40",
+                  )}
+                >
+                  <span className="min-w-0 flex-1 leading-5">{option.label}</span>
+                  {option.value === selectedValue ? <Check className="h-4 w-4 shrink-0 text-[color:var(--workspace-accent)]" /> : null}
+                </button>
+              </div>
+            );
+          })}
+        </div>
+      </ResponsivePopover>
     </div>
   );
 }

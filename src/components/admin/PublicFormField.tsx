@@ -2,6 +2,8 @@
 
 import { useCallback } from "react";
 import { cn } from "@/lib/cn";
+import { AdminDateTimeInput } from "./AdminDateTimeInput";
+import { AdminSelect } from "./AdminSelect";
 
 export type PublicFormFieldType =
   | "text"
@@ -229,7 +231,7 @@ export function PublicFormField({
       return (
         <div className="w-full">
           <FieldLabel field={field} htmlFor={inputId} />
-          <select
+          <AdminSelect
             id={inputId}
             name={field.id}
             value={typeof value === "string" ? value : ""}
@@ -237,12 +239,7 @@ export function PublicFormField({
             disabled={disabled}
             aria-invalid={hasError}
             aria-describedby={hasError ? `${inputId}-error` : undefined}
-            className={cn(baseInputClass, "h-12 appearance-none pr-10")}
-            style={{
-              backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E")`,
-              backgroundRepeat: "no-repeat",
-              backgroundPosition: "right 12px center",
-            }}
+            className={cn(baseInputClass, "h-12")}
           >
             <option value="">Select an option</option>
             {options.map((opt) => (
@@ -250,7 +247,7 @@ export function PublicFormField({
                 {opt.label}
               </option>
             ))}
-          </select>
+          </AdminSelect>
           <FieldHelp text={field.helpText} />
           <FieldError message={error} />
         </div>
@@ -364,9 +361,9 @@ export function PublicFormField({
       return (
         <div className="w-full">
           <FieldLabel field={field} htmlFor={inputId} />
-          <input
+          <AdminDateTimeInput
             id={inputId}
-            type="date"
+            mode="date"
             name={field.id}
             placeholder={field.placeholder ?? undefined}
             value={typeof value === "string" ? value : ""}

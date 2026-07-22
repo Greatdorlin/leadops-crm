@@ -73,13 +73,13 @@ function SearchableLocationInput({
         aria-haspopup="dialog"
         aria-expanded={open}
         onClick={() => setOpen((current) => !current)}
-        className="admin-input ld-focus-ring flex h-11 w-full min-w-0 items-center gap-2 rounded-2xl px-4 text-left text-sm outline-none"
+        className="admin-input ld-focus-ring relative flex h-12 w-full min-w-0 items-center rounded-2xl py-0 pl-10 pr-11 text-left text-sm outline-none"
       >
-        <MapPin className="h-4 w-4 shrink-0 text-white/45" />
+        <MapPin className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-white/45" />
         <span className={cn("min-w-0 flex-1 truncate", value ? "text-white" : "text-white/45")}>
           {value || placeholder}
         </span>
-        <ChevronDown className={cn("h-4 w-4 shrink-0 text-white/45 transition", open && "rotate-180")} />
+        <ChevronDown className={cn("pointer-events-none absolute right-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-white/45 transition", open && "rotate-180")} />
       </button>
       <ResponsivePopover
         anchorRef={anchorRef}

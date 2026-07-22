@@ -48,6 +48,7 @@ import {
 } from "@/lib/db/schema";
 import { parseNigeriaStateValue } from "@/lib/nigeria-state-options";
 import { buildLeadAuditChanges } from "@/lib/crm/lead-audit-events";
+import { applyWorkspaceAutomationsToNewLead } from "@/lib/crm/workspace-automations";
 import type {
   AdCampaignMetricRecord,
   CrmUserRecord,
@@ -701,8 +702,11 @@ export class NeonLeadStore implements LeadStorage {
         },
       });
 
+      const automationApplied = await applyWorkspaceAutomationsToNewLead(created.id, db);
+      const automatedLead = automationApplied ? await this.getById(created.id) : null;
+
       return {
-        lead: created,
+        lead: automatedLead ?? created,
         created: true,
         duplicateOfId: null,
       };

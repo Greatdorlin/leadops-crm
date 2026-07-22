@@ -103,6 +103,10 @@ export interface LeadPreviewCustomizationConfig {
   desktopColumns: LeadPreviewFieldKey[];
   mobileFields: LeadPreviewFieldKey[];
   maxCustomFieldColumns: number;
+  contactActions: {
+    sms: boolean;
+    whatsapp: boolean;
+  };
 }
 
 export interface WorkspaceAppearanceSettings {
@@ -266,6 +270,10 @@ export const DEFAULT_LEAD_PREVIEW_CONFIG: LeadPreviewCustomizationConfig = {
   ],
   mobileFields: ["name", "source", "stage", "owner", "next_follow_up"],
   maxCustomFieldColumns: 4,
+  contactActions: {
+    sms: true,
+    whatsapp: true,
+  },
 };
 
 export const DEFAULT_WORKSPACE_APPEARANCE: WorkspaceAppearanceSettings = {
@@ -553,6 +561,13 @@ export const leadPreviewCustomizationSchema = z.object({
   desktopColumns: z.array(z.string()),
   mobileFields: z.array(z.string()),
   maxCustomFieldColumns: z.coerce.number().int().min(1).max(8),
+  contactActions: z
+    .object({
+      sms: z.boolean(),
+      whatsapp: z.boolean(),
+    })
+    .optional()
+    .default(DEFAULT_LEAD_PREVIEW_CONFIG.contactActions),
 });
 
 export const industryPresetSchema = z.object({
@@ -611,6 +626,7 @@ function parseLeadPreviewConfig(raw: unknown): LeadPreviewCustomizationConfig {
     desktopColumns: parsed.data.desktopColumns as LeadPreviewFieldKey[],
     mobileFields: parsed.data.mobileFields as LeadPreviewFieldKey[],
     maxCustomFieldColumns: parsed.data.maxCustomFieldColumns,
+    contactActions: parsed.data.contactActions,
   };
 }
 
@@ -950,6 +966,7 @@ export function resolveLeadPreviewConfig(
     desktopColumns: keepAllowed(parsed.desktopColumns),
     mobileFields: keepAllowed(parsed.mobileFields),
     maxCustomFieldColumns: clampNumber(parsed.maxCustomFieldColumns, 1, 8),
+    contactActions: parsed.contactActions,
   };
 }
 
@@ -977,6 +994,7 @@ export function buildVerticalPresetSettingsPatch(key: IndustryPresetKey) {
       desktopColumns: preset.leadPreviewDefaults,
       mobileFields: preset.mobilePreviewDefaults,
       maxCustomFieldColumns: DEFAULT_LEAD_PREVIEW_CONFIG.maxCustomFieldColumns,
+      contactActions: DEFAULT_LEAD_PREVIEW_CONFIG.contactActions,
     },
   };
 }

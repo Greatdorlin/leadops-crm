@@ -4,7 +4,7 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { AdminDateTimeInput } from "./AdminDateTimeInput";
 
-test("AdminDateTimeInput renders an accessible native date and time control", () => {
+test("AdminDateTimeInput preserves its value without exposing the browser-native picker", () => {
   const markup = renderToStaticMarkup(
     createElement(AdminDateTimeInput, {
       "aria-label": "Follow-up date and time",
@@ -14,8 +14,9 @@ test("AdminDateTimeInput renders an accessible native date and time control", ()
     }),
   );
 
-  assert.match(markup, /type="datetime-local"/);
+  assert.match(markup, /type="text"/);
+  assert.doesNotMatch(markup, /type="datetime-local"/);
   assert.match(markup, /aria-label="Follow-up date and time"/);
-  assert.match(markup, /aria-label="Choose follow-up date and time"/);
+  assert.match(markup, /Jul 21, 2026/);
   assert.match(markup, /value="2026-07-21T14:30"/);
 });

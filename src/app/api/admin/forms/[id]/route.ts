@@ -65,6 +65,7 @@ export async function PUT(
     isActive: existing.isActive,
     isPublic: existing.isPublic,
     successMessage: existing.successMessage,
+    submitButtonLabel: existing.submitButtonLabel,
     redirectUrl: existing.redirectUrl,
     primaryColor: existing.primaryColor,
     accentColor: existing.accentColor,

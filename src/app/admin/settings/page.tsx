@@ -19,7 +19,8 @@ import {
   Target,
   UserRound,
   Users2,
-  WandSparkles,
+  LayoutTemplate as WandSparkles,
+  Workflow,
 } from "lucide-react";
 import { AdminShell } from "@/components/admin/AdminShell";
 import { AdminSignOutButton } from "@/components/admin/AdminSignOutButton";
@@ -203,6 +204,7 @@ export default async function AdminSettingsPage() {
         { label: "Lead fields", href: appRoutes.settingsFields, enabled: canOpenCustomFields, copy: "Business-specific lead data.", icon: ListChecks },
         { label: "Lead stages", href: appRoutes.settingsStages, enabled: canOpenLeadStages, copy: "Pipeline stages and outcome states.", icon: Rows3 },
         { label: "Lead sources", href: appRoutes.settingsSources, enabled: canOpenLeadSources, copy: "Source labels for filtering and reports.", icon: RadioTower },
+        { label: "Automations", href: appRoutes.settingsAutomations, enabled: canOpenRolePermissions, copy: "Route every new lead consistently.", icon: Workflow },
         { label: "Sales targets", href: appRoutes.settingsSalesTargets, enabled: canOpenSalesTargets, copy: "Goals behind pipeline tracking.", icon: Target },
         { label: "Form sources", href: appRoutes.settingsFormSources, enabled: canOpenFormSources, copy: "Website, CSV, and webhook mapping.", icon: FormInput },
         { label: "Intake log", href: appRoutes.intake, enabled: canOpenFormSources, copy: "Recent submissions and failures.", icon: Inbox },

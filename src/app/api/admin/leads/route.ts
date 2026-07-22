@@ -193,6 +193,7 @@ export async function POST(request: Request) {
   let lead = result.lead;
 
   if (
+    (Boolean(assignedTo) || context.accessLevel === "sales_rep") &&
     assignedTo !== lead.assignedTo &&
     normalizeEmail(assignedTo) !== normalizeEmail(lead.assignedTo)
   ) {

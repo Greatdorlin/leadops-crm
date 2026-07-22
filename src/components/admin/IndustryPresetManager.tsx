@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef } from "react";
-import { Check, Building2, Plane, Briefcase, Stethoscope, GraduationCap, Shield, ShoppingCart, Car, Code, Scale, Dumbbell, X, ChevronRight, Eye, Sparkles } from "lucide-react";
+import { Check, Building2, Plane, Briefcase, Stethoscope, GraduationCap, Shield, ShoppingCart, Car, Code, Scale, Dumbbell, X, ChevronRight, Eye, LayoutTemplate, ListTree } from "lucide-react";
 import type { IndustryPreset } from "@/lib/crm/industry-presets";
 import { SmoothButton } from "./ui/SmoothButton";
 import { AdminOverlayPortal } from "./AdminOverlayPortal";
@@ -77,7 +77,7 @@ export function IndustryPresetManager({ presets }: { presets: IndustryPreset[] }
             }`}
           >
             <div className="flex items-start gap-3">
-              <div className="mt-0.5 text-white/60">{presetIcons[preset.id] || <Sparkles className="h-5 w-5" />}</div>
+              <div className="mt-0.5 text-white/60">{presetIcons[preset.id] || <LayoutTemplate className="h-5 w-5" />}</div>
               <div className="min-w-0">
                 <p className="text-sm font-semibold text-white truncate">{preset.name}</p>
                 <p className="mt-0.5 text-xs text-white/50 line-clamp-2">{preset.description}</p>
@@ -109,7 +109,7 @@ export function IndustryPresetManager({ presets }: { presets: IndustryPreset[] }
             {/* Header */}
             <div className="sticky top-0 z-10 flex items-center justify-between border-b border-white/10 bg-[#0c0f1a]/95 backdrop-blur-xl px-6 py-4">
               <div className="flex items-center gap-3">
-                <div className="text-white/60">{presetIcons[activePreset.id] || <Sparkles className="h-5 w-5" />}</div>
+                <div className="text-white/60">{presetIcons[activePreset.id] || <LayoutTemplate className="h-5 w-5" />}</div>
                 <div>
                   <h3 className="text-lg font-semibold text-white">{activePreset.name}</h3>
                   <p className="text-xs text-white/50">{activePreset.description}</p>
@@ -162,7 +162,7 @@ export function IndustryPresetManager({ presets }: { presets: IndustryPreset[] }
               {/* Custom Fields */}
               <div className="space-y-3">
                 <div className="flex items-center gap-2">
-                  <Sparkles className="h-4 w-4 text-white/40" />
+                  <ListTree className="h-4 w-4 text-white/40" />
                   <p className="text-sm font-medium text-white/80">Custom Fields ({activePreset.customFields.length})</p>
                 </div>
                 <div className="grid gap-2">

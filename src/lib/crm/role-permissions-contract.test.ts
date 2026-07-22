@@ -62,3 +62,7 @@ test("default role permissions contain only known permissions without duplicates
     );
   }
 });
+
+test("workspace reset is not granted to administrators by default", () => {
+  assert.equal(DEFAULT_ROLE_PERMISSIONS.admin.includes("canResetWorkspace"), false);
+});

@@ -43,7 +43,7 @@ export async function PATCH(
   if (currentEmail === targetUser.email.trim().toLowerCase()) {
     return NextResponse.json({ error: "You cannot change your own permissions." }, { status: 403 });
   }
-  if (targetUser.role === "admin") {
+  if (targetUser.role === "admin" && parsed.data.permission !== "canResetWorkspace") {
     return NextResponse.json({ error: "Owner permissions cannot be changed." }, { status: 403 });
   }
 

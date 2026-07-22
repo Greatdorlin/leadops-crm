@@ -11,6 +11,8 @@ import { isAdminAuthConfigured, isLocalAdminPreviewEnabled } from "@/lib/admin-a
 import { canViewSystemStatus } from "@/lib/crm/authz";
 import { getCompanySettings } from "@/lib/crm/workspace-settings-server";
 import { hasDatabaseUrl } from "@/lib/db/env";
+import { canResetWorkspaceSettings } from "@/lib/crm/authz";
+import { WorkspaceResetPanel } from "@/components/admin/WorkspaceResetPanel";
 
 export const dynamic = "force-dynamic";
 
@@ -19,7 +21,7 @@ function yesNo(value: boolean) {
 }
 
 export default async function SystemStatusPage() {
-  const { role, accessLevel, actualAccessLevel, canSwitchAccessViews, permissions } =
+  const { role, accessLevel, actualAccessLevel, canSwitchAccessViews, permissions, session } =
     await getAdminAccessContext(appRoutes.settingsSystemStatus);
 
   if (!canViewSystemStatus({ accessLevel, permissions, role })) {
@@ -106,6 +108,7 @@ export default async function SystemStatusPage() {
             </div>
           </div>
         </section>
+        {canResetWorkspaceSettings({ role, accessLevel, permissions, email: session.user?.email }) ? <WorkspaceResetPanel /> : null}
       </div>
     </AdminShell>
   );

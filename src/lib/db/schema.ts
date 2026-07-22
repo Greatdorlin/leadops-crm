@@ -783,6 +783,25 @@ export const userCredentials = pgTable(
   }),
 );
 
+export const workspaceAuditLogs = pgTable(
+  "workspace_audit_logs",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    eventType: text("event_type").notNull(),
+    actorUserId: uuid("actor_user_id").references(() => crmUsers.id, { onDelete: "set null" }),
+    actorEmail: text("actor_email").notNull(),
+    targetType: text("target_type").notNull(),
+    targetId: text("target_id"),
+    details: jsonb("details").$type<Record<string, unknown> | null>(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => ({
+    eventCreatedIdx: index("workspace_audit_logs_event_created_idx").on(table.eventType, table.createdAt),
+    actorCreatedIdx: index("workspace_audit_logs_actor_created_idx").on(table.actorUserId, table.createdAt),
+    targetIdx: index("workspace_audit_logs_target_idx").on(table.targetType, table.targetId),
+  }),
+);
+
 export const userInvitations = pgTable(
   "user_invitations",
   {
@@ -1264,6 +1283,7 @@ export type LeadIntakeEventRow = typeof leadIntakeEvents.$inferSelect;
 export type NotificationEventRow = typeof notificationEvents.$inferSelect;
 export type SalesTargetRow = typeof salesTargets.$inferSelect;
 export type CompanySettingsRow = typeof companySettings.$inferSelect;
+export type WorkspaceAuditLogRow = typeof workspaceAuditLogs.$inferSelect;
 export type CurrencyExchangeRateRow = typeof currencyExchangeRates.$inferSelect;
 export type CrmUserRow = typeof crmUsers.$inferSelect;
 export type PaymentClaimRow = typeof paymentClaims.$inferSelect;

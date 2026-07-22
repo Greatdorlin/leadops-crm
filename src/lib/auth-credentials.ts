@@ -4,6 +4,7 @@ import { and, eq, gt, isNull, sql } from "drizzle-orm";
 import { normalizeAdminEmail } from "@/lib/admin-access";
 import { getDb } from "@/lib/db/client";
 import { crmUsers, userCredentials, userInvitations } from "@/lib/db/schema";
+import { recordWorkspaceAuditEvent } from "@/lib/crm/workspace-audit";
 
 const BCRYPT_ROUNDS = 12;
 const MAX_FAILED_ATTEMPTS = 5;
@@ -216,4 +217,65 @@ export async function verifyUserPassword(email?: string | null, password?: strin
     .where(eq(userCredentials.userId, record.userId));
 
   return { id: record.userId, email: record.email, name: record.fullName };
+}
+
+export async function changeAuthenticatedUserPassword(input: {
+  userId: string;
+  currentPassword: string;
+  newPassword: string;
+}) {
+  if (!input.userId || !input.currentPassword || !validateNewPassword(input.newPassword)) {
+    return false;
+  }
+
+  const db = getDb();
+  const [record] = await db
+    .select({
+      userId: crmUsers.id,
+      email: crmUsers.email,
+      isActive: crmUsers.isActive,
+      passwordHash: userCredentials.passwordHash,
+    })
+    .from(crmUsers)
+    .innerJoin(userCredentials, eq(userCredentials.userId, crmUsers.id))
+    .where(eq(crmUsers.id, input.userId))
+    .limit(1);
+
+  const currentMatches = await bcrypt.compare(
+    input.currentPassword,
+    record?.passwordHash ?? DUMMY_PASSWORD_HASH,
+  );
+  if (!record?.isActive || !currentMatches) {
+    return false;
+  }
+
+  if (await bcrypt.compare(input.newPassword, record.passwordHash)) {
+    return false;
+  }
+
+  const now = new Date();
+  const passwordHash = await bcrypt.hash(input.newPassword, BCRYPT_ROUNDS);
+  await db.transaction(async (transaction) => {
+    await transaction
+      .update(userCredentials)
+      .set({
+        passwordHash,
+        failedLoginCount: 0,
+        lockedUntil: null,
+        passwordSetAt: now,
+        updatedAt: now,
+      })
+      .where(eq(userCredentials.userId, record.userId));
+
+    await recordWorkspaceAuditEvent({
+      eventType: "account.password_changed",
+      actorEmail: record.email,
+      actorUserId: record.userId,
+      targetType: "user",
+      targetId: record.userId,
+      details: { selfService: true },
+    }, transaction);
+  });
+
+  return true;
 }

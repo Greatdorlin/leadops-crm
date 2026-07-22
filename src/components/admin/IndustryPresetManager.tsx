@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
 import { Check, Building2, Plane, Briefcase, Stethoscope, GraduationCap, Shield, ShoppingCart, Car, Code, Scale, Dumbbell, X, ChevronRight, Eye, LayoutTemplate, ListTree } from "lucide-react";
 import type { IndustryPreset } from "@/lib/crm/industry-presets";
 import { SmoothButton } from "./ui/SmoothButton";
@@ -25,20 +26,36 @@ export function IndustryPresetManager({ presets }: { presets: IndustryPreset[] }
   const [applying, setApplying] = useState(false);
   const [applied, setApplied] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
-  const modalRef = useRef<HTMLDivElement>(null);
+  const [message, setMessage] = useState("");
+  const router = useRouter();
 
   const activePreset = presets.find((p) => p.id === selected);
 
   async function applyPreset() {
     if (!selected) return;
     setApplying(true);
+    setMessage("");
     try {
       const res = await fetch("/api/admin/settings/industry-preset", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ presetId: selected }),
       });
-      if (res.ok) setApplied(true);
+      const payload = (await res.json().catch(() => null)) as {
+        error?: string;
+        created?: { stages: number; sources: number; customFields: number; options: number };
+      } | null;
+      if (!res.ok) {
+        setMessage(payload?.error ?? "Preset could not be applied.");
+        return;
+      }
+      const created = payload?.created;
+      const total = created ? created.stages + created.sources + created.customFields : 0;
+      setApplied(true);
+      setMessage(total > 0 ? `${total} settings added. Existing settings were preserved.` : "This preset is already applied.");
+      router.refresh();
+    } catch {
+      setMessage("Preset could not be applied. Try again.");
     } finally {
       setApplying(false);
     }
@@ -47,6 +64,7 @@ export function IndustryPresetManager({ presets }: { presets: IndustryPreset[] }
   function handleSelect(id: string) {
     setSelected(id);
     setApplied(false);
+    setMessage("");
     setShowPreview(true);
   }
 
@@ -61,7 +79,7 @@ export function IndustryPresetManager({ presets }: { presets: IndustryPreset[] }
         <p className="text-sm uppercase tracking-wider text-white/50 font-medium">Industry setup</p>
         <h2 className="text-2xl font-semibold text-white mt-1">Choose your industry</h2>
         <p className="text-sm text-white/50 mt-1">
-          Pick a preset that matches your business. This will create recommended stages, sources, and custom fields.
+          Pick a preset to add recommended stages, sources, and custom fields without replacing existing setup.
         </p>
       </div>
 
@@ -102,12 +120,9 @@ export function IndustryPresetManager({ presets }: { presets: IndustryPreset[] }
             onClick={closePreview}
           />
           {/* Modal */}
-          <div
-            ref={modalRef}
-            className="relative max-h-[90dvh] w-full max-w-2xl overflow-y-auto overscroll-contain rounded-t-[28px] border border-white/10 bg-[#0c0f1a] shadow-2xl sm:rounded-3xl"
-          >
+          <div className="admin-surface ld-premium-scrollbar relative max-h-[90dvh] w-full max-w-2xl overflow-y-auto overscroll-contain rounded-t-[28px] shadow-2xl sm:rounded-3xl">
             {/* Header */}
-            <div className="sticky top-0 z-10 flex items-center justify-between border-b border-white/10 bg-[#0c0f1a]/95 backdrop-blur-xl px-6 py-4">
+            <div className="sticky top-0 z-10 flex items-center justify-between border-b border-white/10 bg-[#101421]/95 px-5 py-4 backdrop-blur-xl sm:px-6">
               <div className="flex items-center gap-3">
                 <div className="text-white/60">{presetIcons[activePreset.id] || <LayoutTemplate className="h-5 w-5" />}</div>
                 <div>
@@ -124,7 +139,7 @@ export function IndustryPresetManager({ presets }: { presets: IndustryPreset[] }
             </div>
 
             {/* Body */}
-            <div className="p-6 space-y-6">
+            <div className="space-y-6 p-5 sm:p-6">
               {/* Stages */}
               <div className="space-y-3">
                 <div className="flex items-center gap-2">
@@ -176,11 +191,11 @@ export function IndustryPresetManager({ presets }: { presets: IndustryPreset[] }
                 </div>
               </div>
 
-              {/* Preview fields */}
+              {/* Suggested preview fields */}
               <div className="space-y-3">
                 <div className="flex items-center gap-2">
                   <Eye className="h-4 w-4 text-white/40" />
-                  <p className="text-sm font-medium text-white/80">Lead Preview Fields</p>
+                  <p className="text-sm font-medium text-white/80">Suggested lead card fields</p>
                 </div>
                 <div className="flex flex-wrap gap-2">
                   {activePreset.leadPreviewFields.map((field) => (
@@ -189,12 +204,13 @@ export function IndustryPresetManager({ presets }: { presets: IndustryPreset[] }
                     </span>
                   ))}
                 </div>
+                <p className="text-xs text-white/45">Use these suggestions when arranging lead cards in Settings.</p>
               </div>
             </div>
 
             {/* Footer */}
-            <div className="sticky bottom-0 z-10 border-t border-white/10 bg-[#0c0f1a]/95 backdrop-blur-xl px-6 py-4">
-              <div className="flex items-center gap-3">
+            <div className="sticky bottom-0 z-10 border-t border-white/10 bg-[#101421]/95 px-5 py-4 backdrop-blur-xl sm:px-6">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
                 <SmoothButton
                   variant="primary"
                   size="sm"
@@ -210,9 +226,7 @@ export function IndustryPresetManager({ presets }: { presets: IndustryPreset[] }
                 >
                   Cancel
                 </button>
-                {applied && (
-                  <p className="text-sm text-emerald-400">Preset applied successfully. Review your settings.</p>
-                )}
+                {message ? <p className={applied ? "text-sm text-emerald-300" : "text-sm text-rose-200"} role="status">{message}</p> : null}
               </div>
             </div>
           </div>

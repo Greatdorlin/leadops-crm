@@ -10,6 +10,7 @@ export const PERMISSION_DEFINITIONS = [
   { key: "canViewReports", label: "View reports", description: "Access reports and sales analytics.", category: "Reports" },
   { key: "canManageUsers", label: "Manage team", description: "Add, edit, or deactivate team members.", category: "Team" },
   { key: "canManageSettings", label: "Manage settings", description: "Change workspace-wide settings.", category: "Settings" },
+  { key: "canResetWorkspace", label: "Reset workspace settings", description: "Restore workspace appearance and layout defaults without deleting business data.", category: "Settings" },
   { key: "canManageIntegrations", label: "Manage integrations", description: "Configure lead and marketing connections.", category: "Settings" },
   { key: "canManageForms", label: "Manage forms", description: "Create, edit, and embed lead capture forms.", category: "Customization" },
   { key: "canManageCustomFields", label: "Manage custom fields", description: "Add or edit custom fields on leads.", category: "Customization" },
@@ -54,7 +55,7 @@ export function isPermissionRole(value: unknown): value is CrmUserRole {
 }
 
 export const DEFAULT_ROLE_PERMISSIONS: Record<CrmUserRole, PermissionKey[]> = {
-  admin: PERMISSION_DEFINITIONS.map((permission) => permission.key),
+  admin: PERMISSION_DEFINITIONS.map((permission) => permission.key).filter((permission) => permission !== "canResetWorkspace"),
   manager: [
     "canViewLeads", "canCreateLeads", "canEditLeads", "canDeleteLeads", "canAssignLeads",
     "canExportLeads", "canViewReports", "canManageUsers", "canManageSettings",

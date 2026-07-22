@@ -23,6 +23,8 @@ interface SelectOption {
   value: string;
 }
 
+type AdminSelectProps = ComponentPropsWithoutRef<"select"> & { icon?: ReactNode };
+
 function readOptions(children: ReactNode, group?: string): SelectOption[] {
   return Children.toArray(children).flatMap((child) => {
     if (!isValidElement(child)) return [];
@@ -41,6 +43,128 @@ function readOptions(children: ReactNode, group?: string): SelectOption[] {
   });
 }
 
+function AdminMultiSelect({
+  children,
+  className,
+  onChange,
+  value,
+  defaultValue,
+  disabled,
+  icon,
+  ...props
+}: AdminSelectProps) {
+  const selectRef = useRef<HTMLSelectElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const listboxId = useId();
+  const options = useMemo(() => readOptions(children), [children]);
+  const initialValues = Array.isArray(value)
+    ? value.map(String)
+    : Array.isArray(defaultValue)
+      ? defaultValue.map(String)
+      : [];
+  const [internalValues, setInternalValues] = useState(initialValues);
+  const [open, setOpen] = useState(false);
+  const selectedValues = Array.isArray(value) ? value.map(String) : internalValues;
+  const selectedLabels = options
+    .filter((option) => selectedValues.includes(option.value))
+    .map((option) => option.label);
+
+  function toggle(nextValue: string) {
+    const nextValues = selectedValues.includes(nextValue)
+      ? selectedValues.filter((item) => item !== nextValue)
+      : [...selectedValues, nextValue];
+    const nativeSelect = selectRef.current;
+    if (!nativeSelect) return;
+    for (const option of Array.from(nativeSelect.options)) {
+      option.selected = nextValues.includes(option.value);
+    }
+    setInternalValues(nextValues);
+    nativeSelect.dispatchEvent(new Event("change", { bubbles: true }));
+  }
+
+  return (
+    <div className="relative min-w-0">
+      <select
+        {...props}
+        ref={selectRef}
+        multiple
+        disabled={disabled}
+        value={value}
+        defaultValue={value === undefined ? defaultValue : undefined}
+        onChange={(event) => {
+          setInternalValues(Array.from(event.target.selectedOptions).map((option) => option.value));
+          onChange?.(event);
+        }}
+        tabIndex={-1}
+        aria-hidden="true"
+        className="pointer-events-none absolute h-px w-px overflow-hidden opacity-0"
+      >
+        {children}
+      </select>
+      <button
+        ref={triggerRef}
+        type="button"
+        disabled={disabled}
+        aria-expanded={open}
+        aria-controls={listboxId}
+        aria-haspopup="listbox"
+        aria-label={props["aria-label"]}
+        onClick={() => setOpen((current) => !current)}
+        className={cn(
+          "admin-select ld-focus-ring group flex min-h-12 w-full min-w-0 items-center rounded-[18px] py-2 pl-4 pr-1.5 text-left text-sm font-medium outline-none transition",
+          "hover:border-white/20 hover:bg-white/[0.08] disabled:cursor-not-allowed disabled:opacity-50",
+          className,
+        )}
+      >
+        <span className={cn("min-w-0 flex-1 truncate", selectedLabels.length > 0 ? "text-white/90" : "text-white/45")}>
+          {selectedLabels.length > 0 ? selectedLabels.join(", ") : "Choose options"}
+        </span>
+        <span className="ml-2 inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-[13px] border border-white/10 bg-white/[0.08] text-white/70">
+          {icon ?? <ChevronDown className={cn("h-4 w-4 transition-transform", open && "rotate-180")} />}
+        </span>
+      </button>
+      <ResponsivePopover
+        anchorRef={triggerRef}
+        ariaLabel={props["aria-label"] || "Choose options"}
+        desktopWidth={340}
+        onClose={() => setOpen(false)}
+        open={open}
+        className="p-2"
+      >
+        <div id={listboxId} role="listbox" aria-multiselectable="true" className="ld-premium-scrollbar max-h-[min(58dvh,340px)] overflow-y-auto p-1">
+          {options.map((option) => {
+            const selected = selectedValues.includes(option.value);
+            return (
+              <button
+                key={option.value}
+                type="button"
+                role="option"
+                aria-selected={selected}
+                disabled={option.disabled}
+                onClick={() => toggle(option.value)}
+                className={cn(
+                  "ld-focus-ring flex min-h-11 w-full items-center gap-3 rounded-[14px] px-3 py-2.5 text-left text-sm transition",
+                  selected ? "bg-[color:var(--workspace-primary)]/20 text-white" : "text-white/78 hover:bg-white/[0.08] hover:text-white",
+                  option.disabled && "cursor-not-allowed opacity-40",
+                )}
+              >
+                <span className="min-w-0 flex-1 leading-5">{option.label}</span>
+                <span className={cn("grid h-5 w-5 shrink-0 place-items-center rounded-md border", selected ? "border-[color:var(--workspace-accent)] bg-[color:var(--workspace-accent)]/16" : "border-white/18")}>
+                  {selected ? <Check className="h-3.5 w-3.5 text-[color:var(--workspace-accent)]" /> : null}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+        <div className="mt-1 flex items-center justify-between border-t border-white/10 px-2 pt-2">
+          <span className="text-xs font-medium text-white/48">{selectedValues.length} selected</span>
+          <button type="button" onClick={() => setOpen(false)} className="admin-button-primary h-9 rounded-full px-4 text-xs font-semibold">Done</button>
+        </div>
+      </ResponsivePopover>
+    </div>
+  );
+}
+
 export function AdminSelect({
   children,
   className,
@@ -51,7 +175,7 @@ export function AdminSelect({
   disabled,
   multiple,
   ...props
-}: ComponentPropsWithoutRef<"select"> & { icon?: ReactNode }) {
+}: AdminSelectProps) {
   const selectRef = useRef<HTMLSelectElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const listboxId = useId();
@@ -73,20 +197,7 @@ export function AdminSelect({
   }, [initialValue]);
 
   if (multiple) {
-    return (
-      <select
-        {...props}
-        ref={selectRef}
-        multiple
-        disabled={disabled}
-        value={value}
-        defaultValue={defaultValue}
-        onChange={onChange}
-        className={cn("admin-select min-h-12 w-full rounded-[18px] px-4 py-3 text-sm outline-none", className)}
-      >
-        {children}
-      </select>
-    );
+    return <AdminMultiSelect {...props} className={className} disabled={disabled} icon={icon} multiple onChange={onChange} value={value} defaultValue={defaultValue}>{children}</AdminMultiSelect>;
   }
 
   function choose(nextValue: string) {

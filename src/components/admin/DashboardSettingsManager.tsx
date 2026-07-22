@@ -9,6 +9,7 @@ import {
   type DashboardWidgetKey,
 } from "@/lib/crm/workspace-settings";
 import { GlassSurface, SectionHeader, SmoothButton } from "@/components/admin/ui";
+import { AdminSelect } from "@/components/admin/AdminSelect";
 
 const widgetLabels: Record<DashboardWidgetKey, string> = {
   total_leads: "Total Leads",
@@ -149,15 +150,15 @@ export function DashboardSettingsManager({
 
       <label className="space-y-2">
         <span className="text-xs font-semibold uppercase tracking-[0.16em] text-white/70">Default period</span>
-        <select
+        <AdminSelect
           value={defaultPeriod}
           onChange={(event) => setDefaultPeriod(event.target.value as typeof defaultPeriod)}
-          className="admin-select h-11 w-full rounded-2xl px-4 text-sm outline-none"
+          className="h-11"
         >
           <option value="30d">Last 30 days</option>
           <option value="this_month">This month</option>
           <option value="quarter">This quarter</option>
-        </select>
+        </AdminSelect>
       </label>
 
       <div className="flex flex-col gap-3 border-t border-white/10 pt-4 sm:flex-row sm:items-center sm:justify-between">

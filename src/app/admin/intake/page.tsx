@@ -7,6 +7,7 @@ import { IntakeEventTable } from "@/components/admin/IntakeEventTable";
 import { MetricCard } from "@/components/admin/MetricCard";
 import { SectionHeader } from "@/components/admin/SectionHeader";
 import { AdminDateTimeInput } from "@/components/admin/AdminDateTimeInput";
+import { AdminSelect } from "@/components/admin/AdminSelect";
 import { getAdminAccessContext } from "@/lib/admin";
 import { isLocalAdminPreviewEmail } from "@/lib/admin-access";
 import { appRoutes } from "@/lib/app-routes";
@@ -129,22 +130,22 @@ export default async function AdminIntakePage({
             description="Narrow the log by source, status, or date range when a client needs an answer fast."
           />
           <form action={appRoutes.intake} className="mt-5 grid gap-3 lg:grid-cols-5">
-            <select name="status" defaultValue={status} className="admin-input h-11 rounded-2xl px-4 text-sm outline-none">
+            <AdminSelect name="status" defaultValue={status} className="h-11">
               <option value="all">All statuses</option>
               <option value="received">Received</option>
               <option value="mapped">Mapped</option>
               <option value="lead_created">Lead created</option>
               <option value="failed">Failed</option>
               <option value="ignored">Ignored</option>
-            </select>
-            <select name="formSourceId" defaultValue={formSourceId} className="admin-input h-11 rounded-2xl px-4 text-sm outline-none">
+            </AdminSelect>
+            <AdminSelect name="formSourceId" defaultValue={formSourceId} className="h-11">
               <option value="">All sources</option>
               {sources.map((source) => (
                 <option key={source.id} value={source.id}>
                   {source.name}
                 </option>
               ))}
-            </select>
+            </AdminSelect>
             <AdminDateTimeInput name="dateFrom" mode="date" defaultValue={dateFrom} className="h-11 rounded-2xl" />
             <AdminDateTimeInput name="dateTo" mode="date" defaultValue={dateTo} className="h-11 rounded-2xl" />
             <div className="flex gap-2">

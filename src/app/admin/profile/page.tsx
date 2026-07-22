@@ -4,6 +4,7 @@ import { ErrorState } from "@/components/admin/ErrorState";
 import { GlassCard } from "@/components/admin/GlassCard";
 import { AnimatedCard } from "@/components/admin/ui/AnimatedCard";
 import { TeamMemberProfileForm } from "@/components/admin/TeamMemberProfileForm";
+import { ChangePasswordForm } from "@/components/admin/ChangePasswordForm";
 import { getAdminAccessContext } from "@/lib/admin";
 import { isLocalAdminPreviewEmail } from "@/lib/admin-access";
 import { resolveAdminAccessLevel } from "@/lib/admin-permissions";
@@ -38,7 +39,7 @@ export default async function AdminProfilePage() {
       userEmail={profile?.email || session.user?.email}
       userAvatarUrl={profile?.avatarUrl}
     >
-      <div className="mx-auto max-w-4xl">
+      <div className="mx-auto max-w-4xl space-y-5">
         {profile ? (
           <AnimatedCard animation="fadeInUp" variant="elevated" className="ld-animate-fade-in-up">
             <GlassCard glassStyle="vibrant" className="p-5 sm:p-6">
@@ -59,6 +60,13 @@ export default async function AdminProfilePage() {
             description="Your admin profile could not be loaded. Ask an owner or admin to refresh your access."
           />
         )}
+        {profile ? (
+          <AnimatedCard animation="fadeInUp" variant="elevated" className="ld-animate-fade-in-up">
+            <GlassCard glassStyle="soft" className="p-5 sm:p-6">
+              <ChangePasswordForm disabled={demoMode} />
+            </GlassCard>
+          </AnimatedCard>
+        ) : null}
       </div>
     </AdminShell>
   );

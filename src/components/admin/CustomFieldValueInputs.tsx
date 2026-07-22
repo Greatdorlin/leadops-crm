@@ -98,7 +98,7 @@ export function CustomFieldValueInputs({
               <span className={labelClass}>
                 {field.label}
               </span>
-              <select
+              <AdminSelect
                 multiple
                 value={Array.isArray(value) ? value.map((item) => String(item)) : []}
                 onChange={(event: ChangeEvent<HTMLSelectElement>) =>
@@ -107,14 +107,14 @@ export function CustomFieldValueInputs({
                     Array.from(event.target.selectedOptions).map((option) => option.value),
                   )
                 }
-                className="admin-input min-h-[136px] w-full rounded-2xl px-4 py-3 text-sm outline-none"
+                className="min-h-12"
               >
                 {field.options.map((option) => (
                   <option key={option.id} value={option.value}>
                     {option.label}
                   </option>
                 ))}
-              </select>
+              </AdminSelect>
               {helpText ? <p className={helpClass}>{helpText}</p> : null}
             </label>
           );

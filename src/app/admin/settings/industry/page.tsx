@@ -22,7 +22,7 @@ export default async function IndustryPresetPage() {
       actualAccessLevel={actualAccessLevel}
       canSwitchAccessViews={canSwitchAccessViews}
       title="Industry preset"
-      description="Apply a pre-built configuration for your business type."
+      description="Add proven stages, sources, and fields without replacing existing setup."
     >
       <IndustryPresetManager presets={ALL_INDUSTRY_PRESETS} />
     </AdminShell>

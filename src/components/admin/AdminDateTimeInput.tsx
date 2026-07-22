@@ -34,6 +34,10 @@ function serialize(date: Date, mode: AdminDateTimeInputProps["mode"]) {
   const day = dateKey(date);
   return mode === "date" ? day : `${day}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
 }
+function setNativeInputValue(input: HTMLInputElement, value: string) {
+  const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")?.set;
+  setter?.call(input, value);
+}
 function formatValue(value: string, mode: AdminDateTimeInputProps["mode"]) {
   const date = parseValue(value, mode);
   if (!date) return "";
@@ -83,8 +87,9 @@ export function AdminDateTimeInput({
     const nextValue = next ? serialize(next, mode) : "";
     const input = hiddenRef.current;
     if (!input) return;
-    input.value = nextValue;
+    setNativeInputValue(input, nextValue);
     setInternalValue(nextValue);
+    input.dispatchEvent(new Event("input", { bubbles: true }));
     input.dispatchEvent(new Event("change", { bubbles: true }));
     if (close) setOpen(false);
   }

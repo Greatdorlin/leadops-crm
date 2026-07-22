@@ -18,6 +18,7 @@ import {
 } from "@/lib/crm/workspace-settings";
 import { AnimatedCard, SectionHeader, SmoothButton, StatusRing } from "@/components/admin/ui";
 import { InfoTip } from "@/components/admin/ui/InfoTip";
+import { AdminSelect } from "@/components/admin/AdminSelect";
 
 type AppearanceDraft = Pick<
   ResolvedWorkspaceSettings,
@@ -806,21 +807,21 @@ export function AppearanceSettingsManager({
           <div className="grid gap-4 sm:grid-cols-2">
             <label className="space-y-2">
               <FieldLabel>Density</FieldLabel>
-              <select
+              <AdminSelect
                 value={draft.density}
                 onChange={(event) => update("density", event.target.value as AppearanceDraft["density"])}
-                className="admin-select h-11 w-full px-4 text-sm outline-none"
+                className="h-11"
               >
                 <option value="comfortable">Comfortable</option>
                 <option value="compact">Compact</option>
-              </select>
+              </AdminSelect>
             </label>
             <label className="space-y-2">
               <FieldLabel>Font style</FieldLabel>
-              <select
+              <AdminSelect
                 value={draft.fontPreset}
                 onChange={(event) => update("fontPreset", event.target.value as AppearanceDraft["fontPreset"])}
-                className="admin-select h-11 w-full px-4 text-sm outline-none"
+                className="h-11"
               >
                 {FONT_PRESETS.map((preset) => (
                   <option key={preset} value={preset}>
@@ -833,7 +834,7 @@ export function AppearanceSettingsManager({
                           : "Compact"}
                   </option>
                 ))}
-              </select>
+              </AdminSelect>
             </label>
             <RangeControl
               label="Font scale"

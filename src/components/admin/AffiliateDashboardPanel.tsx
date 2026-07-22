@@ -9,6 +9,7 @@ import { PremiumMetricCard } from "./PremiumMetricCard";
 import { PriorityBadge } from "./PriorityBadge";
 import { SourceBadge } from "./SourceBadge";
 import { StatusBadge } from "./StatusBadge";
+import { SectionHeader } from "./SectionHeader";
 
 function formatMoney(value: number, currency = "USD") {
   return new Intl.NumberFormat("en-US", {
@@ -43,6 +44,11 @@ export function AffiliateDashboardPanel({
 
   return (
     <div className="space-y-5">
+      <SectionHeader
+        eyebrow="Performance"
+        title="My performance"
+        description="Your attributed leads, active value, wins, earnings, and follow-ups."
+      />
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <PremiumMetricCard
           label="My leads"

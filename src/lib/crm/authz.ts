@@ -142,6 +142,13 @@ export function canManageAdminSettings(user: AdminAuthzSubject) {
   );
 }
 
+export function canResetWorkspaceSettings(user: AdminAuthzSubject) {
+  return Boolean(
+    (user.email && isMasterAdminEmail(user.email)) ||
+      user.permissions?.includes("canResetWorkspace"),
+  );
+}
+
 export function canManageCustomFields(user: AdminAuthzSubject) {
   const role = resolveRole(user);
   return hasConfiguredPermission(

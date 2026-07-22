@@ -105,10 +105,6 @@ export async function listUserPermissionOverrides(userIds: readonly string[]) {
 }
 
 export async function listEnabledUserPermissions(userId: string, role: CrmUserRole) {
-  if (role === "admin") {
-    return listEnabledRolePermissions(role);
-  }
-
   const [rolePermissionList, overrides] = await Promise.all([
     listEnabledRolePermissions(role),
     listUserPermissionOverrides([userId]),

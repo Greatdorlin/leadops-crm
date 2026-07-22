@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { AlertTriangle, X } from "lucide-react";
 import { AdminOverlayPortal } from "./AdminOverlayPortal";
 
@@ -24,6 +24,17 @@ export function WorkspaceImpactConfirmation({
   onConfirm: () => void;
 }) {
   const [confirmation, setConfirmation] = useState("");
+  useEffect(() => {
+    if (!open) return;
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape" && !busy) {
+        setConfirmation("");
+        onCancel();
+      }
+    }
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, [busy, onCancel, open]);
   if (!open) return null;
 
   return (

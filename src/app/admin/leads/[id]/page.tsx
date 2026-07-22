@@ -133,8 +133,10 @@ export default async function AdminLeadDetailPage({
       }
     | null = null;
   let pageError: unknown = null;
+  const isDevelopmentDemoLead =
+    isLocalAdminPreviewEmail(session.user?.email) && id.startsWith("demo-lead-");
 
-  if (isLocalAdminPreviewEmail(session.user?.email) && id.startsWith("demo-lead-")) {
+  if (isDevelopmentDemoLead) {
     pageData = buildDemoLeadDetail(id);
   } else try {
     const lead = await leadStore.getById(id);
@@ -282,7 +284,19 @@ export default async function AdminLeadDetailPage({
   let configuredSourceOptions: Awaited<ReturnType<typeof listLeadSources>>;
   let opportunityRows: Awaited<ReturnType<typeof listLeadOpportunities>>;
 
-  try {
+  if (isDevelopmentDemoLead) {
+    readContext = {
+      stagesById: new Map(),
+      sourcesById: new Map(),
+      ownersById: new Map(),
+      customFieldDefinitionsByLeadId: new Map(),
+      customFieldValuesByLeadId: new Map(),
+    };
+    editableCustomFields = [];
+    configuredStageOptions = [];
+    configuredSourceOptions = [];
+    opportunityRows = [];
+  } else try {
     [readContext, editableCustomFields, configuredStageOptions, configuredSourceOptions, opportunityRows] = await Promise.all([
       loadAdminLeadReadContext([lead], { includeCustomFields: true }),
       listCustomFields(),

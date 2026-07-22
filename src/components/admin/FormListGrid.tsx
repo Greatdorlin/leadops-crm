@@ -215,13 +215,19 @@ function FormCard({
       </p>
 
       <div className="mt-4 flex flex-wrap gap-2">
-        <Link
-          href={appRoutes.form(form.id)}
-          className="admin-button-primary inline-flex h-9 items-center justify-center gap-1.5 rounded-xl px-3 text-xs font-semibold"
-        >
-          <Edit className="h-3.5 w-3.5" />
-          Edit
-        </Link>
+        {demoMode ? (
+          <span className="inline-flex h-9 items-center justify-center rounded-xl border border-white/10 bg-white/[0.05] px-3 text-xs font-semibold text-white/62">
+            Sample
+          </span>
+        ) : (
+          <Link
+            href={appRoutes.form(form.id)}
+            className="admin-button-primary inline-flex h-9 items-center justify-center gap-1.5 rounded-xl px-3 text-xs font-semibold"
+          >
+            <Edit className="h-3.5 w-3.5" />
+            Edit
+          </Link>
+        )}
         {form.isPublic && form.status === "active" && !demoMode ? (
           <Link
             href={`/forms/${form.slug}`}
@@ -332,21 +338,21 @@ export function FormListGrid({
 
   return (
     <div className="space-y-6">
-      <div className="grid gap-3 sm:grid-cols-3">
-        <AnimatedCard variant="subtle" className="rounded-[20px] p-4">
+      <div className="grid grid-cols-3 gap-2 sm:gap-3">
+        <AnimatedCard variant="subtle" className="rounded-[18px] p-3 sm:rounded-[20px] sm:p-4">
           <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/70">Active forms</p>
           <p className="mt-2 text-2xl font-semibold tracking-[-0.04em] text-white">{activeForms.length}</p>
-          <p className="mt-1 text-xs text-white/50">Accepting submissions</p>
+          <p className="mt-1 text-xs text-white/50 max-sm:hidden">Accepting submissions</p>
         </AnimatedCard>
-        <AnimatedCard variant="subtle" className="rounded-[20px] p-4">
+        <AnimatedCard variant="subtle" className="rounded-[18px] p-3 sm:rounded-[20px] sm:p-4">
           <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/70">Draft forms</p>
           <p className="mt-2 text-2xl font-semibold tracking-[-0.04em] text-white">{draftForms.length}</p>
-          <p className="mt-1 text-xs text-white/50">Not yet published</p>
+          <p className="mt-1 text-xs text-white/50 max-sm:hidden">Not yet published</p>
         </AnimatedCard>
-        <AnimatedCard variant="subtle" className="rounded-[20px] p-4">
+        <AnimatedCard variant="subtle" className="rounded-[18px] p-3 sm:rounded-[20px] sm:p-4">
           <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/70">Archived</p>
           <p className="mt-2 text-2xl font-semibold tracking-[-0.04em] text-white">{archivedForms.length}</p>
-          <p className="mt-1 text-xs text-white/50">No longer active</p>
+          <p className="mt-1 text-xs text-white/50 max-sm:hidden">No longer active</p>
         </AnimatedCard>
       </div>
 
@@ -357,10 +363,10 @@ export function FormListGrid({
           </h2>
           <p className="mt-1 text-sm text-white/70">Manage forms, fields, and submission rules.</p>
         </div>
-        {canManage ? (
+        {canManage && !demoMode ? (
           <Link
             href={appRoutes.formsNew}
-            className="admin-button-primary inline-flex h-11 shrink-0 items-center justify-center rounded-2xl px-5 text-sm font-semibold"
+            className="admin-button-primary inline-flex h-11 shrink-0 items-center justify-center rounded-2xl px-5 text-sm font-semibold max-sm:!self-start"
           >
             Create new form
           </Link>

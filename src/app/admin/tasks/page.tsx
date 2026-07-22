@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { AlarmClockCheck, CircleAlert, ListTodo, Users2 } from "lucide-react";
-import { AdminWorkspaceComposer } from "@/components/admin/AdminWorkspaceComposer";
 import { AdminShell } from "@/components/admin/AdminShell";
 import { ErrorState } from "@/components/admin/ErrorState";
 import { AdminSignOutButton } from "@/components/admin/AdminSignOutButton";
@@ -11,12 +10,12 @@ import { GlassSurface } from "@/components/admin/ui/GlassSurface";
 import { SmoothButton } from "@/components/admin/ui/SmoothButton";
 import { SectionHeader } from "@/components/admin/SectionHeader";
 import { TaskQueueTable } from "@/components/admin/TaskQueueTable";
+import { TaskCreateDialog } from "@/components/admin/TaskCreateDialog";
 import { getAdminAccessContext } from "@/lib/admin";
 import { isLocalAdminPreviewEmail } from "@/lib/admin-access";
 import { isDateToday, isTaskOverdue } from "@/lib/admin-insights";
 import { canAssignTasksToOthers, scopeLeadListFilters } from "@/lib/admin-permissions";
 import { canEditLeads, canViewLeads } from "@/lib/crm/authz";
-import { listCustomFields } from "@/lib/crm/custom-fields-admin";
 import { buildLeadDisplayNameMap } from "@/lib/crm/lead-identity";
 import { formatLeadStateLabel } from "@/lib/crm/formatters";
 import { getCrmPageErrorCopy, logCrmPageError } from "@/lib/crm/runtime";
@@ -192,18 +191,6 @@ export default async function AdminTasksPage({
   }
 
   const errorCopy = pageError ? getCrmPageErrorCopy(pageError) : null;
-  let leadCaptureCustomFields = [] as Awaited<ReturnType<typeof listCustomFields>>;
-
-  if (!usingDevelopmentDemoData) {
-    try {
-      leadCaptureCustomFields = (await listCustomFields()).filter(
-        (field) => field.showInForm && !field.archived,
-      );
-    } catch (error) {
-      logCrmPageError("tasks-custom-fields", error);
-    }
-  }
-
   if (!pageData) {
     return (
       <AdminShell
@@ -251,16 +238,6 @@ export default async function AdminTasksPage({
   const defaultLeadId = requestedLeadId && pageData.leads.some((lead) => lead.id === requestedLeadId)
     ? requestedLeadId
     : undefined;
-  const assignmentLeadOptions = pageData.leads
-    .filter((lead) => !lead.assignedTo || !lead.stageId)
-    .slice(0, 20)
-    .map((lead) => ({
-      value: lead.id,
-      label: `${leadNamesById[lead.id] || "Lead"} • ${lead.state ? `${formatLeadStateLabel(lead.state)} • ` : ""}${lead.email || lead.whatsappNumber || "No contact yet"}`.trim(),
-      assignedTo: lead.assignedTo,
-      stage: lead.stageId ?? "new",
-      priority: lead.priority,
-    }));
   const openTasks = pageData.tasks.filter((task) => !task.completedAt);
   const overdueCount = pageData.tasks.filter((task) => isTaskOverdue(task)).length;
   const todayCount = pageData.tasks.filter((task) => isDateToday(task.dueAt) && !task.completedAt).length;
@@ -294,12 +271,13 @@ export default async function AdminTasksPage({
       actions={
         <>
           {canEditTasks ? (
-            <Link
-              href="#task-action-center"
-              className="admin-button-primary inline-flex h-10 items-center justify-center rounded-full px-4 text-sm font-semibold"
-            >
-              {canAssignOtherTasks ? "Assign task" : "Create task"}
-            </Link>
+            <TaskCreateDialog
+              leadOptions={leadOptions}
+              assigneeOptions={assigneeOptions}
+              defaultAssignedTo={canAssignOtherTasks ? "" : session.user?.email ?? ""}
+              defaultLeadId={defaultLeadId}
+              canAssignOtherTasks={canAssignOtherTasks}
+            />
           ) : null}
           <AdminSignOutButton />
         </>
@@ -363,7 +341,7 @@ export default async function AdminTasksPage({
 
         <section className="space-y-5 ld-animate-fade-in-up">
           <GlassSurface as="section" className="rounded-[24px] p-2.5 sm:p-3">
-            <div className="grid gap-2 min-[420px]:grid-cols-2 lg:grid-cols-4">
+            <div className="grid grid-cols-2 gap-2 lg:grid-cols-4">
               {taskStats.map((stat) => (
                 <div
                   key={stat.label}
@@ -430,21 +408,6 @@ export default async function AdminTasksPage({
           </div>
         </section>
 
-        {canEditTasks ? (
-          <div id="task-action-center" className="scroll-mt-24">
-            <AdminWorkspaceComposer
-              accessLevel={accessLevel}
-              leadOptions={leadOptions}
-              assignmentLeadOptions={assignmentLeadOptions}
-              assigneeOptions={assigneeOptions}
-              defaultAssignedTo={canAssignOtherTasks ? "" : session.user?.email ?? ""}
-              defaultLeadId={defaultLeadId}
-              variant="compact"
-              leadCaptureCustomFields={leadCaptureCustomFields}
-              allowedModes={["task"]}
-            />
-          </div>
-        ) : null}
       </div>
     </AdminShell>
   );

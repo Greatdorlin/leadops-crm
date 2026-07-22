@@ -97,7 +97,7 @@ export default async function AdminSalesTargetsPage() {
     >
       {targets && referenceData ? (
         <div className="space-y-6">
-          <section className="grid gap-3 md:grid-cols-3">
+          <section className="grid grid-cols-3 gap-2 md:gap-3">
             <MetricCard
               label="Active targets"
               value={targets.filter((target) => !target.archived && target.isActive).length}

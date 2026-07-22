@@ -234,7 +234,7 @@ export function LeadTaskForm({
         </div>
       </AdminDisclosure>
 
-      <div className="flex flex-col gap-3 border-t border-white/10 pt-4 sm:flex-row sm:items-center sm:justify-between">
+      <div className="sticky bottom-0 z-20 -mx-2 flex flex-col gap-2 border-t border-white/12 bg-[#080b18]/[0.98] px-2 pb-[max(0.25rem,env(safe-area-inset-bottom))] pt-3 shadow-[0_-14px_34px_rgba(0,0,0,0.3)] backdrop-blur-xl sm:static sm:mx-0 sm:flex-row sm:items-center sm:justify-between sm:gap-3 sm:bg-transparent sm:px-0 sm:pb-0 sm:pt-4 sm:shadow-none sm:backdrop-blur-none">
         <p
           className={cn("min-h-5 text-sm", hasError ? "text-rose-200" : "text-emerald-200")}
           role={hasError ? "alert" : "status"}
@@ -245,6 +245,7 @@ export function LeadTaskForm({
         <SmoothButton
           variant="primary"
           size="md"
+          className="w-full sm:w-auto"
           onClick={() => void saveTask()}
           loading={isSaving}
           icon={<Check className="h-4 w-4" />}

@@ -33,10 +33,9 @@ export default async function AdminFormsPage() {
 
   let formsWithCounts: (Awaited<ReturnType<typeof listForms>>[number] & { fieldCount: number; submissionCount: number })[] = [];
   let pageError: unknown = null;
+  let usingDemoForms = false;
 
-  if (isLocalAdminPreviewEmail(session.user?.email)) {
-    formsWithCounts = buildDemoForms();
-  } else try {
+  try {
     const forms = await listForms({ includeArchived: true });
     const counts = await getFormResourceCounts(forms.map((form) => form.id));
     formsWithCounts = forms.map((form) => ({
@@ -44,9 +43,17 @@ export default async function AdminFormsPage() {
       fieldCount: counts.get(form.id)?.fieldCount ?? 0,
       submissionCount: counts.get(form.id)?.submissionCount ?? 0,
     }));
+    if (formsWithCounts.length === 0 && isLocalAdminPreviewEmail(session.user?.email)) {
+      formsWithCounts = buildDemoForms();
+      usingDemoForms = true;
+    }
   } catch (error) {
     pageError = error;
     logCrmPageError("forms", error);
+    if (isLocalAdminPreviewEmail(session.user?.email)) {
+      formsWithCounts = buildDemoForms();
+      usingDemoForms = true;
+    }
   }
 
   if (pageError && formsWithCounts.length === 0) {
@@ -97,7 +104,7 @@ export default async function AdminFormsPage() {
         accessLevel={accessLevel}
         role={role}
         permissions={permissions}
-        demoMode={isLocalAdminPreviewEmail(session.user?.email)}
+        demoMode={usingDemoForms}
       />
     </AdminShell>
   );

@@ -124,7 +124,7 @@ export function MetricCard({
             {highlightLabel ? (
               <span
                 className={cn(
-                  "inline-flex min-w-0 items-center justify-center rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] sm:min-w-[3.75rem] sm:text-[11px] sm:tracking-[0.14em]",
+                  "inline-flex min-w-0 items-center justify-center rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] max-sm:hidden sm:min-w-[3.75rem] sm:text-[11px] sm:tracking-[0.14em]",
                   highlightClass,
                 )}
               >
@@ -150,7 +150,7 @@ export function MetricCard({
         </div>
         <p
           className={cn(
-            "mt-5 min-w-0 break-words text-[2rem] font-semibold leading-none tracking-[-0.06em] sm:mt-6 sm:text-[2.55rem]",
+            "mt-3 min-w-0 break-words text-[1.8rem] font-semibold leading-none tracking-[-0.06em] sm:mt-6 sm:text-[2.55rem]",
             "text-white",
           )}
         >
@@ -159,7 +159,7 @@ export function MetricCard({
         {supporting ? (
           <p
             className={cn(
-              "mt-4 min-w-0 max-w-[28ch] break-words text-sm leading-6 sm:mt-5",
+              "mt-4 min-w-0 max-w-[28ch] break-words text-sm leading-6 max-sm:hidden sm:mt-5",
               "text-white/70",
             )}
           >

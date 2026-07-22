@@ -151,6 +151,7 @@ export function AdminShell({
               <SmoothButton
                 variant="ghost"
                 size="sm"
+                className="shrink-0"
                 onClick={() => {
                   if (window.history.length > 1) router.back();
                   else router.push("/admin");
@@ -163,6 +164,7 @@ export function AdminShell({
               <SmoothButton
                 variant="ghost"
                 size="sm"
+                className="shrink-0"
                 onClick={() => setMobileDrawerOpen(true)}
                 icon={<Menu className="h-5 w-5" />}
               >

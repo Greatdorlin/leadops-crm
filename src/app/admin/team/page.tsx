@@ -103,7 +103,7 @@ export default async function AdminTeamPage() {
       }
     >
       <div className="max-w-full min-w-0 space-y-6 overflow-x-clip">
-        <section className="grid min-w-0 gap-3 md:grid-cols-2 xl:grid-cols-5 [&>*]:min-w-0">
+        <section className="grid min-w-0 grid-cols-2 gap-3 md:grid-cols-2 xl:grid-cols-5 [&>*]:min-w-0 [&>*:last-child:nth-child(odd)]:col-span-2 xl:[&>*:last-child:nth-child(odd)]:col-span-1">
           <MetricCard
             label="Active reps"
             value={safeNumber(teamRows.length)}

@@ -170,43 +170,43 @@ export function TeamSettingsWorkspace({
         </AdminOverlayPortal>
       ) : null}
 
-      <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-5">
-        <GlassCard glassStyle="soft" className="p-5">
+      <section className="grid grid-cols-2 gap-3 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-5 [&>*:last-child:nth-child(odd)]:col-span-2 2xl:[&>*:last-child:nth-child(odd)]:col-span-1">
+        <GlassCard glassStyle="soft" className="p-4 sm:p-5">
           <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/70">
             Active team
           </p>
           <p className="mt-3 text-3xl font-semibold tracking-[-0.05em] text-white">{summary.active}</p>
-          <p className="mt-2 text-sm text-white/70">People who can work the workspace today.</p>
+          <p className="mt-2 text-sm text-white/70 max-sm:hidden">People who can work the workspace today.</p>
         </GlassCard>
-        <GlassCard glassStyle="soft" className="p-5">
+        <GlassCard glassStyle="soft" className="p-4 sm:p-5">
           <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/70">
             Inactive
           </p>
           <p className="mt-3 text-3xl font-semibold tracking-[-0.05em] text-white">{summary.inactive}</p>
-          <p className="mt-2 text-sm text-white/70">Archived access that can be restored if needed.</p>
+          <p className="mt-2 text-sm text-white/70 max-sm:hidden">Archived access that can be restored if needed.</p>
         </GlassCard>
-        <GlassCard glassStyle="soft" className="p-5">
+        <GlassCard glassStyle="soft" className="p-4 sm:p-5">
           <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/70">
             Admin coverage
           </p>
           <p className="mt-3 text-3xl font-semibold tracking-[-0.05em] text-white">{summary.ownersAndAdmins}</p>
-          <p className="mt-2 text-sm text-white/70">Owners and admins protecting the workspace.</p>
+          <p className="mt-2 text-sm text-white/70 max-sm:hidden">Owners and admins protecting the workspace.</p>
         </GlassCard>
-        <GlassCard glassStyle="soft" className="p-5">
+        <GlassCard glassStyle="soft" className="p-4 sm:p-5">
           <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/70">
             Sales operators
           </p>
           <p className="mt-3 text-3xl font-semibold tracking-[-0.05em] text-white">{summary.salesOperators}</p>
-          <p className="mt-2 text-sm text-white/70">Team leads and reps carrying active lead work.</p>
+          <p className="mt-2 text-sm text-white/70 max-sm:hidden">Team leads and reps carrying active lead work.</p>
         </GlassCard>
-        <GlassCard glassStyle="soft" className="p-5">
+        <GlassCard glassStyle="soft" className="p-4 sm:p-5">
           <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/70">
             Protected roles
           </p>
           <p className="mt-3 text-3xl font-semibold tracking-[-0.05em] text-white">
             {summary.finance + summary.affiliates}
           </p>
-          <p className="mt-2 text-sm text-white/70">
+          <p className="mt-2 text-sm text-white/70 max-sm:hidden">
             Finance reviewers and affiliates with limited workspaces.
           </p>
         </GlassCard>

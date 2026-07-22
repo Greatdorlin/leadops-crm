@@ -817,6 +817,16 @@ body {
 }
 
 @media (max-width: 639px) {
+  .ld-action-strip > a.admin-button-secondary:first-child:is(
+      [href="/dashboard"],
+      [href="/settings"],
+      [href="/leads"],
+      [href="/forms"],
+      [href="/leads/trash"]
+    ) {
+    display: none !important;
+  }
+
   .admin-input[type="date"],
   .admin-input[type="datetime-local"],
   .admin-input[type="time"] {

@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { buildPublicFormFields } from "@/lib/crm/public-form";
+import { buildPublicFormDefinition, buildPublicFormFields } from "@/lib/crm/public-form";
 import { buildDemoPublicForm } from "@/lib/crm/demo-data";
 import type { FormFieldRow } from "@/lib/db/schema";
 
@@ -47,4 +47,14 @@ test("seeded demo forms expose a complete public preview without database access
   assert.ok(result.fields.some((item) => item.mapsToLeadField === "email"));
   assert.ok(result.fields.some((item) => item.fieldType === "select"));
   assert.equal(buildDemoPublicForm("unknown-form"), null);
+});
+
+test("public form definitions retain the saved submit button label", () => {
+  const result = buildDemoPublicForm("executive-consultation");
+
+  assert.ok(result);
+  assert.equal(
+    buildPublicFormDefinition(result.form).submitButtonLabel,
+    result.form.submitButtonLabel,
+  );
 });

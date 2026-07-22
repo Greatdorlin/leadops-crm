@@ -25,6 +25,7 @@ export function buildPublicFormDefinition(form: FormRow) {
     slug: form.slug,
     description: form.description,
     successMessage: form.successMessage,
+    submitButtonLabel: form.submitButtonLabel,
     redirectUrl: form.redirectUrl,
     primaryColor: form.primaryColor,
     accentColor: form.accentColor,

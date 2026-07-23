@@ -182,7 +182,7 @@ export function AdminDateTimeInput({
                 const selectedDay = selectedDate && key === dateKey(selectedDate);
                 const today = key === dateKey(new Date());
                 const inMonth = day.getMonth() === visibleMonth.getMonth();
-                return <button key={key} type="button" onClick={() => chooseDay(day)} aria-label={day.toLocaleDateString([], { dateStyle: "long" })} aria-pressed={Boolean(selectedDay)} className={cn("ld-focus-ring relative grid aspect-square min-h-9 place-items-center rounded-[12px] text-sm transition", selectedDay ? "bg-[color:var(--workspace-primary)] text-white shadow-[0_8px_24px_color-mix(in_srgb,var(--workspace-primary)_35%,transparent)]" : inMonth ? "text-white/82 hover:bg-white/[0.09]" : "text-white/28 hover:bg-white/[0.05]", today && !selectedDay && "ring-1 ring-inset ring-[color:var(--workspace-accent)]/60 text-white")}>{day.getDate()}</button>;
+                return <button key={key} type="button" onClick={() => chooseDay(day)} aria-label={day.toLocaleDateString([], { dateStyle: "long" })} aria-pressed={Boolean(selectedDay)} className={cn("ld-focus-ring relative grid aspect-square min-h-9 place-items-center rounded-[12px] text-sm transition", selectedDay ? "bg-[color:var(--ld-color-primary)] text-white shadow-[0_8px_24px_color-mix(in_srgb,var(--ld-color-primary)_35%,transparent)]" : inMonth ? "text-white/82 hover:bg-white/[0.09]" : "text-white/28 hover:bg-white/[0.05]", today && !selectedDay && "ring-1 ring-inset ring-[color:var(--ld-color-accent)]/60 text-white")}>{day.getDate()}</button>;
               })}
             </div>
           </div>

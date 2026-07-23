@@ -330,6 +330,8 @@ test("premium UI pass adds additive company settings storage for runtime customi
     "dashboardConfig",
     "leadPreviewConfig",
     "industryPreset",
+    "onboardingProfile",
+    "onboardingCompletedAt",
     "globalCurrency",
     "domainRegistrationEnabled",
     "approvedRegistrationDomains",

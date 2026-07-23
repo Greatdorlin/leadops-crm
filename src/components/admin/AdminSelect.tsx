@@ -110,16 +110,29 @@ function AdminMultiSelect({
         aria-haspopup="listbox"
         aria-label={props["aria-label"]}
         onClick={() => setOpen((current) => !current)}
+        onKeyDown={(event) => {
+          if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+            event.preventDefault();
+            setOpen(true);
+          }
+        }}
         className={cn(
-          "admin-select ld-focus-ring group flex min-h-12 w-full min-w-0 items-center rounded-[18px] py-2 pl-4 pr-1.5 text-left text-sm font-medium outline-none transition",
+          "admin-select ld-focus-ring group flex min-h-12 w-full min-w-0 items-center rounded-[18px] py-2 pl-3 pr-1.5 text-left text-[13px] font-medium outline-none transition sm:pl-4 sm:text-sm",
           "hover:border-white/20 hover:bg-white/[0.08] disabled:cursor-not-allowed disabled:opacity-50",
           className,
         )}
       >
-        <span className={cn("min-w-0 flex-1 truncate", selectedLabels.length > 0 ? "text-white/90" : "text-white/45")}>
+        <span
+          className={cn("min-w-0 flex-1 truncate", selectedLabels.length > 0 ? "text-white/90" : "text-white/45")}
+          title={selectedLabels.join(", ") || undefined}
+        >
           {selectedLabels.length > 0 ? selectedLabels.join(", ") : "Choose options"}
         </span>
-        <span className="ml-2 inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-[13px] border border-white/10 bg-white/[0.08] text-white/70">
+        <span
+          aria-hidden="true"
+          data-admin-select-affordance="true"
+          className="ml-1.5 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-[11px] border border-white/10 bg-white/[0.08] text-white/70 sm:ml-2 sm:h-9 sm:w-9 sm:rounded-[13px]"
+        >
           {icon ?? <ChevronDown className={cn("h-4 w-4 transition-transform", open && "rotate-180")} />}
         </span>
       </button>
@@ -140,17 +153,18 @@ function AdminMultiSelect({
                 type="button"
                 role="option"
                 aria-selected={selected}
+                data-popover-autofocus={selected || undefined}
                 disabled={option.disabled}
                 onClick={() => toggle(option.value)}
                 className={cn(
                   "ld-focus-ring flex min-h-11 w-full items-center gap-3 rounded-[14px] px-3 py-2.5 text-left text-sm transition",
-                  selected ? "bg-[color:var(--workspace-primary)]/20 text-white" : "text-white/78 hover:bg-white/[0.08] hover:text-white",
+                  selected ? "bg-[color:var(--ld-color-primary)]/20 text-white" : "text-white/78 hover:bg-white/[0.08] hover:text-white",
                   option.disabled && "cursor-not-allowed opacity-40",
                 )}
               >
                 <span className="min-w-0 flex-1 leading-5">{option.label}</span>
-                <span className={cn("grid h-5 w-5 shrink-0 place-items-center rounded-md border", selected ? "border-[color:var(--workspace-accent)] bg-[color:var(--workspace-accent)]/16" : "border-white/18")}>
-                  {selected ? <Check className="h-3.5 w-3.5 text-[color:var(--workspace-accent)]" /> : null}
+                <span className={cn("grid h-5 w-5 shrink-0 place-items-center rounded-md border", selected ? "border-[color:var(--ld-color-accent)] bg-[color:var(--ld-color-accent)]/16" : "border-white/18")}>
+                  {selected ? <Check className="h-3.5 w-3.5 text-[color:var(--ld-color-accent)]" /> : null}
                 </span>
               </button>
             );
@@ -237,14 +251,24 @@ export function AdminSelect({
         aria-haspopup="listbox"
         aria-label={props["aria-label"]}
         onClick={() => setOpen((current) => !current)}
+        onKeyDown={(event) => {
+          if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+            event.preventDefault();
+            setOpen(true);
+          }
+        }}
         className={cn(
-          "admin-select ld-focus-ring group flex h-12 w-full min-w-0 items-center rounded-[18px] pl-4 pr-1.5 text-left text-sm font-medium tracking-[-0.01em] outline-none transition duration-200",
+          "admin-select ld-focus-ring group flex h-12 w-full min-w-0 items-center rounded-[18px] pl-3 pr-1.5 text-left text-[13px] font-medium tracking-[-0.01em] outline-none transition duration-200 sm:pl-4 sm:text-sm",
           "hover:border-white/20 hover:bg-white/[0.08] disabled:cursor-not-allowed disabled:opacity-50",
           className,
         )}
       >
-        <span className="min-w-0 flex-1 truncate text-white/90">{selected?.label || "Choose an option"}</span>
-        <span className="ml-2 inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-[13px] border border-white/10 bg-white/[0.08] text-white/70 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] transition group-hover:border-white/20 group-hover:bg-white/[0.12]">
+        <span className="min-w-0 flex-1 truncate text-white/90" title={selected?.label || undefined}>{selected?.label || "Choose an option"}</span>
+        <span
+          aria-hidden="true"
+          data-admin-select-affordance="true"
+          className="ml-1.5 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-[11px] border border-white/10 bg-white/[0.08] text-white/70 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] transition group-hover:border-white/20 group-hover:bg-white/[0.12] sm:ml-2 sm:h-9 sm:w-9 sm:rounded-[13px]"
+        >
           {icon ?? <ChevronDown className={cn("h-4 w-4 transition-transform", open && "rotate-180")} />}
         </span>
       </button>
@@ -268,18 +292,19 @@ export function AdminSelect({
                   type="button"
                   role="option"
                   aria-selected={option.value === selectedValue}
+                  data-popover-autofocus={option.value === selectedValue || undefined}
                   disabled={option.disabled}
                   onClick={() => choose(option.value)}
                   className={cn(
                     "ld-focus-ring flex min-h-11 w-full items-center gap-3 rounded-[14px] px-3 py-2.5 text-left text-sm transition",
                     option.value === selectedValue
-                      ? "bg-[color:var(--workspace-primary)]/20 text-white"
+                      ? "bg-[color:var(--ld-color-primary)]/20 text-white"
                       : "text-white/78 hover:bg-white/[0.08] hover:text-white",
                     option.disabled && "cursor-not-allowed opacity-40",
                   )}
                 >
                   <span className="min-w-0 flex-1 leading-5">{option.label}</span>
-                  {option.value === selectedValue ? <Check className="h-4 w-4 shrink-0 text-[color:var(--workspace-accent)]" /> : null}
+                  {option.value === selectedValue ? <Check className="h-4 w-4 shrink-0 text-[color:var(--ld-color-accent)]" /> : null}
                 </button>
               </div>
             );

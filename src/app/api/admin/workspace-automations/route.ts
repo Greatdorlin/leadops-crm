@@ -6,6 +6,7 @@ import {
   listWorkspaceAutomations,
   workspaceAutomationPayloadSchema,
 } from "@/lib/crm/workspace-automations";
+import { recordWorkspaceAuditEvent } from "@/lib/crm/workspace-audit";
 
 export async function GET() {
   const context = await getAdminRequestContext();
@@ -22,5 +23,18 @@ export async function POST(request: Request) {
   const parsed = workspaceAutomationPayloadSchema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ error: parsed.error.issues[0]?.message ?? "Invalid automation." }, { status: 400 });
   const rule = await createWorkspaceAutomation(parsed.data, actorEmail);
+  await recordWorkspaceAuditEvent({
+    eventType: "workspace.automation_created",
+    actorEmail,
+    actorUserId: context.crmUser?.id,
+    targetType: "workspace_automation",
+    targetId: rule.id,
+    details: {
+      name: rule.name,
+      conditionField: rule.conditionField,
+      actionType: rule.actionType,
+      isActive: rule.isActive,
+    },
+  });
   return NextResponse.json({ rule }, { status: 201 });
 }

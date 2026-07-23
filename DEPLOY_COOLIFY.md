@@ -24,8 +24,6 @@ Required:
 
 - `DATABASE_URL`
 - `AUTH_SECRET`
-- `AUTH_GOOGLE_ID`
-- `AUTH_GOOGLE_SECRET`
 - `NEXTAUTH_URL`
 - `INITIAL_ADMIN_EMAIL`
 - `INITIAL_ADMIN_NAME`
@@ -34,6 +32,7 @@ Required:
 Optional:
 
 - `ALLOWED_EMAIL_DOMAINS`
+- `ENABLE_GOOGLE_LOGIN=true`, `AUTH_GOOGLE_ID`, and `AUTH_GOOGLE_SECRET` when Google login is enabled
 
 Do not rely on development preview access in Coolify production environments.
 
@@ -68,11 +67,11 @@ Never use `db:push` for a client production database.
 
 - attach the client domain
 - enable SSL
-- confirm the public URL matches the Google OAuth callback URL
+- when Google login is enabled, confirm the public URL matches its OAuth callback URL
 
 ## 7. Post-Deploy Checks
 
-- sign in with the owner Google account
+- sign in with the owner account; verify Google separately when it is enabled
 - test custom fields
 - test form sources and webhook intake
 - test export
@@ -84,3 +83,7 @@ Never use `db:push` for a client production database.
 Backups are still the operator’s responsibility even if the app is deployed through Coolify.
 
 See [BACKUP_AND_RESTORE.md](./BACKUP_AND_RESTORE.md).
+
+## 9. Capacity Verification
+
+Start with one app container, calculate the aggregate database pool across all replicas, and complete the acceptance gate in [docs/SCALING_AND_CAPACITY.md](./docs/SCALING_AND_CAPACITY.md) before promising a client capacity tier.

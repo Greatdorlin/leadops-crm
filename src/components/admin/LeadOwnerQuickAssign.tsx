@@ -29,6 +29,7 @@ export function LeadOwnerQuickAssign({
   const listboxId = useId();
   const buttonRef = useRef<HTMLButtonElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
+  const searchRef = useRef<HTMLInputElement>(null);
   const [assignedTo, setAssignedTo] = useState(initialAssignedTo ?? "");
   const [savedAssignedTo, setSavedAssignedTo] = useState(initialAssignedTo ?? "");
   const [isOpen, setIsOpen] = useState(false);
@@ -62,7 +63,10 @@ export function LeadOwnerQuickAssign({
 
   useEffect(() => {
     if (!isOpen) return;
-    const frame = requestAnimationFrame(updateScrollAffordance);
+    const frame = requestAnimationFrame(() => {
+      updateScrollAffordance();
+      searchRef.current?.focus({ preventScroll: true });
+    });
     return () => cancelAnimationFrame(frame);
   }, [filteredOptions.length, isOpen]);
 
@@ -148,7 +152,7 @@ export function LeadOwnerQuickAssign({
           onClick={() => setIsOpen((current) => !current)}
           disabled={isSaving}
           className={cn(
-            "group flex w-full min-w-0 items-center justify-between gap-2 border border-white/12 bg-white/[0.06] text-left text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.09),0_12px_24px_rgba(0,0,0,0.18)] transition hover:border-white/22 hover:bg-white/[0.09] disabled:cursor-wait disabled:opacity-75",
+            "ld-focus-ring group flex w-full min-w-0 items-center justify-between gap-2 border border-white/12 bg-white/[0.06] text-left text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.09),0_12px_24px_rgba(0,0,0,0.18)] transition hover:border-white/22 hover:bg-white/[0.09] disabled:cursor-wait disabled:opacity-75",
             variant === "compact"
               ? "h-10 max-w-full rounded-full py-1 pl-1.5 pr-2.5 sm:max-w-[11.5rem]"
               : "h-12 rounded-[18px] py-1.5 pl-2 pr-3",
@@ -181,12 +185,14 @@ export function LeadOwnerQuickAssign({
           {isSaving ? (
             <LoaderCircle className="h-4 w-4 shrink-0 animate-spin text-white/72" />
           ) : (
-            <ChevronDown
-              className={cn(
-                "h-4 w-4 shrink-0 text-white/70 transition",
-                isOpen && "rotate-180",
-              )}
-            />
+            <span aria-hidden="true" data-owner-trigger-affordance="true" className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-[11px] border border-white/10 bg-white/[0.07] text-white/70">
+              <ChevronDown
+                className={cn(
+                  "h-4 w-4 transition-transform",
+                  isOpen && "rotate-180",
+                )}
+              />
+            </span>
           )}
         </button>
 
@@ -216,10 +222,12 @@ export function LeadOwnerQuickAssign({
             <label className="flex h-11 shrink-0 items-center gap-2 rounded-[16px] border border-white/10 bg-white/[0.06] px-3 text-white/70 focus-within:border-white/22 focus-within:bg-white/[0.08]">
               <Search className="h-4 w-4 shrink-0" />
               <input
+                ref={searchRef}
                 type="search"
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
                 placeholder="Search people"
+                data-popover-autofocus="true"
                 className="min-w-0 flex-1 bg-transparent text-sm text-white outline-none placeholder:text-white/52"
               />
             </label>

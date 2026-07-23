@@ -21,8 +21,11 @@ npm run verify
 
 Production schema changes use `npm run db:migrate`. `npm run db:push` is for disposable development databases only.
 
+Inspect the read-only capacity harness with `npm run load:smoke -- --help`. Live requests require an explicit `--confirm` flag.
+
 ## Deployment
 
+- [Client deployment and service model](./docs/CLIENT_DEPLOYMENT_AND_SERVICE.md)
 - [Vercel with managed Postgres](./DEPLOY_VERCEL.md)
 - [Netlify with managed Postgres](./DEPLOY_NETLIFY.md)
 - [VPS with Docker Compose](./DEPLOY_VPS.md)
@@ -31,7 +34,9 @@ Production schema changes use `npm run db:migrate`. `npm run db:push` is for dis
 - [CRM migration and connector boundaries](./docs/MIGRATIONS_AND_CONNECTORS.md)
 - [Provider-neutral extension contracts](./docs/EXTENSION_CONTRACTS.md)
 - [Architecture and scale contract](./docs/ARCHITECTURE.md)
+- [Scaling, capacity, and load verification](./docs/SCALING_AND_CAPACITY.md)
 - [Security and permissions](./docs/SECURITY_AND_PERMISSIONS.md)
+- [Release branches](./docs/RELEASE_BRANCHES.md)
 
 ## Operate And Handover
 

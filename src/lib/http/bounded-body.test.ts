@@ -22,7 +22,10 @@ test("bounded body rejects a streamed payload beyond the limit", async () => {
     body: "12345678901",
   });
 
-  assert.equal((await readBoundedBody(request, 10)).status, 413);
+  const result = await readBoundedBody(request, 10);
+  assert.equal(result.ok, false);
+  if (result.ok) assert.fail("Expected the oversized body to be rejected.");
+  assert.equal(result.status, 413);
 });
 
 test("bounded JSON accepts objects and rejects arrays", async () => {
@@ -39,5 +42,8 @@ test("bounded JSON accepts objects and rejects arrays", async () => {
     ok: true,
     value: { email: "lead@example.com" },
   });
-  assert.equal((await readBoundedJsonObject(arrayRequest)).status, 400);
+  const arrayResult = await readBoundedJsonObject(arrayRequest);
+  assert.equal(arrayResult.ok, false);
+  if (arrayResult.ok) assert.fail("Expected an array payload to be rejected.");
+  assert.equal(arrayResult.status, 400);
 });

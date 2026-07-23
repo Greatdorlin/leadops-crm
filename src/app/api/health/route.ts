@@ -1,17 +1,26 @@
 import { NextResponse } from "next/server";
 import { sql } from "drizzle-orm";
-import { getAllowedEmailDomains, isLocalAdminPreviewEnabled } from "@/lib/admin-access";
+import {
+  getAllowedEmailDomains,
+  isGoogleAuthConfigured,
+  isLocalAdminPreviewEnabled,
+} from "@/lib/admin-access";
 import { getDb } from "@/lib/db/client";
 import { hasDatabaseUrl } from "@/lib/db/env";
-import { buildHealthResponse } from "@/lib/health-response";
+import { buildHealthResponse, isHealthReady } from "@/lib/health-response";
 
 export const dynamic = "force-dynamic";
+
+const DATABASE_HEALTH_TTL_MS = 5_000;
+
+let databaseHealthCache: { reachable: boolean; expiresAt: number } | null = null;
+let databaseHealthCheckInFlight: Promise<boolean> | null = null;
 
 function hasEnvValue(value: string | undefined) {
   return typeof value === "string" && value.trim().length > 0;
 }
 
-async function canReachDatabase() {
+async function probeDatabase() {
   if (!hasDatabaseUrl()) {
     return false;
   }
@@ -29,30 +38,49 @@ async function canReachDatabase() {
   }
 }
 
+async function canReachDatabase() {
+  const now = Date.now();
+  if (databaseHealthCache && databaseHealthCache.expiresAt > now) {
+    return databaseHealthCache.reachable;
+  }
+
+  if (databaseHealthCheckInFlight) {
+    return databaseHealthCheckInFlight;
+  }
+
+  databaseHealthCheckInFlight = probeDatabase()
+    .then((reachable) => {
+      databaseHealthCache = {
+        reachable,
+        expiresAt: Date.now() + DATABASE_HEALTH_TTL_MS,
+      };
+      return reachable;
+    })
+    .finally(() => {
+      databaseHealthCheckInFlight = null;
+    });
+
+  return databaseHealthCheckInFlight;
+}
+
 export async function GET() {
   const environment = process.env.NODE_ENV ?? "development";
   const databaseConfigured = hasDatabaseUrl();
   const databaseReachable = await canReachDatabase();
+  const googleAuthEnabled = process.env.ENABLE_GOOGLE_LOGIN?.trim().toLowerCase() === "true";
   const checks = {
     databaseConfigured,
     databaseReachable,
-    authSecretConfigured: hasEnvValue(process.env.AUTH_SECRET),
-    googleAuthConfigured:
-      hasEnvValue(process.env.AUTH_GOOGLE_ID) && hasEnvValue(process.env.AUTH_GOOGLE_SECRET),
+    authSecretConfigured: hasEnvValue(process.env.AUTH_SECRET ?? process.env.NEXTAUTH_SECRET),
+    googleAuthEnabled,
+    googleAuthConfigured: isGoogleAuthConfigured(),
     initialAdminConfigured:
       hasEnvValue(process.env.INITIAL_ADMIN_EMAIL) && hasEnvValue(process.env.INITIAL_ADMIN_NAME),
     allowedDomainRestrictionEnabled: getAllowedEmailDomains().length > 0,
     devPreviewEnabled: isLocalAdminPreviewEnabled(),
   };
 
-  const ok =
-    checks.databaseConfigured &&
-    checks.databaseReachable &&
-    (environment !== "production" ||
-      (checks.authSecretConfigured &&
-        checks.googleAuthConfigured &&
-        checks.initialAdminConfigured &&
-        !checks.devPreviewEnabled));
+  const ok = isHealthReady(environment, checks);
 
   return NextResponse.json(
     buildHealthResponse({

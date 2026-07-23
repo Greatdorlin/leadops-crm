@@ -12,13 +12,12 @@ Recommended stack:
 - reverse proxy with SSL
 - PostgreSQL in Docker or an external managed Postgres instance
 
-## Minimum Starting Server
+## Starting Server Profiles
 
-- 2 vCPU
-- 4 GB RAM
-- 40+ GB SSD
+- small installation: 2 vCPU, 4 GB RAM, and 40+ GB SSD
+- 100,000-lead capacity target: 2 vCPU, 8 GB RAM, and 100 GB NVMe
 
-Increase server size for larger lead volumes, more users, or large exports.
+The larger profile is a test target, not a guarantee. It must pass the representative acceptance gate in [docs/SCALING_AND_CAPACITY.md](./docs/SCALING_AND_CAPACITY.md) before client approval.
 
 ## 1. Install Docker
 
@@ -37,13 +36,16 @@ Create `.env` with production values for:
 
 - `DATABASE_URL`
 - `AUTH_SECRET`
-- `AUTH_GOOGLE_ID`
-- `AUTH_GOOGLE_SECRET`
+- `ENABLE_GOOGLE_LOGIN=false` unless Google is intentionally enabled
+- `AUTH_GOOGLE_ID` and `AUTH_GOOGLE_SECRET` only when Google is enabled
 - `NEXTAUTH_URL`
 - `INITIAL_ADMIN_EMAIL`
 - `INITIAL_ADMIN_NAME`
 - `ALLOWED_EMAIL_DOMAINS` if needed
 - `NEXT_PUBLIC_APP_URL`
+- `DATABASE_POOL_MAX=5` as the single-process starting point
+- `DATABASE_CONNECT_TIMEOUT_SECONDS=30`
+- `DATABASE_IDLE_TIMEOUT_SECONDS=20`
 
 If you use the bundled Postgres container, make sure `DATABASE_URL` matches the Postgres service credentials.
 
@@ -101,8 +103,13 @@ Put the app behind Caddy, Nginx, Traefik, or a platform proxy that handles TLS.
 Required outcome:
 
 - HTTPS enabled
-- public base URL matches the OAuth callback configuration
+- public base URL matches the OAuth callback configuration when Google login is enabled
 - only ports 80 and 443 are exposed publicly
+- upstream keep-alive is enabled
+- request duration and response status are logged
+- PostgreSQL is reachable only on the private network
+
+Start with one app process. If a measured CPU bottleneck justifies another process, rebudget the aggregate database pool first. See [docs/SCALING_AND_CAPACITY.md](./docs/SCALING_AND_CAPACITY.md).
 
 ## 8. Backups
 
@@ -115,9 +122,10 @@ See [BACKUP_AND_RESTORE.md](./BACKUP_AND_RESTORE.md).
 Before handover, confirm:
 
 - dev preview auth is not available
-- Google OAuth works
+- Google OAuth works when it is enabled
 - webhook intake works
 - export works
 - notifications work
 - dashboard and reports load
 - backup job is scheduled
+- the representative load and capacity gate has passed for the promised client tier

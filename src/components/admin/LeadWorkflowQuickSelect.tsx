@@ -100,7 +100,7 @@ export function LeadWorkflowQuickSelect({
         type="button"
         onClick={() => setIsOpen((current) => !current)}
         disabled={isSaving || options.length === 0}
-        className="ld-focus-ring inline-flex max-w-full items-center gap-2 rounded-full border border-white/14 bg-white/[0.075] px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.04em] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.09),0_8px_18px_rgba(2,6,23,0.16)] transition hover:border-white/24 hover:bg-white/[0.11] disabled:cursor-wait disabled:opacity-70"
+        className="ld-focus-ring inline-flex min-h-10 max-w-full min-w-0 items-center gap-1.5 rounded-full border border-white/14 bg-white/[0.075] py-1.5 pl-2.5 pr-2 text-[11px] font-semibold uppercase tracking-[0.025em] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.09),0_8px_18px_rgba(2,6,23,0.16)] transition hover:border-white/24 hover:bg-white/[0.11] disabled:cursor-wait disabled:opacity-70"
         aria-controls={listboxId}
         aria-expanded={isOpen}
         aria-haspopup="dialog"
@@ -113,7 +113,7 @@ export function LeadWorkflowQuickSelect({
           className="h-2 w-2 shrink-0 rounded-full shadow-[0_0_10px_currentColor]"
           style={{ backgroundColor: currentColor, color: currentColor }}
         />
-        <span className="min-w-0 truncate">{currentLabel}</span>
+        <span className="min-w-0 truncate" title={currentLabel}>{currentLabel}</span>
         {isSaving ? (
           <LoaderCircle className="h-3 w-3 shrink-0 animate-spin text-white/64" />
         ) : (

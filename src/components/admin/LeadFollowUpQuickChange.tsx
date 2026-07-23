@@ -125,14 +125,14 @@ export function LeadFollowUpQuickChange({
         type="button"
         onClick={() => setIsOpen((current) => !current)}
         disabled={isSaving}
-        className="ld-focus-ring inline-flex min-h-10 max-w-full items-center gap-2 rounded-full border border-white/14 bg-white/[0.075] px-3 py-1.5 text-xs font-semibold text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.09),0_8px_18px_rgba(2,6,23,0.16)] transition hover:border-white/24 hover:bg-white/[0.11] disabled:cursor-wait disabled:opacity-70 sm:min-h-0"
+        className="ld-focus-ring inline-flex min-h-10 max-w-full min-w-0 items-center gap-1.5 rounded-full border border-white/14 bg-white/[0.075] py-1.5 pl-2.5 pr-2 text-xs font-semibold text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.09),0_8px_18px_rgba(2,6,23,0.16)] transition hover:border-white/24 hover:bg-white/[0.11] disabled:cursor-wait disabled:opacity-70"
         aria-expanded={isOpen}
         aria-haspopup="dialog"
         aria-label={`Schedule follow-up. Current value: ${label}`}
         data-testid="lead-follow-up-quick-change"
       >
         <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: statusColor[status] }} />
-        <span className="truncate">{label}</span>
+        <span className="min-w-0 truncate" title={label}>{label}</span>
         {isSaving ? (
           <LoaderCircle className="h-3.5 w-3.5 shrink-0 animate-spin text-white/64" />
         ) : (
@@ -176,16 +176,20 @@ export function LeadFollowUpQuickChange({
             ))}
           </div>
 
-          <label className="mt-3 space-y-2 rounded-[18px] border border-white/10 bg-white/[0.045] p-3">
+          <div data-exact-follow-up-editor="true" className="mt-3 min-w-0 space-y-2 rounded-[18px] border border-white/10 bg-white/[0.045] p-3">
             <span className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.14em] text-white/64">
               <CalendarClock className="h-3.5 w-3.5" />
               Exact time
             </span>
-            <div className="flex gap-2">
+            <div className="flex min-w-0 items-stretch gap-2">
               <AdminDateTimeInput
                 value={exactValue}
                 min={toLocalDateTimeInputValue(new Date())}
-                onChange={(event) => setExactValue(event.target.value)}
+                onChange={(event) => {
+                  setExactValue(event.target.value);
+                  setHasError(false);
+                  setMessage("");
+                }}
                 aria-label="Exact follow-up date and time"
                 pickerLabel="Choose follow-up date and time"
               />
@@ -206,7 +210,7 @@ export function LeadFollowUpQuickChange({
                 <Check className="h-4 w-4" />
               </button>
             </div>
-          </label>
+          </div>
 
           <button
             type="button"

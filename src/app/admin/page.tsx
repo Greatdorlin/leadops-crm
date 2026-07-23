@@ -28,7 +28,7 @@ import {
 import { listLeadIntakeEvents } from "@/lib/crm/intake-runtime";
 import { listLeadStages } from "@/lib/crm/lead-stages-admin";
 import { buildAffiliateDashboardSummary } from "@/lib/crm/affiliate-dashboard";
-import { canAccessAffiliateDashboard } from "@/lib/crm/authz";
+import { canAccessAffiliateDashboard, canManageIndustryPresets } from "@/lib/crm/authz";
 import { getCrmPageErrorCopy, logCrmPageError } from "@/lib/crm/runtime";
 import {
   buildSalesDashboardSummary,
@@ -398,6 +398,16 @@ export default async function AdminPage({
     canSwitchAccessViews,
     permissions,
   } = await getAdminAccessContext(appRoutes.dashboard);
+  const workspaceSettings = isLocalAdminPreviewEmail(session.user?.email)
+    ? resolveStoredWorkspaceSettings(null)
+    : await getCompanySettings();
+  if (
+    workspaceSettings.id &&
+    !workspaceSettings.onboardingCompletedAt &&
+    canManageIndustryPresets({ accessLevel, permissions, role })
+  ) {
+    redirect(appRoutes.onboarding);
+  }
   if (
     accessLevel === "affiliate" &&
     !canAccessAffiliateDashboard({
@@ -530,9 +540,6 @@ export default async function AdminPage({
     .sort((left, right) => new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime())
     .slice(0, 5);
   const recentLeadNameById = buildLeadDisplayNameMap(recentLeads);
-  const workspaceSettings = usingDevelopmentDemoData
-    ? resolveStoredWorkspaceSettings(null)
-    : await getCompanySettings();
   const targetExchangeRate = activeTarget && activeTarget.currency !== workspaceSettings.globalCurrency
     ? await resolveExchangeRate(workspaceSettings.globalCurrency, activeTarget.currency)
     : 1;

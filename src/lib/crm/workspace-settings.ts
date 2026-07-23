@@ -151,6 +151,15 @@ export interface ResolvedWorkspaceSettings extends WorkspaceAppearanceSettings {
   dashboard: DashboardCustomizationConfig;
   leadPreview: LeadPreviewCustomizationConfig;
   industryPreset: IndustryPresetKey;
+  onboardingCompletedAt: string | null;
+  onboardingProfile: WorkspaceOnboardingProfile | null;
+}
+
+export interface WorkspaceOnboardingProfile {
+  industryPresetId: string;
+  teamSize: "solo" | "small" | "growing" | "large";
+  primaryGoal: "capture" | "follow_up" | "pipeline" | "reporting";
+  salesMotion: "individual" | "team" | "multi_branch";
 }
 
 export const CELEBRATION_STYLES = ["subtle", "balanced", "bold"] as const;
@@ -171,7 +180,16 @@ export type WorkspaceSettingsRowLike = WorkspaceSettingsScalarRow & {
   dashboardConfig?: unknown;
   leadPreviewConfig?: unknown;
   industryPreset?: string | null;
+  onboardingCompletedAt?: Date | string | null;
+  onboardingProfile?: unknown;
 };
+
+export const workspaceOnboardingProfileSchema = z.object({
+  industryPresetId: z.string().trim().min(1).max(100),
+  teamSize: z.enum(["solo", "small", "growing", "large"]),
+  primaryGoal: z.enum(["capture", "follow_up", "pipeline", "reporting"]),
+  salesMotion: z.enum(["individual", "team", "multi_branch"]),
+});
 
 export interface VerticalPresetDefinition {
   key: IndustryPresetKey;
@@ -712,6 +730,12 @@ export function resolveStoredWorkspaceSettings(
   const industryPreset = INDUSTRY_PRESETS.includes((row?.industryPreset ?? "") as IndustryPresetKey)
     ? (row?.industryPreset as IndustryPresetKey)
     : "general_business";
+  const onboardingProfileResult = workspaceOnboardingProfileSchema.safeParse(
+    row?.onboardingProfile,
+  );
+  const onboardingCompletedAt = row?.onboardingCompletedAt
+    ? new Date(row.onboardingCompletedAt).toISOString()
+    : null;
 
   return {
     id: row?.id ?? null,
@@ -720,6 +744,10 @@ export function resolveStoredWorkspaceSettings(
     dashboard: parseDashboardConfig(row?.dashboardConfig),
     leadPreview: parseLeadPreviewConfig(row?.leadPreviewConfig),
     industryPreset,
+    onboardingCompletedAt,
+    onboardingProfile: onboardingProfileResult.success
+      ? onboardingProfileResult.data
+      : null,
     globalCurrency,
   };
 }

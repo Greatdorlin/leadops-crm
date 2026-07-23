@@ -436,6 +436,8 @@ export const companySettings = pgTable(
     dashboardConfig: jsonb("dashboard_config").$type<Record<string, unknown> | null>(),
     leadPreviewConfig: jsonb("lead_preview_config").$type<Record<string, unknown> | null>(),
     industryPreset: text("industry_preset").notNull().default("general_business"),
+    onboardingProfile: jsonb("onboarding_profile").$type<Record<string, unknown> | null>(),
+    onboardingCompletedAt: timestamp("onboarding_completed_at", { withTimezone: true }),
     globalCurrency: text("global_currency").notNull().default("USD"),
     domainRegistrationEnabled: boolean("domain_registration_enabled").notNull().default(false),
     approvedRegistrationDomains: text("approved_registration_domains")

@@ -6,6 +6,7 @@ import { appRoutes } from "@/lib/app-routes";
 
 const cleanPageRoutes = [
   appRoutes.dashboard,
+  appRoutes.onboarding,
   appRoutes.leads,
   appRoutes.leadsTrash,
   appRoutes.tasks,
@@ -19,6 +20,7 @@ const cleanPageRoutes = [
   appRoutes.settings,
   appRoutes.settingsAccess,
   appRoutes.settingsAppearance,
+  appRoutes.settingsAutomations,
   appRoutes.settingsDashboard,
   appRoutes.settingsFields,
   appRoutes.settingsFormSources,

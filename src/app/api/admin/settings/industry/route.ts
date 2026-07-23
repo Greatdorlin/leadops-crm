@@ -9,6 +9,7 @@ import {
   applyVerticalPreset,
   getCompanySettings,
 } from "@/lib/crm/workspace-settings-server";
+import { recordWorkspaceAuditEvent } from "@/lib/crm/workspace-audit";
 
 export async function GET() {
   const context = await getAdminRequestContext();
@@ -42,6 +43,14 @@ export async function PATCH(request: Request) {
 
   const settings = await applyVerticalPreset(parsed.data.industryPreset, {
     applyMissingDefaults: parsed.data.applyMissingDefaults,
+  });
+  await recordWorkspaceAuditEvent({
+    eventType: "workspace.industry_preset_applied",
+    actorEmail: context.session.user?.email ?? "unknown",
+    actorUserId: context.crmUser?.id,
+    targetType: "industry_preset",
+    targetId: settings.industryPreset,
+    details: { applyMissingDefaults: parsed.data.applyMissingDefaults },
   });
 
   return NextResponse.json({

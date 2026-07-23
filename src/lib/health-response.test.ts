@@ -1,11 +1,16 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { buildHealthResponse, type HealthChecks } from "@/lib/health-response";
+import {
+  buildHealthResponse,
+  isHealthReady,
+  type HealthChecks,
+} from "@/lib/health-response";
 
 const checks: HealthChecks = {
   databaseConfigured: true,
   databaseReachable: true,
   authSecretConfigured: true,
+  googleAuthEnabled: false,
   googleAuthConfigured: true,
   initialAdminConfigured: true,
   allowedDomainRestrictionEnabled: false,
@@ -35,6 +40,26 @@ test("development health responses retain actionable local diagnostics", () => {
     checks,
   });
 
-  assert.equal(response.environment, "development");
-  assert.deepEqual(response.checks, checks);
+  assert.equal("environment" in response && response.environment, "development");
+  assert.deepEqual("checks" in response ? response.checks : null, checks);
+});
+
+test("production readiness keeps Google optional but validates it when enabled", () => {
+  assert.equal(isHealthReady("production", checks), true);
+  assert.equal(
+    isHealthReady("production", {
+      ...checks,
+      googleAuthEnabled: true,
+      googleAuthConfigured: false,
+    }),
+    false,
+  );
+  assert.equal(
+    isHealthReady("production", {
+      ...checks,
+      googleAuthEnabled: true,
+      googleAuthConfigured: true,
+    }),
+    true,
+  );
 });

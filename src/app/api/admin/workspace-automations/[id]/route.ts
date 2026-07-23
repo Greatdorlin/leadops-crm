@@ -6,6 +6,7 @@ import {
   updateWorkspaceAutomation,
   workspaceAutomationPayloadSchema,
 } from "@/lib/crm/workspace-automations";
+import { recordWorkspaceAuditEvent } from "@/lib/crm/workspace-audit";
 
 async function authorize() {
   const context = await getAdminRequestContext();
@@ -21,6 +22,21 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   if (!parsed.success) return NextResponse.json({ error: parsed.error.issues[0]?.message ?? "Invalid automation." }, { status: 400 });
   const { id } = await params;
   const rule = await updateWorkspaceAutomation(id, parsed.data);
+  if (rule) {
+    await recordWorkspaceAuditEvent({
+      eventType: "workspace.automation_updated",
+      actorEmail: auth.context.session.user?.email ?? "unknown",
+      actorUserId: auth.context.crmUser?.id,
+      targetType: "workspace_automation",
+      targetId: rule.id,
+      details: {
+        name: rule.name,
+        conditionField: rule.conditionField,
+        actionType: rule.actionType,
+        isActive: rule.isActive,
+      },
+    });
+  }
   return rule ? NextResponse.json({ rule }) : NextResponse.json({ error: "Automation not found." }, { status: 404 });
 }
 
@@ -28,7 +44,16 @@ export async function DELETE(_request: Request, { params }: { params: Promise<{ 
   const auth = await authorize();
   if (auth.error) return auth.error;
   const { id } = await params;
-  return (await deleteWorkspaceAutomation(id))
-    ? NextResponse.json({ deleted: true })
-    : NextResponse.json({ error: "Automation not found." }, { status: 404 });
+  const deleted = await deleteWorkspaceAutomation(id);
+  if (!deleted) {
+    return NextResponse.json({ error: "Automation not found." }, { status: 404 });
+  }
+  await recordWorkspaceAuditEvent({
+    eventType: "workspace.automation_deleted",
+    actorEmail: auth.context.session.user?.email ?? "unknown",
+    actorUserId: auth.context.crmUser?.id,
+    targetType: "workspace_automation",
+    targetId: id,
+  });
+  return NextResponse.json({ deleted: true });
 }

@@ -611,7 +611,7 @@ body {
   transition: background-color 9999s ease-out 0s;
 }
 
-.admin-select {
+select.admin-select {
   color: var(--ld-color-text);
   appearance: none;
   background-image:
@@ -630,7 +630,7 @@ body {
   padding-right: 2.75rem;
 }
 
-.admin-select option {
+select.admin-select option {
   background: #0b1020;
   color: #f8fafc;
 }
@@ -772,7 +772,7 @@ body {
   transform: translateX(20px);
 }
 
-.admin-select::-ms-expand {
+select.admin-select::-ms-expand {
   display: none;
 }
 
@@ -1487,6 +1487,45 @@ body {
   .ld-glass-card:hover,
   .ld-glass-panel:hover {
     transform: none;
+  }
+
+  .ld-animate-pulse-glow,
+  .ld-animate-shimmer,
+  .ld-animate-grow-x,
+  .ld-animate-grow-y,
+  .ld-animate-draw-line,
+  .ld-animate-draw-ring {
+    animation: none;
+  }
+}
+
+@media (prefers-reduced-transparency: reduce), (prefers-contrast: more) {
+  .ld-glass,
+  .ld-glass-panel,
+  .ld-glass-sidebar,
+  .ld-glass-topbar,
+  .admin-surface,
+  .admin-surface-soft,
+  .admin-surface-muted,
+  .admin-sidebar-panel,
+  .admin-topbar-panel {
+    background-color: #080c18;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+}
+
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .ld-glass,
+  .ld-glass-panel,
+  .ld-glass-sidebar,
+  .ld-glass-topbar,
+  .admin-surface,
+  .admin-surface-soft,
+  .admin-surface-muted,
+  .admin-sidebar-panel,
+  .admin-topbar-panel {
+    background-color: rgba(8, 12, 24, 0.96);
   }
 }
 

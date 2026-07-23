@@ -1,7 +1,7 @@
 "use client";
 
 import type { ReactNode, RefObject } from "react";
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { cn } from "@/lib/cn";
 import { usePreservedBodyScrollLock } from "./AdminOverlayPortal";
@@ -15,6 +15,28 @@ interface PopoverPosition {
 
 function clamp(value: number, minimum: number, maximum: number) {
   return Math.min(Math.max(value, minimum), maximum);
+}
+
+function getOpenPopoverPanels() {
+  return Array.from(
+    document.querySelectorAll<HTMLElement>("[data-responsive-popover-id]"),
+  );
+}
+
+function isDescendantPopover(panel: HTMLElement, ancestorId: string) {
+  const panels = getOpenPopoverPanels();
+  const visited = new Set<string>();
+  let parentId = panel.dataset.responsivePopoverParentId;
+
+  while (parentId && !visited.has(parentId)) {
+    if (parentId === ancestorId) return true;
+    visited.add(parentId);
+    parentId = panels.find(
+      (candidate) => candidate.dataset.responsivePopoverId === parentId,
+    )?.dataset.responsivePopoverParentId;
+  }
+
+  return false;
 }
 
 export function ResponsivePopover({
@@ -34,9 +56,11 @@ export function ResponsivePopover({
   onClose: () => void;
   open: boolean;
 }) {
+  const popoverId = useId();
   const panelRef = useRef<HTMLDivElement>(null);
   const frameRef = useRef<number | null>(null);
   const [isMobile, setIsMobile] = useState(false);
+  const [parentPopoverId, setParentPopoverId] = useState<string | undefined>();
   const [position, setPosition] = useState<PopoverPosition | null>(null);
 
   useLayoutEffect(() => {
@@ -49,6 +73,11 @@ export function ResponsivePopover({
       if (!anchor) {
         return;
       }
+
+      setParentPopoverId(
+        anchor.closest<HTMLElement>("[data-responsive-popover-id]")
+          ?.dataset.responsivePopoverId,
+      );
 
       const viewportWidth = window.innerWidth;
       const viewportHeight = window.innerHeight;
@@ -120,19 +149,52 @@ export function ResponsivePopover({
 
     function handlePointerDown(event: PointerEvent) {
       const target = event.target as Node;
+      const targetPanel = target instanceof Element
+        ? target.closest<HTMLElement>("[data-responsive-popover-id]")
+        : null;
       if (
-        !panelRef.current?.contains(target) &&
-        !anchorRef.current?.contains(target)
+        panelRef.current?.contains(target) ||
+        anchorRef.current?.contains(target) ||
+        (targetPanel && isDescendantPopover(targetPanel, popoverId))
       ) {
-        onClose();
+        return;
       }
+      onClose();
     }
 
     function handleKeyDown(event: KeyboardEvent) {
+      const panel = panelRef.current;
+      const openPanels = getOpenPopoverPanels();
+      if (!panel || openPanels.at(-1) !== panel) return;
+
       if (event.key === "Escape") {
         event.preventDefault();
         onClose();
-        anchorRef.current?.focus();
+        anchorRef.current?.focus({ preventScroll: true });
+        return;
+      }
+
+      if (event.key === "Tab" && isMobile) {
+        const focusable = Array.from(
+          panel.querySelectorAll<HTMLElement>(
+            'button:not([disabled]), input:not([disabled]), [href], [tabindex]:not([tabindex="-1"])',
+          ),
+        ).filter((element) => element.getClientRects().length > 0);
+        if (focusable.length === 0) {
+          event.preventDefault();
+          panel.focus({ preventScroll: true });
+          return;
+        }
+
+        const first = focusable[0];
+        const last = focusable.at(-1);
+        if (event.shiftKey && document.activeElement === first) {
+          event.preventDefault();
+          last?.focus({ preventScroll: true });
+        } else if (!event.shiftKey && document.activeElement === last) {
+          event.preventDefault();
+          first.focus({ preventScroll: true });
+        }
       }
     }
 
@@ -142,7 +204,28 @@ export function ResponsivePopover({
       document.removeEventListener("pointerdown", handlePointerDown);
       document.removeEventListener("keydown", handleKeyDown);
     };
-  }, [anchorRef, onClose, open]);
+  }, [anchorRef, isMobile, onClose, open, popoverId]);
+
+  useEffect(() => {
+    if (!open) return;
+    const frame = requestAnimationFrame(() => {
+      const panel = panelRef.current;
+      if (!panel) return;
+      const preferredTarget = panel.querySelector<HTMLElement>(
+        '[data-popover-autofocus="true"]',
+      );
+      const activeElement = document.activeElement;
+      if (
+        preferredTarget &&
+        (activeElement === anchorRef.current || activeElement === document.body)
+      ) {
+        preferredTarget.focus({ preventScroll: true });
+      } else if (isMobile && activeElement === anchorRef.current) {
+        panel.focus({ preventScroll: true });
+      }
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [anchorRef, isMobile, open]);
 
   usePreservedBodyScrollLock(open);
 
@@ -164,6 +247,9 @@ export function ResponsivePopover({
         aria-label={ariaLabel}
         aria-modal={isMobile || undefined}
         data-responsive-popover="true"
+        data-responsive-popover-id={popoverId}
+        data-responsive-popover-parent-id={parentPopoverId}
+        tabIndex={-1}
         className={cn(
           "ld-glass-panel fixed z-[150] flex min-h-0 flex-col overflow-hidden border border-white/14 bg-[#070b18]/[0.97] shadow-[0_28px_90px_rgba(0,0,0,0.58),inset_0_1px_0_rgba(255,255,255,0.11)]",
           isMobile

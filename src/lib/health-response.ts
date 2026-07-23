@@ -2,10 +2,23 @@ export interface HealthChecks {
   databaseConfigured: boolean;
   databaseReachable: boolean;
   authSecretConfigured: boolean;
+  googleAuthEnabled: boolean;
   googleAuthConfigured: boolean;
   initialAdminConfigured: boolean;
   allowedDomainRestrictionEnabled: boolean;
   devPreviewEnabled: boolean;
+}
+
+export function isHealthReady(environment: string, checks: HealthChecks) {
+  return (
+    checks.databaseConfigured &&
+    checks.databaseReachable &&
+    (environment !== "production" ||
+      (checks.authSecretConfigured &&
+        (!checks.googleAuthEnabled || checks.googleAuthConfigured) &&
+        checks.initialAdminConfigured &&
+        !checks.devPreviewEnabled))
+  );
 }
 
 export function buildHealthResponse(input: {

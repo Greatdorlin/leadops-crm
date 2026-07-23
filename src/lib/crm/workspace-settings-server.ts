@@ -12,6 +12,7 @@ import {
   type IndustryPresetKey,
   type LeadPreviewCustomizationConfig,
   type NavigationCustomizationConfig,
+  type WorkspaceOnboardingProfile,
   type WorkspaceAppearanceSettings,
 } from "@/lib/crm/workspace-settings";
 import { getDb } from "@/lib/db/client";
@@ -37,12 +38,7 @@ export async function getBranchCurrency(branchId?: string | null) {
 
 export async function getCompanySettings() {
   try {
-    const db = getDb();
-    const [row] = await db
-      .select()
-      .from(companySettings)
-      .orderBy(asc(companySettings.createdAt))
-      .limit(1);
+    const row = await ensureCompanySettingsRow();
     return resolveStoredWorkspaceSettings(row);
   } catch {
     return resolveStoredWorkspaceSettings(null);
@@ -71,6 +67,8 @@ export async function updateCompanySettings(
     dashboardConfig?: DashboardCustomizationConfig;
     leadPreviewConfig?: LeadPreviewCustomizationConfig;
     industryPreset?: IndustryPresetKey;
+    onboardingCompletedAt?: Date | null;
+    onboardingProfile?: WorkspaceOnboardingProfile | null;
     globalCurrency?: string;
   },
 ) {
@@ -136,6 +134,17 @@ export async function updateCompanySettings(
         ? { leadPreviewConfig: patch.leadPreviewConfig as unknown as Record<string, unknown> }
         : {}),
       ...(patch.industryPreset !== undefined ? { industryPreset: patch.industryPreset } : {}),
+      ...(patch.onboardingCompletedAt !== undefined
+        ? { onboardingCompletedAt: patch.onboardingCompletedAt }
+        : {}),
+      ...(patch.onboardingProfile !== undefined
+        ? {
+            onboardingProfile: patch.onboardingProfile as unknown as Record<
+              string,
+              unknown
+            > | null,
+          }
+        : {}),
       ...(patch.globalCurrency !== undefined
         ? { globalCurrency: patch.globalCurrency.toUpperCase() }
         : {}),
@@ -205,4 +214,67 @@ export async function applyVerticalPreset(
   }
 
   return updatedSettings;
+}
+
+const onboardingGoalWidgets = {
+  capture: ["new_leads", "recent_leads", "top_sources"],
+  follow_up: ["overdue_follow_ups", "my_tasks", "recent_leads"],
+  pipeline: ["pipeline_value", "pipeline_overview", "target_progress"],
+  reporting: ["conversion_rate", "won_value", "lead_trend"],
+} as const;
+
+function uniqueValues<T extends string>(values: readonly T[]) {
+  return Array.from(new Set(values));
+}
+
+export async function completeWorkspaceOnboarding(input: {
+  industryPreset: IndustryPresetKey;
+  applyMissingDefaults: boolean;
+  profile: WorkspaceOnboardingProfile;
+}) {
+  const settings = await applyVerticalPreset(input.industryPreset, {
+    applyMissingDefaults: input.applyMissingDefaults,
+  });
+  const priorityWidgets = onboardingGoalWidgets[input.profile.primaryGoal];
+  const hiddenWidgets = new Set(settings.dashboard.hiddenWidgets);
+
+  for (const widget of priorityWidgets) {
+    hiddenWidgets.delete(widget);
+  }
+  if (input.profile.teamSize === "solo") {
+    hiddenWidgets.add("team_performance");
+  } else {
+    hiddenWidgets.delete("team_performance");
+  }
+
+  const scopeFields = input.profile.salesMotion === "multi_branch"
+    ? (["branch", "owner"] as const)
+    : input.profile.salesMotion === "team"
+      ? (["team", "owner"] as const)
+      : (["owner"] as const);
+
+  return updateCompanySettings({
+    dashboardConfig: {
+      ...settings.dashboard,
+      widgetOrder: uniqueValues([
+        ...priorityWidgets,
+        ...settings.dashboard.widgetOrder,
+      ]),
+      hiddenWidgets: Array.from(hiddenWidgets),
+    },
+    leadPreviewConfig: {
+      ...settings.leadPreview,
+      desktopColumns: uniqueValues([
+        ...settings.leadPreview.desktopColumns,
+        ...scopeFields,
+      ]),
+      mobileFields: uniqueValues([
+        ...settings.leadPreview.mobileFields.slice(0, 3),
+        ...scopeFields,
+        ...settings.leadPreview.mobileFields.slice(3),
+      ]).slice(0, 6),
+    },
+    onboardingCompletedAt: new Date(),
+    onboardingProfile: input.profile,
+  });
 }

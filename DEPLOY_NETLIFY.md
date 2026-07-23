@@ -5,7 +5,7 @@ Netlify is an optional host. Leads Desk remains a standard Next.js application b
 ## Requirements
 
 - a managed PostgreSQL database with SSL and connection pooling
-- Google OAuth credentials
+- invite-only email/password auth configuration; Google OAuth is optional
 - a private Git repository connected to Netlify
 
 ## Deploy
@@ -23,16 +23,16 @@ npm run db:seed:defaults:full
 4. Add the required variables in Netlify project configuration. Do not commit their values:
    - `DATABASE_URL`
    - `AUTH_SECRET`
-   - `AUTH_GOOGLE_ID`
-   - `AUTH_GOOGLE_SECRET`
    - `NEXTAUTH_URL`
    - `NEXT_PUBLIC_APP_URL`
    - `INITIAL_ADMIN_EMAIL`
    - `INITIAL_ADMIN_NAME`
-5. Set the Google OAuth callback to `https://YOUR_DOMAIN/api/auth/callback/google`.
+   - `DATABASE_POOL_MAX=1` or `2` as the serverless starting point
+5. If Google login is enabled, add `ENABLE_GOOGLE_LOGIN=true`, `AUTH_GOOGLE_ID`, and `AUTH_GOOGLE_SECRET`, then set the callback to `https://YOUR_DOMAIN/api/auth/callback/google`.
 6. Deploy, then run the checks below before directing traffic to the site.
 
 Use the database provider's pooled connection URL for serverless traffic. Neon, Supabase Postgres, and other PostgreSQL providers use the same `DATABASE_URL` contract.
+Every concurrent runtime instance can create its own pool, so size the aggregate connection budget using [docs/SCALING_AND_CAPACITY.md](./docs/SCALING_AND_CAPACITY.md).
 
 ## Verify
 

@@ -2,6 +2,7 @@ import type { IntegrationProvider } from "@/lib/crm/types";
 import { hasConfiguredEnvValue } from "@/lib/env-utils";
 
 type ConfiguredConnector = Exclude<IntegrationProvider, "website" | "sender">;
+type ConnectorEnvironment = Readonly<Record<string, string | undefined>>;
 
 const requiredEnvironment: Record<ConfiguredConnector, readonly string[]> = {
   facebook: ["META_APP_SECRET", "META_PAGE_ACCESS_TOKEN", "META_VERIFY_TOKEN"],
@@ -24,13 +25,13 @@ const googleAdsReportingEnvironment = [
   "GOOGLE_ADS_CUSTOMER_ID",
 ] as const;
 
-function hasAll(environment: NodeJS.ProcessEnv, names: readonly string[]) {
+function hasAll(environment: ConnectorEnvironment, names: readonly string[]) {
   return names.every((name) => hasConfiguredEnvValue(environment[name]));
 }
 
 export function isConnectorConfigured(
   provider: IntegrationProvider,
-  environment: NodeJS.ProcessEnv = process.env,
+  environment: ConnectorEnvironment = process.env,
 ) {
   if (provider === "website") return true;
   if (provider === "sender") return false;
@@ -40,7 +41,7 @@ export function isConnectorConfigured(
 export function isConnectorOperationConfigured(
   provider: IntegrationProvider,
   endpoint: string,
-  environment: NodeJS.ProcessEnv = process.env,
+  environment: ConnectorEnvironment = process.env,
 ) {
   if (provider === "google_ads" && endpoint.includes("sync-performance")) {
     return hasAll(environment, googleAdsReportingEnvironment);
@@ -50,7 +51,7 @@ export function isConnectorOperationConfigured(
 
 export function getConnectorSetupState(
   connectorId: string,
-  environment: NodeJS.ProcessEnv = process.env,
+  environment: ConnectorEnvironment = process.env,
 ) {
   const providerByConnector: Partial<Record<string, IntegrationProvider>> = {
     meta_lead_ads: "facebook",

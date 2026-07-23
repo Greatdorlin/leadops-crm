@@ -2,6 +2,7 @@ export const appRoutes = {
   home: "/",
   login: "/login",
   dashboard: "/dashboard",
+  onboarding: "/onboarding",
   leads: "/leads",
   lead: (leadId: string) => `/leads/${leadId}`,
   leadsTrash: "/leads/trash",

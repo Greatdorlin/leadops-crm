@@ -1,7 +1,7 @@
 "use client";
 
 import type { ComponentPropsWithoutRef } from "react";
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { CalendarDays, CalendarClock, ChevronLeft, ChevronRight, Clock3, X } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { ResponsivePopover } from "./ResponsivePopover";
@@ -70,6 +70,21 @@ export function AdminDateTimeInput({
     return new Date(source.getFullYear(), source.getMonth(), 1);
   });
   const [draftTime, setDraftTime] = useState(() => parseValue(initialValue, mode) ?? new Date());
+
+  useEffect(() => {
+    const form = hiddenRef.current?.form;
+    if (!form || value !== undefined) return;
+    const handleReset = () => requestAnimationFrame(() => {
+      const resetValue = String(defaultValue ?? "");
+      setInternalValue(resetValue);
+      const resetDate = parseValue(resetValue, mode) ?? new Date();
+      setDraftTime(resetDate);
+      setVisibleMonth(new Date(resetDate.getFullYear(), resetDate.getMonth(), 1));
+      setOpen(false);
+    });
+    form.addEventListener("reset", handleReset);
+    return () => form.removeEventListener("reset", handleReset);
+  }, [defaultValue, mode, value]);
 
   const days = useMemo(() => {
     const first = new Date(visibleMonth.getFullYear(), visibleMonth.getMonth(), 1);
@@ -144,6 +159,7 @@ export function AdminDateTimeInput({
       <button
         ref={triggerRef}
         type="button"
+        data-date-time-trigger="true"
         disabled={disabled || readOnly}
         onClick={openPicker}
         aria-label={props["aria-label"] ?? pickerLabel}

@@ -19,6 +19,7 @@ import { AdminSelect } from "./AdminSelect";
 import { SmoothButton } from "./ui/SmoothButton";
 import { CitySearchInput, CountrySearchInput } from "./CountrySearchInput";
 import { AdminDateTimeInput } from "./AdminDateTimeInput";
+import { getWorkspaceLocaleSuggestion } from "@/lib/workspace-locale";
 
 const manualSourceOptions: LeadSource[] = ["manual_entry", "agent", "referral"];
 const labelClass = "text-xs font-semibold uppercase tracking-[0.16em] text-white/70";
@@ -31,12 +32,18 @@ export function LeadCaptureForm({
   defaultAssignedTo = "",
   customFieldDefinitions = [],
   stageOptions = CRM_STATUSES.map((status) => ({ value: status, key: status, label: crmLabelize(status) })),
+  defaultCountry = "",
+  defaultRegion = "",
+  defaultCity = "",
 }: {
   accessLevel: AdminAccessLevel;
   assigneeOptions: Array<{ label: string; value: string }>;
   defaultAssignedTo?: string;
   customFieldDefinitions?: CustomFieldDefinitionWithOptions[];
   stageOptions?: Array<{ value: string; key: string; label: string; stageId?: string }>;
+  defaultCountry?: string;
+  defaultRegion?: string;
+  defaultCity?: string;
 }) {
   const customFieldInputModel = buildCustomFieldInputModel(
     customFieldDefinitions.filter((field) => field.showInForm),
@@ -46,9 +53,9 @@ export function LeadCaptureForm({
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
   const [whatsappNumber, setWhatsappNumber] = useState("");
-  const [country, setCountry] = useState("");
-  const [region, setRegion] = useState("");
-  const [city, setCity] = useState("");
+  const [country, setCountry] = useState(defaultCountry);
+  const [region, setRegion] = useState(defaultRegion);
+  const [city, setCity] = useState(defaultCity);
   const [address, setAddress] = useState("");
   const [postalCode, setPostalCode] = useState("");
   const [companyName, setCompanyName] = useState("");
@@ -132,9 +139,9 @@ export function LeadCaptureForm({
       setLastName("");
       setEmail("");
       setWhatsappNumber("");
-      setCountry("");
-      setRegion("");
-      setCity("");
+      setCountry(defaultCountry);
+      setRegion(defaultRegion);
+      setCity(defaultCity);
       setAddress("");
       setPostalCode("");
       setCompanyName("");
@@ -246,14 +253,22 @@ export function LeadCaptureForm({
       </div>
 
       <div className="grid gap-3 sm:grid-cols-2">
-        <CountrySearchInput value={country} onChange={setCountry} />
+        <CountrySearchInput
+          value={country}
+          onChange={(nextCountry) => {
+            const suggestion = getWorkspaceLocaleSuggestion(nextCountry);
+            setCountry(nextCountry);
+            setRegion(suggestion.region);
+            setCity(suggestion.city);
+          }}
+        />
         <label className="space-y-2">
           <span className={labelClass}>State/Province/Region</span>
           <input
             type="text"
             value={region}
             onChange={(event) => setRegion(event.target.value)}
-            placeholder="California"
+            placeholder="State, province, or region"
             className="admin-input ld-focus-ring h-11 w-full rounded-2xl px-4 text-sm outline-none"
           />
         </label>
@@ -264,7 +279,7 @@ export function LeadCaptureForm({
             type="text"
             value={postalCode}
             onChange={(event) => setPostalCode(event.target.value)}
-            placeholder="94105"
+            placeholder="Postal code"
             className="admin-input ld-focus-ring h-11 w-full rounded-2xl px-4 text-sm outline-none"
           />
         </label>

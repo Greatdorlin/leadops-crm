@@ -35,6 +35,9 @@ export function AdminWorkspaceComposer({
   leadCaptureStageOptions,
   initialMigrationSource,
   allowedModes,
+  defaultCountry = "",
+  defaultRegion = "",
+  defaultCity = "",
 }: {
   accessLevel: AdminAccessLevel;
   leadOptions: Array<{ value: string; label: string }>;
@@ -59,6 +62,9 @@ export function AdminWorkspaceComposer({
   }>;
   initialMigrationSource?: CrmMigrationSource;
   allowedModes?: WorkspaceComposerMode[];
+  defaultCountry?: string;
+  defaultRegion?: string;
+  defaultCity?: string;
 }) {
   const defaultModes: WorkspaceComposerMode[] =
     accessLevel === "sales_rep" || accessLevel === "affiliate"
@@ -144,6 +150,9 @@ export function AdminWorkspaceComposer({
           defaultAssignedTo={defaultAssignedTo}
           customFieldDefinitions={leadCaptureCustomFields}
           stageOptions={leadCaptureStageOptions}
+          defaultCountry={defaultCountry}
+          defaultRegion={defaultRegion}
+          defaultCity={defaultCity}
         />
       ),
     },

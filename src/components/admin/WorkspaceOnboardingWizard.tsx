@@ -14,8 +14,15 @@ import {
   SlidersHorizontal,
 } from "lucide-react";
 import { AdminSelect } from "./AdminSelect";
+import { CitySearchInput, CountrySearchInput } from "./CountrySearchInput";
 import { SmoothButton } from "./ui/SmoothButton";
 import { cn } from "@/lib/cn";
+import { SUPPORTED_CURRENCIES } from "@/lib/currency";
+import {
+  DEFAULT_ONBOARDING_LOCALE,
+  getTimeZoneOptions,
+  getWorkspaceLocaleSuggestion,
+} from "@/lib/workspace-locale";
 import type {
   IndustryPresetKey,
   VerticalPresetDefinition,
@@ -148,6 +155,24 @@ export function WorkspaceOnboardingWizard({
   const [salesMotion, setSalesMotion] = useState<WorkspaceOnboardingProfile["salesMotion"]>(
     initialProfile?.salesMotion ?? "team",
   );
+  const [country, setCountry] = useState(
+    initialProfile?.country ?? DEFAULT_ONBOARDING_LOCALE.country,
+  );
+  const [region, setRegion] = useState(
+    initialProfile?.region ?? DEFAULT_ONBOARDING_LOCALE.region,
+  );
+  const [city, setCity] = useState(
+    initialProfile?.city ?? DEFAULT_ONBOARDING_LOCALE.city,
+  );
+  const [timeZone, setTimeZone] = useState(
+    initialProfile?.timeZone ?? DEFAULT_ONBOARDING_LOCALE.timeZone,
+  );
+  const [currency, setCurrency] = useState(
+    initialProfile?.currency ?? DEFAULT_ONBOARDING_LOCALE.currency,
+  );
+  const [locale, setLocale] = useState(
+    initialProfile?.locale ?? DEFAULT_ONBOARDING_LOCALE.locale,
+  );
   const [applying, setApplying] = useState(false);
   const [error, setError] = useState("");
   const [appliedPreset, setAppliedPreset] =
@@ -174,6 +199,17 @@ export function WorkspaceOnboardingWizard({
     setError("");
   }
 
+  function chooseCountry(nextCountry: string) {
+    const suggestion = getWorkspaceLocaleSuggestion(nextCountry);
+    setCountry(nextCountry);
+    setRegion(suggestion.region);
+    setCity(suggestion.city);
+    setTimeZone(suggestion.timeZone);
+    setCurrency(suggestion.currency);
+    setLocale(suggestion.locale);
+    setError("");
+  }
+
   async function applyPreset() {
     setApplying(true);
     setError("");
@@ -184,6 +220,12 @@ export function WorkspaceOnboardingWizard({
         teamSize,
         primaryGoal,
         salesMotion,
+        country,
+        region,
+        city,
+        timeZone,
+        currency,
+        locale,
       };
       const response = await fetch("/api/admin/onboarding", {
         method: "POST",
@@ -339,6 +381,67 @@ export function WorkspaceOnboardingWizard({
                     <option value="team">Team</option>
                     <option value="multi_branch">Multiple branches</option>
                   </AdminSelect>
+                </div>
+              </div>
+
+              <div className="space-y-3 border-t border-white/8 pt-5">
+                <div>
+                  <p className="admin-label">Workspace defaults</p>
+                  <p className="mt-1 text-xs leading-5 text-white/48">
+                    Used for new leads, dates, and reporting. You can change these later.
+                  </p>
+                </div>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <CountrySearchInput value={country} onChange={chooseCountry} />
+                  <CitySearchInput value={city} onChange={setCity} />
+                  <label className="space-y-2">
+                    <span className="admin-label">State/Province/Region</span>
+                    <input
+                      type="text"
+                      value={region}
+                      onChange={(event) => setRegion(event.target.value)}
+                      placeholder="State, province, or region"
+                      className="admin-input ld-focus-ring h-12 w-full rounded-[18px] px-4 text-sm outline-none"
+                    />
+                  </label>
+                  <div className="space-y-2">
+                    <label htmlFor="onboarding-currency" className="admin-label">Currency</label>
+                    <AdminSelect
+                      id="onboarding-currency"
+                      value={currency}
+                      onChange={(event) => setCurrency(event.target.value)}
+                    >
+                      {SUPPORTED_CURRENCIES.map((option) => (
+                        <option key={option.code} value={option.code}>
+                          {option.code} · {option.name}
+                        </option>
+                      ))}
+                    </AdminSelect>
+                  </div>
+                  <div className="space-y-2 sm:col-span-2">
+                    <label htmlFor="onboarding-time-zone" className="admin-label">Time zone</label>
+                    <AdminSelect
+                      id="onboarding-time-zone"
+                      value={timeZone}
+                      onChange={(event) => setTimeZone(event.target.value)}
+                    >
+                      {getTimeZoneOptions().map((option) => (
+                        <option key={option} value={option}>
+                          {option.replaceAll("_", " ")}
+                        </option>
+                      ))}
+                    </AdminSelect>
+                  </div>
+                  <label className="space-y-2 sm:col-span-2">
+                    <span className="admin-label">Language and number format</span>
+                    <input
+                      type="text"
+                      value={locale}
+                      onChange={(event) => setLocale(event.target.value)}
+                      placeholder="en-NG"
+                      className="admin-input ld-focus-ring h-12 w-full rounded-[18px] px-4 text-sm outline-none"
+                    />
+                  </label>
                 </div>
               </div>
 

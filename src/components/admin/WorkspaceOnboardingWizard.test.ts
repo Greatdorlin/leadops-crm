@@ -18,6 +18,12 @@ test("setup depth maps to the real preset API payload", () => {
     teamSize: "small" as const,
     primaryGoal: "pipeline" as const,
     salesMotion: "team" as const,
+    country: "Nigeria",
+    region: "Lagos",
+    city: "Lagos",
+    timeZone: "Africa/Lagos",
+    currency: "NGN",
+    locale: "en-NG",
   };
   assert.deepEqual(buildIndustryPresetPayload("real_estate", "complete", profile), {
     industryPreset: "real_estate",

@@ -104,6 +104,7 @@ function AdminMultiSelect({
       <button
         ref={triggerRef}
         type="button"
+        data-admin-select-trigger="true"
         disabled={disabled}
         aria-expanded={open}
         aria-controls={listboxId}
@@ -245,6 +246,7 @@ export function AdminSelect({
       <button
         ref={triggerRef}
         type="button"
+        data-admin-select-trigger="true"
         disabled={disabled}
         aria-expanded={open}
         aria-controls={listboxId}

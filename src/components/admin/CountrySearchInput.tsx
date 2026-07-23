@@ -71,6 +71,7 @@ function SearchableLocationInput({
       <button
         ref={anchorRef}
         type="button"
+        data-location-trigger="true"
         aria-haspopup="dialog"
         aria-expanded={open}
         aria-controls={listboxId}

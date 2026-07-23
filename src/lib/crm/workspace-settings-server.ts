@@ -1,6 +1,6 @@
 import "server-only";
 
-import { asc, eq } from "drizzle-orm";
+import { asc, eq, sql } from "drizzle-orm";
 import { createCustomField, listCustomFields } from "@/lib/crm/custom-fields-admin";
 import { createLeadSource, listLeadSources } from "@/lib/crm/lead-sources-admin";
 import { createLeadStage, listLeadStages } from "@/lib/crm/lead-stages-admin";
@@ -16,7 +16,7 @@ import {
   type WorkspaceAppearanceSettings,
 } from "@/lib/crm/workspace-settings";
 import { getDb } from "@/lib/db/client";
-import { branches, companySettings } from "@/lib/db/schema";
+import { branches, companySettings, leadOpportunities, leads } from "@/lib/db/schema";
 
 export async function getBranchCurrency(branchId?: string | null) {
   if (!branchId) {
@@ -70,6 +70,11 @@ export async function updateCompanySettings(
     onboardingCompletedAt?: Date | null;
     onboardingProfile?: WorkspaceOnboardingProfile | null;
     globalCurrency?: string;
+    timeZone?: string;
+    defaultCountry?: string | null;
+    defaultRegion?: string | null;
+    defaultCity?: string | null;
+    locale?: string;
   },
 ) {
   const db = getDb();
@@ -148,6 +153,11 @@ export async function updateCompanySettings(
       ...(patch.globalCurrency !== undefined
         ? { globalCurrency: patch.globalCurrency.toUpperCase() }
         : {}),
+      ...(patch.timeZone !== undefined ? { timeZone: patch.timeZone } : {}),
+      ...(patch.defaultCountry !== undefined ? { defaultCountry: patch.defaultCountry } : {}),
+      ...(patch.defaultRegion !== undefined ? { defaultRegion: patch.defaultRegion } : {}),
+      ...(patch.defaultCity !== undefined ? { defaultCity: patch.defaultCity } : {}),
+      ...(patch.locale !== undefined ? { locale: patch.locale } : {}),
       updatedAt: new Date(),
     })
     .where(eq(companySettings.id, row.id));
@@ -235,6 +245,15 @@ export async function completeWorkspaceOnboarding(input: {
   const settings = await applyVerticalPreset(input.industryPreset, {
     applyMissingDefaults: input.applyMissingDefaults,
   });
+  const db = getDb();
+  const [leadCount, opportunityCount] = await Promise.all([
+    db.select({ count: sql<number>`count(*)::int` }).from(leads),
+    db.select({ count: sql<number>`count(*)::int` }).from(leadOpportunities),
+  ]);
+  const canInitializeCurrency =
+    !settings.onboardingCompletedAt &&
+    Number(leadCount[0]?.count ?? 0) === 0 &&
+    Number(opportunityCount[0]?.count ?? 0) === 0;
   const priorityWidgets = onboardingGoalWidgets[input.profile.primaryGoal];
   const hiddenWidgets = new Set(settings.dashboard.hiddenWidgets);
 
@@ -276,5 +295,11 @@ export async function completeWorkspaceOnboarding(input: {
     },
     onboardingCompletedAt: new Date(),
     onboardingProfile: input.profile,
+    ...(canInitializeCurrency ? { globalCurrency: input.profile.currency } : {}),
+    timeZone: input.profile.timeZone,
+    locale: input.profile.locale,
+    defaultCountry: input.profile.country,
+    defaultRegion: input.profile.region || null,
+    defaultCity: input.profile.city || null,
   });
 }

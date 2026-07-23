@@ -550,7 +550,6 @@ body {
 .admin-select,
 .admin-textarea {
   box-sizing: border-box;
-  display: block;
   inline-size: 100%;
   min-inline-size: 0;
   max-inline-size: 100%;
@@ -570,6 +569,21 @@ body {
     background-color var(--ld-transition-fast) ease;
   font-size: 0.875rem;
   line-height: 1.35;
+}
+
+input.admin-input,
+select.admin-select,
+textarea.admin-textarea {
+  display: block;
+}
+
+button.admin-input,
+button.admin-select {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  padding-inline-start: 1rem;
+  padding-inline-end: 0.375rem;
 }
 
 .admin-input,
@@ -782,8 +796,11 @@ select.admin-select::-ms-expand {
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
-  min-width: max-content;
-  white-space: nowrap;
+  min-width: 0;
+  max-width: 100%;
+  white-space: normal;
+  text-align: center;
+  overflow-wrap: anywhere;
   font-weight: 600;
   letter-spacing: 0.01em;
   line-height: 1;
@@ -940,7 +957,8 @@ select.admin-select::-ms-expand {
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
-  min-width: max-content;
+  min-width: 0;
+  max-width: 100%;
   white-space: nowrap;
   font-weight: 600;
   letter-spacing: 0.01em;
@@ -988,7 +1006,8 @@ select.admin-select::-ms-expand {
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
-  min-width: max-content;
+  min-width: 0;
+  max-width: 100%;
   white-space: nowrap;
   font-weight: 600;
   letter-spacing: 0.01em;

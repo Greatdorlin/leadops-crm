@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { AdminShell } from "@/components/admin/AdminShell";
 import { AdminSignOutButton } from "@/components/admin/AdminSignOutButton";
 import { CurrencySettingsManager } from "@/components/admin/CurrencySettingsManager";
+import { RegionalSettingsManager } from "@/components/admin/RegionalSettingsManager";
 import { GlassSurface } from "@/components/admin/ui/GlassSurface";
 import { getAdminAccessContext } from "@/lib/admin";
 import { isLocalAdminPreviewEmail } from "@/lib/admin-access";
@@ -47,8 +48,8 @@ export default async function CurrencySettingsPage() {
       role={role}
       actualAccessLevel={actualAccessLevel}
       canSwitchAccessViews={canSwitchAccessViews}
-      title="Currency"
-      description="Set the default currency for sales targets and lead values."
+      title="Region & currency"
+      description="Set local defaults without relabelling stored values."
       actions={
         <>
           <Link
@@ -62,13 +63,25 @@ export default async function CurrencySettingsPage() {
       }
     >
       {settings ? (
-        <GlassSurface as="section" intensity="medium" className="rounded-[24px] p-5 sm:p-6 ld-animate-fade-in-up">
-          <CurrencySettingsManager
-            initialGlobalCurrency={settings.globalCurrency}
-            initialExchangeRates={exchangeRates ?? []}
-            demoMode={isLocalAdminPreviewEmail(session.user?.email)}
-          />
-        </GlassSurface>
+        <div className="space-y-4">
+          <GlassSurface as="section" intensity="medium" className="rounded-[24px] p-5 sm:p-6 ld-animate-fade-in-up">
+            <RegionalSettingsManager
+              initialCountry={settings.defaultCountry ?? ""}
+              initialRegion={settings.defaultRegion ?? ""}
+              initialCity={settings.defaultCity ?? ""}
+              initialTimeZone={settings.timeZone}
+              initialLocale={settings.locale}
+              demoMode={isLocalAdminPreviewEmail(session.user?.email)}
+            />
+          </GlassSurface>
+          <GlassSurface as="section" intensity="medium" className="rounded-[24px] p-5 sm:p-6 ld-animate-fade-in-up">
+            <CurrencySettingsManager
+              initialGlobalCurrency={settings.globalCurrency}
+              initialExchangeRates={exchangeRates ?? []}
+              demoMode={isLocalAdminPreviewEmail(session.user?.email)}
+            />
+          </GlassSurface>
+        </div>
       ) : (
         <div className="rounded-[24px] border border-rose-300/20 bg-rose-400/[0.055] p-5 text-sm text-rose-100">
           <p className="font-semibold">{getCrmPageErrorCopy(pageError).title}</p>

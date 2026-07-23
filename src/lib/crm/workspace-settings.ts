@@ -1,4 +1,9 @@
 import { z } from "zod";
+import { isSupportedCurrency } from "@/lib/currency";
+import {
+  isValidTimeZone,
+  normalizeWorkspaceCurrency,
+} from "@/lib/workspace-locale";
 import type { CustomFieldDefinition } from "@/lib/crm/domain";
 import { getContrastColor, getContrastRatio } from "@/lib/design-system";
 import { isSafeImageSource } from "@/lib/security/url-safety";
@@ -147,6 +152,11 @@ export interface WorkspaceAppearanceSettings {
 
 export interface ResolvedWorkspaceSettings extends WorkspaceAppearanceSettings {
   id: string | null;
+  timeZone: string;
+  defaultCountry: string | null;
+  defaultRegion: string | null;
+  defaultCity: string | null;
+  locale: string;
   navigation: NavigationCustomizationConfig;
   dashboard: DashboardCustomizationConfig;
   leadPreview: LeadPreviewCustomizationConfig;
@@ -160,6 +170,12 @@ export interface WorkspaceOnboardingProfile {
   teamSize: "solo" | "small" | "growing" | "large";
   primaryGoal: "capture" | "follow_up" | "pipeline" | "reporting";
   salesMotion: "individual" | "team" | "multi_branch";
+  country?: string;
+  region?: string;
+  city?: string;
+  timeZone?: string;
+  currency?: string;
+  locale?: string;
 }
 
 export const CELEBRATION_STYLES = ["subtle", "balanced", "bold"] as const;
@@ -182,6 +198,11 @@ export type WorkspaceSettingsRowLike = WorkspaceSettingsScalarRow & {
   industryPreset?: string | null;
   onboardingCompletedAt?: Date | string | null;
   onboardingProfile?: unknown;
+  timeZone?: string | null;
+  defaultCountry?: string | null;
+  defaultRegion?: string | null;
+  defaultCity?: string | null;
+  locale?: string | null;
 };
 
 export const workspaceOnboardingProfileSchema = z.object({
@@ -189,7 +210,30 @@ export const workspaceOnboardingProfileSchema = z.object({
   teamSize: z.enum(["solo", "small", "growing", "large"]),
   primaryGoal: z.enum(["capture", "follow_up", "pipeline", "reporting"]),
   salesMotion: z.enum(["individual", "team", "multi_branch"]),
+  country: z.string().trim().min(1).max(100),
+  region: z.string().trim().max(100),
+  city: z.string().trim().max(100),
+  timeZone: z
+    .string()
+    .trim()
+    .refine(isValidTimeZone, "Choose a valid time zone."),
+  currency: z
+    .string()
+    .trim()
+    .transform((value) => value.toUpperCase())
+    .refine(isSupportedCurrency, "Choose a supported currency."),
+  locale: z.string().trim().min(2).max(35),
 });
+
+const persistedWorkspaceOnboardingProfileSchema =
+  workspaceOnboardingProfileSchema.extend({
+    country: workspaceOnboardingProfileSchema.shape.country.optional(),
+    region: workspaceOnboardingProfileSchema.shape.region.optional(),
+    city: workspaceOnboardingProfileSchema.shape.city.optional(),
+    timeZone: workspaceOnboardingProfileSchema.shape.timeZone.optional(),
+    currency: workspaceOnboardingProfileSchema.shape.currency.optional(),
+    locale: workspaceOnboardingProfileSchema.shape.locale.optional(),
+  });
 
 export interface VerticalPresetDefinition {
   key: IndustryPresetKey;
@@ -597,6 +641,17 @@ export const currencySettingsSchema = z.object({
   globalCurrency: z.string().trim().length(3, "Currency code must be 3 letters."),
 });
 
+export const regionalSettingsSchema = z.object({
+  country: z.string().trim().min(1, "Choose a country.").max(100),
+  region: z.string().trim().max(100),
+  city: z.string().trim().max(100),
+  timeZone: z
+    .string()
+    .trim()
+    .refine(isValidTimeZone, "Choose a valid time zone."),
+  locale: z.string().trim().min(2, "Add a valid locale.").max(35),
+});
+
 function parseNavigationConfig(raw: unknown): NavigationCustomizationConfig {
   const parsed = navigationSettingsSchema.safeParse(raw);
   if (!parsed.success) {
@@ -651,9 +706,29 @@ function parseLeadPreviewConfig(raw: unknown): LeadPreviewCustomizationConfig {
 export function resolveStoredWorkspaceSettings(
   row?: WorkspaceSettingsRowLike | null,
 ): ResolvedWorkspaceSettings {
-  const globalCurrency = typeof row?.globalCurrency === "string" && row.globalCurrency.trim().length === 3
-    ? row.globalCurrency.trim().toUpperCase()
-    : DEFAULT_WORKSPACE_APPEARANCE.globalCurrency;
+  const onboardingProfileResult = persistedWorkspaceOnboardingProfileSchema.safeParse(
+    row?.onboardingProfile,
+  );
+  const onboardingProfile = onboardingProfileResult.success
+    ? onboardingProfileResult.data
+    : null;
+  const globalCurrency = normalizeWorkspaceCurrency(
+    typeof row?.globalCurrency === "string"
+      ? row.globalCurrency
+      : DEFAULT_WORKSPACE_APPEARANCE.globalCurrency,
+  );
+  const timeZone =
+    typeof row?.timeZone === "string" && isValidTimeZone(row.timeZone.trim())
+      ? row.timeZone.trim()
+      : onboardingProfile?.timeZone ?? "UTC";
+  const defaultCountry =
+    normalizeOptionalString(row?.defaultCountry) ?? onboardingProfile?.country ?? null;
+  const defaultRegion =
+    normalizeOptionalString(row?.defaultRegion) ?? onboardingProfile?.region ?? null;
+  const defaultCity =
+    normalizeOptionalString(row?.defaultCity) ?? onboardingProfile?.city ?? null;
+  const locale =
+    normalizeOptionalString(row?.locale) ?? onboardingProfile?.locale ?? "en-US";
 
   const backgroundColor = normalizeReadableSurfaceColor(
     row?.backgroundColor,
@@ -730,9 +805,6 @@ export function resolveStoredWorkspaceSettings(
   const industryPreset = INDUSTRY_PRESETS.includes((row?.industryPreset ?? "") as IndustryPresetKey)
     ? (row?.industryPreset as IndustryPresetKey)
     : "general_business";
-  const onboardingProfileResult = workspaceOnboardingProfileSchema.safeParse(
-    row?.onboardingProfile,
-  );
   const onboardingCompletedAt = row?.onboardingCompletedAt
     ? new Date(row.onboardingCompletedAt).toISOString()
     : null;
@@ -740,14 +812,17 @@ export function resolveStoredWorkspaceSettings(
   return {
     id: row?.id ?? null,
     ...appearance,
+    timeZone,
+    defaultCountry,
+    defaultRegion,
+    defaultCity,
+    locale,
     navigation: parseNavigationConfig(row?.navigationConfig),
     dashboard: parseDashboardConfig(row?.dashboardConfig),
     leadPreview: parseLeadPreviewConfig(row?.leadPreviewConfig),
     industryPreset,
     onboardingCompletedAt,
-    onboardingProfile: onboardingProfileResult.success
-      ? onboardingProfileResult.data
-      : null,
+    onboardingProfile,
     globalCurrency,
   };
 }

@@ -16,6 +16,7 @@ test("AdminSelect renders one custom affordance and preserves the complete selec
   );
 
   assert.equal(markup.match(/data-admin-select-affordance="true"/g)?.length, 1);
+  assert.equal(markup.match(/data-admin-select-trigger="true"/g)?.length, 1);
   assert.match(markup, />Assign owner</);
   assert.match(markup, /title="Assign owner"/);
   assert.equal(markup.match(/lucide-chevron-down/g)?.length, 1);

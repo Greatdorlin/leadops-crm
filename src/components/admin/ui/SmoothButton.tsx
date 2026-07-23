@@ -38,7 +38,7 @@ export function SmoothButton({
       {...props}
       disabled={disabled || loading}
       className={cn(
-        "inline-flex items-center justify-center gap-2 font-semibold whitespace-nowrap transition-all duration-200",
+        "inline-flex min-w-0 max-w-full items-center justify-center gap-2 text-center font-semibold transition-all duration-200",
         "ld-focus-ring",
         variantClass,
         sizeClass,

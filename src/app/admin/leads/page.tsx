@@ -493,13 +493,20 @@ export default async function AdminLeadsPage({
           value: user.email,
         }))
     : [];
-  const [previewConfig, leadRows, leadCaptureCustomFields, workspaceCurrency] = await (async () => {
+  const [
+    previewConfig,
+    leadRows,
+    leadCaptureCustomFields,
+    workspaceCurrency,
+    workspaceLocation,
+  ] = await (async () => {
     if (usingDevelopmentDemoData) {
       return [
         DEFAULT_LEAD_PREVIEW_CONFIG,
         buildDevelopmentLeadRows(),
         [] as Awaited<ReturnType<typeof listCustomFields>>,
-        "USD",
+        "NGN",
+        { country: "Nigeria", region: "Lagos", city: "Lagos" },
       ] as const;
     }
 
@@ -527,6 +534,11 @@ export default async function AdminLeadsPage({
           ),
           formVisibleCustomFields,
           workspaceSettings.globalCurrency,
+          {
+            country: workspaceSettings.defaultCountry ?? "",
+            region: workspaceSettings.defaultRegion ?? "",
+            city: workspaceSettings.defaultCity ?? "",
+          },
         ] as const;
     } catch (error) {
       if (process.env.NODE_ENV === "production") {
@@ -543,7 +555,8 @@ export default async function AdminLeadsPage({
           }),
         ),
         [] as Awaited<ReturnType<typeof listCustomFields>>,
-        "USD",
+        "NGN",
+        { country: "Nigeria", region: "Lagos", city: "Lagos" },
       ] as const;
     }
   })();
@@ -818,6 +831,9 @@ export default async function AdminLeadsPage({
             }
             variant="compact"
             leadCaptureCustomFields={leadCaptureCustomFields}
+            defaultCountry={workspaceLocation.country}
+            defaultRegion={workspaceLocation.region}
+            defaultCity={workspaceLocation.city}
             leadCaptureStageOptions={stages.filter((stage) => !stage.archived).map((stage) => ({
               value: stage.id,
               key: stage.key,

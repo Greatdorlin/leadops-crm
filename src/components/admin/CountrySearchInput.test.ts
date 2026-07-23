@@ -13,6 +13,7 @@ test("CountrySearchInput owns exactly one trailing dropdown affordance", () => {
   );
 
   assert.equal(markup.match(/data-location-trigger-affordance="true"/g)?.length, 1);
+  assert.equal(markup.match(/data-location-trigger="true"/g)?.length, 1);
   assert.equal(markup.match(/lucide-chevron-down/g)?.length, 1);
   assert.match(markup, /aria-label="Country\. Nigeria"/);
 });

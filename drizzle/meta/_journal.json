@@ -176,6 +176,13 @@
       "when": 1784764795204,
       "tag": "0024_overrated_banshee",
       "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1784817189007,
+      "tag": "0025_careless_the_hunter",
+      "breakpoints": true
     }
   ]
 }

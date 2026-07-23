@@ -192,7 +192,7 @@ export default async function AdminSettingsPage() {
       items: [
         { label: "Team settings", href: appRoutes.settingsTeam, enabled: canOpenTeam, copy: "People, access, and roster coverage.", icon: Users2 },
         { label: "Branches", href: appRoutes.settingsBranches, enabled: canOpenBranches, copy: "Locations and branch ownership.", icon: Building2 },
-        { label: "Currency", href: appRoutes.settingsCurrency, enabled: canOpenCurrency, copy: "Default value and target currency.", icon: CircleDollarSign },
+        { label: "Region & currency", href: appRoutes.settingsCurrency, enabled: canOpenCurrency, copy: "Location, time zone, and money.", icon: CircleDollarSign },
         { label: "Role permissions", href: appRoutes.settingsRolePermissions, enabled: canOpenRolePermissions, copy: "What each role can touch.", icon: ShieldCheck },
         { label: "Access and registration", href: appRoutes.settingsAccess, enabled: canOpenOwnerAccess, copy: "Approved domains and safe account creation.", icon: ShieldCheck },
       ],

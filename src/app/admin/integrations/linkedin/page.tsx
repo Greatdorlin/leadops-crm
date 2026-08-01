@@ -4,6 +4,7 @@ import { ErrorState } from "@/components/admin/ErrorState";
 import { AdminSignOutButton } from "@/components/admin/AdminSignOutButton";
 import { EmptyState } from "@/components/admin/EmptyState";
 import { MetricCard } from "@/components/admin/MetricCard";
+import { IntegrationSetupPanel } from "@/components/admin/IntegrationSetupPanel";
 import { SectionHeader } from "@/components/admin/SectionHeader";
 import { getAdminAccessContext } from "@/lib/admin";
 import { isLocalAdminPreviewEmail } from "@/lib/admin-access";
@@ -156,25 +157,33 @@ export default async function AdminLinkedInIntegrationPage() {
           />
         )}
 
-        <section id="setup" className="admin-surface scroll-mt-24 rounded-[24px] p-5">
-          <SectionHeader
-            eyebrow="Setup checklist"
-            title="LinkedIn setup"
-            description="Use this list when configuring LinkedIn Lead Sync for CRM lead capture."
-          />
-          <div className="mt-4 space-y-3 text-sm text-white/70">
-            {[
-              "Set LINKEDIN_CLIENT_SECRET, LINKEDIN_ACCESS_TOKEN, and optionally LINKEDIN_API_VERSION so the CRM can validate the webhook and fetch the full lead form response.",
-              "Point LinkedIn Lead Sync to /api/integrations/linkedin/webhook and complete the webhook challenge validation.",
-              "Confirm the app has LinkedIn Lead Sync API access. Standard ads access alone is not enough for lead syncing.",
-              "Use Retry failed lead imports after fixing token, permission, or webhook issues.",
-            ].map((item) => (
-              <div key={item} className="admin-surface-muted rounded-2xl p-4">
-                {item}
-              </div>
-            ))}
-          </div>
-        </section>
+        <IntegrationSetupPanel
+          provider="linkedin"
+          title="Connect LinkedIn Lead Gen Forms"
+          description="Confirm Lead Sync access, register the webhook, and verify the token."
+          configured={linkedInConfigured}
+          previewMode={isLocalAdminPreviewEmail(session.user?.email)}
+          permissions={[
+            "LinkedIn Lead Sync API access",
+            "Read form responses for the authorized ad account",
+          ]}
+          steps={[
+            {
+              title: "Add LinkedIn credentials",
+              description:
+                "Save the client secret and access token as deployment secrets. Standard Ads API access does not include Lead Sync.",
+            },
+            {
+              title: "Register the webhook",
+              description: `Use ${baseUrl ? `${baseUrl}/api/integrations/linkedin/webhook` : "your public Leads Desk URL plus /api/integrations/linkedin/webhook"} and complete LinkedIn's challenge.`,
+            },
+            {
+              title: "Verify and test delivery",
+              description:
+                "Verify token access here, then submit a test form response and confirm the lead appears in Leads Desk.",
+            },
+          ]}
+        />
       </div>
     </AdminShell>
   );

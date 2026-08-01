@@ -432,7 +432,7 @@ export function FormRulesEditor({
       </SmoothButton>
 
       {editingRule && (
-        <AdminOverlayPortal>
+        <AdminOverlayPortal onClose={closeEditor}>
         <div className="fixed inset-0 z-[160] flex items-end justify-center p-2 sm:items-center sm:p-6">
           <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={closeEditor} />
           <GlassSurface

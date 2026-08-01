@@ -476,9 +476,13 @@ export default async function AdminLeadDetailPage({
                     <PhoneCall className="h-5 w-5" />
                   </span>
                   <div className="min-w-0">
-                    <p className="text-sm font-medium text-white/60">Phone</p>
+                    <p className="text-sm font-medium text-white/60">WhatsApp number</p>
                     <p className="mt-1 text-[1.05rem] leading-8 text-white [overflow-wrap:anywhere]">
-                      {lead.whatsappNumber || "No phone yet"}
+                      {lead.whatsappNumber || "No WhatsApp number yet"}
+                    </p>
+                    <p className="mt-3 text-sm font-medium text-white/60">Call number</p>
+                    <p className="mt-1 text-[1.05rem] leading-8 text-white [overflow-wrap:anywhere]">
+                      {lead.callNumber || "No call number yet"}
                     </p>
                   </div>
                 </div>
@@ -595,9 +599,9 @@ export default async function AdminLeadDetailPage({
                   WhatsApp
                 </a>
               ) : null}
-              {workspaceSettings.leadPreview.contactActions.sms && lead.whatsappNumber ? (
+              {workspaceSettings.leadPreview.contactActions.sms && (lead.callNumber || lead.whatsappNumber) ? (
                 <a
-                  href={`sms:${lead.whatsappNumber}`}
+                  href={`sms:${lead.callNumber || lead.whatsappNumber}`}
                   className="admin-button-secondary ld-focus-ring inline-flex h-12 w-full items-center justify-center rounded-2xl px-5 text-base font-medium sm:w-auto"
                 >
                   <MessageCircle className="mr-2 h-5 w-5" />
@@ -613,9 +617,9 @@ export default async function AdminLeadDetailPage({
                   Email
                 </a>
               ) : null}
-              {lead.whatsappNumber ? (
+              {lead.callNumber ? (
                 <a
-                  href={`tel:${lead.whatsappNumber}`}
+                  href={`tel:${lead.callNumber}`}
                   className="admin-button-secondary ld-focus-ring inline-flex h-12 w-full items-center justify-center rounded-2xl px-5 text-base font-medium sm:w-auto"
                 >
                   <PhoneCall className="mr-2 h-5 w-5" />
@@ -772,6 +776,7 @@ export default async function AdminLeadDetailPage({
                     initialLastName={leadView.profile.lastName}
                     initialEmail={leadView.profile.email}
                     initialWhatsappNumber={leadView.profile.whatsappNumber}
+                    initialCallNumber={leadView.profile.callNumber}
                     initialCountry={leadView.profile.country}
                     initialRegion={leadView.profile.region}
                     initialCity={leadView.profile.city}
@@ -788,6 +793,9 @@ export default async function AdminLeadDetailPage({
                     initialUtmContent={lead.utmContent}
                     initialUtmTerm={lead.utmTerm}
                     initialLandingPage={lead.landingPage}
+                    workspaceDefaultCountry={workspaceSettings.defaultCountry}
+                    workspaceDefaultRegion={workspaceSettings.defaultRegion}
+                    workspaceDefaultCity={workspaceSettings.defaultCity}
                     sourceOptions={configuredSourceOptions.map((source) => ({
                       value: source.id,
                       label: source.name,

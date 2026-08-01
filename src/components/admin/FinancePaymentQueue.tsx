@@ -167,7 +167,7 @@ export function FinancePaymentQueue({ claims }: { claims: PaymentClaimRecord[] }
         </div>
       ) : null}
       {pendingAction ? (
-        <AdminOverlayPortal>
+        <AdminOverlayPortal onClose={() => { if (!busy) setPendingAction(null); }}>
           <div className="fixed inset-0 z-[170] flex items-end justify-center bg-slate-950/78 p-0 backdrop-blur-md sm:items-center sm:p-6" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget && !busy) setPendingAction(null); }}>
             <section role="dialog" aria-modal="true" aria-labelledby="finance-mass-title" className="admin-surface max-h-[92dvh] w-full max-w-lg overflow-y-auto rounded-t-[30px] p-5 shadow-2xl sm:rounded-[30px] sm:p-7">
               <div className="flex items-start justify-between gap-4">

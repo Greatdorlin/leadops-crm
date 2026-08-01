@@ -2,7 +2,7 @@
 
 import type { ComponentPropsWithoutRef } from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { CalendarDays, CalendarClock, ChevronLeft, ChevronRight, Clock3, X } from "lucide-react";
+import { CalendarDays, CalendarClock, ChevronDown, ChevronLeft, ChevronRight, Clock3, X } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { ResponsivePopover } from "./ResponsivePopover";
 
@@ -136,6 +136,15 @@ export function AdminDateTimeInput({
     setDraftTime(next);
   }
 
+  function chooseQuickDate(daysFromToday: number) {
+    const next = new Date();
+    next.setDate(next.getDate() + daysFromToday);
+    next.setHours(draftTime.getHours(), draftTime.getMinutes(), 0, 0);
+    setDraftTime(next);
+    setVisibleMonth(new Date(next.getFullYear(), next.getMonth(), 1));
+    if (mode === "date") commit(next);
+  }
+
   const Icon = mode === "date" ? CalendarDays : mode === "time" ? Clock3 : CalendarClock;
   const monthLabel = visibleMonth.toLocaleDateString([], { month: "long", year: "numeric" });
 
@@ -169,11 +178,12 @@ export function AdminDateTimeInput({
           className,
         )}
       >
+        <Icon className="mr-2 h-4 w-4 shrink-0 text-white/52" aria-hidden="true" />
         <span className={cn("min-w-0 flex-1 truncate", selectedValue ? "text-white/90" : "text-white/42")}>
           {formatValue(selectedValue, mode) || placeholder || (mode === "time" ? "Choose time" : "Choose date")}
         </span>
         <span className="ml-2 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-[10px] border border-white/10 bg-white/[0.08] text-white/68 transition group-hover:bg-white/[0.14] group-hover:text-white">
-          <Icon className="h-4 w-4" />
+          <ChevronDown className={cn("h-4 w-4 transition-transform", open && "rotate-180")} />
         </span>
       </button>
       <ResponsivePopover anchorRef={triggerRef} ariaLabel={pickerLabel} desktopWidth={340} onClose={() => setOpen(false)} open={open} className="p-3">
@@ -211,12 +221,12 @@ export function AdminDateTimeInput({
             <div className="flex rounded-[13px] border border-white/10 bg-white/[0.04] p-1">{["AM", "PM"].map((period) => <button key={period} type="button" onClick={() => updateTime("period", period)} className={cn("h-9 rounded-[9px] px-2.5 text-xs font-semibold transition", (draftTime.getHours() >= 12 ? "PM" : "AM") === period ? "bg-white/[0.13] text-white" : "text-white/45 hover:text-white")}>{period}</button>)}</div>
           </div>
         ) : null}
-        <div className="mt-3 flex items-center justify-between gap-2 border-t border-white/10 pt-3">
-          <button type="button" onClick={() => commit(null)} className="ld-focus-ring h-10 rounded-full px-3 text-sm font-medium text-white/55 hover:bg-white/[0.06] hover:text-white">Clear</button>
-          <div className="flex gap-2">
-            {mode !== "time" ? <button type="button" onClick={() => { const now = new Date(); setDraftTime(now); setVisibleMonth(new Date(now.getFullYear(), now.getMonth(), 1)); if (mode === "date") commit(now); }} className="admin-button-secondary ld-focus-ring h-10 rounded-full px-4 text-sm font-semibold">Today</button> : null}
-            {mode !== "date" ? <button type="button" onClick={() => commit(draftTime)} className="admin-button-primary ld-focus-ring h-10 rounded-full px-4 text-sm font-semibold">Apply</button> : null}
-          </div>
+        <div className="mt-3 flex flex-wrap gap-2 border-t border-white/10 pt-3 sm:items-center sm:justify-between">
+          <button type="button" onClick={() => commit(null)} className="ld-focus-ring h-10 min-w-0 flex-1 basis-[calc(50%-0.25rem)] rounded-full px-3 text-sm font-medium text-white/55 hover:bg-white/[0.06] hover:text-white sm:basis-auto sm:flex-none">Clear</button>
+          {mode !== "time" ? <button type="button" onClick={() => chooseQuickDate(0)} className="admin-button-secondary ld-focus-ring h-10 min-w-0 flex-1 basis-[calc(50%-0.25rem)] rounded-full px-3 text-sm font-semibold sm:basis-auto sm:flex-none">Today</button> : null}
+          {mode !== "time" ? <button type="button" onClick={() => chooseQuickDate(1)} className="admin-button-secondary ld-focus-ring h-10 min-w-0 flex-1 basis-[calc(50%-0.25rem)] rounded-full px-3 text-sm font-semibold sm:basis-auto sm:flex-none">Tomorrow</button> : null}
+          {mode !== "time" ? <button type="button" onClick={() => chooseQuickDate(7)} className="admin-button-secondary ld-focus-ring h-10 min-w-0 flex-1 basis-[calc(50%-0.25rem)] rounded-full px-3 text-sm font-semibold sm:basis-auto sm:flex-none">Next week</button> : null}
+          {mode !== "date" ? <button type="button" onClick={() => commit(draftTime)} className="admin-button-primary ld-focus-ring h-10 basis-full rounded-full px-4 text-sm font-semibold sm:ml-auto sm:basis-auto">Apply</button> : null}
         </div>
       </ResponsivePopover>
     </div>

@@ -1,8 +1,9 @@
 "use client";
 
 import type { CSSProperties, FormEvent } from "react";
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useEffect, useMemo, useRef } from "react";
 import { cn } from "@/lib/cn";
+import { clampFormStep, getFormStepProgress } from "@/lib/crm/form-presentation";
 import { PublicFormField } from "./PublicFormField";
 import type { PublicFormFieldData } from "./PublicFormField";
 
@@ -13,6 +14,7 @@ export interface PublicFormConfig {
   description?: string | null;
   successMessage?: string | null;
   submitButtonLabel?: string | null;
+  presentationMode?: "standard" | "step" | null;
   redirectUrl?: string | null;
   primaryColor?: string | null;
   accentColor?: string | null;
@@ -149,6 +151,8 @@ export function PublicFormRenderer({ form, fields, previewMode = false }: Public
     submissionId: string;
     leadId: string | null;
   } | null>(null);
+  const [stepIndex, setStepIndex] = useState(0);
+  const stepHeadingRef = useRef<HTMLHeadingElement>(null);
 
   const handleChange = useCallback(
     (fieldId: string, value: unknown) => {
@@ -165,6 +169,36 @@ export function PublicFormRenderer({ form, fields, previewMode = false }: Public
       .filter((field) => evaluateShowWhen(field.showWhen, values))
       .sort((a, b) => a.order - b.order);
   }, [fields, values]);
+  const usesStepPresentation = form.presentationMode === "step";
+  const activeStep = clampFormStep(stepIndex, visibleFields.length);
+  const activeField = visibleFields[activeStep];
+  const isLastStep = visibleFields.length === 0 || activeStep === visibleFields.length - 1;
+  const stepProgress = getFormStepProgress(activeStep, visibleFields.length);
+
+  useEffect(() => {
+    if (!usesStepPresentation || !activeField) return;
+    const frame = window.requestAnimationFrame(() => stepHeadingRef.current?.focus());
+    return () => window.cancelAnimationFrame(frame);
+  }, [activeField, activeStep, usesStepPresentation]);
+
+  const focusActiveControl = useCallback(() => {
+    window.requestAnimationFrame(() => {
+      const control = document.getElementById(`field-${activeField?.id ?? ""}`);
+      if (control instanceof HTMLElement) control.focus();
+    });
+  }, [activeField?.id]);
+
+  const moveToNextStep = useCallback(() => {
+    if (!activeField) return;
+    const error = validateField(activeField, values[activeField.id]);
+    setTouched((current) => new Set(current).add(activeField.id));
+    setErrors((current) => ({ ...current, [activeField.id]: error }));
+    if (error) {
+      focusActiveControl();
+      return;
+    }
+    setStepIndex(clampFormStep(activeStep + 1, visibleFields.length));
+  }, [activeField, activeStep, focusActiveControl, values, visibleFields.length]);
 
   const validateAll = useCallback((): boolean => {
     const newErrors: FormErrors = {};
@@ -187,10 +221,21 @@ export function PublicFormRenderer({ form, fields, previewMode = false }: Public
       e.preventDefault();
       setSubmitError(null);
 
+      if (usesStepPresentation && !isLastStep) {
+        moveToNextStep();
+        return;
+      }
+
       const allTouched = new Set(visibleFields.map((f) => f.id));
       setTouched(allTouched);
 
       if (!validateAll()) {
+        if (usesStepPresentation) {
+          const firstInvalidStep = visibleFields.findIndex(
+            (field) => validateField(field, values[field.id]) !== null,
+          );
+          if (firstInvalidStep >= 0) setStepIndex(firstInvalidStep);
+        }
         return;
       }
 
@@ -227,6 +272,12 @@ export function PublicFormRenderer({ form, fields, previewMode = false }: Public
             );
             setErrors(serverErrors);
             setTouched(new Set(Object.keys(serverErrors)));
+            if (usesStepPresentation) {
+              const firstInvalidStep = visibleFields.findIndex((field) =>
+                Object.hasOwn(serverErrors, field.id),
+              );
+              if (firstInvalidStep >= 0) setStepIndex(firstInvalidStep);
+            }
           }
           setSubmitError(result.error ?? "Submission failed. Please try again.");
           return;
@@ -251,7 +302,17 @@ export function PublicFormRenderer({ form, fields, previewMode = false }: Public
         setSubmitting(false);
       }
     },
-    [form.id, form.redirectUrl, previewMode, values, validateAll, visibleFields]
+    [
+      form.id,
+      form.redirectUrl,
+      isLastStep,
+      moveToNextStep,
+      previewMode,
+      usesStepPresentation,
+      validateAll,
+      values,
+      visibleFields,
+    ]
   );
 
   const brandStyle = useMemo<CSSProperties>(() => {
@@ -359,16 +420,62 @@ export function PublicFormRenderer({ form, fields, previewMode = false }: Public
 
       <div className="p-1 sm:rounded-[28px] sm:border sm:border-white/10 sm:bg-black/12 sm:p-6 sm:shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
         <form onSubmit={handleSubmit} noValidate className="space-y-6">
-          {visibleFields.map((field) => (
-            <PublicFormField
-              key={field.id}
-              field={field}
-              value={values[field.id]}
-              onChange={handleChange}
-              error={touched.has(field.id) ? errors[field.id] ?? null : null}
-              disabled={submitting}
-            />
-          ))}
+          {usesStepPresentation && activeField ? (
+            <div aria-labelledby="form-step-heading">
+              <div className="mb-6">
+                <div className="flex items-center justify-between gap-4 text-xs font-semibold text-white/58">
+                  <span aria-live="polite">
+                    Question {activeStep + 1} of {visibleFields.length}
+                  </span>
+                  <span aria-hidden="true">{stepProgress}%</span>
+                </div>
+                <div
+                  className="mt-2 h-1.5 overflow-hidden rounded-full bg-white/10"
+                  role="progressbar"
+                  aria-label="Form progress"
+                  aria-valuemin={0}
+                  aria-valuemax={100}
+                  aria-valuenow={stepProgress}
+                >
+                  <div
+                    className="h-full rounded-full transition-[width] duration-300 ease-out motion-reduce:transition-none"
+                    style={{
+                      width: `${stepProgress}%`,
+                      background: `linear-gradient(90deg, ${primaryColor}, ${accentColor})`,
+                    }}
+                  />
+                </div>
+              </div>
+              <h2
+                id="form-step-heading"
+                ref={stepHeadingRef}
+                tabIndex={-1}
+                className="sr-only outline-none"
+              >
+                Question {activeStep + 1}: {activeField.label}
+              </h2>
+              <div key={activeField.id}>
+                <PublicFormField
+                  field={activeField}
+                  value={values[activeField.id]}
+                  onChange={handleChange}
+                  error={touched.has(activeField.id) ? errors[activeField.id] ?? null : null}
+                  disabled={submitting}
+                />
+              </div>
+            </div>
+          ) : (
+            visibleFields.map((field) => (
+              <PublicFormField
+                key={field.id}
+                field={field}
+                value={values[field.id]}
+                onChange={handleChange}
+                error={touched.has(field.id) ? errors[field.id] ?? null : null}
+                disabled={submitting}
+              />
+            ))
+          )}
 
           {submitError ? (
             <div
@@ -379,12 +486,22 @@ export function PublicFormRenderer({ form, fields, previewMode = false }: Public
             </div>
           ) : null}
 
-          <div className="pt-2">
+          <div className={cn("pt-2", usesStepPresentation && "flex items-center gap-3")}>
+            {usesStepPresentation && activeField && activeStep > 0 ? (
+              <button
+                type="button"
+                disabled={submitting}
+                onClick={() => setStepIndex(Math.max(0, activeStep - 1))}
+                className="inline-flex h-12 min-w-[96px] items-center justify-center rounded-2xl border border-white/14 bg-white/[0.055] px-5 text-sm font-semibold text-white/78 transition hover:border-white/24 hover:bg-white/[0.08] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30 disabled:cursor-not-allowed disabled:opacity-50 sm:h-14"
+              >
+                Back
+              </button>
+            ) : null}
             <button
               type="submit"
               disabled={submitting}
               className={cn(
-                "relative inline-flex h-12 w-full items-center justify-center rounded-2xl px-6 text-sm font-semibold text-white shadow-lg transition-all duration-200 sm:h-14 sm:text-base",
+                "relative inline-flex h-12 flex-1 items-center justify-center rounded-2xl px-6 text-sm font-semibold text-white shadow-lg transition-all duration-200 sm:h-14 sm:text-base",
                 "hover:shadow-xl hover:-translate-y-0.5 active:translate-y-0 active:shadow-md",
                 "disabled:cursor-wait disabled:opacity-70 disabled:translate-y-0 disabled:shadow-none"
               )}
@@ -398,6 +515,8 @@ export function PublicFormRenderer({ form, fields, previewMode = false }: Public
                   <span className="mr-2 inline-block h-5 w-5 animate-spin rounded-full border-2 border-white border-t-transparent" />
                   Submitting...
                 </>
+              ) : usesStepPresentation && !isLastStep ? (
+                "Next"
               ) : (
                 form.submitButtonLabel || "Submit"
               )}

@@ -52,18 +52,24 @@ export function LeadNoteForm({ leadId, onSaved }: { leadId: string; onSaved?: ()
   }
 
   return (
-    <div className="space-y-3">
-      <AdminSelect value={category} onChange={(event) => setCategory(event.target.value)} className="h-11" aria-label="Note category">
-        {noteCategories.map((option) => <option key={option} value={option}>{option}</option>)}
-      </AdminSelect>
-      <textarea
-        value={note}
-        onChange={(event) => setNote(event.target.value)}
-        rows={3}
-        maxLength={1960}
-        placeholder={category === "Reason for loss" ? "Why was this lead or offer lost?" : "Add the context your team needs."}
-        className="admin-textarea ld-focus-ring min-h-[112px] w-full rounded-2xl px-4 py-3 text-sm outline-none"
-      />
+    <div className="space-y-4">
+      <div className="space-y-2">
+        <span className="text-xs font-semibold uppercase tracking-[0.16em] text-white/70">Note category</span>
+        <AdminSelect value={category} onChange={(event) => setCategory(event.target.value)} className="h-11" aria-label="Note category">
+          {noteCategories.map((option) => <option key={option} value={option}>{option}</option>)}
+        </AdminSelect>
+      </div>
+      <label className="block space-y-2">
+        <span className="text-xs font-semibold uppercase tracking-[0.16em] text-white/70">Note</span>
+        <textarea
+          value={note}
+          onChange={(event) => setNote(event.target.value)}
+          rows={3}
+          maxLength={1960}
+          placeholder={category === "Reason for loss" ? "Why was this lead or offer lost?" : "Add the context your team needs."}
+          className="admin-textarea ld-focus-ring min-h-[112px] w-full rounded-2xl px-4 py-3 text-sm outline-none"
+        />
+      </label>
       <div className="mt-4 flex flex-col gap-3 border-t border-white/10 pt-4 sm:flex-row sm:items-end sm:justify-between">
         <div className="min-h-[1.5rem] text-sm text-white/70">
           {message ?? ""}

@@ -134,7 +134,7 @@ export function LeadBulkActions({
       </div>
 
       {isConfirming ? (
-        <AdminOverlayPortal>
+        <AdminOverlayPortal onClose={() => { if (!isPending) setIsConfirming(false); }}>
           <div className="fixed inset-0 z-[170] flex items-end justify-center bg-slate-950/78 p-0 backdrop-blur-md sm:items-center sm:p-6" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget && !isPending) setIsConfirming(false); }}>
             <section role="dialog" aria-modal="true" aria-labelledby="mass-change-title" className="admin-surface max-h-[92dvh] w-full max-w-xl overflow-y-auto rounded-t-[30px] p-5 shadow-2xl sm:rounded-[30px] sm:p-7">
               <div className="flex items-start justify-between gap-4">

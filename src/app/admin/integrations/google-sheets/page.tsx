@@ -4,6 +4,7 @@ import { ErrorState } from "@/components/admin/ErrorState";
 import { AdminSignOutButton } from "@/components/admin/AdminSignOutButton";
 import { EmptyState } from "@/components/admin/EmptyState";
 import { MetricCard } from "@/components/admin/MetricCard";
+import { IntegrationSetupPanel } from "@/components/admin/IntegrationSetupPanel";
 import { SectionHeader } from "@/components/admin/SectionHeader";
 import { getAdminAccessContext } from "@/lib/admin";
 import { isLocalAdminPreviewEmail } from "@/lib/admin-access";
@@ -43,6 +44,12 @@ export default async function AdminGoogleSheetsIntegrationPage() {
   const lastExport = jobs.find((job) => job.jobType === "export");
   const spreadsheetId = normalizeEnvValue(process.env.GOOGLE_SHEETS_SPREADSHEET_ID);
   const worksheetName = normalizeEnvValue(process.env.GOOGLE_SHEETS_WORKSHEET_NAME);
+  const sheetsConfigured = [
+    process.env.GOOGLE_SHEETS_SPREADSHEET_ID,
+    process.env.GOOGLE_SHEETS_WORKSHEET_NAME,
+    process.env.GOOGLE_SHEETS_CLIENT_EMAIL,
+    process.env.GOOGLE_SHEETS_PRIVATE_KEY,
+  ].every((value) => hasConfiguredEnvValue(value));
 
   return (
     <AdminShell
@@ -134,6 +141,35 @@ export default async function AdminGoogleSheetsIntegrationPage() {
             </section>
           </>
         )}
+
+        <IntegrationSetupPanel
+          provider="google_sheets"
+          title="Connect Google Sheets"
+          description="Share one worksheet with a service account, then verify access before importing."
+          configured={sheetsConfigured}
+          previewMode={isLocalAdminPreviewEmail(session.user?.email)}
+          permissions={[
+            "Read rows from the configured worksheet",
+            "Write exported lead rows to that same worksheet",
+          ]}
+          steps={[
+            {
+              title: "Create a service account",
+              description:
+                "Save its client email and private key as deployment secrets. Do not paste the private key into Leads Desk.",
+            },
+            {
+              title: "Share the spreadsheet",
+              description:
+                "Give the service-account email Editor access, then add the spreadsheet ID and exact worksheet name.",
+            },
+            {
+              title: "Verify before importing",
+              description:
+                "Verify spreadsheet access here. Review your headings before the first import or export.",
+            },
+          ]}
+        />
       </div>
     </AdminShell>
   );

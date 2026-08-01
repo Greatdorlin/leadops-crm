@@ -33,7 +33,7 @@ export function TaskCreateDialog({
       </button>
 
       {open ? (
-        <AdminOverlayPortal>
+        <AdminOverlayPortal onClose={() => setOpen(false)}>
           <div
             className="fixed inset-0 z-[170] flex items-end justify-center bg-[#02040c]/78 backdrop-blur-md sm:items-center sm:p-6"
             role="presentation"

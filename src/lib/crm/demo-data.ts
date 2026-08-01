@@ -11,14 +11,14 @@ export function buildDemoForms(): DemoFormRecord[] {
   const updatedAt = new Date("2026-07-12T08:30:00.000Z");
   const shared = {
     workspaceId: "demo-workspace", status: "active", isActive: true, isPublic: true,
-    successMessage: "Thank you. A member of our team will contact you shortly.", submitButtonLabel: "Send enquiry", redirectUrl: null,
+    successMessage: "Thank you. A member of our team will contact you shortly.", submitButtonLabel: "Send enquiry", presentationMode: "standard", redirectUrl: null,
     primaryColor: "#4f8cff", accentColor: "#5eead4", logoUrl: null,
     defaultStatus: "new", defaultPriority: "high", defaultSource: "website_form", defaultOwnerId: null,
     createdAt, updatedAt,
   };
   return [
     { ...shared, id: "demo-form-consultation", name: "Executive consultation", slug: "executive-consultation", description: "Qualifies high-intent enquiries and routes them to the right advisor.", enableAutoQualify: true, autoQualifyRules: [{ field: "budget", operator: "gte", value: 500000 }], fieldCount: 8, submissionCount: 184 },
-    { ...shared, id: "demo-form-product-fit", name: "Product fit assessment", slug: "product-fit", description: "Captures product interest, budget, timeline, and qualification signals.", enableAutoQualify: true, autoQualifyRules: [{ field: "timeline", operator: "in", value: ["now", "30_days"] }], fieldCount: 11, submissionCount: 129 },
+    { ...shared, id: "demo-form-product-fit", name: "Product fit assessment", slug: "product-fit", description: "Captures product interest, budget, timeline, and qualification signals.", presentationMode: "step", enableAutoQualify: true, autoQualifyRules: [{ field: "timeline", operator: "in", value: ["now", "30_days"] }], fieldCount: 11, submissionCount: 129 },
     { ...shared, id: "demo-form-partner-referral", name: "Partner referral", slug: "partner-referral", description: "Gives approved partners a clean path to submit and track referrals.", enableAutoQualify: false, autoQualifyRules: null, defaultPriority: "medium", defaultSource: "referral", fieldCount: 7, submissionCount: 76 },
   ];
 }

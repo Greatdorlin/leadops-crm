@@ -1,7 +1,8 @@
 "use client";
 
-import { startTransition, useState } from "react";
+import { startTransition, useState, type ComponentType } from "react";
 import { useRouter } from "next/navigation";
+import { MapPin } from "lucide-react";
 import {
   buildCustomFieldInputModel,
   type CustomFieldDefinitionWithOptions,
@@ -9,8 +10,13 @@ import {
 import type { LeadCustomerType } from "@/lib/crm/types";
 import { AdminSelect } from "./AdminSelect";
 import { CustomFieldValueInputs } from "./CustomFieldValueInputs";
-import { CitySearchInput, CountrySearchInput } from "./CountrySearchInput";
+import {
+  CitySearchInput,
+  CountrySearchInput,
+  getLocationFieldExamples,
+} from "./CountrySearchInput";
 import { SmoothButton } from "./ui/SmoothButton";
+import { getPhoneCountryProfile, isValidInternationalPhone } from "@/lib/crm/phone-country";
 
 type ProfileInputProps = {
   label: string;
@@ -19,6 +25,7 @@ type ProfileInputProps = {
   placeholder?: string;
   type?: string;
   className?: string;
+  icon?: ComponentType<{ className?: string; "aria-hidden"?: boolean }>;
 };
 
 type LeadProfileFormProps = {
@@ -27,6 +34,7 @@ type LeadProfileFormProps = {
   initialLastName: string;
   initialEmail: string;
   initialWhatsappNumber: string;
+  initialCallNumber: string;
   initialCountry?: string | null;
   initialRegion?: string | null;
   initialCity?: string | null;
@@ -43,6 +51,9 @@ type LeadProfileFormProps = {
   initialUtmContent?: string | null;
   initialUtmTerm?: string | null;
   initialLandingPage?: string | null;
+  workspaceDefaultCountry?: string | null;
+  workspaceDefaultCity?: string | null;
+  workspaceDefaultRegion?: string | null;
   sourceOptions: Array<{ value: string; label: string }>;
   customFieldDefinitions?: CustomFieldDefinitionWithOptions[];
   initialCustomFieldValues?: Array<{ customFieldId: string; value: unknown }>;
@@ -52,17 +63,20 @@ const labelClass = "text-xs font-semibold uppercase tracking-[0.16em] text-white
 const panelClass =
   "mt-4 space-y-3 rounded-[24px] border border-white/10 bg-white/[0.045] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]";
 
-function ProfileInput({ label, value, onChange, placeholder, type = "text", className }: ProfileInputProps) {
+function ProfileInput({ label, value, onChange, placeholder, type = "text", className, icon: Icon }: ProfileInputProps) {
   return (
     <label className={["space-y-2", className].filter(Boolean).join(" ")}>
       <span className={labelClass}>{label}</span>
-      <input
-        type={type}
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-        placeholder={placeholder}
-        className="admin-input ld-focus-ring h-11 w-full rounded-2xl px-4 text-sm outline-none"
-      />
+      <span className="relative block">
+        {Icon ? <Icon aria-hidden={true} className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-white/42" /> : null}
+        <input
+          type={type}
+          value={value}
+          onChange={(event) => onChange(event.target.value)}
+          placeholder={placeholder}
+          className={["admin-input ld-focus-ring h-11 w-full rounded-2xl pr-4 text-sm outline-none", Icon ? "pl-10" : "px-4"].join(" ")}
+        />
+      </span>
     </label>
   );
 }
@@ -73,6 +87,7 @@ export function LeadProfileForm({
   initialLastName,
   initialEmail,
   initialWhatsappNumber,
+  initialCallNumber,
   initialCountry,
   initialRegion,
   initialCity,
@@ -89,6 +104,9 @@ export function LeadProfileForm({
   initialUtmContent,
   initialUtmTerm,
   initialLandingPage,
+  workspaceDefaultCountry,
+  workspaceDefaultCity,
+  workspaceDefaultRegion,
   sourceOptions,
   customFieldDefinitions = [],
   initialCustomFieldValues = [],
@@ -102,6 +120,7 @@ export function LeadProfileForm({
   const [lastName, setLastName] = useState(initialLastName);
   const [email, setEmail] = useState(initialEmail);
   const [whatsappNumber, setWhatsappNumber] = useState(initialWhatsappNumber);
+  const [callNumber, setCallNumber] = useState(initialCallNumber);
   const [country, setCountry] = useState(initialCountry ?? "");
   const [region, setRegion] = useState(initialRegion ?? "");
   const [city, setCity] = useState(initialCity ?? "");
@@ -125,14 +144,20 @@ export function LeadProfileForm({
   );
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState("");
+  const locationExamples = getLocationFieldExamples(country || workspaceDefaultCountry);
+  const phoneProfile = getPhoneCountryProfile(country || workspaceDefaultCountry);
 
   async function saveLeadProfile() {
     if (!firstName.trim()) {
       setMessage("Add the lead's first name before saving.");
       return;
     }
-    if (!email.trim() && !whatsappNumber.trim()) {
-      setMessage("Add an email or WhatsApp number before saving.");
+    if (!email.trim() && !whatsappNumber.trim() && !callNumber.trim()) {
+      setMessage("Add an email, WhatsApp number, or call number before saving.");
+      return;
+    }
+    if (!isValidInternationalPhone(whatsappNumber) || !isValidInternationalPhone(callNumber)) {
+      setMessage("Check the phone number and include a valid country code.");
       return;
     }
 
@@ -148,6 +173,7 @@ export function LeadProfileForm({
           lastName: lastName.trim() || null,
           email: email.trim() || null,
           whatsappNumber: whatsappNumber.trim() || null,
+          callNumber: callNumber.trim() || null,
           country: country.trim() || null,
           region: region.trim() || null,
           city: city.trim() || null,
@@ -217,13 +243,14 @@ export function LeadProfileForm({
         <ProfileInput label="First name" value={firstName} onChange={setFirstName} placeholder="Ada" />
         <ProfileInput label="Last name" value={lastName} onChange={setLastName} placeholder="Okafor" />
         <ProfileInput label="Email" type="email" value={email} onChange={setEmail} placeholder="lead@example.com" />
-        <ProfileInput label="WhatsApp" value={whatsappNumber} onChange={setWhatsappNumber} placeholder="+234 801 234 5678" />
-        <CountrySearchInput value={country} onChange={setCountry} />
+        <ProfileInput label="WhatsApp number" type="tel" value={whatsappNumber} onChange={setWhatsappNumber} placeholder={phoneProfile.example} />
+        <ProfileInput label="Call number" type="tel" value={callNumber} onChange={setCallNumber} placeholder={phoneProfile.example} />
+        <CountrySearchInput value={country} onChange={setCountry} placeholder={locationExamples.country} />
         <ProfileInput label="Company" value={companyName} onChange={setCompanyName} placeholder="Northwind Ventures" />
-        <ProfileInput label="State/Province/Region" value={region} onChange={setRegion} placeholder="Lagos State" />
-        <CitySearchInput value={city} onChange={setCity} />
-        <ProfileInput label="Postal code" value={postalCode} onChange={setPostalCode} placeholder="101245" />
-        <ProfileInput label="Address" value={address} onChange={setAddress} placeholder="14 Admiralty Way" className="sm:col-span-2" />
+        <ProfileInput label="Region" value={region} onChange={setRegion} placeholder={workspaceDefaultRegion || locationExamples.region} icon={MapPin} />
+        <CitySearchInput value={city} onChange={setCity} placeholder={workspaceDefaultCity || "Select or search city"} />
+        <ProfileInput label="Postal code" value={postalCode} onChange={setPostalCode} placeholder={locationExamples.postalCode} icon={MapPin} />
+        <ProfileInput label="Address" value={address} onChange={setAddress} placeholder="Street address" icon={MapPin} className="sm:col-span-2" />
       </div>
 
       <section className={panelClass}>

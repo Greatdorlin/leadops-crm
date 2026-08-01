@@ -4,6 +4,7 @@ import { ErrorState } from "@/components/admin/ErrorState";
 import { AdminSignOutButton } from "@/components/admin/AdminSignOutButton";
 import { EmptyState } from "@/components/admin/EmptyState";
 import { MetricCard } from "@/components/admin/MetricCard";
+import { IntegrationSetupPanel } from "@/components/admin/IntegrationSetupPanel";
 import { SectionHeader } from "@/components/admin/SectionHeader";
 import { getAdminAccessContext } from "@/lib/admin";
 import { isLocalAdminPreviewEmail } from "@/lib/admin-access";
@@ -174,25 +175,33 @@ export default async function AdminFacebookIntegrationPage() {
           />
         )}
 
-        <section id="setup" className="admin-surface scroll-mt-24 rounded-[24px] p-5">
-          <SectionHeader
-            eyebrow="Setup checklist"
-            title="Meta setup"
-            description="Use this list when configuring Facebook Lead Ads for the first time."
-          />
-          <div className="mt-4 space-y-3 text-sm text-white/70">
-            {[
-              "Set META_APP_ID, META_APP_SECRET, META_VERIFY_TOKEN, META_PAGE_ACCESS_TOKEN, and META_GRAPH_API_VERSION.",
-              "Point the Meta webhook subscription to /api/integrations/facebook/webhook.",
-              "Subscribe to the leadgen field on the connected page.",
-              "Confirm failed lead imports clear after credentials are valid.",
-            ].map((item) => (
-              <div key={item} className="admin-surface-muted rounded-2xl p-4">
-                {item}
-              </div>
-            ))}
-          </div>
-        </section>
+        <IntegrationSetupPanel
+          provider="facebook"
+          title="Connect Meta Lead Ads"
+          description="Three steps from page access to a verified lead delivery."
+          configured={credentialsConfigured}
+          previewMode={isLocalAdminPreviewEmail(session.user?.email)}
+          permissions={[
+            "Read leads for the selected Facebook Page",
+            "Receive leadgen webhook notifications",
+          ]}
+          steps={[
+            {
+              title: "Add Meta credentials",
+              description:
+                "Save the app secret, page access token, and verify token as deployment secrets. Keep the Graph API version current.",
+            },
+            {
+              title: "Subscribe the page",
+              description: `Use ${baseUrl ? `${baseUrl}/api/integrations/facebook/webhook` : "your public Leads Desk URL plus /api/integrations/facebook/webhook"} as the callback and subscribe to leadgen.`,
+            },
+            {
+              title: "Verify and send a test lead",
+              description:
+                "Verify the page token here, then submit a Meta test lead and confirm it appears in Leads Desk.",
+            },
+          ]}
+        />
       </div>
     </AdminShell>
   );

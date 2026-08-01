@@ -41,12 +41,18 @@ export function IntegrationHealthCard({
   const meta = statusMeta[integration.status];
   const Icon = meta.icon;
   const defaultNote = integration.status === "healthy"
-    ? "No issue recorded."
+    ? "Provider access was verified and no issue is recorded."
     : integration.status === "not_configured"
       ? "Complete setup before using this connection."
       : integration.status === "disabled"
         ? "This connection is disabled."
-        : "No additional detail recorded.";
+        : integration.status === "pending_sync"
+          ? "Server setup is present. Verify provider access before going live."
+          : "No additional detail recorded.";
+  const statusLabel =
+    integration.status === "pending_sync"
+      ? "Ready to verify"
+      : formatIntegrationStatusLabel(integration.status);
 
   const card = (
     <article className="admin-surface-soft rounded-2xl p-4 transition hover:border-white/15 hover:bg-white/[0.05]">
@@ -62,7 +68,7 @@ export function IntegrationHealthCard({
         </span>
       </div>
       <div className="mt-4 grid gap-2 text-sm text-white/70">
-        <p>Status: <span className="text-white/90">{formatIntegrationStatusLabel(integration.status)}</span></p>
+        <p>Status: <span className="text-white/90">{statusLabel}</span></p>
         <p>Recent sync: <span className="text-white/90">{formatCrmDateTime(integration.lastSyncAt)}</span></p>
         <p className="line-clamp-2">Latest note: <span className="text-white/90">{integration.lastError || defaultNote}</span></p>
       </div>

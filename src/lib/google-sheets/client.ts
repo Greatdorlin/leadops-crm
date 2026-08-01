@@ -36,6 +36,24 @@ export function isGoogleSheetsConfigured() {
   return Boolean(spreadsheetId && worksheetName && clientEmail && privateKey);
 }
 
+export async function verifyGoogleSheetAccess() {
+  const { spreadsheetId } = getGoogleSheetsConfig();
+  if (!spreadsheetId) {
+    throw new Error("The spreadsheet ID is not configured.");
+  }
+
+  const sheets = await getSheetsClient();
+  const response = await sheets.spreadsheets.get({
+    spreadsheetId,
+    fields: "spreadsheetId,properties.title",
+  });
+
+  return {
+    spreadsheetId: response.data.spreadsheetId ?? spreadsheetId,
+    title: response.data.properties?.title ?? "Configured spreadsheet",
+  };
+}
+
 export async function readGoogleSheetRows(rangeOverride?: string) {
   const { spreadsheetId, worksheetName } = getGoogleSheetsConfig();
   if (!spreadsheetId || !worksheetName) {

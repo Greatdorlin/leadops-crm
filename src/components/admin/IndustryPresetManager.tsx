@@ -112,7 +112,7 @@ export function IndustryPresetManager({ presets }: { presets: IndustryPreset[] }
 
       {/* Modal Preview */}
       {showPreview && activePreset && (
-        <AdminOverlayPortal>
+        <AdminOverlayPortal onClose={closePreview}>
         <div className="fixed inset-0 z-[160] flex items-end justify-center sm:items-center sm:p-6">
           {/* Backdrop */}
           <div
@@ -120,7 +120,7 @@ export function IndustryPresetManager({ presets }: { presets: IndustryPreset[] }
             onClick={closePreview}
           />
           {/* Modal */}
-          <div className="admin-surface ld-premium-scrollbar relative max-h-[90dvh] w-full max-w-2xl overflow-y-auto overscroll-contain rounded-t-[28px] shadow-2xl sm:rounded-3xl">
+          <div role="dialog" aria-modal="true" aria-label="Industry preset preview" className="admin-surface ld-premium-scrollbar relative max-h-[90dvh] w-full max-w-2xl overflow-y-auto overscroll-contain rounded-t-[28px] shadow-2xl sm:rounded-3xl">
             {/* Header */}
             <div className="sticky top-0 z-10 flex items-center justify-between border-b border-white/10 bg-[#101421]/95 px-5 py-4 backdrop-blur-xl sm:px-6">
               <div className="flex items-center gap-3">

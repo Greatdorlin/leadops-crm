@@ -17,7 +17,7 @@ test("connector setup requires every server-side secret", () => {
     }),
     true,
   );
-  assert.equal(getConnectorSetupState("mailchimp", {}), true);
+  assert.equal(getConnectorSetupState("mailchimp", {}), false);
   assert.equal(isConnectorConfigured("sender", {}), false);
 });
 
@@ -32,4 +32,9 @@ test("Google Ads reporting action requires reporting credentials, not only webho
     ),
     false,
   );
+});
+
+test("catalog entries without a verifiable runtime are not presented as configured", () => {
+  assert.equal(getConnectorSetupState("website_forms", {}), false);
+  assert.equal(getConnectorSetupState("custom_webhook", {}), false);
 });

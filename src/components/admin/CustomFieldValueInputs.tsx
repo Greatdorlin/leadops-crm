@@ -3,6 +3,7 @@
 import type { ChangeEvent } from "react";
 import type { CustomFieldInputModel } from "@/lib/crm/custom-field-values";
 import { AdminSelect } from "./AdminSelect";
+import { AdminDateTimeInput } from "./AdminDateTimeInput";
 
 function isWideField(type: CustomFieldInputModel["type"]) {
   return type === "textarea" || type === "multi_select";
@@ -17,10 +18,6 @@ function fieldInputType(type: CustomFieldInputModel["type"]) {
     case "url":
     case "file_url":
       return "url";
-    case "date":
-      return "date";
-    case "datetime":
-      return "datetime-local";
     case "number":
     case "currency":
       return "number";
@@ -136,6 +133,23 @@ export function CustomFieldValueInputs({
                 <span className="block text-sm font-medium text-white">{field.label}</span>
                 {helpText ? <span className="block text-xs text-white/70">{helpText}</span> : null}
               </span>
+            </label>
+          );
+        }
+
+        if (field.type === "date" || field.type === "datetime") {
+          return (
+            <label key={field.fieldId} className="space-y-2">
+              <span className={labelClass}>{field.label}</span>
+              <AdminDateTimeInput
+                mode={field.type === "date" ? "date" : "datetime-local"}
+                value={typeof value === "string" ? value : ""}
+                onChange={(event) => onChange(field.fieldId, event.target.value)}
+                placeholder={field.placeholder ?? (field.type === "date" ? "Choose a date" : "Choose a date and time")}
+                pickerLabel={`Choose ${field.label.toLowerCase()}`}
+                aria-required={field.required}
+              />
+              {helpText ? <p className={helpClass}>{helpText}</p> : null}
             </label>
           );
         }

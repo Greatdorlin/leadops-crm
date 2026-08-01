@@ -223,6 +223,7 @@ function mapLeadRecord(row: typeof leads.$inferSelect): LeadRecord {
     lastName: row.lastName,
     email: row.email,
     whatsappNumber: row.whatsappNumber,
+    callNumber: row.callNumber,
     state: row.state,
     country: row.country,
     region: row.region,
@@ -723,6 +724,7 @@ export class NeonLeadStore implements LeadStorage {
         lastName: duplicate.lastName || normalizeText(input.lastName) || "",
         email: duplicate.email || normalizeText(input.email) || "",
         whatsappNumber: duplicate.whatsappNumber || normalizeText(input.whatsappNumber) || "",
+        callNumber: duplicate.callNumber || normalizeText(input.callNumber) || "",
         leadCustomerType: input.leadCustomerType ?? duplicate.leadCustomerType ?? "direct",
         state: pickPreferredValue(duplicate.state, nextRegion),
         country: pickPreferredValue(duplicate.country ?? null, normalizeText(input.country)),
@@ -883,6 +885,7 @@ export class NeonLeadStore implements LeadStorage {
         lastName: normalizeText(input.lastName) ?? "",
         email: normalizeText(input.email) ?? "",
         whatsappNumber: normalizeText(input.whatsappNumber) ?? "",
+        callNumber: normalizeText(input.callNumber) ?? "",
         state: region,
         country: normalizeText(input.country),
         region,
@@ -1606,6 +1609,10 @@ export class NeonLeadStore implements LeadStorage {
       input.whatsappNumber === undefined
         ? existing.whatsappNumber
         : normalizeText(input.whatsappNumber) ?? "";
+    const nextCallNumber =
+      input.callNumber === undefined
+        ? existing.callNumber
+        : normalizeText(input.callNumber) ?? "";
     const nextState =
       input.state === undefined && input.region === undefined
         ? existing.state
@@ -1675,6 +1682,7 @@ export class NeonLeadStore implements LeadStorage {
       { field: "lastName", label: "Last name", before: existing.lastName, after: nextLastName },
       { field: "email", label: "Email", before: existing.email, after: nextEmail },
       { field: "whatsappNumber", label: "WhatsApp number", before: existing.whatsappNumber, after: nextWhatsappNumber },
+      { field: "callNumber", label: "Call number", before: existing.callNumber, after: nextCallNumber },
       { field: "state", label: "State", before: existing.state, after: nextState },
       { field: "country", label: "Country", before: existing.country, after: nextCountry },
       { field: "region", label: "Region", before: existing.region, after: nextRegion },
@@ -1711,6 +1719,7 @@ export class NeonLeadStore implements LeadStorage {
         lastName: nextLastName,
         email: nextEmail,
         whatsappNumber: nextWhatsappNumber,
+        callNumber: nextCallNumber,
         state: nextState,
         country: nextCountry,
         region: nextRegion,

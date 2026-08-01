@@ -490,6 +490,7 @@ export const leads = pgTable(
     lastName: text("last_name").notNull().default(""),
     email: text("email").notNull().default(""),
     whatsappNumber: text("whatsapp_number").notNull().default(""),
+    callNumber: text("call_number").notNull().default(""),
     state: text("state"),
     country: text("country"),
     region: text("region"),
@@ -1054,6 +1055,7 @@ export const forms = pgTable(
     isPublic: boolean("is_public").notNull().default(true),
     successMessage: text("success_message").notNull().default("Thank you for your submission."),
     submitButtonLabel: text("submit_button_label").notNull().default("Submit"),
+    presentationMode: text("presentation_mode").notNull().default("standard"),
     redirectUrl: text("redirect_url"),
     primaryColor: text("primary_color"),
     accentColor: text("accent_color"),
@@ -1075,6 +1077,10 @@ export const forms = pgTable(
     statusCheck: check(
       "forms_status_check",
       sql`${table.status} in ('draft', 'active', 'archived')`,
+    ),
+    presentationModeCheck: check(
+      "forms_presentation_mode_check",
+      sql`${table.presentationMode} in ('standard', 'step')`,
     ),
   }),
 );

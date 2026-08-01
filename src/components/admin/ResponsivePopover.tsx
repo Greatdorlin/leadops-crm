@@ -147,7 +147,7 @@ export function ResponsivePopover({
       return;
     }
 
-    function handlePointerDown(event: PointerEvent) {
+    function handleDocumentClick(event: MouseEvent) {
       const target = event.target as Node;
       const targetPanel = target instanceof Element
         ? target.closest<HTMLElement>("[data-responsive-popover-id]")
@@ -198,10 +198,10 @@ export function ResponsivePopover({
       }
     }
 
-    document.addEventListener("pointerdown", handlePointerDown);
+    document.addEventListener("click", handleDocumentClick);
     document.addEventListener("keydown", handleKeyDown);
     return () => {
-      document.removeEventListener("pointerdown", handlePointerDown);
+      document.removeEventListener("click", handleDocumentClick);
       document.removeEventListener("keydown", handleKeyDown);
     };
   }, [anchorRef, isMobile, onClose, open, popoverId]);
@@ -237,7 +237,7 @@ export function ResponsivePopover({
     <>
       {isMobile ? (
         <div
-          className="fixed inset-0 z-[140] bg-[#02040c]/64 backdrop-blur-[3px]"
+          className="fixed inset-0 z-[200] bg-[#02040c]/64 backdrop-blur-[3px]"
           aria-hidden="true"
         />
       ) : null}
@@ -251,7 +251,7 @@ export function ResponsivePopover({
         data-responsive-popover-parent-id={parentPopoverId}
         tabIndex={-1}
         className={cn(
-          "ld-glass-panel fixed z-[150] flex min-h-0 flex-col overflow-hidden border border-white/14 bg-[#070b18]/[0.97] shadow-[0_28px_90px_rgba(0,0,0,0.58),inset_0_1px_0_rgba(255,255,255,0.11)]",
+          "ld-glass-panel fixed z-[210] flex min-h-0 flex-col overflow-hidden border border-white/14 bg-[#070b18]/[0.97] shadow-[0_28px_90px_rgba(0,0,0,0.58),inset_0_1px_0_rgba(255,255,255,0.11)]",
           isMobile
             ? "inset-x-2.5 bottom-[max(0.625rem,env(safe-area-inset-bottom))] max-h-[min(86dvh,680px)] max-w-[calc(100vw-1.25rem)] rounded-[26px] p-2.5"
             : "rounded-[24px] p-2.5",

@@ -11,7 +11,8 @@ import { leadStore } from "@/lib/storage";
 export const ADMIN_LEAD_EXPORT_HEADERS = [
   "Lead Name",
   "Email",
-  "Phone",
+  "WhatsApp Number",
+  "Call Number",
   "Lead Type",
   "Source",
   "Category",
@@ -135,6 +136,7 @@ export async function buildLeadExportValues(
         leadView.displayName,
         leadView.email,
         leadView.phone,
+        lead.callNumber ?? "",
         leadView.leadCustomerTypeLabel,
         leadView.sourceLabel,
         leadView.categoryLabel,

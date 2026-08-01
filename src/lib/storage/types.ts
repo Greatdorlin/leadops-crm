@@ -66,6 +66,7 @@ export interface ExternalLeadUpsertInput {
   lastName?: string | null;
   email?: string | null;
   whatsappNumber?: string | null;
+  callNumber?: string | null;
   state?: string | null;
   country?: string | null;
   region?: string | null;
@@ -117,6 +118,7 @@ export interface LeadDuplicateLookupInput {
   googleClickId?: string | null;
   email?: string | null;
   whatsappNumber?: string | null;
+  callNumber?: string | null;
 }
 
 export interface LeadDuplicateListInput extends LeadDuplicateLookupInput {
@@ -187,6 +189,7 @@ export interface LeadProfileUpdateInput {
   lastName?: string | null;
   email?: string | null;
   whatsappNumber?: string | null;
+  callNumber?: string | null;
   state?: string | null;
   country?: string | null;
   region?: string | null;

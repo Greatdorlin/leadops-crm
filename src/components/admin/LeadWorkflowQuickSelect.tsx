@@ -99,6 +99,12 @@ export function LeadWorkflowQuickSelect({
         ref={buttonRef}
         type="button"
         onClick={() => setIsOpen((current) => !current)}
+        onKeyDown={(event) => {
+          if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+            event.preventDefault();
+            setIsOpen(true);
+          }
+        }}
         disabled={isSaving || options.length === 0}
         className="ld-focus-ring inline-flex min-h-10 max-w-full min-w-0 items-center gap-1.5 rounded-full border border-white/14 bg-white/[0.075] py-1.5 pl-2.5 pr-2 text-[11px] font-semibold uppercase tracking-[0.025em] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.09),0_8px_18px_rgba(2,6,23,0.16)] transition hover:border-white/24 hover:bg-white/[0.11] disabled:cursor-wait disabled:opacity-70"
         aria-controls={listboxId}
@@ -144,7 +150,7 @@ export function LeadWorkflowQuickSelect({
             </button>
           </div>
           <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain pr-1" role="listbox">
-            {options.map((option) => {
+            {options.map((option, index) => {
               const isCurrent = option.value === value;
               const optionColor = option.color ?? "#94a3b8";
               return (
@@ -158,6 +164,25 @@ export function LeadWorkflowQuickSelect({
                   )}
                   role="option"
                   aria-selected={isCurrent}
+                  data-popover-autofocus={isCurrent || undefined}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter" || event.key === " ") {
+                      event.preventDefault();
+                      void saveValue(option.value);
+                      return;
+                    }
+                    if (!["ArrowDown", "ArrowUp", "Home", "End"].includes(event.key)) return;
+                    event.preventDefault();
+                    const optionButtons = event.currentTarget
+                      .closest('[role="listbox"]')
+                      ?.querySelectorAll<HTMLButtonElement>('[role="option"]');
+                    const nextIndex =
+                      event.key === "Home" ? 0
+                        : event.key === "End" ? options.length - 1
+                          : event.key === "ArrowDown" ? Math.min(index + 1, options.length - 1)
+                            : Math.max(index - 1, 0);
+                    optionButtons?.[nextIndex]?.focus({ preventScroll: true });
+                  }}
                 >
                   <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: optionColor }} />
                   <span className="min-w-0 flex-1 font-semibold">{option.label}</span>

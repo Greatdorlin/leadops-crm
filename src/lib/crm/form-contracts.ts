@@ -48,6 +48,7 @@ const baseLeadAdminInputShape = {
   lastName: z.string().trim().nullable().optional(),
   email: z.string().trim().email().nullable().optional().or(z.literal("").transform(() => null)),
   whatsappNumber: z.string().trim().nullable().optional(),
+  callNumber: z.string().trim().nullable().optional(),
   state: z.string().trim().nullable().optional(),
   country: z.string().trim().nullable().optional(),
   region: z.string().trim().nullable().optional(),
@@ -90,10 +91,10 @@ export const adminLeadCaptureInputSchema = z
     sourceDetail: z.string().trim().nullable().optional(),
   })
   .superRefine((value, ctx) => {
-    if (!value.email && !value.whatsappNumber) {
+    if (!value.email && !value.whatsappNumber && !value.callNumber) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
-        message: "Add an email or WhatsApp number before saving.",
+        message: "Add an email, WhatsApp number, or call number before saving.",
         path: ["email"],
       });
     }
@@ -107,6 +108,7 @@ export const adminLeadProfileInputSchema = z
     lastName: baseLeadAdminInputShape.lastName,
     email: baseLeadAdminInputShape.email,
     whatsappNumber: baseLeadAdminInputShape.whatsappNumber,
+    callNumber: baseLeadAdminInputShape.callNumber,
     country: baseLeadAdminInputShape.country,
     region: baseLeadAdminInputShape.region,
     city: baseLeadAdminInputShape.city,
@@ -118,10 +120,10 @@ export const adminLeadProfileInputSchema = z
     ...leadBusinessAttributionInputShape,
   })
   .superRefine((value, ctx) => {
-    if (!value.email && !value.whatsappNumber) {
+    if (!value.email && !value.whatsappNumber && !value.callNumber) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
-        message: "Add an email or WhatsApp number before saving.",
+        message: "Add an email, WhatsApp number, or call number before saving.",
         path: ["email"],
       });
     }
@@ -187,6 +189,7 @@ export function normalizeAdminLeadCapturePayload(payload: Record<string, unknown
     lastName: pickAliasString(payload, ["lastName"]),
     email: pickAliasString(payload, ["email"]),
     whatsappNumber: pickAliasString(payload, ["whatsappNumber"]),
+    callNumber: pickAliasString(payload, ["callNumber", "phoneNumber"]),
     state: pickAliasString(payload, ["state"]),
     country: pickAliasString(payload, ["country"]),
     region: pickAliasString(payload, ["region", "stateProvinceRegion"]),
@@ -237,6 +240,7 @@ export function normalizeAdminLeadProfilePayload(payload: Record<string, unknown
     lastName: pickAliasString(payload, ["lastName"]),
     email: pickAliasString(payload, ["email"]),
     whatsappNumber: pickAliasString(payload, ["whatsappNumber"]),
+    callNumber: pickAliasString(payload, ["callNumber", "phoneNumber"]),
     country: pickAliasString(payload, ["country"]),
     region: pickAliasString(payload, ["region", "stateProvinceRegion"]),
     city: pickAliasString(payload, ["city"]),

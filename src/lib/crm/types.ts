@@ -56,6 +56,7 @@ export interface LeadRecord {
   lastName: string;
   email: string;
   whatsappNumber: string;
+  callNumber?: string;
   state: string | null;
   country?: string | null;
   region?: string | null;

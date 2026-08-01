@@ -1,7 +1,7 @@
 "use client";
 
 import { Check, ChevronDown, MapPin, Search } from "lucide-react";
-import { useEffect, useId, useMemo, useRef, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState, type KeyboardEvent } from "react";
 import { COUNTRY_NAMES } from "@/lib/countries";
 import { cn } from "@/lib/cn";
 import { ResponsivePopover } from "./ResponsivePopover";
@@ -17,6 +17,27 @@ const GLOBAL_CITY_SUGGESTIONS = [
   "Rome", "San Francisco", "Sao Paulo", "Seattle", "Seoul", "Shanghai", "Singapore", "Stockholm",
   "Sydney", "Tokyo", "Toronto", "Vancouver", "Vienna", "Warsaw", "Washington", "Zurich",
 ] as const;
+
+export type LocationFieldExamples = {
+  country: string;
+  postalCode: string;
+  region: string;
+};
+
+const LOCATION_FIELD_EXAMPLES: Record<string, LocationFieldExamples> = {
+  Nigeria: { country: "Nigeria", region: "Lagos or FCT", postalCode: "100001" },
+  Ghana: { country: "Ghana", region: "Greater Accra", postalCode: "GA-184-9084" },
+  "United Kingdom": { country: "United Kingdom", region: "England", postalCode: "SW1A 1AA" },
+  "United States": { country: "United States", region: "New York", postalCode: "10001" },
+};
+
+export function getLocationFieldExamples(country?: string | null): LocationFieldExamples {
+  return LOCATION_FIELD_EXAMPLES[country?.trim() ?? ""] ?? {
+    country: "Select country",
+    region: "Region, province, or county",
+    postalCode: "Postal code",
+  };
+}
 
 function SearchableLocationInput({
   allowCustom,
@@ -65,6 +86,24 @@ function SearchableLocationInput({
     window.requestAnimationFrame(() => anchorRef.current?.focus({ preventScroll: true }));
   }
 
+  function focusListOption(event: KeyboardEvent<HTMLElement>, direction: "first" | "next" | "previous") {
+    const listbox = document.getElementById(listboxId);
+    const optionButtons = Array.from(
+      listbox?.querySelectorAll<HTMLButtonElement>('[role="option"]:not(:disabled)') ?? [],
+    );
+    if (optionButtons.length === 0) return;
+    event.preventDefault();
+    if (direction === "first") {
+      optionButtons[0]?.focus({ preventScroll: true });
+      return;
+    }
+    const currentIndex = optionButtons.indexOf(event.currentTarget as HTMLButtonElement);
+    const nextIndex = direction === "next"
+      ? Math.min(currentIndex + 1, optionButtons.length - 1)
+      : Math.max(currentIndex - 1, 0);
+    optionButtons[nextIndex]?.focus({ preventScroll: true });
+  }
+
   return (
     <div className={cn("min-w-0 space-y-2", className)}>
       <span className="text-xs font-semibold uppercase tracking-[0.16em] text-white/70">{label}</span>
@@ -77,6 +116,12 @@ function SearchableLocationInput({
         aria-controls={listboxId}
         aria-label={`${label}. ${value || placeholder}`}
         onClick={() => setOpen((current) => !current)}
+        onKeyDown={(event) => {
+          if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+            event.preventDefault();
+            setOpen(true);
+          }
+        }}
         className="admin-input ld-focus-ring group flex h-12 w-full min-w-0 items-center gap-2 rounded-2xl py-0 pl-3 pr-1.5 text-left text-sm outline-none"
       >
         <MapPin aria-hidden="true" className="h-4 w-4 shrink-0 text-white/45" />
@@ -106,6 +151,9 @@ function SearchableLocationInput({
               type="search"
               value={query}
               onChange={(event) => setQuery(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === "ArrowDown") focusListOption(event, "first");
+              }}
               placeholder={`Search ${label.toLocaleLowerCase()}`}
               data-popover-autofocus="true"
               className="admin-input ld-focus-ring h-11 w-full rounded-2xl pl-10 pr-4 text-sm outline-none"
@@ -113,13 +161,30 @@ function SearchableLocationInput({
           </div>
           <div id={listboxId} role="listbox" className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-1.5">
             {canUseCustom ? (
-              <button type="button" role="option" aria-selected="false" onClick={() => select(customValue)} className="ld-focus-ring mb-1 flex min-h-11 w-full min-w-0 items-center gap-2 rounded-xl border border-cyan-200/12 bg-cyan-300/[0.07] px-3 py-2.5 text-left text-sm font-semibold text-cyan-50 hover:bg-cyan-300/[0.12]">
+              <button type="button" role="option" aria-selected="false" onClick={() => select(customValue)} onKeyDown={(event) => {
+                if (event.key === "Enter" || event.key === " ") {
+                  event.preventDefault();
+                  select(customValue);
+                  return;
+                }
+                if (event.key === "ArrowDown") focusListOption(event, "next");
+                if (event.key === "ArrowUp") focusListOption(event, "previous");
+              }} className="ld-focus-ring mb-1 flex min-h-11 w-full min-w-0 items-center gap-2 rounded-xl border border-cyan-200/12 bg-cyan-300/[0.07] px-3 py-2.5 text-left text-sm font-semibold text-cyan-50 hover:bg-cyan-300/[0.12]">
                 <MapPin className="h-4 w-4 shrink-0" />
                 <span className="truncate">Use “{customValue}”</span>
               </button>
             ) : null}
             {filteredOptions.map((option) => (
-              <button key={option} type="button" role="option" aria-selected={option === value} onClick={() => select(option)} className="ld-focus-ring flex min-h-11 w-full min-w-0 items-center gap-2 rounded-xl px-3 py-2.5 text-left text-sm text-white/78 transition hover:bg-white/[0.08] hover:text-white">
+              <button key={option} type="button" role="option" aria-selected={option === value} onClick={() => select(option)} onKeyDown={(event) => {
+                if (event.key === "Enter" || event.key === " ") {
+                  event.preventDefault();
+                  select(option);
+                  return;
+                }
+                if (event.key === "ArrowDown") focusListOption(event, "next");
+                if (event.key === "ArrowUp") focusListOption(event, "previous");
+                if (event.key === "Home") focusListOption(event, "first");
+              }} className="ld-focus-ring flex min-h-11 w-full min-w-0 items-center gap-2 rounded-xl px-3 py-2.5 text-left text-sm text-white/78 transition hover:bg-white/[0.08] hover:text-white">
                 <span className="min-w-0 flex-1 truncate">{option}</span>
                 {option === value ? <Check className="h-4 w-4 shrink-0 text-cyan-200" /> : null}
               </button>
@@ -139,13 +204,14 @@ export function CountrySearchInput(props: {
   onChange: (value: string) => void;
   label?: string;
   className?: string;
+  placeholder?: string;
 }) {
   return (
     <SearchableLocationInput
       {...props}
       label={props.label ?? "Country"}
       options={COUNTRY_NAMES}
-      placeholder="Select country"
+      placeholder={props.placeholder ?? "Select country"}
       allowCustom={false}
     />
   );
@@ -156,13 +222,14 @@ export function CitySearchInput(props: {
   onChange: (value: string) => void;
   label?: string;
   className?: string;
+  placeholder?: string;
 }) {
   return (
     <SearchableLocationInput
       {...props}
       label={props.label ?? "City"}
       options={GLOBAL_CITY_SUGGESTIONS}
-      placeholder="Select or search city"
+      placeholder={props.placeholder ?? "Select or search city"}
       allowCustom
     />
   );

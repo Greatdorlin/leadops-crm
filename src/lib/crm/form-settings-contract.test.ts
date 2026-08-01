@@ -14,6 +14,7 @@ const validSettings = {
   isActive: true,
   isPublic: true,
   successMessage: "Thanks. We will be in touch.",
+  presentationMode: "step" as const,
   redirectUrl: null,
   primaryColor: "#0f766e",
   accentColor: "#f59e0b",
@@ -35,6 +36,15 @@ const validSettings = {
 
 test("form settings accept a complete qualification contract", () => {
   assert.equal(formSettingsPayloadSchema.safeParse(validSettings).success, true);
+});
+
+test("form settings keep standard presentation as the safe default", () => {
+  const parsed = formSettingsPayloadSchema.safeParse({
+    ...validSettings,
+    presentationMode: undefined,
+  });
+  assert.equal(parsed.success, true);
+  if (parsed.success) assert.equal(parsed.data.presentationMode, "standard");
 });
 
 test("form settings reject malformed automation and unsafe presentation values", () => {
@@ -64,6 +74,13 @@ test("form settings reject malformed automation and unsafe presentation values",
     }).success,
     false,
   );
+  assert.equal(
+    formSettingsPayloadSchema.safeParse({
+      ...validSettings,
+      presentationMode: "carousel",
+    }).success,
+    false,
+  );
 });
 
 test("form creation validates starter fields as one request", () => {
@@ -71,6 +88,7 @@ test("form creation validates starter fields as one request", () => {
     name: "Quote request",
     slug: "quote-request",
     defaultStatus: "new",
+    presentationMode: "step",
     fields: [
       {
         fieldType: "text",
@@ -83,7 +101,10 @@ test("form creation validates starter fields as one request", () => {
     ],
   });
   assert.equal(parsed.success, true);
-  if (parsed.success) assert.equal(parsed.data.fields.length, 1);
+  if (parsed.success) {
+    assert.equal(parsed.data.fields.length, 1);
+    assert.equal(parsed.data.presentationMode, "step");
+  }
 });
 
 test("form status cannot drift from response availability", () => {

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowUpRight, Check, Clock3, FileInput, PlugZap } from "lucide-react";
+import { ArrowUpRight, Clock3, FileInput, PlugZap, ShieldCheck } from "lucide-react";
 import {
   connectorRegistry,
   type ConnectorAvailability,
@@ -41,14 +41,21 @@ export function ConnectorCatalog() {
             <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
               {connectors.map((connector) => {
                 const isConfigured = getConnectorSetupState(connector.id);
-                const status = availabilityMeta[connector.availability];
+                const status = connector.availability === "available" && isConfigured
+                  ? {
+                      label: "Ready to verify",
+                      className: "border-cyan-300/22 bg-cyan-400/10 text-cyan-100",
+                    }
+                  : availabilityMeta[connector.availability];
                 const StatusIcon = connector.availability === "available"
-                  ? Check
+                  ? isConfigured
+                    ? ShieldCheck
+                    : PlugZap
                   : connector.availability === "mapped_import"
                     ? FileInput
                     : Clock3;
                 return (
-                  <article key={connector.id} className="admin-surface-soft rounded-[22px] p-4">
+                  <article key={connector.id} className="admin-surface-soft flex min-h-[220px] flex-col rounded-[22px] p-4">
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
                         <p className="font-semibold text-white">{connector.label}</p>
@@ -60,26 +67,26 @@ export function ConnectorCatalog() {
                       </span>
                     </div>
                     {connector.operations ? (
-                      <div className="mt-4 flex flex-wrap gap-x-4 gap-y-2">
-                        <Link href={connector.operations.setupPath} className="inline-flex items-center gap-1.5 text-sm font-semibold text-[var(--ld-color-accent)] transition hover:text-white">
-                          {connector.availability === "mapped_import" ? "Start migration" : isConfigured ? "Open setup" : "Configure"}
+                      <div className="mt-auto flex flex-wrap gap-x-4 gap-y-2 pt-5">
+                        <Link href={connector.operations.setupPath} className="inline-flex min-h-11 items-center gap-1.5 rounded-xl border border-white/10 bg-white/[0.055] px-3 text-sm font-semibold text-[var(--ld-color-accent)] transition hover:border-white/20 hover:bg-white/[0.09] hover:text-white">
+                          {connector.availability === "mapped_import" ? "Start migration" : isConfigured ? "Review setup" : "Set up"}
                           <ArrowUpRight className="h-3.5 w-3.5" />
                         </Link>
                         {isConfigured && connector.operations.healthPath ? (
-                          <Link href={connector.operations.healthPath} className="inline-flex items-center gap-1.5 text-sm font-semibold text-white/70 transition hover:text-white">
-                            Health
+                          <Link href={connector.operations.healthPath} className="inline-flex min-h-11 items-center gap-1.5 px-1 text-sm font-semibold text-white/70 transition hover:text-white">
+                            Check status
                             <ArrowUpRight className="h-3.5 w-3.5" />
                           </Link>
                         ) : null}
                         {isConfigured && connector.operations.retryPath ? (
-                          <Link href={connector.operations.retryPath} className="inline-flex items-center gap-1.5 text-sm font-semibold text-white/70 transition hover:text-white">
-                            Retry
+                          <Link href={connector.operations.retryPath} className="inline-flex min-h-11 items-center gap-1.5 px-1 text-sm font-semibold text-white/70 transition hover:text-white">
+                            Review failures
                             <ArrowUpRight className="h-3.5 w-3.5" />
                           </Link>
                         ) : null}
                       </div>
                     ) : (
-                      <p className="mt-4 text-xs font-medium text-white/52">
+                      <p className="mt-auto pt-5 text-xs font-medium leading-5 text-white/52">
                         {connector.availability === "planned"
                           ? "No connection path is available yet."
                           : "Requires a server-side deployment adapter before activation."}

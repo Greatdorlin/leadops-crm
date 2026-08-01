@@ -170,9 +170,9 @@ export default async function AdminIntegrationsPage({ searchParams }: { searchPa
                 tone="positive"
               />
               <MetricCard
-                label="Recently synced"
+                label="Ready to verify"
                 value={cards.filter((card) => card.integration.status === "pending_sync").length}
-                supporting="Waiting on the next update or manual action."
+                supporting="Server setup exists; provider access still needs verification."
                 tone="warning"
               />
               <MetricCard
@@ -197,8 +197,8 @@ export default async function AdminIntegrationsPage({ searchParams }: { searchPa
             {activeTab === "connections" ? <section className="admin-surface rounded-[24px] p-5">
               <SectionHeader
                 eyebrow="Connected tools"
-                title="Tool health"
-                description="Open each connection to review setup, activity, or the next step."
+                title="Connection status"
+                description="Verified tools, setup still in progress, and issues needing attention."
               />
               <div className="mt-4 grid gap-4 lg:grid-cols-2">
                 {cards.map((card) => (
@@ -216,9 +216,9 @@ export default async function AdminIntegrationsPage({ searchParams }: { searchPa
 
             {activeTab === "catalog" ? <section className="admin-surface rounded-[24px] p-5">
               <SectionHeader
-                eyebrow="Connector catalog"
-                title="Capture, migration, and marketing paths"
-                description="Available tools open setup; adapter-ready tools are never shown as connected."
+                eyebrow="Choose a provider"
+                title="Add a source or destination"
+                description="Select a tool to see the exact setup and permissions before anything connects."
               />
               <div className="mt-5">
                 <ConnectorCatalog />

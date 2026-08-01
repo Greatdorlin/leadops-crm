@@ -104,6 +104,7 @@ export async function POST(request: Request) {
       status: initialStatus,
       ...availability,
       successMessage: parsed.data.successMessage,
+      presentationMode: parsed.data.presentationMode,
       redirectUrl: null,
       primaryColor: null,
       accentColor: null,

@@ -4,6 +4,7 @@ import {
   Children,
   isValidElement,
   type ComponentPropsWithoutRef,
+  type ChangeEvent,
   type ReactElement,
   type ReactNode,
   useEffect,
@@ -11,6 +12,7 @@ import {
   useMemo,
   useRef,
   useState,
+  type KeyboardEvent,
 } from "react";
 import { Check, ChevronDown } from "lucide-react";
 import { cn } from "@/lib/cn";
@@ -41,6 +43,40 @@ function readOptions(children: ReactNode, group?: string): SelectOption[] {
       value: String(element.props.value ?? label),
     }];
   });
+}
+
+function setNativeSelectValue(select: HTMLSelectElement, value: string) {
+  const setter = Object.getOwnPropertyDescriptor(
+    HTMLSelectElement.prototype,
+    "value",
+  )?.set;
+  setter?.call(select, value);
+}
+
+function buildSelectChangeEvent(select: HTMLSelectElement) {
+  return {
+    currentTarget: select,
+    target: select,
+  } as ChangeEvent<HTMLSelectElement>;
+}
+
+function focusOption(
+  event: KeyboardEvent<HTMLButtonElement>,
+  optionIndex: number,
+  optionCount: number,
+) {
+  let nextIndex: number | null = null;
+  if (event.key === "ArrowDown") nextIndex = Math.min(optionIndex + 1, optionCount - 1);
+  if (event.key === "ArrowUp") nextIndex = Math.max(optionIndex - 1, 0);
+  if (event.key === "Home") nextIndex = 0;
+  if (event.key === "End") nextIndex = optionCount - 1;
+  if (nextIndex === null) return;
+
+  event.preventDefault();
+  const listbox = event.currentTarget.closest('[role="listbox"]');
+  const options = listbox?.querySelectorAll<HTMLButtonElement>('[role="option"]:not(:disabled)');
+  const target = options?.[Math.min(nextIndex, Math.max((options?.length ?? 1) - 1, 0))];
+  target?.focus({ preventScroll: true });
 }
 
 function AdminMultiSelect({
@@ -79,7 +115,7 @@ function AdminMultiSelect({
       option.selected = nextValues.includes(option.value);
     }
     setInternalValues(nextValues);
-    nativeSelect.dispatchEvent(new Event("change", { bubbles: true }));
+    onChange?.(buildSelectChangeEvent(nativeSelect));
   }
 
   return (
@@ -146,7 +182,7 @@ function AdminMultiSelect({
         className="p-2"
       >
         <div id={listboxId} role="listbox" aria-multiselectable="true" className="ld-premium-scrollbar max-h-[min(58dvh,340px)] overflow-y-auto p-1">
-          {options.map((option) => {
+          {options.map((option, index) => {
             const selected = selectedValues.includes(option.value);
             return (
               <button
@@ -156,7 +192,20 @@ function AdminMultiSelect({
                 aria-selected={selected}
                 data-popover-autofocus={selected || undefined}
                 disabled={option.disabled}
+                onPointerDown={(event) => {
+                  event.preventDefault();
+                  event.stopPropagation();
+                  toggle(option.value);
+                }}
                 onClick={() => toggle(option.value)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter" || event.key === " ") {
+                    event.preventDefault();
+                    toggle(option.value);
+                    return;
+                  }
+                  focusOption(event, index, options.length);
+                }}
                 className={cn(
                   "ld-focus-ring flex min-h-11 w-full items-center gap-3 rounded-[14px] px-3 py-2.5 text-left text-sm transition",
                   selected ? "bg-[color:var(--ld-color-primary)]/20 text-white" : "text-white/78 hover:bg-white/[0.08] hover:text-white",
@@ -218,9 +267,9 @@ export function AdminSelect({
   function choose(nextValue: string) {
     const nativeSelect = selectRef.current;
     if (!nativeSelect) return;
-    nativeSelect.value = nextValue;
+    setNativeSelectValue(nativeSelect, nextValue);
     setInternalValue(nextValue);
-    nativeSelect.dispatchEvent(new Event("change", { bubbles: true }));
+    onChange?.(buildSelectChangeEvent(nativeSelect));
     setOpen(false);
     requestAnimationFrame(() => triggerRef.current?.focus({ preventScroll: true }));
   }
@@ -296,7 +345,20 @@ export function AdminSelect({
                   aria-selected={option.value === selectedValue}
                   data-popover-autofocus={option.value === selectedValue || undefined}
                   disabled={option.disabled}
+                  onPointerDown={(event) => {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    choose(option.value);
+                  }}
                   onClick={() => choose(option.value)}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter" || event.key === " ") {
+                      event.preventDefault();
+                      choose(option.value);
+                      return;
+                    }
+                    focusOption(event, index, options.length);
+                  }}
                   className={cn(
                     "ld-focus-ring flex min-h-11 w-full items-center gap-3 rounded-[14px] px-3 py-2.5 text-left text-sm transition",
                     option.value === selectedValue

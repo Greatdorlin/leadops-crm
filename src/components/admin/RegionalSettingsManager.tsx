@@ -94,7 +94,7 @@ export function RegionalSettingsManager({
         <CountrySearchInput value={country} onChange={chooseCountry} />
         <CitySearchInput value={city} onChange={setCity} />
         <label className="min-w-0 space-y-2">
-          <span className="admin-label">State/Province/Region</span>
+          <span className="admin-label">Region</span>
           <input
             className="admin-input ld-focus-ring h-12 w-full rounded-[18px] px-4 text-sm outline-none"
             value={region}

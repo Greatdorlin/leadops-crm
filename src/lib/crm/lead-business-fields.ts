@@ -23,6 +23,7 @@ type LeadBusinessFieldRow = Pick<
   | "lastName"
   | "email"
   | "whatsappNumber"
+  | "callNumber"
   | "country"
   | "region"
   | "city"
@@ -57,6 +58,10 @@ export function buildLeadBusinessFieldUpdate(
       input.whatsappNumber === undefined
         ? existing.whatsappNumber
         : text(input.whatsappNumber) ?? "",
+    callNumber:
+      input.callNumber === undefined
+        ? existing.callNumber
+        : text(input.callNumber) ?? "",
     country: input.country === undefined ? existing.country : text(input.country),
     region: input.region === undefined ? existing.region : text(input.region),
     city: input.city === undefined ? existing.city : text(input.city),
@@ -93,6 +98,7 @@ export function buildLeadBusinessFieldChanges(
     { field: "lastName", label: "Last name", before: before.lastName, after: after.lastName },
     { field: "email", label: "Email", before: before.email, after: after.email },
     { field: "whatsappNumber", label: "WhatsApp number", before: before.whatsappNumber, after: after.whatsappNumber },
+    { field: "callNumber", label: "Call number", before: before.callNumber, after: after.callNumber },
     { field: "country", label: "Country", before: before.country, after: after.country },
     { field: "region", label: "State / province / region", before: before.region, after: after.region },
     { field: "city", label: "City", before: before.city, after: after.city },

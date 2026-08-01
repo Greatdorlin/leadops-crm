@@ -2,6 +2,7 @@ import { z } from "zod";
 import { LEAD_PRIORITIES, LEAD_SOURCES } from "@/lib/crm/constants";
 import { autoQualifyRulesSchema } from "@/lib/crm/form-submission-routing";
 import { formFieldPayloadSchema } from "@/lib/crm/form-field-contract";
+import { FORM_PRESENTATION_MODES } from "@/lib/crm/form-presentation";
 import { isSafeImageSource, isSafeNavigationTarget } from "@/lib/security/url-safety";
 
 const optionalImageSourceSchema = z
@@ -46,6 +47,7 @@ export const formSettingsPayloadSchema = z.object({
   isPublic: z.boolean(),
   successMessage: z.string().trim().min(1, "Success message is required.").max(500),
   submitButtonLabel: z.string().trim().min(1, "Button label is required.").max(40).default("Submit"),
+  presentationMode: z.enum(FORM_PRESENTATION_MODES).default("standard"),
   redirectUrl: optionalNavigationTargetSchema,
   primaryColor: optionalHexSchema,
   accentColor: optionalHexSchema,
@@ -87,6 +89,7 @@ export const formCreatePayloadSchema = z.object({
     .min(1, "Success message is required.")
     .max(500)
     .default("Thank you for your submission."),
+  presentationMode: z.enum(FORM_PRESENTATION_MODES).default("standard"),
   defaultStatus: z.string().trim().min(1).default("new"),
   defaultPriority: z.enum(LEAD_PRIORITIES).default("medium"),
   defaultSource: z.enum(LEAD_SOURCES).default("website_form"),

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getAdminRequestContext } from "@/lib/admin";
 import { canManageIndustryPresets } from "@/lib/crm/authz";
-import { getIndustryPreset } from "@/lib/crm/industry-presets";
+import { buildIndustryPresetFieldKey, getIndustryPreset } from "@/lib/crm/industry-presets";
 import { getDb } from "@/lib/db/client";
 import { customFieldOptions, customFields, leadSources, leadStages } from "@/lib/db/schema";
 import { recordWorkspaceAuditEvent } from "@/lib/crm/workspace-audit";
@@ -51,14 +51,17 @@ export async function POST(request: Request) {
 
       for (let i = 0; i < preset.customFields.length; i++) {
         const field = preset.customFields[i];
-        const key = field.label.toLowerCase().replace(/\s+/g, "_").replace(/[^a-z0-9_]/g, "");
+        const key = buildIndustryPresetFieldKey(field);
         const [createdField] = await transaction.insert(customFields).values({
           key,
           label: field.label,
-          type: field.fieldType as "text" | "number" | "select" | "checkbox" | "date" | "textarea",
+          type: field.fieldType,
           placeholder: field.placeholder || null,
           description: field.helpText || null,
           required: field.isRequired,
+          searchable: field.searchable ?? false,
+          filterable: field.filterable ?? false,
+          showInTable: field.showInTable ?? false,
           sortOrder: i,
         }).onConflictDoNothing().returning({ id: customFields.id });
 

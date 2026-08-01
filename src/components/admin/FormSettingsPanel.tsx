@@ -27,6 +27,7 @@ export interface FormSettingsData {
   isPublic: boolean;
   successMessage: string;
   submitButtonLabel: string;
+  presentationMode: "standard" | "step";
   redirectUrl?: string | null;
   primaryColor?: string | null;
   accentColor?: string | null;
@@ -96,6 +97,7 @@ function normalizeForm(data: Record<string, unknown> | null): FormSettingsData {
       isPublic: true,
       successMessage: "Thank you for your submission.",
       submitButtonLabel: "Submit",
+      presentationMode: "standard",
       redirectUrl: null,
       primaryColor: null,
       accentColor: null,
@@ -119,6 +121,7 @@ function normalizeForm(data: Record<string, unknown> | null): FormSettingsData {
     isPublic: data.isPublic !== false,
     successMessage: String(data.successMessage ?? "Thank you for your submission."),
     submitButtonLabel: String(data.submitButtonLabel ?? "Submit"),
+    presentationMode: data.presentationMode === "step" ? "step" : "standard",
     redirectUrl: typeof data.redirectUrl === "string" ? data.redirectUrl : null,
     primaryColor: typeof data.primaryColor === "string" ? data.primaryColor : null,
     accentColor: typeof data.accentColor === "string" ? data.accentColor : null,
@@ -169,6 +172,7 @@ export function FormSettingsPanel({
           isPublic: draft.isPublic,
           successMessage: draft.successMessage,
           submitButtonLabel: draft.submitButtonLabel,
+          presentationMode: draft.presentationMode,
           redirectUrl: draft.redirectUrl,
           primaryColor: draft.primaryColor,
           accentColor: draft.accentColor,
@@ -336,6 +340,53 @@ export function FormSettingsPanel({
             <label className="mb-2 block text-sm font-medium text-white/90">Button label</label>
             <input type="text" maxLength={40} value={draft.submitButtonLabel} onChange={(event) => updateDraft({ submitButtonLabel: event.target.value })} placeholder="Submit" className="admin-input w-full" />
           </div>
+          <fieldset className="sm:col-span-2">
+            <legend className="text-sm font-medium text-white/90">Response experience</legend>
+            <p className="mt-1 text-xs leading-5 text-white/52">
+              Choose how respondents move through the form. This does not change the fields or saved lead data.
+            </p>
+            <div className="mt-3 grid gap-3 sm:grid-cols-2">
+              {[
+                {
+                  value: "standard" as const,
+                  title: "Standard form",
+                  description: "Show every question together. Best for short, familiar forms.",
+                },
+                {
+                  value: "step" as const,
+                  title: "One question at a time",
+                  description: "Guide respondents with Back, Next, progress, and focused validation.",
+                },
+              ].map((option) => {
+                const selected = draft.presentationMode === option.value;
+                return (
+                  <label
+                    key={option.value}
+                    className={`relative flex min-h-[112px] cursor-pointer gap-3 rounded-[18px] border p-4 transition ${
+                      selected
+                        ? "border-[var(--ld-color-primary)]/60 bg-[var(--ld-color-primary)]/12 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]"
+                        : "border-white/10 bg-white/[0.035] hover:border-white/20 hover:bg-white/[0.055]"
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name="presentationMode"
+                      value={option.value}
+                      checked={selected}
+                      onChange={() => updateDraft({ presentationMode: option.value })}
+                      className="mt-0.5 h-4 w-4 shrink-0 accent-[var(--ld-color-primary)]"
+                    />
+                    <span>
+                      <span className="block text-sm font-semibold text-white/90">{option.title}</span>
+                      <span className="mt-1.5 block text-xs leading-5 text-white/56">
+                        {option.description}
+                      </span>
+                    </span>
+                  </label>
+                );
+              })}
+            </div>
+          </fieldset>
         </div>
         </section>
 

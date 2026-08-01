@@ -4,6 +4,7 @@ import { ErrorState } from "@/components/admin/ErrorState";
 import { AdminSignOutButton } from "@/components/admin/AdminSignOutButton";
 import { EmptyState } from "@/components/admin/EmptyState";
 import { MetricCard } from "@/components/admin/MetricCard";
+import { IntegrationSetupPanel } from "@/components/admin/IntegrationSetupPanel";
 import { SectionHeader } from "@/components/admin/SectionHeader";
 import { getAdminAccessContext } from "@/lib/admin";
 import { isLocalAdminPreviewEmail } from "@/lib/admin-access";
@@ -154,25 +155,34 @@ export default async function AdminTikTokIntegrationPage() {
           />
         )}
 
-        <section id="setup" className="admin-surface scroll-mt-24 rounded-[24px] p-5">
-          <SectionHeader
-            eyebrow="Setup checklist"
-            title="TikTok setup"
-            description="Use this list when configuring TikTok instant form delivery into the CRM."
-          />
-          <div className="mt-4 space-y-3 text-sm text-white/70">
-            {[
-              "Set TIKTOK_WEBHOOK_SECRET so the CRM can verify webhook deliveries.",
-              "Point TikTok lead delivery to /api/integrations/tiktok/webhook and send the same secret in the configured header or query parameter.",
-              "Send a test lead from TikTok and confirm it appears under TikTok Lead Ads in the CRM.",
-              "Use Retry failed lead imports whenever the CRM flags a payload mapping issue.",
-            ].map((item) => (
-              <div key={item} className="admin-surface-muted rounded-2xl p-4">
-                {item}
-              </div>
-            ))}
-          </div>
-        </section>
+        <IntegrationSetupPanel
+          provider="tiktok"
+          title="Connect TikTok Lead Ads"
+          description="Secure the webhook, add the delivery URL, then prove it with a test lead."
+          configured={secretConfigured}
+          previewMode={isLocalAdminPreviewEmail(session.user?.email)}
+          verificationMode="delivery"
+          permissions={[
+            "Receive instant-form lead deliveries",
+            "Read only the fields included in each submitted form",
+          ]}
+          steps={[
+            {
+              title: "Create a delivery secret",
+              description:
+                "Save TIKTOK_WEBHOOK_SECRET as a deployment secret. Use the same value in TikTok's webhook header or query setting.",
+            },
+            {
+              title: "Add the delivery URL",
+              description: `Use ${baseUrl ? `${baseUrl}/api/integrations/tiktok/webhook` : "your public Leads Desk URL plus /api/integrations/tiktok/webhook"} for lead delivery.`,
+            },
+            {
+              title: "Send a test lead",
+              description:
+                "Submit a TikTok test lead and confirm it appears in Leads Desk. Server-secret presence alone is not a verified connection.",
+            },
+          ]}
+        />
       </div>
     </AdminShell>
   );

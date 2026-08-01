@@ -1,7 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { useEffect } from "react";
+import { useEffect, useEffectEvent, useRef } from "react";
 import { createPortal } from "react-dom";
 
 type PreservedBodyStyles = {
@@ -67,13 +67,97 @@ export function usePreservedBodyScrollLock(active: boolean) {
   }, [active]);
 }
 
-export function AdminOverlayPortal({ children, open = true }: { children: ReactNode; open?: boolean }) {
+function getFocusableElements(root: HTMLElement) {
+  return Array.from(
+    root.querySelectorAll<HTMLElement>(
+      'button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), a[href], [tabindex]:not([tabindex="-1"])',
+    ),
+  ).filter((element) => element.getClientRects().length > 0);
+}
+
+export function AdminOverlayPortal({
+  children,
+  onClose,
+  open = true,
+}: {
+  children: ReactNode;
+  onClose?: () => void;
+  open?: boolean;
+}) {
+  const rootRef = useRef<HTMLDivElement>(null);
+  const closeOverlay = useEffectEvent(() => onClose?.());
   usePreservedBodyScrollLock(open);
+
+  useEffect(() => {
+    if (!open) return;
+    const previousFocus =
+      document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const frame = requestAnimationFrame(() => {
+      const root = rootRef.current;
+      if (!root) return;
+      const preferred =
+        root.querySelector<HTMLElement>('[data-overlay-autofocus="true"]') ??
+        getFocusableElements(root)[0] ??
+        root.querySelector<HTMLElement>('[role="dialog"]');
+      preferred?.focus({ preventScroll: true });
+    });
+
+    function handleKeyDown(event: KeyboardEvent) {
+      const root = rootRef.current;
+      const overlays = Array.from(
+        document.querySelectorAll<HTMLElement>("[data-admin-overlay='true']"),
+      );
+      if (!root || overlays.at(-1) !== root) return;
+      const openPopover = Array.from(
+        document.querySelectorAll<HTMLElement>("[data-responsive-popover-id]"),
+      ).at(-1);
+      if (openPopover && !root.contains(openPopover)) {
+        return;
+      }
+
+      if (event.key === "Escape" && onClose) {
+        event.preventDefault();
+        closeOverlay();
+        return;
+      }
+      if (event.key !== "Tab") return;
+
+      const focusable = getFocusableElements(root);
+      if (focusable.length === 0) {
+        event.preventDefault();
+        root.focus({ preventScroll: true });
+        return;
+      }
+      const first = focusable[0];
+      const last = focusable.at(-1);
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last?.focus({ preventScroll: true });
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus({ preventScroll: true });
+      }
+    }
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      cancelAnimationFrame(frame);
+      document.removeEventListener("keydown", handleKeyDown);
+      requestAnimationFrame(() => {
+        if (previousFocus?.isConnected) previousFocus.focus({ preventScroll: true });
+      });
+    };
+  }, [open, onClose]);
 
   return !open || typeof document === "undefined"
     ? null
     : createPortal(
-        <div data-admin-overlay="true" className="contents">
+        <div
+          ref={rootRef}
+          data-admin-overlay="true"
+          className="contents"
+          tabIndex={-1}
+        >
           {children}
         </div>,
         document.body,

@@ -80,7 +80,7 @@ export function UserPermissionOverridesManager({
       </button>
 
       {isOpen ? (
-        <AdminOverlayPortal>
+        <AdminOverlayPortal onClose={() => setIsOpen(false)}>
           <div
             className="fixed inset-0 z-[170] flex items-end justify-center bg-slate-950/78 backdrop-blur-md sm:items-center sm:p-6"
             role="presentation"

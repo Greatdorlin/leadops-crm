@@ -166,6 +166,7 @@ export async function POST(request: Request) {
     lastName: parsed.data.lastName ?? null,
     email: parsed.data.email ?? null,
     whatsappNumber: parsed.data.whatsappNumber ?? null,
+    callNumber: parsed.data.callNumber ?? null,
     state: parsed.data.region ?? parsed.data.state ?? null,
     country: parsed.data.country ?? null,
     region: parsed.data.region ?? null,

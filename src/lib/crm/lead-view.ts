@@ -100,6 +100,7 @@ export interface AdminLeadDetailView extends AdminLeadListItem {
     lastName: string;
     email: string;
     whatsappNumber: string;
+    callNumber: string;
     state: string | null;
     country: string | null;
     region: string | null;
@@ -457,6 +458,7 @@ export function buildAdminLeadDetailView(
       lastName: lead.lastName,
       email: lead.email,
       whatsappNumber: lead.whatsappNumber,
+      callNumber: lead.callNumber ?? "",
       state: lead.state,
       country: lead.country ?? null,
       region: lead.region ?? null,

@@ -1,8 +1,8 @@
 'use client';
 
 import { cn } from "@/lib/cn";
-import { useEffect } from "react";
 import type { ComponentPropsWithoutRef, ReactNode } from "react";
+import { AdminOverlayPortal } from "../AdminOverlayPortal";
 
 export interface MobileSidebarDrawerProps
   extends ComponentPropsWithoutRef<"div"> {
@@ -20,29 +20,13 @@ export function MobileSidebarDrawer({
   className,
   ...props
 }: MobileSidebarDrawerProps) {
-  useEffect(() => {
-    if (isOpen) {
-      document.body.style.overflow = "hidden";
-    } else {
-      document.body.style.overflow = "";
-    }
-    return () => {
-      document.body.style.overflow = "";
-    };
-  }, [isOpen]);
-
   return (
-    <>
+    <AdminOverlayPortal open={isOpen} onClose={onClose}>
       {/* Backdrop */}
       <div
-        className={cn(
-          "fixed inset-0 z-40 bg-black/50 backdrop-blur-sm transition-opacity duration-300 xl:hidden",
-          isOpen
-            ? "opacity-100 pointer-events-auto"
-            : "opacity-0 pointer-events-none"
-        )}
+        className="fixed inset-0 z-40 bg-black/55 backdrop-blur-sm xl:hidden"
         onClick={onClose}
-        aria-hidden={!isOpen}
+        aria-hidden="true"
       />
 
       {/* Drawer */}
@@ -53,18 +37,19 @@ export function MobileSidebarDrawer({
           "ld-glass-sidebar ld-animate-slide-in-right",
           "transition-transform duration-300 ease-[cubic-bezier(0.32,0.72,0,1.02)]",
           "touch-44",
-          isOpen ? "translate-x-0" : "-translate-x-full",
+          "translate-x-0",
           className
         )}
         role="dialog"
         aria-modal="true"
-        aria-hidden={!isOpen}
+        aria-label={title ?? "Navigation"}
       >
         {title && (
           <div className="flex items-center justify-between border-b border-white/[0.08] px-4 pb-3 pt-[max(0.75rem,env(safe-area-inset-top))]">
             <h2 className="text-base font-semibold">{title}</h2>
             <button
               onClick={onClose}
+              data-overlay-autofocus="true"
               className="touch-48 ld-focus-ring inline-flex items-center justify-center rounded-lg text-white/70 hover:bg-white/10 hover:text-white transition-colors"
               aria-label="Close menu"
             >
@@ -89,6 +74,6 @@ export function MobileSidebarDrawer({
           {children}
         </div>
       </div>
-    </>
+    </AdminOverlayPortal>
   );
 }

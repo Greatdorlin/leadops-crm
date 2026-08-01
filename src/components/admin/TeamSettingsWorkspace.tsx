@@ -160,7 +160,7 @@ export function TeamSettingsWorkspace({
       </div>
 
       {showAddUser ? (
-        <AdminOverlayPortal>
+        <AdminOverlayPortal onClose={() => setShowAddUser(false)}>
           <div className="fixed inset-0 z-[160] flex items-end justify-center bg-slate-950/75 backdrop-blur-md sm:items-center sm:p-6" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setShowAddUser(false); }}>
             <section role="dialog" aria-modal="true" aria-labelledby="add-user-title" className="admin-surface max-h-[88dvh] w-full max-w-2xl overflow-y-auto overscroll-contain rounded-t-[28px] p-5 sm:rounded-[28px] sm:p-6">
               <div className="mb-5 flex items-center justify-between gap-3"><h2 id="add-user-title" className="text-xl font-bold text-white">Add workspace user</h2><button type="button" onClick={() => setShowAddUser(false)} aria-label="Close add user" className="ld-focus-ring inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-white/[0.06]"><X className="h-4 w-4" /></button></div>

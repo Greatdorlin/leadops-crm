@@ -57,4 +57,8 @@ test("public form definitions retain the saved submit button label", () => {
     buildPublicFormDefinition(result.form).submitButtonLabel,
     result.form.submitButtonLabel,
   );
+  assert.equal(
+    buildPublicFormDefinition({ ...result.form, presentationMode: "step" }).presentationMode,
+    "step",
+  );
 });

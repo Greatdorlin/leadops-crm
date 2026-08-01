@@ -1,18 +1,30 @@
+import type { CustomFieldType } from "./domain/custom-fields";
+
+export interface IndustryPresetCustomField {
+  key?: string;
+  fieldType: CustomFieldType;
+  label: string;
+  placeholder?: string;
+  helpText?: string;
+  isRequired: boolean;
+  searchable?: boolean;
+  filterable?: boolean;
+  showInTable?: boolean;
+  options?: { label: string; value: string }[];
+}
+
 export interface IndustryPreset {
   id: string;
   name: string;
   description: string;
   stages: Array<{ label: string; value: string; color?: string }>;
   sources: Array<{ label: string; value: string }>;
-  customFields: Array<{
-    fieldType: string;
-    label: string;
-    placeholder?: string;
-    helpText?: string;
-    isRequired: boolean;
-    options?: { label: string; value: string }[];
-  }>;
+  customFields: IndustryPresetCustomField[];
   leadPreviewFields: string[];
+}
+
+export function buildIndustryPresetFieldKey(field: Pick<IndustryPresetCustomField, "key" | "label">) {
+  return field.key ?? field.label.toLowerCase().replace(/\s+/g, "_").replace(/[^a-z0-9_]/g, "");
 }
 
 export const INDUSTRY_PRESETS: IndustryPreset[] = [
@@ -31,35 +43,35 @@ export const INDUSTRY_PRESETS: IndustryPreset[] = [
     sources: [
       { label: "Website", value: "website" },
       { label: "Referral", value: "referral" },
-      { label: "Zillow", value: "zillow" },
+      { label: "Property Listing Portal", value: "property_listing_portal" },
       { label: "Walk-in", value: "walk_in" },
       { label: "Social Media", value: "social_media" },
       { label: "Open House", value: "open_house" },
     ],
     customFields: [
-      { fieldType: "number", label: "Budget", placeholder: "e.g. 500000", helpText: "Maximum budget in workspace currency", isRequired: true },
-      { fieldType: "select", label: "Property Type", isRequired: true, options: [
+      { fieldType: "currency", label: "Budget", placeholder: "Enter the maximum budget", helpText: "Maximum budget in workspace currency", isRequired: true, filterable: true },
+      { fieldType: "select", label: "Property Type", isRequired: true, filterable: true, options: [
         { label: "Apartment", value: "apartment" },
         { label: "House", value: "house" },
         { label: "Commercial", value: "commercial" },
         { label: "Land", value: "land" },
       ]},
-      { fieldType: "text", label: "Preferred Location", placeholder: "e.g. Lekki, Lagos", isRequired: false },
-      { fieldType: "select", label: "Bedrooms", isRequired: false, options: [
+      { fieldType: "text", label: "Preferred Location", placeholder: "e.g. neighbourhood, city, or region", isRequired: false, searchable: true, filterable: true },
+      { fieldType: "select", label: "Bedrooms", isRequired: false, filterable: true, options: [
         { label: "Studio", value: "studio" },
         { label: "1 Bedroom", value: "1" },
         { label: "2 Bedrooms", value: "2" },
         { label: "3 Bedrooms", value: "3" },
         { label: "4+ Bedrooms", value: "4+" },
       ]},
-      { fieldType: "select", label: "Timeline", isRequired: false, options: [
+      { fieldType: "select", label: "Purchase Timeline", isRequired: false, filterable: true, options: [
         { label: "Immediate", value: "immediate" },
         { label: "1-3 Months", value: "1_3_months" },
         { label: "3-6 Months", value: "3_6_months" },
         { label: "6+ Months", value: "6+_months" },
       ]},
     ],
-    leadPreviewFields: ["firstName", "lastName", "email", "budget", "propertyType", "preferredLocation", "timeline"],
+    leadPreviewFields: ["Name", "Email", "Budget", "Property Type", "Preferred Location", "Purchase Timeline"],
   },
   {
     id: "travel",
@@ -82,16 +94,17 @@ export const INDUSTRY_PRESETS: IndustryPreset[] = [
       { label: "Walk-in", value: "walk_in" },
     ],
     customFields: [
-      { fieldType: "text", label: "Destination", placeholder: "e.g. Paris, France", isRequired: true },
-      { fieldType: "text", label: "Travel Dates", placeholder: "e.g. Dec 15 - Dec 22", isRequired: true },
-      { fieldType: "number", label: "Budget", placeholder: "e.g. 5000", isRequired: true },
-      { fieldType: "select", label: "Travelers", isRequired: false, options: [
-        { label: "Solo", value: "solo" },
-        { label: "Couple", value: "couple" },
-        { label: "Family", value: "family" },
-        { label: "Group", value: "group" },
+      { key: "destination", fieldType: "text", label: "Destination", placeholder: "e.g. city, country, or tour", isRequired: true, searchable: true, filterable: true, showInTable: true },
+      { key: "journey_type", fieldType: "select", label: "Journey Type", helpText: "Choose whether the itinerary ends at the destination or includes a return journey.", isRequired: true, filterable: true, showInTable: true, options: [
+        { label: "One-way", value: "one_way" },
+        { label: "Return", value: "return" },
       ]},
-      { fieldType: "select", label: "Trip Type", isRequired: false, options: [
+      { key: "departure_date", fieldType: "date", label: "Departure Date", helpText: "Date the traveller leaves the origin.", isRequired: true, filterable: true, showInTable: true },
+      { key: "arrival_date", fieldType: "date", label: "Arrival Date", helpText: "Date the traveller arrives at the destination.", isRequired: true, filterable: true },
+      { key: "return_date", fieldType: "date", label: "Return Date", helpText: "Required for return journeys; leave blank for one-way itineraries.", isRequired: false, filterable: true },
+      { key: "traveller_count", fieldType: "number", label: "Traveller Count", placeholder: "e.g. 2", helpText: "Total number of adults and children travelling.", isRequired: true, filterable: true },
+      { key: "budget", fieldType: "currency", label: "Trip Budget", placeholder: "Enter the total trip budget", helpText: "Total budget in workspace currency.", isRequired: true, filterable: true },
+      { key: "trip_purpose", fieldType: "select", label: "Trip Purpose", isRequired: false, filterable: true, options: [
         { label: "Leisure", value: "leisure" },
         { label: "Business", value: "business" },
         { label: "Honeymoon", value: "honeymoon" },
@@ -99,7 +112,7 @@ export const INDUSTRY_PRESETS: IndustryPreset[] = [
         { label: "Cruise", value: "cruise" },
       ]},
     ],
-    leadPreviewFields: ["firstName", "lastName", "email", "destination", "travelDates", "budget", "tripType"],
+    leadPreviewFields: ["Name", "Destination", "Journey Type", "Departure Date", "Return Date", "Trip Budget"],
   },
   {
     id: "service",
@@ -122,22 +135,22 @@ export const INDUSTRY_PRESETS: IndustryPreset[] = [
       { label: "Event", value: "event" },
     ],
     customFields: [
-      { fieldType: "select", label: "Service Type", isRequired: true, options: [
+      { fieldType: "select", label: "Service Type", isRequired: true, filterable: true, options: [
         { label: "Consulting", value: "consulting" },
         { label: "Design", value: "design" },
         { label: "Development", value: "development" },
         { label: "Marketing", value: "marketing" },
         { label: "Maintenance", value: "maintenance" },
       ]},
-      { fieldType: "number", label: "Budget", placeholder: "e.g. 10000", isRequired: true },
-      { fieldType: "select", label: "Timeline", isRequired: false, options: [
+      { fieldType: "currency", label: "Budget", placeholder: "Enter the available budget", helpText: "Available budget in workspace currency.", isRequired: true, filterable: true },
+      { fieldType: "select", label: "Delivery Timeline", isRequired: false, filterable: true, options: [
         { label: "Immediate", value: "immediate" },
         { label: "1-2 Weeks", value: "1_2_weeks" },
         { label: "1 Month", value: "1_month" },
         { label: "3 Months", value: "3_months" },
         { label: "Flexible", value: "flexible" },
       ]},
-      { fieldType: "select", label: "Urgency", isRequired: false, options: [
+      { fieldType: "select", label: "Urgency", isRequired: false, filterable: true, options: [
         { label: "Low", value: "low" },
         { label: "Medium", value: "medium" },
         { label: "High", value: "high" },
@@ -150,7 +163,7 @@ export const INDUSTRY_PRESETS: IndustryPreset[] = [
         { label: "Video Call", value: "video_call" },
       ]},
     ],
-    leadPreviewFields: ["firstName", "lastName", "email", "serviceType", "budget", "timeline", "urgency"],
+    leadPreviewFields: ["Name", "Email", "Service Type", "Budget", "Delivery Timeline", "Urgency"],
   },
 ];
 

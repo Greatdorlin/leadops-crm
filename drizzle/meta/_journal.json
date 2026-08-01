@@ -183,6 +183,13 @@
       "when": 1784817189007,
       "tag": "0025_careless_the_hunter",
       "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1785455457862,
+      "tag": "0026_bored_queen_noir",
+      "breakpoints": true
     }
   ]
 }

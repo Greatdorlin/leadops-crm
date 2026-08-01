@@ -61,5 +61,5 @@ export function getConnectorSetupState(
     google_sheets: "google_sheets",
   };
   const provider = providerByConnector[connectorId];
-  return provider ? isConnectorConfigured(provider, environment) : true;
+  return provider ? isConnectorConfigured(provider, environment) : false;
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { startTransition, useState } from "react";
+import { startTransition, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { CRM_STATUSES, LEAD_PRIORITIES } from "@/lib/crm/constants";
 import {
@@ -17,9 +17,14 @@ import {
 import { CustomFieldValueInputs } from "./CustomFieldValueInputs";
 import { AdminSelect } from "./AdminSelect";
 import { SmoothButton } from "./ui/SmoothButton";
-import { CitySearchInput, CountrySearchInput } from "./CountrySearchInput";
+import {
+  CitySearchInput,
+  CountrySearchInput,
+  getLocationFieldExamples,
+} from "./CountrySearchInput";
 import { AdminDateTimeInput } from "./AdminDateTimeInput";
 import { getWorkspaceLocaleSuggestion } from "@/lib/workspace-locale";
+import { getPhoneCountryProfile, isValidInternationalPhone } from "@/lib/crm/phone-country";
 
 const manualSourceOptions: LeadSource[] = ["manual_entry", "agent", "referral"];
 const labelClass = "text-xs font-semibold uppercase tracking-[0.16em] text-white/70";
@@ -53,6 +58,7 @@ export function LeadCaptureForm({
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
   const [whatsappNumber, setWhatsappNumber] = useState("");
+  const [callNumber, setCallNumber] = useState("");
   const [country, setCountry] = useState(defaultCountry);
   const [region, setRegion] = useState(defaultRegion);
   const [city, setCity] = useState(defaultCity);
@@ -76,6 +82,25 @@ export function LeadCaptureForm({
   );
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState("");
+  const initialLocationRef = useRef({ country: defaultCountry, region: defaultRegion, city: defaultCity });
+  const locationExamples = getLocationFieldExamples(country || defaultCountry);
+  const phoneProfile = getPhoneCountryProfile(country || defaultCountry);
+
+  function chooseCountry(nextCountry: string) {
+    const suggestion = getWorkspaceLocaleSuggestion(nextCountry);
+    const previousSuggestion = getWorkspaceLocaleSuggestion(country || initialLocationRef.current.country);
+    setCountry(nextCountry);
+    setRegion((current) =>
+      !current || current === initialLocationRef.current.region || current === previousSuggestion.region
+        ? suggestion.region
+        : current,
+    );
+    setCity((current) =>
+      !current || current === initialLocationRef.current.city || current === previousSuggestion.city
+        ? suggestion.city
+        : current,
+    );
+  }
 
   async function saveLead() {
     if (!firstName.trim()) {
@@ -83,8 +108,12 @@ export function LeadCaptureForm({
       return;
     }
 
-    if (!email.trim() && !whatsappNumber.trim()) {
-      setMessage("Add an email or WhatsApp number before saving.");
+    if (!email.trim() && !whatsappNumber.trim() && !callNumber.trim()) {
+      setMessage("Add an email, WhatsApp number, or call number before saving.");
+      return;
+    }
+    if (!isValidInternationalPhone(whatsappNumber) || !isValidInternationalPhone(callNumber)) {
+      setMessage("Check the phone number and include a valid country code.");
       return;
     }
 
@@ -103,6 +132,7 @@ export function LeadCaptureForm({
           lastName: lastName.trim() || null,
           email: email.trim() || null,
           whatsappNumber: whatsappNumber.trim() || null,
+          callNumber: callNumber.trim() || null,
           country: country.trim() || null,
           region: region.trim() || null,
           city: city.trim() || null,
@@ -139,6 +169,7 @@ export function LeadCaptureForm({
       setLastName("");
       setEmail("");
       setWhatsappNumber("");
+      setCallNumber("");
       setCountry(defaultCountry);
       setRegion(defaultRegion);
       setCity(defaultCity);
@@ -231,14 +262,34 @@ export function LeadCaptureForm({
           />
         </label>
         <label className="space-y-2">
-          <span className={labelClass}>WhatsApp</span>
+          <span className={labelClass}>WhatsApp number</span>
           <input
-            type="text"
+            type="tel"
+            inputMode="tel"
             value={whatsappNumber}
             onChange={(event) => setWhatsappNumber(event.target.value)}
-            placeholder="+234 801 234 5678"
+            placeholder={phoneProfile.example}
+            aria-describedby="capture-whatsapp-hint"
             className="admin-input ld-focus-ring h-11 w-full rounded-2xl px-4 text-sm outline-none"
           />
+          <span id="capture-whatsapp-hint" className="block text-xs text-white/45">
+            Use {phoneProfile.dialCode} for this country.
+          </span>
+        </label>
+        <label className="space-y-2">
+          <span className={labelClass}>Call number</span>
+          <input
+            type="tel"
+            inputMode="tel"
+            value={callNumber}
+            onChange={(event) => setCallNumber(event.target.value)}
+            placeholder={phoneProfile.example}
+            aria-describedby="capture-call-hint"
+            className="admin-input ld-focus-ring h-11 w-full rounded-2xl px-4 text-sm outline-none"
+          />
+          <span id="capture-call-hint" className="block text-xs text-white/45">
+            Direct line for calls; it can differ from WhatsApp.
+          </span>
         </label>
         <label className="space-y-2">
           <span className={labelClass}>Company</span>
@@ -255,31 +306,27 @@ export function LeadCaptureForm({
       <div className="grid gap-3 sm:grid-cols-2">
         <CountrySearchInput
           value={country}
-          onChange={(nextCountry) => {
-            const suggestion = getWorkspaceLocaleSuggestion(nextCountry);
-            setCountry(nextCountry);
-            setRegion(suggestion.region);
-            setCity(suggestion.city);
-          }}
+          onChange={chooseCountry}
+          placeholder={locationExamples.country}
         />
         <label className="space-y-2">
-          <span className={labelClass}>State/Province/Region</span>
+          <span className={labelClass}>Region</span>
           <input
             type="text"
             value={region}
             onChange={(event) => setRegion(event.target.value)}
-            placeholder="State, province, or region"
+            placeholder={locationExamples.region}
             className="admin-input ld-focus-ring h-11 w-full rounded-2xl px-4 text-sm outline-none"
           />
         </label>
-        <CitySearchInput value={city} onChange={setCity} />
+        <CitySearchInput value={city} onChange={setCity} placeholder={defaultCity || "Select or search city"} />
         <label className="space-y-2">
           <span className={labelClass}>Postal Code</span>
           <input
             type="text"
             value={postalCode}
             onChange={(event) => setPostalCode(event.target.value)}
-            placeholder="Postal code"
+            placeholder={locationExamples.postalCode}
             className="admin-input ld-focus-ring h-11 w-full rounded-2xl px-4 text-sm outline-none"
           />
         </label>

@@ -584,11 +584,14 @@ export function FormFieldEditor({
       />
 
       {editingField && canEdit && (
-        <AdminOverlayPortal>
+        <AdminOverlayPortal onClose={closeEditor}>
         <div className="fixed inset-0 z-[160] flex items-end justify-center p-2 sm:items-center sm:p-6">
           <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={closeEditor} />
           <GlassSurface
             intensity="strong"
+            role="dialog"
+            aria-modal="true"
+            aria-label={isCreating ? "New question" : "Edit question"}
             className="relative z-10 flex max-h-[calc(100dvh-1rem)] min-w-0 w-full flex-col overflow-hidden rounded-[24px] border border-white/15 sm:max-h-[90dvh] sm:max-w-2xl sm:rounded-[28px]"
           >
             <div className="flex items-center justify-between border-b border-white/10 px-4 py-4 sm:px-6">

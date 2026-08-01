@@ -1,4 +1,5 @@
 import type { FormFieldRow, FormRow } from "@/lib/db/schema";
+import { resolveFormPresentationMode } from "@/lib/crm/form-presentation";
 
 export const PUBLIC_FORM_FIELD_TYPES = [
   "text",
@@ -26,6 +27,7 @@ export function buildPublicFormDefinition(form: FormRow) {
     description: form.description,
     successMessage: form.successMessage,
     submitButtonLabel: form.submitButtonLabel,
+    presentationMode: resolveFormPresentationMode(form.presentationMode),
     redirectUrl: form.redirectUrl,
     primaryColor: form.primaryColor,
     accentColor: form.accentColor,

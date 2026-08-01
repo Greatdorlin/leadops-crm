@@ -4,6 +4,7 @@ import { ErrorState } from "@/components/admin/ErrorState";
 import { AdminSignOutButton } from "@/components/admin/AdminSignOutButton";
 import { EmptyState } from "@/components/admin/EmptyState";
 import { MetricCard } from "@/components/admin/MetricCard";
+import { IntegrationSetupPanel } from "@/components/admin/IntegrationSetupPanel";
 import { SectionHeader } from "@/components/admin/SectionHeader";
 import { getAdminAccessContext } from "@/lib/admin";
 import { isLocalAdminPreviewEmail } from "@/lib/admin-access";
@@ -70,6 +71,13 @@ export default async function AdminGoogleAdsIntegrationPage() {
   const lastSync = pageData?.jobs[0];
   const customerId = normalizeEnvValue(process.env.GOOGLE_ADS_CUSTOMER_ID);
   const webhookKeyConfigured = Boolean(normalizeEnvValue(process.env.GOOGLE_ADS_WEBHOOK_KEY));
+  const reportingConfigured = [
+    process.env.GOOGLE_ADS_DEVELOPER_TOKEN,
+    process.env.GOOGLE_ADS_CLIENT_ID,
+    process.env.GOOGLE_ADS_CLIENT_SECRET,
+    process.env.GOOGLE_ADS_REFRESH_TOKEN,
+    process.env.GOOGLE_ADS_CUSTOMER_ID,
+  ].every((value) => Boolean(normalizeEnvValue(value)));
   const baseUrl =
     normalizeEnvValue(process.env.CRM_PUBLIC_BASE_URL) ||
     normalizeEnvValue(process.env.NEXT_PUBLIC_APP_URL);
@@ -265,25 +273,33 @@ export default async function AdminGoogleAdsIntegrationPage() {
           </>
         )}
 
-        <section id="setup" className="admin-surface scroll-mt-24 rounded-[24px] p-5">
-          <SectionHeader
-            eyebrow="Setup checklist"
-            title="Google Ads setup"
-            description="Use this checklist for campaign reporting and lead form delivery."
-          />
-          <div className="mt-4 space-y-3 text-sm text-white/70">
-            {[
-              "Set GOOGLE_ADS_WEBHOOK_KEY for new lead delivery into the CRM.",
-              "Set GOOGLE_ADS_DEVELOPER_TOKEN, GOOGLE_ADS_CLIENT_ID, GOOGLE_ADS_CLIENT_SECRET, GOOGLE_ADS_REFRESH_TOKEN, and GOOGLE_ADS_CUSTOMER_ID for campaign reporting.",
-              "Point the lead form delivery webhook to /api/integrations/google-ads/webhook.",
-              "Use Refresh performance for campaign metrics only, and use Retry failed lead imports only for lead webhook retries.",
-            ].map((item) => (
-              <div key={item} className="admin-surface-muted rounded-2xl p-4">
-                {item}
-              </div>
-            ))}
-          </div>
-        </section>
+        <IntegrationSetupPanel
+          provider="google_ads"
+          title="Connect Google Ads"
+          description="Set up account reporting and lead delivery without exposing credentials in the browser."
+          configured={reportingConfigured}
+          previewMode={isLocalAdminPreviewEmail(session.user?.email)}
+          permissions={[
+            "Read campaign performance for the selected customer",
+            "Receive lead form webhook deliveries",
+          ]}
+          steps={[
+            {
+              title: "Add Google Ads credentials",
+              description:
+                "Save the OAuth client, refresh token, developer token, and customer ID as deployment secrets.",
+            },
+            {
+              title: "Secure lead delivery",
+              description: `${webhookKeyConfigured ? "The webhook key is present." : "Add GOOGLE_ADS_WEBHOOK_KEY."} Use ${baseUrl ? `${baseUrl}/api/integrations/google-ads/webhook` : "your public Leads Desk URL plus /api/integrations/google-ads/webhook"} for lead delivery.`,
+            },
+            {
+              title: "Verify and refresh",
+              description:
+                "Verify customer access here. Then refresh performance and send a test lead to confirm both paths.",
+            },
+          ]}
+        />
       </div>
     </AdminShell>
   );

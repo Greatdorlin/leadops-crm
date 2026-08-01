@@ -20,7 +20,7 @@ export function LeadQuickNoteDialog({ leadId }: { leadId: string }) {
         Quick note
       </button>
       {isOpen ? (
-        <AdminOverlayPortal>
+        <AdminOverlayPortal onClose={() => setIsOpen(false)}>
           <div className="fixed inset-0 z-[160] flex items-end justify-center bg-slate-950/72 p-0 backdrop-blur-md sm:items-center sm:p-6" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setIsOpen(false); }}>
             <section role="dialog" aria-modal="true" aria-labelledby="quick-note-title" className="admin-surface max-h-[90dvh] w-full max-w-xl overflow-y-auto rounded-t-[28px] p-5 shadow-2xl sm:rounded-[28px] sm:p-6">
               <div className="mb-5 flex items-center justify-between gap-4">

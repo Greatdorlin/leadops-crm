@@ -222,6 +222,7 @@ function FormCard({
         ) : (
           <Link
             href={appRoutes.form(form.id)}
+            prefetch={false}
             className="admin-button-primary inline-flex h-9 items-center justify-center gap-1.5 rounded-xl px-3 text-xs font-semibold"
           >
             <Edit className="h-3.5 w-3.5" />
@@ -366,6 +367,7 @@ export function FormListGrid({
         {canManage && !demoMode ? (
           <Link
             href={appRoutes.formsNew}
+            prefetch={false}
             className="admin-button-primary inline-flex h-11 shrink-0 items-center justify-center rounded-2xl px-5 text-sm font-semibold max-sm:!self-start"
           >
             Create new form
@@ -382,6 +384,7 @@ export function FormListGrid({
             canManage ? (
               <Link
                 href={appRoutes.formsNew}
+                prefetch={false}
                 className="admin-button-primary inline-flex h-11 items-center justify-center rounded-2xl px-5 text-sm font-semibold"
               >
                 Create new form

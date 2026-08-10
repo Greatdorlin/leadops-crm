@@ -123,6 +123,7 @@ export function TaskQueueTable({
                 <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap lg:grid lg:grid-cols-2">
                   <Link
                     href={appRoutes.lead(task.leadId)}
+                    prefetch={false}
                     className="admin-button-secondary inline-flex h-10 min-w-0 items-center justify-center rounded-full px-3 text-sm font-medium"
                   >
                     Open lead

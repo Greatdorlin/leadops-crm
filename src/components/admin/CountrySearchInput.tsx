@@ -4,6 +4,7 @@ import { Check, ChevronDown, MapPin, Search } from "lucide-react";
 import { useEffect, useId, useMemo, useRef, useState, type KeyboardEvent } from "react";
 import { COUNTRY_NAMES } from "@/lib/countries";
 import { cn } from "@/lib/cn";
+import { AdminPickerHeader, AdminPickerScrollArea } from "./AdminPickerPanel";
 import { ResponsivePopover } from "./ResponsivePopover";
 
 const GLOBAL_CITY_SUGGESTIONS = [
@@ -144,6 +145,11 @@ function SearchableLocationInput({
         desktopWidth={360}
       >
         <div className="flex min-h-0 flex-col">
+          <AdminPickerHeader
+            title={`Select ${label.toLocaleLowerCase()}`}
+            description={allowCustom ? "Search the list or use a clear custom value." : "Search the available options."}
+            onClose={() => setOpen(false)}
+          />
           <div className="relative m-1.5">
             <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-white/45" />
             <input
@@ -159,7 +165,7 @@ function SearchableLocationInput({
               className="admin-input ld-focus-ring h-11 w-full rounded-2xl pl-10 pr-4 text-sm outline-none"
             />
           </div>
-          <div id={listboxId} role="listbox" className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-1.5">
+          <AdminPickerScrollArea id={listboxId} role="listbox" className="p-1.5">
             {canUseCustom ? (
               <button type="button" role="option" aria-selected="false" onClick={() => select(customValue)} onKeyDown={(event) => {
                 if (event.key === "Enter" || event.key === " ") {
@@ -192,7 +198,7 @@ function SearchableLocationInput({
             {filteredOptions.length === 0 && !canUseCustom ? (
               <p className="px-3 py-6 text-center text-sm text-white/55">No matching {label.toLocaleLowerCase()}.</p>
             ) : null}
-          </div>
+          </AdminPickerScrollArea>
         </div>
       </ResponsivePopover>
     </div>

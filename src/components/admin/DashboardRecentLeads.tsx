@@ -44,6 +44,7 @@ export function DashboardRecentLeads({
       actions={
         <Link
           href={appRoutes.leads}
+          prefetch={false}
           className="ld-floating-control inline-flex h-10 items-center justify-center gap-2 px-4 text-sm font-semibold"
         >
           View all

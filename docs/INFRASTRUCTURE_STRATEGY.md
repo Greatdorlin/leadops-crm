@@ -43,6 +43,7 @@ Internal reality:
 - Vercel-compatible
 - deployable on low-cost VPS
 - deployable on managed cloud
+- deployable as an isolated Railway project behind Cloudflare
 - scalable to larger dedicated infrastructure later
 - secrets stay server-side
 - backups are required in production
@@ -69,11 +70,11 @@ Rules:
 
 Recommended default:
 
-- VPS
-- Dockerized app
-- Postgres on the same server when appropriate
-- reverse proxy such as Caddy or Nginx
-- automated backups
+- isolated managed project per customer
+- Dockerized app service on Railway or an equivalent Node platform
+- isolated Postgres database in the same region
+- Cloudflare-proxied customer hostname
+- automated backups, usage alerts, and a hard cost limit
 
 Use for:
 
@@ -89,10 +90,13 @@ Backup strategy:
 
 Security responsibility:
 
-- server patching
-- SSL
+- project and environment isolation
+- Cloudflare and origin TLS configuration
 - database credential handling
 - backup verification
+- usage-limit and availability policy
+
+The implementation profile and cost guardrails are documented in [`RAILWAY_CLOUDFLARE_DEPLOYMENT.md`](./RAILWAY_CLOUDFLARE_DEPLOYMENT.md). A low-traffic starter may target less than USD 20 per month, but the product must not guarantee that cost before measuring a representative billing cycle.
 
 ## 3. Safer Small-Business Production
 

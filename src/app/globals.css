@@ -1613,22 +1613,27 @@ select.admin-select::-ms-expand {
   -webkit-overflow-scrolling: touch;
 }
 
-.ld-popover-scroll {
+.ld-popover-scroll,
+:is([data-responsive-popover="true"], [data-responsive-popover="true"] *) {
   scrollbar-width: thin;
   scrollbar-color: color-mix(in srgb, var(--ld-color-accent) 55%, white 10%) transparent;
   scroll-behavior: smooth;
 }
 
-.ld-popover-scroll::-webkit-scrollbar {
+.ld-popover-scroll::-webkit-scrollbar,
+:is([data-responsive-popover="true"], [data-responsive-popover="true"] *)::-webkit-scrollbar {
   width: 6px;
+  height: 6px;
 }
 
-.ld-popover-scroll::-webkit-scrollbar-track {
+.ld-popover-scroll::-webkit-scrollbar-track,
+:is([data-responsive-popover="true"], [data-responsive-popover="true"] *)::-webkit-scrollbar-track {
   margin-block: 8px;
   background: transparent;
 }
 
-.ld-popover-scroll::-webkit-scrollbar-thumb {
+.ld-popover-scroll::-webkit-scrollbar-thumb,
+:is([data-responsive-popover="true"], [data-responsive-popover="true"] *)::-webkit-scrollbar-thumb {
   border: 1px solid transparent;
   border-radius: 999px;
   background: linear-gradient(180deg, var(--ld-color-accent), var(--ld-color-primary)) padding-box;

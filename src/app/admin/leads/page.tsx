@@ -756,7 +756,7 @@ export default async function AdminLeadsPage({
                   <Link
                     href={appRoutes.lead(lead.id)}
                     prefetch={false}
-                    className="admin-button-secondary inline-flex h-10 items-center justify-center rounded-full px-4 text-sm font-medium"
+                    className="admin-button-secondary inline-flex h-10 shrink-0 items-center justify-center whitespace-nowrap rounded-full px-4 text-sm font-medium leading-none"
                 >
                   Open
                 </Link>

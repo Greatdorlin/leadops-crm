@@ -1,8 +1,9 @@
 "use client";
 
 import { useId, useRef, useState } from "react";
-import { Check, ChevronDown, LoaderCircle, X } from "lucide-react";
+import { Check, ChevronDown, LoaderCircle } from "lucide-react";
 import { cn } from "@/lib/cn";
+import { AdminPickerHeader, AdminPickerScrollArea } from "./AdminPickerPanel";
 import { ResponsivePopover } from "./ResponsivePopover";
 
 export interface LeadWorkflowQuickOption {
@@ -135,21 +136,8 @@ export function LeadWorkflowQuickSelect({
         open={isOpen}
       >
         <div id={listboxId} className="flex min-h-0 flex-1 flex-col">
-          <div className="flex items-start justify-between gap-3 px-2 pb-2 pt-1">
-            <div>
-              <p className="text-sm font-semibold text-white">{pickerTitle}</p>
-              <p className="mt-0.5 text-xs text-white/64">{pickerDescription}</p>
-            </div>
-            <button
-              type="button"
-              onClick={() => setIsOpen(false)}
-              className="ld-focus-ring inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-white/10 bg-white/[0.06] text-white/70 transition hover:bg-white/[0.1] hover:text-white"
-              aria-label={`Close ${pickerTitle.toLowerCase()}`}
-            >
-              <X className="h-4 w-4" />
-            </button>
-          </div>
-          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain pr-1" role="listbox">
+          <AdminPickerHeader title={pickerTitle} description={pickerDescription} onClose={() => setIsOpen(false)} />
+          <AdminPickerScrollArea className="pr-1" role="listbox">
             {options.map((option, index) => {
               const isCurrent = option.value === value;
               const optionColor = option.color ?? "#94a3b8";
@@ -190,7 +178,7 @@ export function LeadWorkflowQuickSelect({
                 </button>
               );
             })}
-          </div>
+          </AdminPickerScrollArea>
         </div>
       </ResponsivePopover>
 

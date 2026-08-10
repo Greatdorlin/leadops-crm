@@ -140,12 +140,12 @@ export function LeadQuickActions({
   }
 
   return (
-    <div className="min-w-0">
+    <div className="min-w-0 shrink-0">
       <button
         ref={buttonRef}
         type="button"
         onClick={() => setIsOpen((current) => !current)}
-        className="admin-button-primary ld-focus-ring inline-flex h-10 items-center justify-center gap-2 rounded-full px-3.5 text-sm font-semibold"
+        className="admin-button-primary ld-focus-ring inline-flex h-10 shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-full px-3.5 text-sm font-semibold leading-none"
         aria-expanded={isOpen}
         aria-haspopup="dialog"
         aria-label={`Quick add for ${leadName}`}

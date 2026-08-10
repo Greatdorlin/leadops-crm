@@ -82,6 +82,7 @@ export function NotificationInbox({
               <Link
                 key={category.value}
                 href={href}
+                prefetch={false}
                 aria-current={isActive ? "page" : undefined}
                 className={[
                   "ld-focus-ring inline-flex min-h-10 shrink-0 items-center rounded-[16px] border px-3.5 text-sm font-semibold transition",
@@ -137,6 +138,7 @@ export function NotificationInbox({
                 {notification.leadId ? (
                   <Link
                     href={appRoutes.lead(notification.leadId)}
+                    prefetch={false}
                     className="admin-button-secondary inline-flex h-10 items-center justify-center rounded-2xl px-4 text-sm font-medium"
                   >
                     Open lead
@@ -166,6 +168,7 @@ export function NotificationInbox({
               ...(activeCategory === "all" ? {} : { category: activeCategory }),
               cursor: nextCursor,
             }).toString()}`}
+            prefetch={false}
             className="admin-button-secondary inline-flex h-11 items-center justify-center rounded-full px-5 text-sm font-semibold"
           >
             Load older notifications

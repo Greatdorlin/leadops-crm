@@ -44,17 +44,21 @@ export function ResponsivePopover({
   ariaLabel,
   children,
   className,
+  desktopMaxHeight = 440,
   desktopWidth = 320,
   onClose,
   open,
+  scrollable = false,
 }: {
   anchorRef: RefObject<HTMLElement | null>;
   ariaLabel: string;
   children: ReactNode;
   className?: string;
+  desktopMaxHeight?: number;
   desktopWidth?: number;
   onClose: () => void;
   open: boolean;
+  scrollable?: boolean;
 }) {
   const popoverId = useId();
   const panelRef = useRef<HTMLDivElement>(null);
@@ -107,7 +111,7 @@ export function ResponsivePopover({
       const spaceAbove = rect.top - margin - gap;
       const placeBelow = spaceBelow >= Math.min(panelHeight, 280) || spaceBelow >= spaceAbove;
       const availableHeight = Math.max(180, placeBelow ? spaceBelow : spaceAbove);
-      const maxHeight = Math.min(440, availableHeight);
+      const maxHeight = Math.min(desktopMaxHeight, availableHeight);
       const renderedHeight = Math.min(panelHeight, maxHeight);
       const top = placeBelow
         ? rect.bottom + gap
@@ -140,7 +144,7 @@ export function ResponsivePopover({
         frameRef.current = null;
       }
     };
-  }, [anchorRef, desktopWidth, onClose, open]);
+  }, [anchorRef, desktopMaxHeight, desktopWidth, onClose, open]);
 
   useEffect(() => {
     if (!open) {
@@ -251,7 +255,8 @@ export function ResponsivePopover({
         data-responsive-popover-parent-id={parentPopoverId}
         tabIndex={-1}
         className={cn(
-          "ld-glass-panel fixed z-[210] flex min-h-0 flex-col overflow-hidden border border-white/14 bg-[#070b18]/[0.97] shadow-[0_28px_90px_rgba(0,0,0,0.58),inset_0_1px_0_rgba(255,255,255,0.11)]",
+          "ld-glass-panel fixed z-[210] flex min-h-0 flex-col border border-white/14 bg-[#070b18]/[0.97] shadow-[0_28px_90px_rgba(0,0,0,0.58),inset_0_1px_0_rgba(255,255,255,0.11)]",
+          scrollable ? "overflow-x-hidden overflow-y-auto" : "overflow-hidden",
           isMobile
             ? "inset-x-2.5 bottom-[max(0.625rem,env(safe-area-inset-bottom))] max-h-[min(86dvh,680px)] max-w-[calc(100vw-1.25rem)] rounded-[26px] p-2.5"
             : "rounded-[24px] p-2.5",

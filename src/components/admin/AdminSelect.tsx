@@ -16,6 +16,7 @@ import {
 } from "react";
 import { Check, ChevronDown } from "lucide-react";
 import { cn } from "@/lib/cn";
+import { AdminPickerHeader, AdminPickerScrollArea } from "./AdminPickerPanel";
 import { ResponsivePopover } from "./ResponsivePopover";
 
 interface SelectOption {
@@ -181,7 +182,12 @@ function AdminMultiSelect({
         open={open}
         className="p-2"
       >
-        <div id={listboxId} role="listbox" aria-multiselectable="true" className="ld-premium-scrollbar max-h-[min(58dvh,340px)] overflow-y-auto p-1">
+        <AdminPickerHeader
+          title={props["aria-label"] || "Choose options"}
+          description="Select every option that applies."
+          onClose={() => setOpen(false)}
+        />
+        <AdminPickerScrollArea id={listboxId} role="listbox" aria-multiselectable="true" className="max-h-[min(58dvh,340px)] p-1">
           {options.map((option, index) => {
             const selected = selectedValues.includes(option.value);
             return (
@@ -219,7 +225,7 @@ function AdminMultiSelect({
               </button>
             );
           })}
-        </div>
+        </AdminPickerScrollArea>
         <div className="mt-1 flex items-center justify-between border-t border-white/10 px-2 pt-2">
           <span className="text-xs font-medium text-white/48">{selectedValues.length} selected</span>
           <button type="button" onClick={() => setOpen(false)} className="admin-button-primary h-9 rounded-full px-4 text-xs font-semibold">Done</button>
@@ -331,7 +337,12 @@ export function AdminSelect({
         open={open}
         className="p-2"
       >
-        <div id={listboxId} role="listbox" className="ld-premium-scrollbar max-h-[min(60dvh,360px)] overflow-y-auto p-1">
+        <AdminPickerHeader
+          title={props["aria-label"] || "Choose an option"}
+          description="Choose one option to continue."
+          onClose={() => setOpen(false)}
+        />
+        <AdminPickerScrollArea id={listboxId} role="listbox" className="max-h-[min(60dvh,360px)] p-1">
           {options.map((option, index) => {
             const previousGroup = index > 0 ? options[index - 1]?.group : undefined;
             return (
@@ -373,7 +384,7 @@ export function AdminSelect({
               </div>
             );
           })}
-        </div>
+        </AdminPickerScrollArea>
       </ResponsivePopover>
     </div>
   );

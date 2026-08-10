@@ -445,7 +445,7 @@ export function LeadDataTable({
 
             <div className="mt-4">
               {renderActions || interactiveWorkflow ? (
-                <div className="flex flex-wrap gap-2">
+                <div className="flex flex-wrap items-center gap-2">
                   {interactiveWorkflow ? (
                     <LeadQuickActions
                       assignedTo={lead.assignedTo}
@@ -539,7 +539,7 @@ export function LeadDataTable({
                   </td>
                   <td className="ld-table-sticky-action sticky left-[280px] z-20 px-4 py-3.5 text-left align-middle whitespace-nowrap transition-colors group-hover:bg-[color:color-mix(in_srgb,var(--ld-color-card-strong)_97%,white_3%)]">
                     {renderActions || interactiveWorkflow ? (
-                      <div className="flex min-w-0 justify-start gap-2">
+                      <div className="flex min-w-0 flex-nowrap items-center justify-start gap-2 whitespace-nowrap">
                         {interactiveWorkflow ? (
                           <LeadQuickActions
                             assignedTo={lead.assignedTo}
@@ -554,7 +554,7 @@ export function LeadDataTable({
                       <Link
                         href={appRoutes.lead(lead.id)}
                         prefetch={false}
-                        className="admin-button-secondary inline-flex h-10 items-center justify-center rounded-full px-4 text-sm font-medium"
+                        className="admin-button-secondary inline-flex h-10 shrink-0 items-center justify-center whitespace-nowrap rounded-full px-4 text-sm font-medium leading-none"
                       >
                         Open
                       </Link>

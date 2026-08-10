@@ -262,6 +262,11 @@ export function LeadDataTable({
       (column) => !requiredWorkflowColumns.includes(column),
     ),
   ].slice(0, 8);
+  const desktopActionColumnClass = renderActions
+    ? "w-[360px] min-w-[360px] max-w-[360px]"
+    : interactiveWorkflow
+      ? "w-[210px] min-w-[210px] max-w-[210px]"
+      : "w-[132px] min-w-[132px] max-w-[132px]";
   const mobileFieldsAlreadyShown = new Set<LeadPreviewFieldKey>([
     "name",
     "owner",
@@ -479,7 +484,12 @@ export function LeadDataTable({
                 <th className="ld-table-sticky-lead sticky left-0 top-0 z-30 min-w-[280px] border-b border-white/10 px-4 py-3.5 text-[11px] font-semibold uppercase tracking-[0.16em] text-white/70 backdrop-blur-md">
                   Lead
                 </th>
-                <th className="ld-table-sticky-action sticky left-[280px] top-0 z-30 min-w-[250px] border-b border-white/10 px-4 py-3.5 text-left align-middle text-[11px] font-semibold uppercase tracking-[0.16em] text-white/70 backdrop-blur-md">
+                <th
+                  className={cn(
+                    "ld-table-sticky-action sticky left-[280px] top-0 z-30 border-b border-r border-white/10 px-4 py-3.5 text-left align-middle text-[11px] font-semibold uppercase tracking-[0.16em] text-white/70 backdrop-blur-md",
+                    desktopActionColumnClass,
+                  )}
+                >
                   <GradientText>Action</GradientText>
                 </th>
                 {desktopColumns.map((column) => (
@@ -537,7 +547,12 @@ export function LeadDataTable({
                       </div>
                     </div>
                   </td>
-                  <td className="ld-table-sticky-action sticky left-[280px] z-20 px-4 py-3.5 text-left align-middle whitespace-nowrap transition-colors group-hover:bg-[color:color-mix(in_srgb,var(--ld-color-card-strong)_97%,white_3%)]">
+                  <td
+                    className={cn(
+                      "ld-table-sticky-action sticky left-[280px] z-20 border-r border-white/[0.08] px-4 py-3.5 text-left align-middle whitespace-nowrap transition-colors group-hover:bg-[color:color-mix(in_srgb,var(--ld-color-card-strong)_97%,white_3%)]",
+                      desktopActionColumnClass,
+                    )}
+                  >
                     {renderActions || interactiveWorkflow ? (
                       <div className="flex min-w-0 flex-nowrap items-center justify-start gap-2 whitespace-nowrap">
                         {interactiveWorkflow ? (

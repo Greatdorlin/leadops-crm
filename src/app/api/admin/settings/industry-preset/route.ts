@@ -36,6 +36,8 @@ export async function POST(request: Request) {
           key: stage.value,
           color: stage.color || null,
           sortOrder: i,
+          isWon: stage.value === "won",
+          isLost: stage.value === "lost",
         }).onConflictDoNothing().returning({ id: leadStages.id });
         created.stages += rows.length;
       }

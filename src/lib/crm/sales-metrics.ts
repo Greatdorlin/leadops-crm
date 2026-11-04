@@ -85,6 +85,11 @@ export type SalesPipelineAggregate = Omit<
   "intakeSummary" | "recentIntake" | "target"
 >;
 
+export function getClosedWinRate(won: number, lost: number) {
+  const closed = won + lost;
+  return closed > 0 ? Math.round((won / closed) * 1000) / 10 : null;
+}
+
 function roundMoney(value: number) {
   return Number.parseFloat(value.toFixed(2));
 }

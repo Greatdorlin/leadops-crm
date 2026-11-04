@@ -1,3 +1,4 @@
+import { STARTER_INDUSTRY_STAGES } from "./industry-starter-stages";
 import type { IndustryPreset } from "./industry-presets";
 
 export const ADDITIONAL_INDUSTRY_PRESETS: IndustryPreset[] = [
@@ -5,14 +6,7 @@ export const ADDITIONAL_INDUSTRY_PRESETS: IndustryPreset[] = [
     id: "healthcare-clinics",
     name: "Healthcare / Medical Clinics",
     description: "Patient acquisition, appointment scheduling, insurance verification, and treatment follow-ups.",
-    stages: [
-      { label: "New Inquiry", value: "new", color: "#94a3b8" },
-      { label: "Contacted", value: "contacted", color: "#3b82f6" },
-      { label: "Appointment Booked", value: "appointment_booked", color: "#8b5cf6" },
-      { label: "Insurance Verified", value: "insurance_verified", color: "#f59e0b" },
-      { label: "Consultation Done", value: "consultation_done", color: "#10b981" },
-      { label: "Treatment Scheduled", value: "treatment_scheduled", color: "#059669" },
-    ],
+    stages: STARTER_INDUSTRY_STAGES,
     sources: [
       { label: "Website", value: "website" },
       { label: "Google Ads", value: "google_ads" },
@@ -95,14 +89,7 @@ export const ADDITIONAL_INDUSTRY_PRESETS: IndustryPreset[] = [
     id: "education-elearning",
     name: "Education / E-Learning",
     description: "Student enrollment, course inquiries, admissions processing, and academic advising.",
-    stages: [
-      { label: "New Inquiry", value: "new", color: "#94a3b8" },
-      { label: "Info Packet Sent", value: "info_packet_sent", color: "#3b82f6" },
-      { label: "Counselor Call", value: "counselor_call", color: "#8b5cf6" },
-      { label: "Application Started", value: "application_started", color: "#f59e0b" },
-      { label: "Application Submitted", value: "application_submitted", color: "#10b981" },
-      { label: "Enrolled", value: "enrolled", color: "#059669" },
-    ],
+    stages: STARTER_INDUSTRY_STAGES,
     sources: [
       { label: "Website", value: "website" },
       { label: "Google Ads", value: "google_ads" },
@@ -191,14 +178,7 @@ export const ADDITIONAL_INDUSTRY_PRESETS: IndustryPreset[] = [
     id: "insurance-brokerage",
     name: "Insurance / Brokerage",
     description: "Policy quotes, coverage consultations, claims referrals, and renewal management.",
-    stages: [
-      { label: "New Lead", value: "new", color: "#94a3b8" },
-      { label: "Quote Requested", value: "quote_requested", color: "#3b82f6" },
-      { label: "Quote Provided", value: "quote_provided", color: "#8b5cf6" },
-      { label: "Coverage Review", value: "coverage_review", color: "#f59e0b" },
-      { label: "Policy Bound", value: "policy_bound", color: "#10b981" },
-      { label: "Renewal / Retained", value: "renewal", color: "#059669" },
-    ],
+    stages: STARTER_INDUSTRY_STAGES,
     sources: [
       { label: "Website", value: "website" },
       { label: "Google Ads", value: "google_ads" },
@@ -274,14 +254,7 @@ export const ADDITIONAL_INDUSTRY_PRESETS: IndustryPreset[] = [
     id: "ecommerce-retail-b2b",
     name: "E-commerce / Retail (B2B)",
     description: "Wholesale partnerships, vendor onboarding, B2B sales, and distributor account management.",
-    stages: [
-      { label: "New Inquiry", value: "new", color: "#94a3b8" },
-      { label: "Qualified", value: "qualified", color: "#3b82f6" },
-      { label: "Sample / Catalog Sent", value: "sample_sent", color: "#8b5cf6" },
-      { label: "Negotiation", value: "negotiation", color: "#f59e0b" },
-      { label: "Purchase Order", value: "purchase_order", color: "#10b981" },
-      { label: "Active Account", value: "active_account", color: "#059669" },
-    ],
+    stages: STARTER_INDUSTRY_STAGES,
     sources: [
       { label: "Website", value: "website" },
       { label: "Trade Show", value: "trade_show" },
@@ -364,14 +337,7 @@ export const ADDITIONAL_INDUSTRY_PRESETS: IndustryPreset[] = [
     id: "automotive-dealership",
     name: "Automotive / Car Dealership",
     description: "Vehicle inquiries, test drive scheduling, trade-in evaluations, and financing applications.",
-    stages: [
-      { label: "New Inquiry", value: "new", color: "#94a3b8" },
-      { label: "Contacted", value: "contacted", color: "#3b82f6" },
-      { label: "Test Drive Booked", value: "test_drive_booked", color: "#8b5cf6" },
-      { label: "Trade-In Appraised", value: "trade_in_appraised", color: "#f59e0b" },
-      { label: "Financing Approved", value: "financing_approved", color: "#10b981" },
-      { label: "Sold / Delivered", value: "sold", color: "#059669" },
-    ],
+    stages: STARTER_INDUSTRY_STAGES,
     sources: [
       { label: "Website", value: "website" },
       { label: "Vehicle Listing Site", value: "listing_site" },
@@ -451,14 +417,7 @@ export const ADDITIONAL_INDUSTRY_PRESETS: IndustryPreset[] = [
     id: "saas-b2b-software",
     name: "SaaS / B2B Software",
     description: "Trial signups, product demos, enterprise procurement, and customer onboarding.",
-    stages: [
-      { label: "New Signup", value: "new", color: "#94a3b8" },
-      { label: "Activated", value: "activated", color: "#3b82f6" },
-      { label: "Demo Scheduled", value: "demo_scheduled", color: "#8b5cf6" },
-      { label: "Proposal / Pricing", value: "proposal", color: "#f59e0b" },
-      { label: "Contract Negotiation", value: "contract_negotiation", color: "#10b981" },
-      { label: "Closed Won", value: "closed_won", color: "#059669" },
-    ],
+    stages: STARTER_INDUSTRY_STAGES,
     sources: [
       { label: "Website", value: "website" },
       { label: "Product-Led Growth (PLG)", value: "plg" },
@@ -535,14 +494,7 @@ export const ADDITIONAL_INDUSTRY_PRESETS: IndustryPreset[] = [
     id: "legal-law-firm",
     name: "Legal / Law Firm",
     description: "Case intake, client consultations, retainer agreements, and litigation matter management.",
-    stages: [
-      { label: "New Inquiry", value: "new", color: "#94a3b8" },
-      { label: "Conflict Check", value: "conflict_check", color: "#3b82f6" },
-      { label: "Consultation Scheduled", value: "consultation_scheduled", color: "#8b5cf6" },
-      { label: "Retainer Sent", value: "retainer_sent", color: "#f59e0b" },
-      { label: "Retainer Signed", value: "retainer_signed", color: "#10b981" },
-      { label: "Active Matter", value: "active_matter", color: "#059669" },
-    ],
+    stages: STARTER_INDUSTRY_STAGES,
     sources: [
       { label: "Website", value: "website" },
       { label: "Google Ads", value: "google_ads" },
@@ -626,14 +578,7 @@ export const ADDITIONAL_INDUSTRY_PRESETS: IndustryPreset[] = [
     id: "fitness-wellness-gym",
     name: "Fitness / Wellness / Gym",
     description: "Membership leads, personal training inquiries, class bookings, and wellness program enrollments.",
-    stages: [
-      { label: "New Inquiry", value: "new", color: "#94a3b8" },
-      { label: "Contacted", value: "contacted", color: "#3b82f6" },
-      { label: "Tour / Trial Booked", value: "trial_booked", color: "#8b5cf6" },
-      { label: "Trial Completed", value: "trial_completed", color: "#f59e0b" },
-      { label: "Membership Sold", value: "membership_sold", color: "#10b981" },
-      { label: "Active Member", value: "active_member", color: "#059669" },
-    ],
+    stages: STARTER_INDUSTRY_STAGES,
     sources: [
       { label: "Website", value: "website" },
       { label: "Instagram / Facebook", value: "social_media" },

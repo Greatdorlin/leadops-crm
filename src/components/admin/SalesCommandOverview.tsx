@@ -8,7 +8,7 @@ import {
   Trophy,
   Users2,
 } from "lucide-react";
-import type { SalesDashboardSummary } from "@/lib/crm/sales-metrics";
+import { getClosedWinRate, type SalesDashboardSummary, type StagePerformanceSummaryRow } from "@/lib/crm/sales-metrics";
 import { formatCrmDateTime } from "@/lib/crm/formatters";
 import type { DashboardWidgetKey } from "@/lib/crm/workspace-settings";
 import type { DashboardTrendPoint } from "@/lib/storage/types";
@@ -99,6 +99,32 @@ function CompactProgressRow({
   );
 }
 
+function StageRows({ stages, currency, stageMax }: {
+  stages: StagePerformanceSummaryRow[];
+  currency: string;
+  stageMax: number;
+}) {
+  return (
+    <ul className="mt-4 grid gap-x-5 gap-y-3 sm:grid-cols-2">
+      {stages.map((stage) => (
+        <li key={stage.id ?? stage.key ?? stage.label} className="min-w-0 rounded-lg border border-white/8 px-3 py-2.5">
+          <div className="flex items-baseline justify-between gap-2">
+            <p className="min-w-0 break-words text-sm font-medium text-white">{stage.label}</p>
+            <p className="shrink-0 text-sm font-semibold tabular-nums text-white">{stage.totalLeads}<span className="sr-only"> leads</span></p>
+          </div>
+          <div aria-hidden="true" className="mt-2 h-1 overflow-hidden rounded-full bg-white/10">
+            <div className="h-full rounded-full" style={{
+              width: `${getPercent(stage.totalLeads, stageMax)}%`,
+              backgroundColor: normalizeStageColor(stage.color) ?? "var(--ld-color-accent)",
+            }} />
+          </div>
+          <p className="mt-1.5 text-xs tabular-nums text-white/65">{formatShortMoney(stage.pipelineValue, currency)} pipeline</p>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
 export function SalesCommandOverview({
   summary,
   stageDefinitions = [],
@@ -149,6 +175,9 @@ export function SalesCommandOverview({
     ...configuredStagePerformance,
     ...summary.stagePerformance.filter((_, index) => !claimedStageRows.has(index)),
   ];
+  const occupiedStages = stagePerformance.filter((stage) => stage.totalLeads > 0);
+  const emptyStages = stagePerformance.filter((stage) => stage.totalLeads === 0);
+  const closedWinRate = getClosedWinRate(summary.wonLeads, summary.lostLeads);
   const stageMax = Math.max(...stagePerformance.map((stage) => stage.totalLeads), 1);
   const sourceMax = Math.max(...summary.topSources.map((source) => source.totalLeads), 1);
   const targetProgress = summary.target?.progressPercent ?? 0;
@@ -341,7 +370,7 @@ export function SalesCommandOverview({
                 <h3 className="text-lg font-semibold tracking-[-0.04em] text-white">Stage movement</h3>
                 <div className="pt-0.5">
                   <InfoTip
-                    label="Stage movement shows where open leads sit right now and how much live pipeline value each stage is holding."
+                    label="Shows where leads are now and how much open pipeline value each stage holds. Closed win rate compares wins with all won and lost leads."
                     align="left"
                   />
                 </div>
@@ -351,32 +380,24 @@ export function SalesCommandOverview({
                   {summary.conversionRate}% conversion
                 </span>
                 <span className="rounded-full border border-white/10 bg-white/[0.075] px-3 py-1 text-xs font-semibold text-white/70">
-                  {stagePerformance.length} live stages
+                  {closedWinRate === null ? "No closed leads" : `${closedWinRate}% closed win rate`}
                 </span>
               </div>
             </div>
 
-            {stagePerformance.length ? (
-              <ul className="mt-4 grid gap-x-5 gap-y-3 sm:grid-cols-2">
-                {stagePerformance.map((stage) => (
-                  <li key={stage.label} className="min-w-0 rounded-lg border border-white/8 px-3 py-2.5">
-                    <div className="flex items-baseline justify-between gap-2">
-                      <p className="min-w-0 break-words text-sm font-medium text-white">{stage.label}</p>
-                      <p className="shrink-0 text-sm font-semibold tabular-nums text-white">{stage.totalLeads}<span className="sr-only"> leads</span></p>
-                    </div>
-                    <div aria-hidden="true" className="mt-2 h-1 overflow-hidden rounded-full bg-white/10">
-                      <div className="h-full rounded-full" style={{
-                        width: `${getPercent(stage.totalLeads, stageMax)}%`,
-                        backgroundColor: normalizeStageColor(stage.color) ?? "var(--ld-color-accent)",
-                      }} />
-                    </div>
-                    <p className="mt-1.5 text-xs tabular-nums text-white/65">{formatShortMoney(stage.pipelineValue, currency)} pipeline</p>
-                  </li>
-                ))}
-              </ul>
+            {occupiedStages.length ? (
+              <StageRows stages={occupiedStages} currency={currency} stageMax={stageMax} />
             ) : (
-              <EmptyState title="No stage data yet" description="Stage performance appears as leads move through your pipeline." />
+              <EmptyState title="No leads in the pipeline yet" description="Stages appear here as leads are added." />
             )}
+            {emptyStages.length > 0 ? (
+              <details className="mt-3">
+                <summary className="w-fit cursor-pointer rounded-md px-1 py-2 text-sm text-white/70 hover:text-white focus-visible:outline-2">
+                  Show {emptyStages.length} empty {emptyStages.length === 1 ? "stage" : "stages"}
+                </summary>
+                <StageRows stages={emptyStages} currency={currency} stageMax={stageMax} />
+              </details>
+            ) : null}
           </div>
         </div>
         </AdminCollapsibleSection>

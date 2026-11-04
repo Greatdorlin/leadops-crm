@@ -16,7 +16,7 @@ test("industry presets expose unique, valid, intentional configuration", () => {
     const sourceKeys = preset.sources.map((source) => source.value);
     const fieldKeys = preset.customFields.map(buildIndustryPresetFieldKey);
 
-    assert.equal(new Set(stageKeys).size, stageKeys.length, `${preset.id} has duplicate stage keys`);
+    assert.deepEqual(stageKeys, ["new", "contacted", "qualified", "proposal", "won", "lost"], preset.id);
     assert.equal(new Set(sourceKeys).size, sourceKeys.length, `${preset.id} has duplicate source keys`);
     assert.equal(new Set(fieldKeys).size, fieldKeys.length, `${preset.id} has duplicate custom-field keys`);
     assert.ok(preset.leadPreviewFields.length > 0, `${preset.id} has no lead preview guidance`);

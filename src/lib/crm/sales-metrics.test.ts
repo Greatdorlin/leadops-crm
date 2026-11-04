@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { buildSalesDashboardSummary } from "@/lib/crm/sales-metrics";
+import { buildSalesDashboardSummary, getClosedWinRate } from "@/lib/crm/sales-metrics";
 import type { CrmUserRecord, LeadRecord, LeadTaskRecord } from "@/lib/crm/types";
 import type { IntakeEventAdminRow } from "@/lib/crm/intake-runtime";
 import type { AdminSalesTargetRecord } from "@/lib/crm/sales-targets-admin";
@@ -226,4 +226,10 @@ test("cross-currency target progress fails closed when no rate is stored", () =>
 
   assert.equal(summary.target?.progressAvailable, false);
   assert.equal(summary.target?.progressPercent, 0);
+});
+
+test("closed win rate compares wins with closed leads and distinguishes no outcomes", () => {
+  assert.equal(getClosedWinRate(0, 0), null);
+  assert.equal(getClosedWinRate(0, 2), 0);
+  assert.equal(getClosedWinRate(2, 1), 66.7);
 });

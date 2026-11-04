@@ -1,3 +1,4 @@
+import { STARTER_INDUSTRY_STAGES } from "./industry-starter-stages";
 import type { CustomFieldType } from "./domain/custom-fields";
 
 export interface IndustryPresetCustomField {
@@ -32,14 +33,7 @@ export const INDUSTRY_PRESETS: IndustryPreset[] = [
     id: "real_estate",
     name: "Real Estate",
     description: "Property sales, rentals, and client management.",
-    stages: [
-      { label: "New Lead", value: "new", color: "#94a3b8" },
-      { label: "Qualified", value: "qualified", color: "#3b82f6" },
-      { label: "Property Viewing", value: "viewing", color: "#8b5cf6" },
-      { label: "Offer Made", value: "offer_made", color: "#f59e0b" },
-      { label: "Contract Signed", value: "contract_signed", color: "#10b981" },
-      { label: "Closed", value: "closed", color: "#059669" },
-    ],
+    stages: STARTER_INDUSTRY_STAGES,
     sources: [
       { label: "Website", value: "website" },
       { label: "Referral", value: "referral" },
@@ -77,14 +71,7 @@ export const INDUSTRY_PRESETS: IndustryPreset[] = [
     id: "travel",
     name: "Travel & Tours",
     description: "Travel bookings, tour packages, and vacation planning.",
-    stages: [
-      { label: "Inquiry", value: "new", color: "#94a3b8" },
-      { label: "Quoted", value: "quoted", color: "#3b82f6" },
-      { label: "Consultation Booked", value: "consultation_booked", color: "#8b5cf6" },
-      { label: "Deposit Paid", value: "deposit_paid", color: "#f59e0b" },
-      { label: "Documents Ready", value: "documents_ready", color: "#10b981" },
-      { label: "Departed", value: "departed", color: "#059669" },
-    ],
+    stages: STARTER_INDUSTRY_STAGES,
     sources: [
       { label: "Website", value: "website" },
       { label: "Facebook", value: "facebook" },
@@ -118,14 +105,7 @@ export const INDUSTRY_PRESETS: IndustryPreset[] = [
     id: "service",
     name: "Service Business",
     description: "Consulting, agency, home services, and professional services.",
-    stages: [
-      { label: "Inquiry", value: "new", color: "#94a3b8" },
-      { label: "Qualified", value: "qualified", color: "#3b82f6" },
-      { label: "Quote Sent", value: "quote_sent", color: "#8b5cf6" },
-      { label: "Contract Signed", value: "contract_signed", color: "#f59e0b" },
-      { label: "In Progress", value: "in_progress", color: "#10b981" },
-      { label: "Completed", value: "completed", color: "#059669" },
-    ],
+    stages: STARTER_INDUSTRY_STAGES,
     sources: [
       { label: "Website", value: "website" },
       { label: "Google Ads", value: "google_ads" },

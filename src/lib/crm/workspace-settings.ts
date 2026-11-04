@@ -1,3 +1,4 @@
+import { STARTER_INDUSTRY_STAGES } from "./industry-starter-stages";
 import { z } from "zod";
 import { isSupportedCurrency } from "@/lib/currency";
 import {
@@ -380,7 +381,7 @@ export const VERTICAL_PRESET_DEFINITIONS: Record<IndustryPresetKey, VerticalPres
     key: "general_business",
     label: "General Business",
     description: "Balanced defaults for most sales teams.",
-    stageNames: ["New", "Contacted", "Follow-up", "Qualified", "Proposal", "Won", "Lost"],
+    stageNames: STARTER_INDUSTRY_STAGES.map((stage) => stage.label),
     sourceNames: ["Website", "Referral", "Call", "Walk-in", "CSV Import", "Manual Entry"],
     recommendedCustomFields: [
       { key: "budget", label: "Budget", type: "currency" },
@@ -395,7 +396,7 @@ export const VERTICAL_PRESET_DEFINITIONS: Record<IndustryPresetKey, VerticalPres
     key: "real_estate",
     label: "Real Estate",
     description: "Property inquiries, location, and budget-friendly pipeline defaults.",
-    stageNames: ["New Inquiry", "Contacted", "Inspection Scheduled", "Interested", "Offer", "Won", "Lost"],
+    stageNames: STARTER_INDUSTRY_STAGES.map((stage) => stage.label),
     sourceNames: ["Website", "Facebook Ads", "Instagram", "Referral", "Call", "Walk-in"],
     recommendedCustomFields: [
       { key: "property_type", label: "Property Type", type: "select" },
@@ -410,7 +411,7 @@ export const VERTICAL_PRESET_DEFINITIONS: Record<IndustryPresetKey, VerticalPres
     key: "insurance",
     label: "Insurance",
     description: "Quote and renewal-driven defaults for policy teams.",
-    stageNames: ["New Prospect", "Contacted", "Needs Review", "Quote Sent", "Policy Started", "Won", "Lost"],
+    stageNames: STARTER_INDUSTRY_STAGES.map((stage) => stage.label),
     sourceNames: ["Website", "Referral", "Call", "CSV Import", "Manual Entry", "Other"],
     recommendedCustomFields: [
       { key: "policy_type", label: "Policy Type", type: "select" },
@@ -425,7 +426,7 @@ export const VERTICAL_PRESET_DEFINITIONS: Record<IndustryPresetKey, VerticalPres
     key: "travel_education_agency",
     label: "Consulting Agency",
     description: "Preset fields, sources, and stages for consultation-led sales teams.",
-    stageNames: ["New Inquiry", "Contacted", "Consultation Booked", "Information Pending", "Engagement Started", "Won", "Lost"],
+    stageNames: STARTER_INDUSTRY_STAGES.map((stage) => stage.label),
     sourceNames: ["Website", "Referral", "Call", "Walk-in", "Manual Entry", "Other"],
     recommendedCustomFields: [
       { key: "destination", label: "Target Market", type: "text" },
@@ -440,7 +441,7 @@ export const VERTICAL_PRESET_DEFINITIONS: Record<IndustryPresetKey, VerticalPres
     key: "service_business",
     label: "Service Business",
     description: "Best for booking-heavy service teams.",
-    stageNames: ["New Request", "Contacted", "Estimate Sent", "Job Scheduled", "Completed", "Won", "Lost"],
+    stageNames: STARTER_INDUSTRY_STAGES.map((stage) => stage.label),
     sourceNames: ["Website", "Referral", "Call", "Walk-in", "Manual Entry", "Other"],
     recommendedCustomFields: [
       { key: "service_type", label: "Service Type", type: "select" },
@@ -455,7 +456,7 @@ export const VERTICAL_PRESET_DEFINITIONS: Record<IndustryPresetKey, VerticalPres
     key: "training_coaching",
     label: "Training / Coaching",
     description: "Enrollment and schedule-oriented defaults.",
-    stageNames: ["New Inquiry", "Contacted", "Class Recommended", "Payment Pending", "Enrolled", "Won", "Lost"],
+    stageNames: STARTER_INDUSTRY_STAGES.map((stage) => stage.label),
     sourceNames: ["Website", "Referral", "Manual Entry", "CSV Import", "Instagram", "Other"],
     recommendedCustomFields: [
       { key: "course_interest", label: "Course Interest", type: "text" },
@@ -470,7 +471,7 @@ export const VERTICAL_PRESET_DEFINITIONS: Record<IndustryPresetKey, VerticalPres
     key: "healthcare_clinic",
     label: "Healthcare / Clinic",
     description: "Patient inquiry-friendly defaults with scheduling context.",
-    stageNames: ["New Inquiry", "Contacted", "Appointment Booked", "Follow-up", "Completed", "Won", "Lost"],
+    stageNames: STARTER_INDUSTRY_STAGES.map((stage) => stage.label),
     sourceNames: ["Website", "Referral", "Call", "Walk-in", "Manual Entry", "Other"],
     recommendedCustomFields: [
       { key: "service_needed", label: "Service Needed", type: "text" },
@@ -485,7 +486,7 @@ export const VERTICAL_PRESET_DEFINITIONS: Record<IndustryPresetKey, VerticalPres
     key: "legal_professional_services",
     label: "Legal / Professional Services",
     description: "Intake and consultation defaults for service-led teams.",
-    stageNames: ["New Inquiry", "Contacted", "Consultation Booked", "Proposal Sent", "Engaged", "Won", "Lost"],
+    stageNames: STARTER_INDUSTRY_STAGES.map((stage) => stage.label),
     sourceNames: ["Website", "Referral", "Call", "Manual Entry", "CSV Import", "Other"],
     recommendedCustomFields: [
       { key: "service_area", label: "Service Area", type: "text" },

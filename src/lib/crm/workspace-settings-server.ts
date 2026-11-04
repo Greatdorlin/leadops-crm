@@ -1,3 +1,4 @@
+import { STARTER_INDUSTRY_STAGES } from "./industry-starter-stages";
 import "server-only";
 
 import { asc, eq, sql } from "drizzle-orm";
@@ -178,21 +179,23 @@ export async function applyVerticalPreset(
 
   const preset = getVerticalPreset(key);
   const [existingStages, existingSources, existingCustomFields] = await Promise.all([
-    listLeadStages(),
+    listLeadStages({ includeArchived: true }),
     listLeadSources(),
     listCustomFields(),
   ]);
 
-  for (const [index, stageName] of preset.stageNames.entries()) {
-    if (existingStages.some((stage) => stage.name.toLowerCase() === stageName.toLowerCase())) {
+  for (const [index, starter] of STARTER_INDUSTRY_STAGES.entries()) {
+    if (existingStages.some((stage) => stage.key === starter.value || stage.name.toLowerCase() === starter.label.toLowerCase())) {
       continue;
     }
 
     await createLeadStage({
-      name: stageName,
+      name: starter.label,
+      key: starter.value,
+      color: starter.color,
       sortOrder: index,
-      isWon: stageName.toLowerCase() === "won",
-      isLost: stageName.toLowerCase() === "lost",
+      isWon: starter.value === "won",
+      isLost: starter.value === "lost",
     });
   }
 

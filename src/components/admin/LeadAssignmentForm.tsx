@@ -1,5 +1,6 @@
 "use client";
 
+import { IconInput } from "./IconInput";
 import { startTransition, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Check, Gauge, Layers3, Search, UserRound } from "lucide-react";
@@ -173,16 +174,14 @@ export function LeadAssignmentForm({
           </span>
         </div>
 
-        <label className="relative block">
-          <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-white/70" />
-          <input
-            type="text"
-            value={leadQuery}
-            onChange={(event) => setLeadQuery(event.target.value)}
-            placeholder="Search leads by name or company"
-            className="admin-input ld-focus-ring h-11 w-full rounded-2xl pl-11 pr-4 text-sm outline-none"
-          />
-        </label>
+        <IconInput
+          icon={<Search />}
+          type="search"
+          value={leadQuery}
+          onChange={(event) => setLeadQuery(event.target.value)}
+          aria-label="Search leads by name or company"
+          placeholder="Search leads by name or company"
+        />
 
         <div className="relative grid max-h-56 gap-3 overflow-y-auto pr-1">
           {filteredLeadOptions.map((option) => {
@@ -229,16 +228,14 @@ export function LeadAssignmentForm({
           </span>
         </div>
 
-        <label className="relative block">
-          <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-white/70" />
-          <input
-            type="text"
-            value={assigneeQuery}
-            onChange={(event) => setAssigneeQuery(event.target.value)}
-            placeholder="Search owners by name"
-            className="admin-input ld-focus-ring h-11 w-full rounded-2xl pl-11 pr-4 text-sm outline-none"
-          />
-        </label>
+        <IconInput
+          icon={<Search />}
+          type="search"
+          value={assigneeQuery}
+          onChange={(event) => setAssigneeQuery(event.target.value)}
+          aria-label="Search owners by name"
+          placeholder="Search owners by name"
+        />
 
         <div className="relative grid gap-3 sm:grid-cols-2">
           {ownerChoices.map((option) => {

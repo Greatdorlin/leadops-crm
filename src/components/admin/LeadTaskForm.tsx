@@ -1,5 +1,6 @@
 "use client";
 
+import { IconInput } from "./IconInput";
 import { startTransition, useState } from "react";
 import { useRouter } from "next/navigation";
 import { CalendarClock, Check, ListTodo, Mail, PhoneCall, Search } from "lucide-react";
@@ -128,10 +129,7 @@ export function LeadTaskForm({
       {leadId ? null : (
         <div className="space-y-2">
           <span className={labelClass}>Lead</span>
-          <label className="relative block">
-            <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-white/55" />
-            <input value={leadSearch} onChange={(event) => setLeadSearch(event.target.value)} placeholder="Search leads" className="admin-input h-11 w-full rounded-2xl pl-10 pr-4 text-sm" />
-          </label>
+          <IconInput icon={<Search />} type="search" value={leadSearch} onChange={(event) => setLeadSearch(event.target.value)} aria-label="Search leads for task" placeholder="Search leads" />
           <AdminSelect value={selectedLeadId} onChange={(event) => setSelectedLeadId(event.target.value)} className="h-11">
             <option value="">Choose a lead</option>
             {leadOptions?.filter((option) => option.label.toLowerCase().includes(leadSearch.trim().toLowerCase())).map((option) => (

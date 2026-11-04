@@ -1,5 +1,6 @@
 "use client";
 
+import { IconInput } from "./IconInput";
 import { startTransition, useState, type ComponentType } from "react";
 import { useRouter } from "next/navigation";
 import { MapPin } from "lucide-react";
@@ -67,16 +68,11 @@ function ProfileInput({ label, value, onChange, placeholder, type = "text", clas
   return (
     <label className={["space-y-2", className].filter(Boolean).join(" ")}>
       <span className={labelClass}>{label}</span>
-      <span className="relative block">
-        {Icon ? <Icon aria-hidden={true} className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-white/42" /> : null}
-        <input
-          type={type}
-          value={value}
-          onChange={(event) => onChange(event.target.value)}
-          placeholder={placeholder}
-          className={["admin-input ld-focus-ring h-11 w-full rounded-2xl pr-4 text-sm outline-none", Icon ? "pl-10" : "px-4"].join(" ")}
-        />
-      </span>
+      {Icon ? (
+        <IconInput as="span" icon={<Icon />} type={type} value={value} onChange={(event) => onChange(event.target.value)} placeholder={placeholder} />
+      ) : (
+        <input type={type} value={value} onChange={(event) => onChange(event.target.value)} placeholder={placeholder} className="admin-input" />
+      )}
     </label>
   );
 }

@@ -1,5 +1,6 @@
 "use client";
 
+import { IconInput } from "./IconInput";
 import { Check, ChevronDown, MapPin, Search } from "lucide-react";
 import { useEffect, useId, useMemo, useRef, useState, type KeyboardEvent } from "react";
 import { COUNTRY_NAMES } from "@/lib/countries";
@@ -150,21 +151,20 @@ function SearchableLocationInput({
             description={allowCustom ? "Search the list or use a clear custom value." : "Search the available options."}
             onClose={() => setOpen(false)}
           />
-          <div className="relative m-1.5">
-            <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-white/45" />
-            <input
-              ref={searchRef}
-              type="search"
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-              onKeyDown={(event) => {
-                if (event.key === "ArrowDown") focusListOption(event, "first");
-              }}
-              placeholder={`Search ${label.toLocaleLowerCase()}`}
-              data-popover-autofocus="true"
-              className="admin-input ld-focus-ring h-11 w-full rounded-2xl pl-10 pr-4 text-sm outline-none"
-            />
-          </div>
+          <IconInput
+            icon={<Search />}
+            ref={searchRef}
+            type="search"
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === "ArrowDown") focusListOption(event, "first");
+            }}
+            aria-label={`Search ${label.toLocaleLowerCase()}`}
+            placeholder={`Search ${label.toLocaleLowerCase()}`}
+            data-popover-autofocus="true"
+            wrapperClassName="mb-2 shrink-0"
+          />
           <AdminPickerScrollArea id={listboxId} role="listbox" className="p-1.5">
             {canUseCustom ? (
               <button type="button" role="option" aria-selected="false" onClick={() => select(customValue)} onKeyDown={(event) => {

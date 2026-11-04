@@ -1,5 +1,6 @@
 "use client";
 
+import { IconInput } from "./IconInput";
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { ArrowUpDown, Plus, Search, X } from "lucide-react";
@@ -216,20 +217,18 @@ export function TeamSettingsWorkspace({
         <GlassCard glassStyle="vibrant" className="p-5 sm:p-6">
           <SectionHeader
             eyebrow="Team settings"
-            title="Control access with clarity"
-            description="Search, sort, and update people without cramming roster, profile, and settings into one page."
+            title="People and access"
+            description="Find team members and manage their workspace access."
           />
-          <div className="mt-5 grid gap-4 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center">
-            <label className="relative block">
-              <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-white/70" />
-              <input
-                type="search"
-                value={search}
-                onChange={(event) => setSearch(event.target.value)}
-                placeholder="Search by name, email, or access level"
-                className="admin-input h-12 w-full rounded-[20px] pl-11 pr-4 text-sm outline-none"
-              />
-            </label>
+          <div className="mt-5 grid gap-3 xl:grid-cols-[minmax(0,1fr)_auto] xl:items-center">
+            <IconInput
+              icon={<Search />}
+              aria-label="Search team by name, email, or access level"
+              type="search"
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              placeholder="Search team"
+            />
             <div className="flex flex-wrap gap-2">
               {[
                 { value: "active", label: "Active" },
@@ -239,6 +238,7 @@ export function TeamSettingsWorkspace({
                 <button
                   key={option.value}
                   type="button"
+                  aria-pressed={statusFilter === option.value}
                   onClick={() => setStatusFilter(option.value as typeof statusFilter)}
                   className={[
                     "inline-flex h-11 items-center justify-center rounded-2xl px-4 text-sm font-semibold transition",

@@ -167,7 +167,18 @@ export function AdminShell({
               <SmoothButton
                 variant="ghost"
                 size="sm"
-                className="shrink-0"
+                className="min-h-11 shrink-0"
+                aria-haspopup="dialog"
+                aria-expanded={mobileDrawerOpen}
+                onClick={() => setMobileDrawerOpen(true)}
+                icon={<Menu className="h-5 w-5" />}
+              >
+                Menu
+              </SmoothButton>
+              <SmoothButton
+                variant="ghost"
+                size="sm"
+                className="min-h-11 shrink-0 px-3"
                 onClick={() => {
                   if (window.history.length > 1) router.back();
                   else router.push(appRoutes.dashboard);
@@ -175,18 +186,7 @@ export function AdminShell({
                 icon={<ArrowLeft className="h-5 w-5" />}
                 aria-label="Go back"
               >
-                Back
-              </SmoothButton>
-              <SmoothButton
-                variant="ghost"
-                size="sm"
-                className="shrink-0"
-                aria-haspopup="dialog"
-                aria-expanded={mobileDrawerOpen}
-                onClick={() => setMobileDrawerOpen(true)}
-                icon={<Menu className="h-5 w-5" />}
-              >
-                Menu
+                <span className="sr-only">Back</span>
               </SmoothButton>
               <LeadsDeskWordmark
                 tone="light"

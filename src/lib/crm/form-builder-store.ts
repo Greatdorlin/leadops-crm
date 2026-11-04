@@ -12,6 +12,7 @@ import {
   leadTasks,
   leads,
 } from "@/lib/db/schema";
+import { applyWorkspaceAutomationsToNewLead } from "@/lib/crm/workspace-automations";
 import { leadEventTypes } from "@/lib/crm/lead-events";
 import type { LeadCustomFieldValueInputRecord } from "@/lib/crm/custom-field-values";
 import type {
@@ -499,7 +500,7 @@ export interface FormSubmissionLeadInput {
 export async function createLeadFromFormSubmission(
   submissionId: string,
   leadInput: FormSubmissionLeadInput,
-): Promise<{ leadId: string } | null> {
+): Promise<{ leadId: string; assignedUserId: string | null } | null> {
   const db = getDb();
 
   return db.transaction(async (tx) => {
@@ -626,7 +627,20 @@ export async function createLeadFromFormSubmission(
       })
       .where(eq(formSubmissions.id, submissionId));
 
-    return { leadId: createdLead.id };
+    const automationApplied = await applyWorkspaceAutomationsToNewLead(createdLead.id, tx).catch((error) => {
+      console.error("[public-form:workspace-automation]", { leadId: createdLead.id, error });
+      return false;
+    });
+    const routedLead = automationApplied
+      ? await tx.query.leads.findFirst({
+          where: eq(leads.id, createdLead.id),
+          columns: { assignedUserId: true },
+        })
+      : undefined;
+    return {
+      leadId: createdLead.id,
+      assignedUserId: routedLead?.assignedUserId ?? leadInput.assignedUserId ?? null,
+    };
   });
 }
 

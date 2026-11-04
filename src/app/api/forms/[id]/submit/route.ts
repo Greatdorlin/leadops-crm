@@ -273,7 +273,7 @@ export async function POST(
     createdLeadId: null,
   });
 
-  let leadResult: { leadId: string } | null = null;
+  let leadResult: Awaited<ReturnType<typeof createLeadFromFormSubmission>> = null;
   try {
     leadResult = await createLeadFromFormSubmission(submission.id, {
       firstName: firstName ?? "",
@@ -336,7 +336,7 @@ export async function POST(
   if (qualifiedOffers.length > 0) {
     try {
       await notifyLeadOffersQualified({
-        recipientUserId: resolvedAssignment.assignedUserId,
+        recipientUserId: leadResult.assignedUserId,
         leadId: leadResult.leadId,
         leadName: `${firstName || "Lead"} ${lastName || ""}`.trim(),
         offerLabels: qualifiedOffers,

@@ -99,13 +99,20 @@ async function validateImport(input: {
     );
   }
 
+  const rows = analysis.rows.map((row) => {
+    if (!row.parsedRow) return row;
+    const fields = validateCustomFieldValues(activeCustomFieldDefinitions, row.parsedRow.customFieldValues ?? {});
+    if (fields.success) return row;
+    return { ...row, parsedRow: null, error: Object.values(fields.fieldErrors)[0] ?? "Custom field values are invalid." };
+  });
+
   const staged = await stageDataImport({
     sourceSystem: input.sourceSystem,
     sourceFileName: input.sourceFileName,
     sourceText: input.csvText,
     createdBy: input.createdBy,
     fieldMapping: { headers: analysis.headers },
-    records: analysis.rows.map((row) => ({
+    records: rows.map((row) => ({
       rowNumber: row.rowNumber,
       sourceRecordId: row.sourceRecordId,
       sourceUpdatedAt: row.sourceUpdatedAt,
@@ -116,7 +123,7 @@ async function validateImport(input: {
       errorMessage: row.error,
     })),
   });
-  const failedRows = analysis.rows
+  const failedRows = rows
     .filter((row) => row.error)
     .slice(0, 100)
     .map((row) => ({ rowNumber: row.rowNumber, error: row.error ?? "Invalid row." }));
@@ -124,8 +131,8 @@ async function validateImport(input: {
   return {
     importId: staged.id,
     total: analysis.rows.length,
-    valid: analysis.rows.filter((row) => row.parsedRow).length,
-    failed: analysis.rows.filter((row) => row.error).length,
+    valid: rows.filter((row) => row.parsedRow).length,
+    failed: rows.filter((row) => row.error).length,
     failedRows,
   };
 }

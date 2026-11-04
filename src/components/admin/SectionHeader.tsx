@@ -1,6 +1,5 @@
 import type { ReactNode } from "react";
 import { cn } from "@/lib/cn";
-import { InfoTip } from "./ui/InfoTip";
 
 export function SectionHeader({
   eyebrow,
@@ -15,27 +14,14 @@ export function SectionHeader({
   actions?: ReactNode;
   className?: string;
 }) {
-  const useDescriptionTip = Boolean(description && description.length > 48);
-
   return (
-    <div className={cn("flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between", className)}>
-      <div>
-        {eyebrow ? (
-          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/70">
-            {eyebrow}
-          </p>
-        ) : null}
-        <div className="mt-2 flex items-center gap-2.5">
-          <h2 className="break-words font-[family:var(--font-heading)] text-[1.5rem] font-bold leading-[1.12] tracking-[-0.045em] text-white">
-            {title}
-          </h2>
-          {useDescriptionTip && description ? <InfoTip label={description} align="left" /> : null}
-        </div>
-        {description && !useDescriptionTip ? (
-          <p className="mt-2 max-w-3xl text-sm leading-7 text-white/70">{description}</p>
-        ) : null}
+    <div className={cn("flex flex-wrap items-start justify-between gap-x-5 gap-y-3", className)}>
+      <div className="min-w-0 flex-[1_1_14rem]">
+        {eyebrow ? <p className="mb-1 text-xs font-medium text-white/60">{eyebrow}</p> : null}
+        <h2 className="break-words text-xl font-semibold leading-tight tracking-[-0.025em] text-white">{title}</h2>
+        {description ? <p className="mt-1 max-w-2xl text-sm leading-6 text-white/70">{description}</p> : null}
       </div>
-      {actions ? <div className="flex shrink-0 flex-wrap items-center gap-3">{actions}</div> : null}
+      {actions ? <div className="flex min-w-0 flex-wrap items-center gap-2">{actions}</div> : null}
     </div>
   );
 }

@@ -24,7 +24,7 @@ export function MobileSidebarDrawer({
     <AdminOverlayPortal open={isOpen} onClose={onClose}>
       {/* Backdrop */}
       <div
-        className="fixed inset-0 z-40 bg-black/55 backdrop-blur-sm xl:hidden"
+        className="fixed inset-0 z-[140] bg-black/55 backdrop-blur-sm lg:hidden"
         onClick={onClose}
         aria-hidden="true"
       />
@@ -33,8 +33,8 @@ export function MobileSidebarDrawer({
       <div
         {...props}
         className={cn(
-          "fixed inset-y-0 left-0 z-50 flex h-[100dvh] w-[min(20rem,88vw)] max-w-none flex-col xl:hidden",
-          "ld-glass-sidebar ld-animate-slide-in-right",
+          "fixed inset-y-0 left-0 z-[150] flex h-[100dvh] w-[min(20rem,88vw)] max-w-none flex-col lg:hidden",
+          "border-r border-white/10 bg-[#15161c] text-white motion-safe:ld-animate-slide-in-right",
           "transition-transform duration-300 ease-[cubic-bezier(0.32,0.72,0,1.02)]",
           "touch-44",
           "translate-x-0",
@@ -48,6 +48,7 @@ export function MobileSidebarDrawer({
           <div className="flex items-center justify-between border-b border-white/[0.08] px-4 pb-3 pt-[max(0.75rem,env(safe-area-inset-top))]">
             <h2 className="text-base font-semibold">{title}</h2>
             <button
+              type="button"
               onClick={onClose}
               data-overlay-autofocus="true"
               className="touch-48 ld-focus-ring inline-flex items-center justify-center rounded-lg text-white/70 hover:bg-white/10 hover:text-white transition-colors"

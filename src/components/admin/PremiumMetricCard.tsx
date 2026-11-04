@@ -2,7 +2,6 @@ import type { LucideIcon } from "lucide-react";
 import { ArrowDownRight, ArrowUpRight } from "lucide-react";
 import type { ReactNode } from "react";
 import { cn } from "@/lib/cn";
-import { GlassCard } from "./GlassCard";
 
 export function PremiumMetricCard({
   label,
@@ -24,28 +23,27 @@ export function PremiumMetricCard({
   children?: ReactNode;
 }) {
   const TrendIcon = trend?.direction === "down" ? ArrowDownRight : ArrowUpRight;
-  const toneClass = {
-    default: "from-white/[0.07] to-white/[0.025]",
-    success: "from-emerald-400/18 to-white/[0.025]",
-    warning: "from-amber-400/18 to-white/[0.025]",
-    danger: "from-rose-400/18 to-white/[0.025]",
-    accent: "from-[color:var(--ld-color-accent)]/24 to-white/[0.025]",
+  const iconTone = {
+    default: "text-white/60",
+    success: "text-emerald-300",
+    warning: "text-amber-300",
+    danger: "text-rose-300",
+    accent: "text-[var(--ld-color-primary)]",
   }[tone];
 
   return (
-    <GlassCard className={cn("relative min-h-[132px] p-4", className)}>
-      <div className={cn("pointer-events-none absolute inset-0 bg-gradient-to-br", toneClass)} />
+    <section className={cn("relative rounded-xl border border-white/10 bg-white/[0.025] p-3.5 sm:p-4", className)}>
       <div className="relative flex h-full flex-col">
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-white/70">{label}</p>
-            <p className="mt-2 text-[1.9rem] font-semibold leading-none tracking-[-0.06em] text-white">
+        <div className="flex items-start justify-between gap-2">
+          <div className="min-w-0">
+            <p className="text-sm font-medium text-white/70">{label}</p>
+            <p className="mt-2 break-words text-xl font-semibold leading-tight tracking-[-0.04em] text-white tabular-nums sm:text-2xl">
               {value}
             </p>
           </div>
           {Icon ? (
-            <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-[15px] border border-white/10 bg-white/10 text-white">
-              <Icon className="h-4 w-4" />
+            <span aria-hidden="true" className={cn("inline-flex size-6 shrink-0 items-center justify-center", iconTone)}>
+              <Icon className="size-4" />
             </span>
           ) : null}
         </div>
@@ -64,9 +62,9 @@ export function PremiumMetricCard({
               {trend.label}
             </span>
           ) : null}
-          {subtitle ? <p className="mt-2 text-sm leading-6 text-white/70">{subtitle}</p> : null}
+          {subtitle ? <p className="text-xs leading-5 text-white/65">{subtitle}</p> : null}
         </div>
       </div>
-    </GlassCard>
+    </section>
   );
 }

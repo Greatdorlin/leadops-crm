@@ -68,11 +68,7 @@ export default async function AdminSalesTargetsPage() {
     logCrmPageError("settings-sales-targets", error);
   }
 
-  const defaultCurrency =
-    targets?.find((target) => !target.archived)?.currency ??
-    targets?.[0]?.currency ??
-    workspaceSettings?.globalCurrency ??
-    "USD";
+  const defaultCurrency = workspaceSettings?.globalCurrency ?? "USD";
 
   return (
     <AdminShell

@@ -198,11 +198,6 @@ function AdminMultiSelect({
                 aria-selected={selected}
                 data-popover-autofocus={selected || undefined}
                 disabled={option.disabled}
-                onPointerDown={(event) => {
-                  event.preventDefault();
-                  event.stopPropagation();
-                  toggle(option.value);
-                }}
                 onClick={() => toggle(option.value)}
                 onKeyDown={(event) => {
                   if (event.key === "Enter" || event.key === " ") {
@@ -356,11 +351,6 @@ export function AdminSelect({
                   aria-selected={option.value === selectedValue}
                   data-popover-autofocus={option.value === selectedValue || undefined}
                   disabled={option.disabled}
-                  onPointerDown={(event) => {
-                    event.preventDefault();
-                    event.stopPropagation();
-                    choose(option.value);
-                  }}
                   onClick={() => choose(option.value)}
                   onKeyDown={(event) => {
                     if (event.key === "Enter" || event.key === " ") {

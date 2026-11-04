@@ -8,6 +8,7 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   SlidersHorizontal,
+  UserRound,
 } from "lucide-react";
 import type { AdminAccessLevel } from "@/lib/admin-permissions";
 import { LeadsDeskWordmark } from "@/components/brand/LeadsDeskWordmark";
@@ -20,7 +21,6 @@ import { getAdminNavigation } from "./navigation";
 import { TeamAvatar } from "./TeamAvatar";
 import { GlassSurface } from "./ui/GlassSurface";
 import { SmoothButton } from "./ui/SmoothButton";
-import { MobileSidebarDrawer } from "./ui/MobileSidebarDrawer";
 
 function DefaultSidebarFooter({
   accessLevel,
@@ -132,12 +132,6 @@ function SidebarContent({
   onToggleCollapse,
 }: SidebarContentProps) {
   const workspaceSettings = useAdminWorkspaceSettings();
-  const navigation = getAdminNavigation(
-    accessLevel,
-    role,
-    workspaceSettings.navigation,
-    permissions,
-  );
   const resolvedCompanyName = companyName ?? workspaceSettings.companyName;
 
   return (
@@ -145,7 +139,7 @@ function SidebarContent({
       <div
         className={cn(
           "relative flex min-w-0 items-center px-2 py-2 ld-animate-fade-in-up",
-          collapsed ? "justify-center" : "justify-between gap-2",
+          collapsed ? "flex-col justify-center gap-2 px-0" : "justify-between gap-2",
         )}
       >
         <LeadsDeskWordmark
@@ -164,6 +158,7 @@ function SidebarContent({
             type="button"
             onClick={onToggleCollapse}
             aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+            aria-expanded={!collapsed}
             title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
             className="admin-icon-button h-8 w-8 shrink-0 border-white/10 bg-white/[0.06] text-white/70 shadow-none hover:bg-white/[0.12] hover:text-white"
           >
@@ -176,71 +171,20 @@ function SidebarContent({
         ) : null}
       </div>
 
-      <nav
-        className={cn(
-          "relative mt-6 min-h-0 flex-1 space-y-1 overflow-y-auto ld-sidebar-nav-scroll",
-          collapsed && "w-full",
-        )}
-      >
-        {navigation.map((item, index) => {
-          const Icon = item.icon;
-          const isActive = item.key === activeKey;
+      <SidebarNavigation
+        activeKey={activeKey}
+        accessLevel={accessLevel}
+        role={role}
+        permissions={permissions}
+        collapsed={collapsed}
+        className="mt-5 min-h-0 w-full flex-1 overflow-y-auto ld-sidebar-nav-scroll"
+      />
 
-          return (
-            <Link
-              key={item.key}
-              href={item.href}
-              prefetch={false}
-              title={collapsed ? item.label : undefined}
-              aria-current={isActive ? "page" : undefined}
-              className={cn(
-                "group relative flex min-h-[44px] items-center gap-3 overflow-hidden rounded-[16px] border px-2.5 py-2 transition duration-200",
-                "ld-animate-fade-in-up",
-                isActive
-                  ? "border-white/20 bg-[linear-gradient(135deg,color-mix(in_srgb,var(--ld-color-primary)_30%,transparent),color-mix(in_srgb,var(--ld-color-accent)_22%,transparent))] text-white shadow-[0_12px_28px_color-mix(in_srgb,var(--ld-color-primary)_18%,transparent),inset_0_1px_0_rgba(255,255,255,0.16)] ld-hover-lift"
-                  : "border-transparent text-white/80 hover:border-white/14 hover:bg-white/[0.08] hover:text-white",
-                collapsed && "justify-center px-0",
-              )}
-              style={{ animationDelay: `${index * 50}ms` }}
-            >
-              {isActive ? (
-                <>
-                  <span className="absolute inset-y-2 left-0 w-1 rounded-full bg-[var(--ld-color-primary)] shadow-[0_0_18px_color-mix(in_srgb,var(--ld-color-primary)_60%,transparent),0_0_8px_color-mix(in_srgb,var(--ld-color-primary)_40%,transparent)]" />
-                  <span className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_10%_50%,color-mix(in_srgb,var(--ld-color-primary)_30%,transparent),transparent_30%)]" />
-                  <span className="pointer-events-none absolute inset-x-5 top-0 h-px bg-white/24" />
-                  <span className="pointer-events-none absolute inset-0 ld-glow-primary rounded-[16px]" />
-                </>
-              ) : null}
-              <span
-                className={cn(
-                  "relative inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-[12px] border transition duration-200 ld-focus-ring",
-                  isActive
-                    ? "border-white/20 bg-white/[0.13] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.18)]"
-                    : "border-transparent bg-transparent text-white/70 group-hover:bg-white/[0.08] group-hover:text-white/90",
-                )}
-              >
-                <Icon
-                  className={cn(
-                    "h-[18px] w-[18px] transition-transform duration-200",
-                    isActive &&
-                      "drop-shadow-[0_0_10px_color-mix(in_srgb,var(--ld-color-accent)_45%,transparent)]",
-                    "group-hover:scale-105",
-                  )}
-                />
-              </span>
-              {collapsed ? null : (
-                <span className="relative min-w-0">
-                  <span className="block truncate text-[13px] font-semibold tracking-[-0.01em]">
-                    {item.label}
-                  </span>
-                </span>
-              )}
-            </Link>
-          );
-        })}
-      </nav>
-
-      {!collapsed ? (
+      {collapsed ? (
+        <Link href={appRoutes.profile} prefetch={false} aria-label="My profile" title="My profile" className="ld-focus-ring mt-2 grid size-11 shrink-0 place-items-center rounded-lg text-white/70 hover:bg-white/8 hover:text-white">
+          <UserRound aria-hidden="true" className="size-[18px]" />
+        </Link>
+      ) : (
         <div className="relative mt-auto border-t border-white/[0.07] pt-3">
           {footer ?? (
             <DefaultSidebarFooter
@@ -252,62 +196,43 @@ function SidebarContent({
             />
           )}
         </div>
-      ) : null}
+      )}
     </>
   );
 }
 
-export function AdminSidebarMobileDrawer({
-  isOpen,
-  onClose,
-  activeKey,
-  accessLevel,
-  role,
-  permissions,
-  footer,
-  companyName,
-  logoUrl,
-  userName,
-  userEmail,
-  userAvatarUrl,
-}: {
-  isOpen: boolean;
-  onClose: () => void;
-  activeKey: string;
-  accessLevel: AdminAccessLevel;
-  role?: CrmUserRole | null;
-  permissions: readonly PermissionKey[];
-  footer?: ReactNode;
-  companyName?: string;
-  logoUrl?: string | null;
-  userName?: string | null;
-  userEmail?: string | null;
-  userAvatarUrl?: string | null;
+export function SidebarNavigation({
+  activeKey, accessLevel, role, permissions, collapsed = false, onNavigate, className,
+}: Pick<SidebarContentProps, "activeKey" | "accessLevel" | "role" | "permissions" | "collapsed"> & {
+  onNavigate?: () => void;
+  className?: string;
 }) {
-  const workspaceSettings = useAdminWorkspaceSettings();
+  const settings = useAdminWorkspaceSettings();
+  const navigation = getAdminNavigation(accessLevel, role, settings.navigation, permissions);
 
   return (
-    <MobileSidebarDrawer
-      isOpen={isOpen}
-      onClose={onClose}
-      title={workspaceSettings.companyName ?? "Leads Desk"}
-    >
-      <div className="flex h-full flex-col p-3">
-        <SidebarContent
-          activeKey={activeKey}
-          accessLevel={accessLevel}
-          role={role}
-          permissions={permissions}
-          footer={footer}
-          collapsed={false}
-          companyName={companyName}
-          logoUrl={logoUrl}
-          userName={userName}
-          userEmail={userEmail}
-          userAvatarUrl={userAvatarUrl}
-        />
-      </div>
-    </MobileSidebarDrawer>
+    <nav aria-label="Workspace" className={cn("space-y-1", className)}>
+      {navigation.map(({ key, href, label, icon: Icon }) => (
+        <Link
+          key={key}
+          href={href}
+          prefetch={false}
+          onClick={onNavigate}
+          title={collapsed ? label : undefined}
+          aria-current={key === activeKey ? "page" : undefined}
+          className={cn(
+            "ld-focus-ring flex min-h-11 items-center gap-3 rounded-lg px-3 text-sm font-medium transition-colors",
+            key === activeKey
+              ? "bg-white/12 text-white"
+              : "text-white/70 hover:bg-white/7 hover:text-white",
+            collapsed && "justify-center px-0",
+          )}
+        >
+          <Icon aria-hidden="true" className={cn("size-[18px] shrink-0", key === activeKey && "text-[var(--ld-color-primary)]")} />
+          <span className={collapsed ? "sr-only" : "min-w-0 truncate"}>{label}</span>
+        </Link>
+      ))}
+    </nav>
   );
 }
 
@@ -339,18 +264,14 @@ export function AdminSidebar({
   userAvatarUrl?: string | null;
 }) {
   return (
-    <aside className="hidden xl:block">
+    <aside className="hidden lg:block">
       <div
         className={cn(
-          "admin-sidebar-panel ld-glass-sidebar sticky top-4 flex h-[calc(100vh-2rem)] flex-col overflow-hidden rounded-[28px] p-3 text-white shadow-[0_26px_70px_rgba(1,6,18,0.36)] transition-[width,padding,opacity] duration-[350ms]",
+          "sticky top-4 flex h-[calc(100dvh-2rem)] flex-col overflow-hidden rounded-2xl border border-white/10 bg-[color:color-mix(in_srgb,var(--ld-color-sidebar)_85%,#14151b)] p-3 text-white",
           "ease-[cubic-bezier(0.32,0.72,0,1.02)]",
           collapsed && "items-center px-2.5",
         )}
       >
-        <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.075),transparent_18%,rgba(255,255,255,0.026)_100%)]" />
-        <div className="pointer-events-none absolute -left-24 top-16 h-52 w-52 rounded-full bg-[var(--ld-color-primary)]/14 blur-3xl" />
-        <div className="pointer-events-none absolute -right-20 top-28 h-56 w-56 rounded-full bg-[var(--ld-color-accent)]/16 blur-3xl" />
-
         <SidebarContent
           activeKey={activeKey}
           accessLevel={accessLevel}

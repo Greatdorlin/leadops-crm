@@ -1,9 +1,10 @@
 "use client";
 
 import type { CSSProperties, PropsWithChildren, ReactNode } from "react";
-import { useState } from "react";
-import { ArrowLeft, Menu } from "lucide-react";
+import { useEffect, useState, useSyncExternalStore } from "react";
+import { ArrowLeft, Menu, UserRound } from "lucide-react";
 import Link from "next/link";
+import { appRoutes } from "@/lib/app-routes";
 import { useRouter } from "next/navigation";
 import {
   getStoredRoleForAccessLevel,
@@ -14,22 +15,19 @@ import {
   resolvePermissionList,
   type PermissionKey,
 } from "@/lib/crm/role-permissions-contract";
-import { cn } from "@/lib/cn";
 import {
   buildThemeCssVariables,
   getDensityClass,
   getDesignStyleClass,
 } from "@/lib/crm/workspace-settings";
 import { LeadsDeskWordmark } from "@/components/brand/LeadsDeskWordmark";
-import { AdminSidebar } from "./AdminSidebar";
+import { AdminSidebar, SidebarNavigation } from "./AdminSidebar";
 import { AdminSignOutButton } from "./AdminSignOutButton";
 import { AdminTopbar } from "./AdminTopbar";
 import { useAdminPermissions } from "./AdminAuthorizationProvider";
 import { useAdminWorkspaceSettings } from "./AdminWorkspaceSettingsProvider";
 import { MobileSidebarDrawer } from "./ui/MobileSidebarDrawer";
 import { SmoothButton } from "./ui/SmoothButton";
-import { PageTransition } from "./ui/PageTransition";
-import { getAdminNavigation } from "./navigation";
 
 interface AdminShellProps extends PropsWithChildren {
   activeNav: string;
@@ -46,6 +44,21 @@ interface AdminShellProps extends PropsWithChildren {
   userName?: string | null;
   userEmail?: string | null;
   userAvatarUrl?: string | null;
+}
+
+const sidebarPreferenceKey = "ld_admin_sidebar_collapsed";
+
+function subscribeSidebarPreference(callback: () => void) {
+  window.addEventListener("storage", callback);
+  window.addEventListener(sidebarPreferenceKey, callback);
+  return () => {
+    window.removeEventListener("storage", callback);
+    window.removeEventListener(sidebarPreferenceKey, callback);
+  };
+}
+
+function readSidebarPreference() {
+  return window.localStorage.getItem(sidebarPreferenceKey) === "1";
 }
 
 function getGlassStyle(settings: ReturnType<typeof useAdminWorkspaceSettings>) {
@@ -71,8 +84,6 @@ export function AdminShell({
   accessLevel = "general_admin",
   role,
   permissions,
-  actualAccessLevel,
-  canSwitchAccessViews,
   title,
   description,
   actions,
@@ -91,7 +102,7 @@ export function AdminShell({
     permissions ?? contextPermissions,
     fallbackRole,
   );
-  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const isSidebarCollapsed = useSyncExternalStore(subscribeSidebarPreference, readSidebarPreference, () => false);
   const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
   const adminThemeStyle = buildThemeCssVariables(workspaceSettings) as CSSProperties;
   const shellClasses = [
@@ -102,15 +113,19 @@ export function AdminShell({
   const glassStyle = getGlassStyle(workspaceSettings);
 
   function toggleSidebar() {
-    setIsSidebarCollapsed((current) => !current);
+    window.localStorage.setItem(sidebarPreferenceKey, isSidebarCollapsed ? "0" : "1");
+    window.dispatchEvent(new Event(sidebarPreferenceKey));
   }
 
-  const navigation = getAdminNavigation(
-    accessLevel,
-    role,
-    workspaceSettings.navigation,
-    resolvedPermissions,
-  );
+  useEffect(() => {
+    if (!mobileDrawerOpen) return;
+    const desktop = window.matchMedia("(min-width: 64rem)");
+    const closeOnDesktop = () => {
+      if (desktop.matches) setMobileDrawerOpen(false);
+    };
+    desktop.addEventListener("change", closeOnDesktop);
+    return () => desktop.removeEventListener("change", closeOnDesktop);
+  }, [mobileDrawerOpen]);
 
   return (
     <div
@@ -124,37 +139,38 @@ export function AdminShell({
     >
       <div className="ld-bg-overlay" aria-hidden="true" />
       <div className="relative z-10 min-h-[100dvh] px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-[max(0.75rem,env(safe-area-inset-top))] sm:p-4">
+        <a href="#workspace-content" className="sr-only focus:not-sr-only focus:absolute focus:z-50 focus:rounded-lg focus:bg-zinc-900 focus:p-3">Skip to content</a>
         <div
           className={[
-            "grid min-h-[calc(100vh-1.5rem)] gap-3 xl:gap-4",
+            "grid min-h-[calc(100vh-1.5rem)] gap-4 lg:gap-6",
             isSidebarCollapsed
-              ? "xl:grid-cols-[92px_minmax(0,1fr)]"
-              : "xl:grid-cols-[var(--ld-sidebar-width)_minmax(0,1fr)]",
+              ? "lg:grid-cols-[76px_minmax(0,1fr)]"
+              : "lg:grid-cols-[min(220px,var(--ld-sidebar-width))_minmax(0,1fr)] xl:grid-cols-[var(--ld-sidebar-width)_minmax(0,1fr)]",
           ].join(" ")}
         >
-            <AdminSidebar
-              activeKey={activeNav}
-              accessLevel={accessLevel}
-              role={role}
-              permissions={resolvedPermissions}
-              footer={sidebarFooter}
-              collapsed={isSidebarCollapsed}
-              onToggleCollapse={toggleSidebar}
-              companyName={workspaceSettings.companyName}
-              logoUrl={workspaceSettings.logoUrl}
-              userName={userName}
-              userEmail={userEmail}
-              userAvatarUrl={userAvatarUrl}
-            />
-          <div className="min-w-0">
-            <div className="sticky top-0 z-40 -mx-1 flex min-w-0 items-center gap-2 rounded-[20px] border border-white/10 bg-[color:color-mix(in_srgb,var(--ld-color-background)_82%,transparent)] px-2 py-2 shadow-[0_14px_34px_rgba(0,0,0,0.24)] backdrop-blur-2xl xl:hidden">
+          <AdminSidebar
+            activeKey={activeNav}
+            accessLevel={accessLevel}
+            role={role}
+            permissions={resolvedPermissions}
+            footer={sidebarFooter}
+            collapsed={isSidebarCollapsed}
+            onToggleCollapse={toggleSidebar}
+            companyName={workspaceSettings.companyName}
+            logoUrl={workspaceSettings.logoUrl}
+            userName={userName}
+            userEmail={userEmail}
+            userAvatarUrl={userAvatarUrl}
+          />
+          <div className="mx-auto w-full min-w-0 max-w-[100rem]">
+            <div className="sticky top-0 z-40 mb-2 flex min-w-0 items-center gap-1 rounded-xl border border-white/10 bg-[color:var(--ld-color-background)] p-1.5 lg:hidden">
               <SmoothButton
                 variant="ghost"
                 size="sm"
                 className="shrink-0"
                 onClick={() => {
                   if (window.history.length > 1) router.back();
-                  else router.push("/admin");
+                  else router.push(appRoutes.dashboard);
                 }}
                 icon={<ArrowLeft className="h-5 w-5" />}
                 aria-label="Go back"
@@ -165,6 +181,8 @@ export function AdminShell({
                 variant="ghost"
                 size="sm"
                 className="shrink-0"
+                aria-haspopup="dialog"
+                aria-expanded={mobileDrawerOpen}
                 onClick={() => setMobileDrawerOpen(true)}
                 icon={<Menu className="h-5 w-5" />}
               >
@@ -183,21 +201,13 @@ export function AdminShell({
               />
             </div>
             <AdminTopbar
-              activeNav={activeNav}
-              accessLevel={accessLevel}
-              role={role}
-              permissions={resolvedPermissions}
-              actualAccessLevel={actualAccessLevel}
-              canSwitchAccessViews={canSwitchAccessViews}
               title={title}
               description={description}
               actions={actions}
               searchSlot={searchSlot}
             />
-            <main className="scroll-smooth px-0 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-4 sm:pb-6 sm:pt-5">
-              <PageTransition key={activeNav}>
-                <div className="w-full">{children}</div>
-              </PageTransition>
+            <main id="workspace-content" tabIndex={-1} className="scroll-smooth px-0 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-4 sm:pb-6 sm:pt-5">
+              {children}
             </main>
           </div>
         </div>
@@ -208,43 +218,21 @@ export function AdminShell({
         onClose={() => setMobileDrawerOpen(false)}
         title="Navigation"
       >
-        <nav className="space-y-1 p-3">
-          {navigation.map((item) => {
-            const isActive = item.key === activeNav;
-            return (
-              <Link
-                key={item.key}
-                href={item.href}
-                prefetch={false}
-                onClick={() => setMobileDrawerOpen(false)}
-                className={cn(
-                  "flex items-center gap-3 rounded-[16px] border px-3 py-2.5 transition duration-200",
-                  isActive
-                    ? "border-white/20 bg-[linear-gradient(135deg,color-mix(in_srgb,var(--ld-color-primary)_30%,transparent),color-mix(in_srgb,var(--ld-color-accent)_22%,transparent))] text-white shadow-[0_12px_28px_color-mix(in_srgb,var(--ld-color-primary)_18%,transparent),inset_0_1px_0_rgba(255,255,255,0.16)]"
-                    : "border-transparent text-white/70 hover:border-white/10 hover:bg-white/[0.055] hover:text-white"
-                )}
-              >
-                <span
-                  className={cn(
-                    "inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-[12px] border transition duration-200",
-                    isActive
-                      ? "border-white/20 bg-white/[0.13] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.18)]"
-                      : "border-transparent bg-transparent text-white/70"
-                  )}
-                >
-                  <item.icon className="h-[18px] w-[18px]" />
-                </span>
-                <span className="relative min-w-0">
-                  <span className="block truncate text-[13px] font-semibold tracking-[-0.01em]">{item.label}</span>
-                </span>
-              </Link>
-            );
-          })}
-        </nav>
+        <SidebarNavigation
+          activeKey={activeNav}
+          accessLevel={accessLevel}
+          role={role}
+          permissions={resolvedPermissions}
+          onNavigate={() => setMobileDrawerOpen(false)}
+          className="p-3"
+        />
         {sidebarFooter ? (
           <div className="border-t border-white/[0.07] p-3">{sidebarFooter}</div>
         ) : null}
-        <div className="border-t border-white/[0.07] p-3 sm:hidden">
+        <div className="space-y-2 border-t border-white/[0.07] p-3">
+          <Link href={appRoutes.profile} onClick={() => setMobileDrawerOpen(false)} className="ld-focus-ring flex min-h-11 items-center gap-3 rounded-lg px-3 text-sm font-medium text-white/75 hover:bg-white/8 hover:text-white">
+            <UserRound aria-hidden="true" className="size-[18px]" /> My profile
+          </Link>
           <AdminSignOutButton mobile />
         </div>
       </MobileSidebarDrawer>

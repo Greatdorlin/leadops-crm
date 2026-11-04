@@ -2,7 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import {
   Activity,
-  ArrowUpRight,
+  ChevronRight,
   BarChart3,
   Bell,
   Building2,
@@ -188,20 +188,18 @@ export default async function AdminSettingsPage() {
       key: "company",
       eyebrow: "Company",
       title: "Business setup",
-      tip: "Keep ownership, branch coverage, team access, and currency defaults aligned before leads start moving.",
       items: [
         { label: "Team settings", href: appRoutes.settingsTeam, enabled: canOpenTeam, copy: "People, access, and roster coverage.", icon: Users2 },
         { label: "Branches", href: appRoutes.settingsBranches, enabled: canOpenBranches, copy: "Locations and branch ownership.", icon: Building2 },
         { label: "Region & currency", href: appRoutes.settingsCurrency, enabled: canOpenCurrency, copy: "Location, time zone, and money.", icon: CircleDollarSign },
-        { label: "Role permissions", href: appRoutes.settingsRolePermissions, enabled: canOpenRolePermissions, copy: "What each role can touch.", icon: ShieldCheck },
-        { label: "Access and registration", href: appRoutes.settingsAccess, enabled: canOpenOwnerAccess, copy: "Approved domains and safe account creation.", icon: ShieldCheck },
+        { label: "Role permissions", href: appRoutes.settingsRolePermissions, enabled: canOpenRolePermissions, copy: "Permissions for each workspace role.", icon: ShieldCheck },
+        { label: "Access and registration", href: appRoutes.settingsAccess, enabled: canOpenOwnerAccess, copy: "Approved domains and account registration.", icon: ShieldCheck },
       ],
     },
     {
       key: "pipeline",
       eyebrow: "Pipeline",
       title: "Lead operations",
-      tip: "These settings shape qualification, offer routing, source reporting, and the values shown across the dashboard.",
       items: [
         { label: "Lead fields", href: appRoutes.settingsFields, enabled: canOpenCustomFields, copy: "Business-specific lead data.", icon: ListChecks },
         { label: "Lead stages", href: appRoutes.settingsStages, enabled: canOpenLeadStages, copy: "Pipeline stages and outcome states.", icon: Rows3 },
@@ -216,13 +214,12 @@ export default async function AdminSettingsPage() {
       key: "workspace",
       eyebrow: "Workspace",
       title: "Brand and layout",
-      tip: "These controls change how the workspace looks, what users see first, and how quickly they can act.",
       items: [
         { label: "Appearance", href: appRoutes.settingsAppearance, enabled: canOpenAppearance, copy: "Logo, color system, and login branding.", icon: Palette },
         { label: "Navigation", href: appRoutes.settingsNavigation, enabled: canOpenNavigation, copy: "Sidebar order, labels, and visibility.", icon: PanelLeft },
         { label: "Lead preview", href: appRoutes.settingsLeadPreview, enabled: canOpenLeadPreview, copy: "Preview cards and mobile fields.", icon: Rows3 },
         { label: "Dashboard", href: appRoutes.settingsDashboard, enabled: canOpenDashboard, copy: "Widgets, order, and visibility.", icon: LayoutDashboard },
-        { label: "Industry", href: appRoutes.settingsIndustry, enabled: canOpenIndustry, copy: "Safer defaults for your business type.", icon: WandSparkles },
+        { label: "Industry", href: appRoutes.settingsIndustry, enabled: canOpenIndustry, copy: "Recommended stages, sources, and fields.", icon: WandSparkles },
         { label: "Profile", href: appRoutes.profile, enabled: Boolean(session.user?.email), copy: "Your own name and photo.", icon: UserRound },
       ],
     },
@@ -230,7 +227,6 @@ export default async function AdminSettingsPage() {
       key: "system",
       eyebrow: "Oversight",
       title: "Reports and controls",
-      tip: "Use these pages when you need proof, exports, notifications, or deployment-readiness checks.",
       items: [
         { label: "Reports", href: appRoutes.reports, enabled: canOpenReports, copy: "Performance, exports, and summaries.", icon: BarChart3 },
         { label: "Notifications", href: appRoutes.notifications, enabled: true, copy: "Follow-up and assignment alerts.", icon: Bell },
@@ -265,46 +261,41 @@ export default async function AdminSettingsPage() {
       <div className="space-y-6">
         {pageData ? (
           <>
-            <section className="grid gap-6 xl:grid-cols-2">
+            <nav aria-label="Settings sections" className="flex flex-wrap gap-2">
               {visibleSettingsGroups.map((group) => (
-                <GlassCard key={group.key} glassStyle="soft" className="p-5 sm:p-6">
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/70">
-                        {group.eyebrow}
-                      </p>
-                      <h2 className="mt-2 font-[family:var(--font-heading)] text-[1.45rem] leading-[1.02] tracking-[-0.05em] text-white">
-                        {group.title}
-                      </h2>
-                    </div>
-                    <InfoTip label={group.tip} align="right" />
-                  </div>
-                  <div className="mt-5 grid gap-3 md:grid-cols-2">
-                    {group.items.map((item) => (
-                      <Link
-                        key={item.label}
-                        href={item.href}
-                        prefetch={false}
-                        className="group rounded-[22px] border border-white/10 bg-white/[0.045] p-4 transition hover:-translate-y-0.5 hover:border-white/20 hover:bg-white/[0.08] hover:shadow-[0_18px_42px_rgba(0,0,0,0.2)]"
-                      >
-                        <div className="flex items-start gap-3">
-                          <span className="grid h-10 w-10 shrink-0 place-items-center rounded-[14px] border border-white/12 bg-white/[0.06] text-white/78 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] transition group-hover:border-white/20 group-hover:text-white">
-                            <item.icon className="h-[18px] w-[18px]" />
-                          </span>
-                          <div className="min-w-0">
-                            <p className="text-sm font-semibold text-white">{item.label}</p>
-                            <p className="mt-1.5 text-sm leading-5 text-white/68">{item.copy}</p>
-                          </div>
-                          <span className="ml-auto grid h-8 w-8 shrink-0 place-items-center rounded-full border border-white/10 bg-white/[0.04] text-white/48 transition group-hover:border-white/18 group-hover:bg-white/[0.08] group-hover:text-white">
-                            <ArrowUpRight className="h-4 w-4" />
-                          </span>
-                        </div>
-                      </Link>
-                    ))}
-                  </div>
-                </GlassCard>
+                <a key={group.key} href={`#settings-${group.key}`} className="ld-focus-ring rounded-lg border border-white/10 px-3 py-2 text-sm text-white/75 transition-colors hover:bg-white/8 hover:text-white">
+                  {group.eyebrow}
+                </a>
               ))}
-            </section>
+            </nav>
+            <div className="grid items-start gap-5 2xl:grid-cols-2">
+              {visibleSettingsGroups.map((group) => (
+                <section key={group.key} id={`settings-${group.key}`} aria-labelledby={`settings-heading-${group.key}`} className="scroll-mt-24 rounded-xl border border-white/10 bg-white/[0.025]">
+                  <div className="px-4 py-4 sm:px-5">
+                    <p className="text-xs font-medium text-white/60">{group.eyebrow}</p>
+                    <h2 id={`settings-heading-${group.key}`} className="mt-1 text-lg font-semibold text-white">{group.title}</h2>
+                  </div>
+                  <ul className="divide-y divide-white/8 border-t border-white/8">
+                    {group.items.map((item) => (
+                      <li key={item.label}>
+                        <Link
+                          href={item.href}
+                          prefetch={false}
+                          className="ld-focus-ring flex min-h-14 items-center gap-3 px-4 py-3 transition-colors hover:bg-white/[0.055] sm:px-5"
+                        >
+                          <item.icon aria-hidden="true" className="size-[18px] shrink-0 text-white/60" />
+                          <span className="min-w-0 flex-1">
+                            <span className="block text-sm font-medium text-white">{item.label}</span>
+                            <span className="mt-0.5 block text-sm leading-5 text-white/65">{item.copy}</span>
+                          </span>
+                          <ChevronRight aria-hidden="true" className="size-4 shrink-0 text-white/50" />
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
+                </section>
+              ))}
+            </div>
 
             {canOpenIntegrations ? (
               <GlassCard glassStyle="soft" className="p-5 sm:p-6">

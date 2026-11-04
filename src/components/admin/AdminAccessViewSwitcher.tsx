@@ -17,13 +17,16 @@ export function AdminAccessViewSwitcher({
 }) {
   const router = useRouter();
   const [pendingLevel, setPendingLevel] = useState<AdminAccessLevel | null>(null);
+  const [error, setError] = useState("");
   const [isOpen, setIsOpen] = useState(false);
 
   async function updateAccessView(nextAccessLevel: AdminAccessLevel) {
+    if (pendingLevel || nextAccessLevel === activeAccessLevel) return;
     setPendingLevel(nextAccessLevel);
+    setError("");
 
     try {
-      await fetch("/api/admin/access-view", {
+      const response = await fetch("/api/admin/access-view", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -33,9 +36,13 @@ export function AdminAccessViewSwitcher({
         }),
       });
 
+      if (!response.ok) throw new Error("Access view update failed");
+
       startTransition(() => {
         router.refresh();
       });
+    } catch {
+      setError("Couldn’t switch views. Please try again.");
     } finally {
       setPendingLevel(null);
     }
@@ -56,12 +63,15 @@ export function AdminAccessViewSwitcher({
         <SmoothButton
           variant="secondary"
           size="sm"
+          aria-expanded={isOpen}
           onClick={() => setIsOpen((current) => !current)}
           icon={<ChevronDown className={cn("h-4 w-4 transition", isOpen ? "rotate-180" : "")} />}
         >
           {isOpen ? "Hide options" : "Change view"}
         </SmoothButton>
       </div>
+
+      {error ? <p role="alert" className="mt-3 text-sm text-rose-200">{error}</p> : null}
 
       {isOpen ? (
         <div className="mt-3 flex flex-wrap gap-2 border-t border-white/10 pt-3">
@@ -74,6 +84,7 @@ export function AdminAccessViewSwitcher({
                 key={level}
                 type="button"
                 disabled={pendingLevel !== null}
+                aria-pressed={isActive}
                 onClick={() => void updateAccessView(level)}
                 className={cn(
                   "inline-flex h-10 items-center justify-center rounded-full border px-4 text-sm font-medium transition",

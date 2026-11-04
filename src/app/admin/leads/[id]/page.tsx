@@ -62,6 +62,7 @@ import { loadAdminLeadReadContext } from "@/lib/crm/admin-read-context";
 import { listCustomFields } from "@/lib/crm/custom-fields-admin";
 import { isLeadClosed } from "@/lib/crm/sales-command";
 import { listLeadOpportunities } from "@/lib/crm/lead-opportunities";
+import { calculateExpectedValue } from "@/lib/crm/lead-opportunity-contract";
 import { formatLeadAuditChanges } from "@/lib/crm/lead-audit-events";
 import { listLeadSources } from "@/lib/crm/lead-sources-admin";
 import { listLeadStages } from "@/lib/crm/lead-stages-admin";
@@ -329,6 +330,7 @@ export default async function AdminLeadDetailPage({
   editableCustomFields = editableCustomFields.filter(
     (field) => field.showInForm && !field.archived,
   );
+  const configuredLeadStage = configuredStageOptions.find((stage) => stage.id === lead.stageId);
   configuredStageOptions = configuredStageOptions.filter((stage) => !stage.archived);
   const leadView = buildAdminLeadDetailView(lead, {
     nextFollowUpAt: lead.nextFollowUpAt ?? nextTask?.dueAt ?? null,
@@ -338,11 +340,12 @@ export default async function AdminLeadDetailPage({
     customFieldDefinitions: readContext.customFieldDefinitionsByLeadId.get(lead.id) ?? [],
     customFieldValues: readContext.customFieldValuesByLeadId.get(lead.id) ?? [],
   });
-  const configuredLeadStage = configuredStageOptions.find((stage) => stage.id === lead.stageId);
   const leadClosed = isLeadClosed(lead) || Boolean(configuredLeadStage?.isLost || configuredLeadStage?.isWon);
   leadView.keyFacts = leadView.keyFacts.map((fact) => {
     if (fact.label === "Pipeline value") {
-      const value = leadClosed ? 0 : lead.expectedValue ?? lead.estimatedValue;
+      const value = leadClosed ? 0 : lead.expectedValue
+        ?? calculateExpectedValue(lead.estimatedValue, lead.closeProbability)
+        ?? lead.estimatedValue;
       return { ...fact, value: value == null ? "No reportable value" : formatCurrencyValue(value, currency) };
     }
     if (fact.label === "Expected close") {

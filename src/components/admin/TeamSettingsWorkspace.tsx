@@ -276,8 +276,8 @@ export function TeamSettingsWorkspace({
               <option value="status">Sort by status</option>
             </AdminSelect>
             <div className="flex items-center gap-2 rounded-[20px] border border-white/10 bg-white/[0.04] px-4 text-sm text-white/70">
-              <ArrowUpDown className="h-4 w-4 text-white/70" />
-              {filteredMembers.length} people in view
+              <ArrowUpDown aria-hidden="true" className="h-4 w-4 shrink-0 text-white/70" />
+              <span role="status">{filteredMembers.length === 1 ? "1 person" : `${filteredMembers.length} people`} in view</span>
             </div>
           </div>
 

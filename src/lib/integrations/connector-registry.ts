@@ -82,7 +82,7 @@ export const connectorRegistry: ConnectorDefinition[] = [
     category: "lead_capture",
     availability: "available",
     connectionMethods: ["webhook"],
-    description: "Shared-secret lead webhook intake with retained failures.",
+    description: "Lead delivery from a TikTok-capable relay, with failed imports retained.",
     operations: {
       setupPath: "/integrations/tiktok#setup",
       healthPath: "/integrations/tiktok#health",

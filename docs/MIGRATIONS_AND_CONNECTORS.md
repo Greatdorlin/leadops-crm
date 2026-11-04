@@ -29,9 +29,21 @@ Large migrations should use a worker deployment that consumes the same staged le
 
 Every `available` catalog entry must link to a real setup path and health path. Connectors with retained failed deliveries must also link to their retry controls. Environment values alone indicate setup readiness, not a healthy or tested connection.
 
-Available lead-capture paths include built-in forms, key-protected generic webhooks, verified Meta lead intake, key-protected Google Ads lead intake, shared-secret TikTok lead intake, and verified LinkedIn lead intake. Sender and other email-marketing providers are adapter-ready only; no production email-marketing adapter is active. Their provider-neutral server contract is documented in [`EXTENSION_CONTRACTS.md`](./EXTENSION_CONTRACTS.md).
+Available lead-capture paths include built-in forms, key-protected generic webhooks, verified Meta lead intake, key-protected Google Ads lead intake, shared-secret intake from a TikTok-capable relay, and verified LinkedIn lead intake. Sender and other email-marketing providers are adapter-ready only; no production email-marketing adapter is active. Their provider-neutral server contract is documented in [`EXTENSION_CONTRACTS.md`](./EXTENSION_CONTRACTS.md).
 
 Mapped CRM migration currently normalizes the lead/contact object types listed in `src/lib/migrations/sources.ts`. Other exported objects may be retained for reconciliation but are not claimed as fully migrated.
+
+## Connector Activation
+
+Store credential values in the deployment environment. The guided setup page for each connector shows its callback URL. After applying the deployment environment, verify account access separately from webhook delivery.
+
+| Connector | Prerequisites | Activation check |
+| --- | --- | --- |
+| Meta Lead Ads | Page access token with lead retrieval access, app secret, and webhook verify token. Subscribe the correct Page to leadgen. | Verify Page token access, then send a Meta test lead and confirm a CRM record and processed delivery. |
+| Google Ads | Shared webhook key in Google Ads and the deployment. For reporting, add OAuth client credentials, a refresh token, developer token, customer ID, and manager ID if applicable. | Use Send test data to confirm processing without creating a lead. Verify campaign reporting separately against the chosen customer. |
+| LinkedIn | Approved Lead Sync access, client secret, access token, and the authorized sponsored account or organization URN. Register a Lead Sync subscription for that owner. | Verify the owner through Lead Sync, then send a provider test and confirm a processed delivery. LinkedIn test leads do not create CRM records. |
+| Google Sheets | Enable the Sheets API, configure the service account, spreadsheet ID, and exact tab name. Grant Viewer for imports or Editor for exports. | Verify the tab, then import one test row and export to a dedicated test tab if export is required. Export replaces lead data in the destination tab. |
+| TikTok | A relay that can retrieve the TikTok Instant Form answers. Forward the lead ID and answers to the Leads Desk callback with the shared secret in the `x-leads-desk-webhook-secret` header. | Send a TikTok test lead through the relay and confirm it appears with the expected fields. |
 
 ## Pre-Migration Checklist
 

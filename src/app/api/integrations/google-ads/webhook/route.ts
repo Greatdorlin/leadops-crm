@@ -9,11 +9,11 @@ export async function POST(request: Request) {
   if (!body.ok) {
     return NextResponse.json({ error: body.error }, { status: body.status });
   }
-  const payload = body.value;
+  const { google_key: submittedKey, ...payload } = body.value;
 
   const expectedKey = getGoogleAdsWebhookKey();
   const providedKey =
-    (typeof payload.google_key === "string" ? payload.google_key : "") ||
+    (typeof submittedKey === "string" ? submittedKey : "") ||
     new URL(request.url).searchParams.get("key") ||
     request.headers.get("x-google-ads-webhook-key") ||
     "";

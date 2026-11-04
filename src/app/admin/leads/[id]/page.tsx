@@ -66,6 +66,7 @@ import { calculateExpectedValue } from "@/lib/crm/lead-opportunity-contract";
 import { formatLeadAuditChanges } from "@/lib/crm/lead-audit-events";
 import { listLeadSources } from "@/lib/crm/lead-sources-admin";
 import { listLeadStages } from "@/lib/crm/lead-stages-admin";
+import { getCurrentStageAge } from "@/lib/crm/lead-stage-age";
 import { getCrmPageErrorCopy, logCrmPageError } from "@/lib/crm/runtime";
 import type { CrmStatus } from "@/lib/crm/types";
 import { buildAdminLeadDetailView } from "@/lib/crm/view-models";
@@ -304,7 +305,7 @@ export default async function AdminLeadDetailPage({
     [readContext, editableCustomFields, configuredStageOptions, configuredSourceOptions, opportunityRows] = await Promise.all([
       loadAdminLeadReadContext([lead], { includeCustomFields: true }),
       listCustomFields(),
-      listLeadStages(),
+      listLeadStages({ includeArchived: true }),
       listLeadSources(),
       listLeadOpportunities(lead.id),
     ]);
@@ -353,6 +354,12 @@ export default async function AdminLeadDetailPage({
     }
     return fact;
   });
+  const stageAge = getCurrentStageAge(lead.stageId, events);
+  if (stageAge) {
+    const duration = stageAge.days === 0 ? "Less than a day" : `${stageAge.days} ${stageAge.days === 1 ? "day" : "days"}`;
+    leadView.keyFacts.push({ label: "Time in current stage", value: `${duration} · entered ${formatCrmDate(stageAge.enteredAt)}` });
+  }
+
   const stageOptions = configuredStageOptions.length > 0
     ? configuredStageOptions.map((stage) => ({
         value: stage.id,

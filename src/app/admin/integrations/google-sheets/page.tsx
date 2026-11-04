@@ -145,12 +145,12 @@ export default async function AdminGoogleSheetsIntegrationPage() {
         <IntegrationSetupPanel
           provider="google_sheets"
           title="Connect Google Sheets"
-          description="Share one worksheet with a service account, then verify access before importing."
+          description="Share the spreadsheet with a service account and verify the configured tab before importing."
           configured={sheetsConfigured}
           previewMode={isLocalAdminPreviewEmail(session.user?.email)}
           permissions={[
             "Read rows from the configured worksheet",
-            "Write exported lead rows to that same worksheet",
+            "Replace lead rows on the configured export tab",
           ]}
           steps={[
             {
@@ -161,7 +161,7 @@ export default async function AdminGoogleSheetsIntegrationPage() {
             {
               title: "Share the spreadsheet",
               description:
-                "Give the service-account email Editor access, then add the spreadsheet ID and exact worksheet name.",
+                "Add the spreadsheet ID and exact tab name. Grant Viewer access for import or Editor access for export. Use a dedicated tab for exports because export replaces its lead data.",
             },
             {
               title: "Verify before importing",

@@ -13,7 +13,10 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "Forbidden." }, { status: 403 });
   }
 
-  return NextResponse.json(buildLinkedInChallengeResponse(challengeCode));
+  const response = buildLinkedInChallengeResponse(challengeCode);
+  return response.challengeResponse
+    ? NextResponse.json(response)
+    : NextResponse.json({ error: "Webhook is not configured." }, { status: 503 });
 }
 
 export async function POST(request: Request) {
@@ -30,7 +33,11 @@ export async function POST(request: Request) {
 
   let payload: Record<string, unknown>;
   try {
-    payload = JSON.parse(rawBody) as Record<string, unknown>;
+    const parsed = JSON.parse(rawBody) as unknown;
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+      return NextResponse.json({ error: "JSON payload must be an object." }, { status: 400 });
+    }
+    payload = parsed as Record<string, unknown>;
   } catch {
     return NextResponse.json({ error: "Invalid JSON payload." }, { status: 400 });
   }

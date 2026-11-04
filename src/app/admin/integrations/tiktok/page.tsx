@@ -158,7 +158,7 @@ export default async function AdminTikTokIntegrationPage() {
         <IntegrationSetupPanel
           provider="tiktok"
           title="Connect TikTok Lead Ads"
-          description="Secure the webhook, add the delivery URL, then prove it with a test lead."
+          description="Forward full lead answers through a TikTok-capable relay and confirm delivery with a test lead."
           configured={secretConfigured}
           previewMode={isLocalAdminPreviewEmail(session.user?.email)}
           verificationMode="delivery"
@@ -170,16 +170,16 @@ export default async function AdminTikTokIntegrationPage() {
             {
               title: "Create a delivery secret",
               description:
-                "Save TIKTOK_WEBHOOK_SECRET as a deployment secret. Use the same value in TikTok's webhook header or query setting.",
+                "Save TIKTOK_WEBHOOK_SECRET as a deployment secret and send it from the relay in the x-leads-desk-webhook-secret header.",
             },
             {
               title: "Add the delivery URL",
-              description: `Use ${baseUrl ? `${baseUrl}/api/integrations/tiktok/webhook` : "your public Leads Desk URL plus /api/integrations/tiktok/webhook"} for lead delivery.`,
+              description: `Use ${baseUrl ? `${baseUrl}/api/integrations/tiktok/webhook` : "your public Leads Desk URL plus /api/integrations/tiktok/webhook"} as the relay destination. Forward the lead ID and contact fields in field_data or answers.`,
             },
             {
               title: "Send a test lead",
               description:
-                "Submit a TikTok test lead and confirm it appears in Leads Desk. Server-secret presence alone is not a verified connection.",
+                "Submit a TikTok test lead, confirm the relay forwarded the answers, and check the resulting lead in Leads Desk.",
             },
           ]}
         />

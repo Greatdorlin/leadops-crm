@@ -1,3 +1,5 @@
+import { normalizeEnvValue } from "@/lib/env-utils";
+
 interface FacebookLeadField {
   name: string;
   values?: string[];
@@ -16,17 +18,17 @@ export interface FacebookLeadPayload {
 }
 
 export async function fetchFacebookLead(leadgenId: string) {
-  const accessToken = process.env.META_PAGE_ACCESS_TOKEN;
-  const version = process.env.META_GRAPH_API_VERSION || "v22.0";
+  const accessToken = normalizeEnvValue(process.env.META_PAGE_ACCESS_TOKEN);
+  const version = normalizeEnvValue(process.env.META_GRAPH_API_VERSION) || "v22.0";
 
   if (!accessToken) {
     throw new Error("META_PAGE_ACCESS_TOKEN is not configured.");
   }
 
   const response = await fetch(
-    `https://graph.facebook.com/${version}/${leadgenId}?access_token=${accessToken}`,
+    `https://graph.facebook.com/${version}/${encodeURIComponent(leadgenId)}?fields=id,created_time,ad_id,form_id,field_data`,
     {
-      method: "GET",
+      headers: { Authorization: `Bearer ${accessToken}` },
       cache: "no-store",
     },
   );

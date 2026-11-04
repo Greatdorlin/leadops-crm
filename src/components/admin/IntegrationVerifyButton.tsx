@@ -9,6 +9,7 @@ interface VerificationResponse {
   verified?: boolean;
   message?: string;
   accountName?: string;
+  lastProcessedDeliveryAt?: string | null;
   error?: string;
 }
 
@@ -94,10 +95,18 @@ export function IntegrationVerifyButton({
           <ResultIcon className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
           <p>
             <span className="font-semibold">
-              {result.verified ? "Connection verified." : "Not verified yet."}
+              {result.verified ? "Provider access verified." : "Provider access unverified."}
             </span>{" "}
             {result.message || result.error}
             {result.accountName ? ` Account: ${result.accountName}.` : ""}
+            {result.lastProcessedDeliveryAt ? (
+              <span className="mt-1 block">
+                Last processed webhook delivery{" "}
+                <time dateTime={result.lastProcessedDeliveryAt}>
+                  {new Date(result.lastProcessedDeliveryAt).toLocaleString()}
+                </time>
+              </span>
+            ) : null}
           </p>
         </div>
       ) : null}

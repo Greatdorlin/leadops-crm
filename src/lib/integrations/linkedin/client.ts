@@ -66,8 +66,8 @@ function getLinkedInAccessToken() {
   return normalizeEnvValue(process.env.LINKEDIN_ACCESS_TOKEN);
 }
 
-export function getLinkedInApiVersion() {
-  return normalizeEnvValue(process.env.LINKEDIN_API_VERSION) || "202606";
+export function getLinkedInApiVersion(environment: Readonly<Record<string, string | undefined>> = process.env) {
+  return normalizeEnvValue(environment.LINKEDIN_API_VERSION) || "202606";
 }
 
 export function getLinkedInClientSecret() {

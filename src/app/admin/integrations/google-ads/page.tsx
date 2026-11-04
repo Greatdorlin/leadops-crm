@@ -277,7 +277,7 @@ export default async function AdminGoogleAdsIntegrationPage() {
           provider="google_ads"
           title="Connect Google Ads"
           description="Set up account reporting and lead delivery without exposing credentials in the browser."
-          configured={reportingConfigured}
+          configured={reportingConfigured || webhookKeyConfigured}
           previewMode={isLocalAdminPreviewEmail(session.user?.email)}
           permissions={[
             "Read campaign performance for the selected customer",
@@ -285,18 +285,18 @@ export default async function AdminGoogleAdsIntegrationPage() {
           ]}
           steps={[
             {
-              title: "Add Google Ads credentials",
+              title: "Optional campaign reporting",
               description:
-                "Save the OAuth client, refresh token, developer token, and customer ID as deployment secrets.",
+                "Save the OAuth client, refresh token, developer token, and customer ID for reporting. Add the manager ID if it owns access to the customer.",
             },
             {
               title: "Secure lead delivery",
-              description: `${webhookKeyConfigured ? "The webhook key is present." : "Add GOOGLE_ADS_WEBHOOK_KEY."} Use ${baseUrl ? `${baseUrl}/api/integrations/google-ads/webhook` : "your public Leads Desk URL plus /api/integrations/google-ads/webhook"} for lead delivery.`,
+              description: `${webhookKeyConfigured ? "The webhook key is present." : "Add GOOGLE_ADS_WEBHOOK_KEY."} Use ${baseUrl ? `${baseUrl}/api/integrations/google-ads/webhook` : "your public Leads Desk URL plus /api/integrations/google-ads/webhook"} as the URL in the Google Ads lead form. Enter the same key in its Key field.`,
             },
             {
               title: "Verify and refresh",
               description:
-                "Verify customer access here. Then refresh performance and send a test lead to confirm both paths.",
+                "Use Send test data in Google Ads and check delivery here. Test deliveries do not create leads. Verify customer access and refresh performance separately if you enabled reporting.",
             },
           ]}
         />

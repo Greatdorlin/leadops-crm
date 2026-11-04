@@ -23,19 +23,9 @@ export function verifyLinkedInSignature(rawBody: string, signatureHeader?: strin
     return false;
   }
 
-  const digest = createHmac("sha256", secret).update(rawBody).digest("hex");
-  const candidates = [`hmacsha256=${digest}`, digest];
   const provided = signatureHeader.trim();
+  if (!/^[a-f0-9]{64}$/.test(provided)) return false;
 
-  for (const expected of candidates) {
-    try {
-      if (timingSafeEqual(Buffer.from(expected), Buffer.from(provided))) {
-        return true;
-      }
-    } catch {
-      // Keep checking the next supported signature shape.
-    }
-  }
-
-  return false;
+  const digest = createHmac("sha256", secret).update(`hmacsha256=${rawBody}`).digest("hex");
+  return timingSafeEqual(Buffer.from(digest, "hex"), Buffer.from(provided, "hex"));
 }

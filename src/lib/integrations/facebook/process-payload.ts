@@ -20,17 +20,16 @@ interface FacebookWebhookPayload {
   }>;
 }
 
-function extractLeadgenIds(payload: FacebookWebhookPayload) {
+function extractLeadgenChanges(payload: FacebookWebhookPayload) {
   return (payload.entry ?? [])
     .flatMap((entry) => entry.changes ?? [])
     .filter((change) => change.field === "leadgen")
-    .map((change) => change.value?.leadgen_id)
-    .filter((value): value is string => Boolean(value));
+    .flatMap((change) => change.value?.leadgen_id ? [{ ...change.value, leadgenId: change.value.leadgen_id }] : []);
 }
 
 export async function processFacebookPayload(payloadRecordId: string, payload: FacebookWebhookPayload) {
-  const leadgenIds = extractLeadgenIds(payload);
-  if (leadgenIds.length === 0) {
+  const changes = extractLeadgenChanges(payload);
+  if (changes.length === 0) {
     await leadStore.markPayloadProcessed(payloadRecordId);
     return {
       processed: 0,
@@ -40,8 +39,9 @@ export async function processFacebookPayload(payloadRecordId: string, payload: F
   try {
     let processed = 0;
 
-    for (const leadgenId of leadgenIds) {
-      const lead = await fetchFacebookLead(leadgenId);
+    for (const change of changes) {
+      const { leadgenId, ...attribution } = change;
+      const lead = { ...attribution, ...await fetchFacebookLead(leadgenId) };
       const result = await leadStore.upsertExternalLead(mapFacebookLeadToExternalInput(lead));
       await leadStore.addLeadEvent({
         leadId: result.lead.id,

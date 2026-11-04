@@ -99,9 +99,9 @@ test("verifyLinkedInSignature accepts valid signatures and rejects invalid ones"
 
   try {
     const rawBody = JSON.stringify({ elements: [] });
-    const digest = createHmac("sha256", "linkedin-secret").update(rawBody).digest("hex");
+    const digest = createHmac("sha256", "linkedin-secret").update(`hmacsha256=${rawBody}`).digest("hex");
 
-    assert.equal(verifyLinkedInSignature(rawBody, `hmacsha256=${digest}`), true);
+    assert.equal(verifyLinkedInSignature(rawBody, `hmacsha256=${digest}`), false);
     assert.equal(verifyLinkedInSignature(rawBody, digest), true);
     assert.equal(verifyLinkedInSignature(rawBody, "invalid"), false);
   } finally {
@@ -115,7 +115,7 @@ test("linkedin webhook returns a safe error for malformed JSON after signature v
 
   try {
     const rawBody = "{invalid-json";
-    const signature = createHmac("sha256", "linkedin-secret").update(rawBody).digest("hex");
+    const signature = createHmac("sha256", "linkedin-secret").update(`hmacsha256=${rawBody}`).digest("hex");
 
     const response = await POST(
       new Request("https://example.com/api/integrations/linkedin/webhook", {

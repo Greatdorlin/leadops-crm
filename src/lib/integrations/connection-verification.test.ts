@@ -81,7 +81,7 @@ test("TikTok secret presence is never presented as an end-to-end verified connec
 test("Google Ads verifies the configured customer only when provider access includes it", async () => {
   const responses = [
     Response.json({ access_token: "short-lived-access-token" }),
-    Response.json({ resourceNames: ["customers/1234567890"] }),
+    Response.json([{ results: [{ customer: { id: "1234567890" } }] }]),
   ];
   const result = await verifyIntegrationConnection(
     "google_ads",
@@ -91,15 +91,50 @@ test("Google Ads verifies the configured customer only when provider access incl
       GOOGLE_ADS_CLIENT_SECRET: "client-secret",
       GOOGLE_ADS_REFRESH_TOKEN: "refresh-token",
       GOOGLE_ADS_CUSTOMER_ID: "123-456-7890",
+      GOOGLE_ADS_LOGIN_CUSTOMER_ID: "555-555-5555",
     },
-    (async () => responses.shift() ?? new Response(null, { status: 500 })) as typeof fetch,
+    (async (input, init) => {
+      if (responses.length === 1) {
+        assert.match(String(input), /v25\/customers\/1234567890\/googleAds:searchStream$/);
+        assert.equal(new Headers(init?.headers).get("login-customer-id"), "5555555555");
+        assert.match(String(init?.body), /SELECT customer.id FROM customer/);
+      }
+      return responses.shift() ?? new Response(null, { status: 500 });
+    }) as typeof fetch,
   );
 
   assert.equal(result.configured, true);
   assert.equal(result.verified, true);
-  assert.equal(result.accountName, "123-456-7890");
+  assert.equal(result.accountName, "1234567890");
   assert.doesNotMatch(
     JSON.stringify(result),
     /developer-token|client-secret|refresh-token|short-lived-access-token/,
   );
+});
+
+
+test("Google Ads lead delivery can be configured without reporting credentials", async () => {
+  const result = await verifyIntegrationConnection("google_ads", { GOOGLE_ADS_WEBHOOK_KEY: "test-key" });
+  assert.equal(result.configured, true);
+  assert.equal(result.verified, false);
+  assert.match(result.message, /Send test data/);
+  assert.doesNotMatch(result.message, /test-key/);
+});
+
+test("LinkedIn checks the configured owner's Lead Sync API instead of OpenID", async () => {
+  const result = await verifyIntegrationConnection(
+    "linkedin",
+    {
+      LINKEDIN_CLIENT_SECRET: "client-secret",
+      LINKEDIN_ACCESS_TOKEN: "access-token",
+      LINKEDIN_LEAD_SYNC_OWNER_URN: "urn:li:sponsoredAccount:12345",
+    },
+    async (input, init) => {
+      assert.match(String(input), /linkedin.com\/rest\/leadForms\?owner=\(sponsoredAccount:urn%3Ali%3AsponsoredAccount%3A12345\)/);
+      assert.equal(new Headers(init?.headers).get("X-Restli-Protocol-Version"), "2.0.0");
+      return Response.json({ elements: [] });
+    },
+  );
+  assert.equal(result.verified, true);
+  assert.doesNotMatch(JSON.stringify(result), /access-token|client-secret/);
 });

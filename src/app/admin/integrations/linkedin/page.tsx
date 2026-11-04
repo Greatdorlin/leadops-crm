@@ -160,7 +160,7 @@ export default async function AdminLinkedInIntegrationPage() {
         <IntegrationSetupPanel
           provider="linkedin"
           title="Connect LinkedIn Lead Gen Forms"
-          description="Confirm Lead Sync access, register the webhook, and verify the token."
+          description="Verify Lead Sync permissions for the account and confirm delivery with a test lead."
           configured={linkedInConfigured}
           previewMode={isLocalAdminPreviewEmail(session.user?.email)}
           permissions={[
@@ -171,16 +171,16 @@ export default async function AdminLinkedInIntegrationPage() {
             {
               title: "Add LinkedIn credentials",
               description:
-                "Save the client secret and access token as deployment secrets. Standard Ads API access does not include Lead Sync.",
+                "Save LINKEDIN_CLIENT_SECRET and LINKEDIN_ACCESS_TOKEN. Set LINKEDIN_LEAD_SYNC_OWNER_URN to the sponsored account or organization URN. The app needs approved Lead Sync access.",
             },
             {
               title: "Register the webhook",
-              description: `Use ${baseUrl ? `${baseUrl}/api/integrations/linkedin/webhook` : "your public Leads Desk URL plus /api/integrations/linkedin/webhook"} and complete LinkedIn's challenge.`,
+              description: `Use ${baseUrl ? `${baseUrl}/api/integrations/linkedin/webhook` : "your public Leads Desk URL plus /api/integrations/linkedin/webhook"} in a Lead Sync notification subscription for the same owner. LinkedIn will challenge the endpoint.`,
             },
             {
               title: "Verify and test delivery",
               description:
-                "Verify token access here, then submit a test form response and confirm the lead appears in Leads Desk.",
+                "Verify owner access, then submit a provider test and confirm it was processed in recent activity. Provider test responses do not create CRM leads.",
             },
           ]}
         />

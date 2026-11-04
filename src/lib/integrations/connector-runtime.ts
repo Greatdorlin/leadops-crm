@@ -1,5 +1,6 @@
 import type { IntegrationProvider } from "@/lib/crm/types";
 import { hasConfiguredEnvValue } from "@/lib/env-utils";
+import { isGoogleAdsConfigured } from "./google-ads/client";
 
 type ConfiguredConnector = Exclude<IntegrationProvider, "website" | "sender">;
 type ConnectorEnvironment = Readonly<Record<string, string | undefined>>;
@@ -17,14 +18,6 @@ const requiredEnvironment: Record<ConfiguredConnector, readonly string[]> = {
   linkedin: ["LINKEDIN_CLIENT_SECRET", "LINKEDIN_ACCESS_TOKEN"],
 };
 
-const googleAdsReportingEnvironment = [
-  "GOOGLE_ADS_DEVELOPER_TOKEN",
-  "GOOGLE_ADS_CLIENT_ID",
-  "GOOGLE_ADS_CLIENT_SECRET",
-  "GOOGLE_ADS_REFRESH_TOKEN",
-  "GOOGLE_ADS_CUSTOMER_ID",
-] as const;
-
 function hasAll(environment: ConnectorEnvironment, names: readonly string[]) {
   return names.every((name) => hasConfiguredEnvValue(environment[name]));
 }
@@ -35,6 +28,7 @@ export function isConnectorConfigured(
 ) {
   if (provider === "website") return true;
   if (provider === "sender") return false;
+  if (provider === "google_ads" && isGoogleAdsConfigured(environment)) return true;
   return hasAll(environment, requiredEnvironment[provider]);
 }
 
@@ -43,8 +37,10 @@ export function isConnectorOperationConfigured(
   endpoint: string,
   environment: ConnectorEnvironment = process.env,
 ) {
-  if (provider === "google_ads" && endpoint.includes("sync-performance")) {
-    return hasAll(environment, googleAdsReportingEnvironment);
+  if (provider === "google_ads") {
+    return endpoint.includes("sync-performance")
+      ? isGoogleAdsConfigured(environment)
+      : hasAll(environment, requiredEnvironment.google_ads);
   }
   return isConnectorConfigured(provider, environment);
 }

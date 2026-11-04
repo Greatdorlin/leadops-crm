@@ -540,9 +540,15 @@ export default async function AdminPage({
     .sort((left, right) => new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime())
     .slice(0, 5);
   const recentLeadNameById = buildLeadDisplayNameMap(recentLeads);
-  const targetExchangeRate = activeTarget && activeTarget.currency !== workspaceSettings.globalCurrency
-    ? await resolveExchangeRate(workspaceSettings.globalCurrency, activeTarget.currency)
-    : 1;
+  let targetExchangeRate: number | null = 1;
+  if (activeTarget && activeTarget.currency !== workspaceSettings.globalCurrency) {
+    targetExchangeRate = usingDevelopmentDemoData
+      ? null
+      : await resolveExchangeRate(workspaceSettings.globalCurrency, activeTarget.currency).catch((error) => {
+          logCrmPageError("dashboard-target-rate", error);
+          return null;
+        });
+  }
   const dashboardConfig = resolveDashboardConfig(workspaceSettings.dashboard);
   const visibleDashboardWidgetKeys = resolveDashboardWidgetOrder(
     DASHBOARD_WIDGET_KEYS.map((id) => ({ id })),

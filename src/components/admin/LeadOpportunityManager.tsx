@@ -84,10 +84,12 @@ export function LeadOpportunityManager({
   leadId,
   initialOpportunities,
   defaultCurrency,
+  leadClosed = false,
 }: {
   leadId: string;
   initialOpportunities: LeadOpportunityRecord[];
   defaultCurrency?: string;
+  leadClosed?: boolean;
 }) {
   const router = useRouter();
   const workspaceSettings = useAdminWorkspaceSettings();
@@ -219,11 +221,11 @@ export function LeadOpportunityManager({
     <div className="space-y-4">
       <p className="text-sm leading-6 text-white/70">
         Each offer has its own qualification and outcome. Closing one offer keeps the others in play.
-        Mark the whole lead Lost only when you want to close its entire pipeline.
+        {leadClosed ? "This lead is closed, so its offers are excluded from the open pipeline." : "Mark the whole lead Lost only when you want to close its entire pipeline."}
       </p>
       <div className="grid grid-cols-2 gap-x-4 gap-y-3 sm:grid-cols-3 xl:grid-cols-5">
         {[
-          ["Pipeline value", formatMoney(rollup.expectedValue ?? rollup.estimatedValue, currency)],
+          ["Pipeline value", formatMoney(leadClosed ? 0 : rollup.expectedValue ?? rollup.estimatedValue, currency)],
           ["Open offers", String(rollup.activeCount)],
           ["Qualified", String(rollup.qualifiedCount)],
           ["Closed or unqualified", String(rollup.inactiveCount)],
@@ -291,7 +293,7 @@ export function LeadOpportunityManager({
 
           const requiresReason =
             opportunity.status === "unqualified" || opportunity.status === "lost";
-          const countsTowardPipeline = isPipelineStatus(opportunity.status);
+          const countsTowardPipeline = !leadClosed && isPipelineStatus(opportunity.status);
           const hasValue = opportunity.estimatedValue.trim().length > 0;
           const isCollapsed = collapsedOffers.has(opportunity.localId);
 

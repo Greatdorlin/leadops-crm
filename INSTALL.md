@@ -6,7 +6,7 @@ Use this guide to install Leads Desk for local development, a private client wor
 
 ## Requirements
 
-- Node.js 20+
+- Node.js 24
 - npm 10+
 - PostgreSQL 15+ or 16+
 - A private repository checkout

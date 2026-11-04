@@ -51,8 +51,8 @@ test("container and package runtimes stay on the same Node major", () => {
     engines?: { node?: string };
   };
 
-  assert.equal(packageJson.engines?.node, "20.x");
-  assert.match(dockerfile, /^FROM node:20-alpine AS deps/m);
-  assert.match(dockerfile, /^FROM node:20-alpine AS builder/m);
-  assert.match(dockerfile, /^FROM node:20-alpine AS runner/m);
+  assert.equal(packageJson.engines?.node, "24.x");
+  assert.match(dockerfile, /^FROM node:24-alpine AS deps/m);
+  assert.match(dockerfile, /^FROM node:24-alpine AS builder/m);
+  assert.match(dockerfile, /^FROM node:24-alpine AS runner/m);
 });

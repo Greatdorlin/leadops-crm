@@ -24,7 +24,7 @@ export function CurrencySettingsManager({
   );
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState("");
-  const [exchangeRate, setExchangeRate] = useState("");
+  const [savedCurrency, setSavedCurrency] = useState(initialGlobalCurrency);
   const [rateBaseCurrency, setRateBaseCurrency] = useState(initialGlobalCurrency);
   const [rateQuoteCurrency, setRateQuoteCurrency] = useState("USD");
   const [manualRate, setManualRate] = useState("");
@@ -46,21 +46,20 @@ export function CurrencySettingsManager({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           globalCurrency: currency,
-          ...(currency !== initialGlobalCurrency ? { exchangeRate } : {}),
         }),
       });
-      const payload = (await response.json().catch(() => null)) as { error?: string } | null;
+      const payload = (await response.json().catch(() => null)) as { error?: string; result?: { previousCurrency: string; converted: boolean } } | null;
       if (!response.ok) {
         setMessage(payload?.error ?? "We couldn't save currency settings right now.");
         setIsSaving(false);
         return;
       }
 
-      setMessage(
-        currency === initialGlobalCurrency
-          ? "Currency settings saved."
-          : `Values converted from ${initialGlobalCurrency} to ${currency}.`,
-      );
+      setSavedCurrency(currency);
+      setMessage(payload?.result?.converted
+        ? `Values converted from ${payload.result.previousCurrency} to ${currency}.`
+        : `Workspace currency saved as ${currency}.`);
+
       setIsSaving(false);
       startTransition(() => router.refresh());
     } catch {
@@ -144,32 +143,17 @@ export function CurrencySettingsManager({
         </div>
       </div>
 
-      {currency !== initialGlobalCurrency ? (
-        <div className="rounded-2xl border border-amber-300/20 bg-amber-300/[0.06] p-4">
-          <label className="block text-sm font-semibold text-white">
-            1 {initialGlobalCurrency} equals how many {currency}?
-          </label>
-          <input
-            className="admin-input mt-2 h-12 w-full px-4 text-base sm:max-w-sm"
-            inputMode="decimal"
-            min="0"
-            step="any"
-            type="number"
-            value={exchangeRate}
-            onChange={(event) => setExchangeRate(event.target.value)}
-            placeholder="Enter conversion rate"
-          />
-          <p className="mt-2 text-xs leading-5 text-white/65">
-            Existing lead values are converted atomically. They are never relabelled with the new symbol.
-          </p>
-        </div>
+      {currency !== savedCurrency ? (
+        <p className="text-sm text-white/65">
+          If you have existing values to convert, Leads Desk uses the saved rate between {savedCurrency} and {currency}.
+        </p>
       ) : null}
 
       <div className="border-t border-white/10 pt-5">
         <SectionHeader
           eyebrow="Rates"
           title="Manual exchange-rate overrides"
-          description="Set a trusted rate now. Automatic provider rates can use the same provider-neutral store later."
+          description="Add rates for currencies you use in reports."
         />
         <div className="mt-4 grid gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(160px,0.7fr)_auto] sm:items-end">
           <CurrencySelect value={rateBaseCurrency} onChange={setRateBaseCurrency} label="From" />

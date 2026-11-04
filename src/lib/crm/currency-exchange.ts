@@ -1,7 +1,7 @@
-import { and, asc, eq, sql } from "drizzle-orm";
+import { and, asc, eq, isNotNull, isNull, or, sql } from "drizzle-orm";
 import { z } from "zod";
 import { isSupportedCurrency } from "@/lib/currency";
-import { getDb } from "@/lib/db/client";
+import { getDb, type DatabaseExecutor } from "@/lib/db/client";
 import {
   companySettings,
   currencyExchangeRates,
@@ -140,13 +140,23 @@ export async function changeWorkspaceCurrency(input: {
       return { previousCurrency, globalCurrency: nextCurrency, converted: false };
     }
 
-    if (!parsed.exchangeRate) {
-      throw new Error(
-        `Add the ${previousCurrency} to ${nextCurrency} rate before changing currency. Existing values will be converted, not relabelled.`,
-      );
+    const rate = parsed.exchangeRate ?? await resolveExchangeRate(previousCurrency, nextCurrency, tx);
+    if (!rate) {
+      const [valuedLead] = await tx.select({ id: leads.id }).from(leads).where(or(
+        isNotNull(leads.estimatedValue), isNotNull(leads.expectedValue), isNotNull(leads.wonValue),
+      )).limit(1);
+      const [valuedOffer] = await tx.select({ id: leadOpportunities.id }).from(leadOpportunities).where(or(
+        and(isNull(leadOpportunities.currency), or(isNotNull(leadOpportunities.estimatedValue), isNotNull(leadOpportunities.expectedValue))),
+        isNotNull(leadOpportunities.exchangeRateToGlobal),
+      )).limit(1);
+      if (valuedLead || valuedOffer) {
+        throw new Error(`Add a ${previousCurrency} to ${nextCurrency} rate to convert existing values, or keep the current currency.`);
+      }
+      await tx.update(companySettings).set({ globalCurrency: nextCurrency, updatedAt: new Date() })
+        .where(eq(companySettings.id, settings.id));
+      return { previousCurrency, globalCurrency: nextCurrency, converted: false };
     }
 
-    const rate = parsed.exchangeRate;
     const rateSql = sql`${rate}::numeric`;
 
     await tx
@@ -175,26 +185,28 @@ export async function changeWorkspaceCurrency(input: {
       });
 
     const now = new Date();
-    await tx
-      .insert(currencyExchangeRates)
-      .values({
-        baseCurrency: previousCurrency,
-        quoteCurrency: nextCurrency,
-        rate: rate.toFixed(8),
-        source: "manual",
-        updatedBy: input.actorEmail?.trim() || null,
-        updatedAt: now,
-      })
-      .onConflictDoUpdate({
-        target: [currencyExchangeRates.baseCurrency, currencyExchangeRates.quoteCurrency],
-        set: {
+    if (parsed.exchangeRate !== undefined) {
+      await tx
+        .insert(currencyExchangeRates)
+        .values({
+          baseCurrency: previousCurrency,
+          quoteCurrency: nextCurrency,
           rate: rate.toFixed(8),
           source: "manual",
           updatedBy: input.actorEmail?.trim() || null,
-          fetchedAt: null,
           updatedAt: now,
-        },
-      });
+        })
+        .onConflictDoUpdate({
+          target: [currencyExchangeRates.baseCurrency, currencyExchangeRates.quoteCurrency],
+          set: {
+            rate: rate.toFixed(8),
+            source: "manual",
+            updatedBy: input.actorEmail?.trim() || null,
+            fetchedAt: null,
+            updatedAt: now,
+          },
+        });
+    }
 
     await tx
       .update(companySettings)
@@ -205,12 +217,11 @@ export async function changeWorkspaceCurrency(input: {
   });
 }
 
-export async function resolveExchangeRate(baseCurrency: string, quoteCurrency: string) {
+export async function resolveExchangeRate(baseCurrency: string, quoteCurrency: string, db: DatabaseExecutor = getDb()) {
   const base = baseCurrency.trim().toUpperCase();
   const quote = quoteCurrency.trim().toUpperCase();
   if (base === quote) return 1;
 
-  const db = getDb();
   const [direct] = await db
     .select({ rate: currencyExchangeRates.rate })
     .from(currencyExchangeRates)

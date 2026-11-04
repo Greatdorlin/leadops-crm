@@ -11,6 +11,7 @@ import {
   type LeadOpportunityRollup,
 } from "@/lib/crm/lead-opportunity-contract";
 import type { LeadOpportunityRecord } from "@/lib/crm/types";
+import { resolveExchangeRate } from "@/lib/crm/currency-exchange";
 import { isSupportedCurrency } from "@/lib/currency";
 
 export { buildLeadOpportunityRollup, LEAD_OPPORTUNITY_STATUSES };
@@ -204,7 +205,18 @@ export async function listLeadOpportunities(
     });
 }
 
-export async function listLeadOpportunitySummariesByLeadIds(leadIds: string[]) {
+function toReportingOpportunity(opportunity: LeadOpportunityRecord, currency: string) {
+  const rate = !opportunity.currency || opportunity.currency === currency
+    ? 1
+    : opportunity.exchangeRateToGlobal;
+  return {
+    ...opportunity,
+    estimatedValue: opportunity.estimatedValue === null || rate === null ? null : opportunity.estimatedValue * rate,
+    expectedValue: opportunity.expectedValue === null || rate === null ? null : opportunity.expectedValue * rate,
+  };
+}
+
+export async function listLeadOpportunitySummariesByLeadIds(leadIds: string[], currency: string) {
   const summaryByLeadId = new Map<string, LeadOpportunitySummary>();
   if (leadIds.length === 0) {
     return summaryByLeadId;
@@ -231,7 +243,7 @@ export async function listLeadOpportunitySummariesByLeadIds(leadIds: string[]) {
   }
 
   for (const leadId of leadIds) {
-    const rollup = buildLeadOpportunityRollup(grouped.get(leadId) ?? []);
+    const rollup = buildLeadOpportunityRollup((grouped.get(leadId) ?? []).map((offer) => toReportingOpportunity(offer, currency)));
     summaryByLeadId.set(leadId, { leadId, ...rollup });
   }
 
@@ -289,15 +301,16 @@ export async function replaceLeadOpportunities(
       };
     });
 
+    const reportingCurrency = options.globalCurrency ?? "USD";
+    const savedRates = new Map<string, number | null>();
     for (const item of normalizedInput) {
-      if (
-        options.globalCurrency &&
-        item.currency !== options.globalCurrency &&
-        item.exchangeRateToGlobal === null
-      ) {
-        throw new LeadOpportunityInputError(
-          `Add the ${item.currency} to ${options.globalCurrency} exchange rate before saving.`,
-        );
+      if (item.currency === reportingCurrency) {
+        item.exchangeRateToGlobal = null;
+      } else if (item.exchangeRateToGlobal === null && item.estimatedValue !== null) {
+        if (!savedRates.has(item.currency)) {
+          savedRates.set(item.currency, await resolveExchangeRate(item.currency, reportingCurrency, transaction));
+        }
+        item.exchangeRateToGlobal = savedRates.get(item.currency) ?? null;
       }
     }
 
@@ -469,14 +482,7 @@ export async function replaceLeadOpportunities(
     const opportunities = rows
       .map(mapLeadOpportunityRecord)
       .sort((left, right) => (left.isPrimary === right.isPrimary ? left.sortOrder - right.sortOrder : left.isPrimary ? -1 : 1));
-    const reportingOpportunities = opportunities.map((opportunity) => {
-      const rate = opportunity.exchangeRateToGlobal ?? 1;
-      return {
-        ...opportunity,
-        estimatedValue: opportunity.estimatedValue === null ? null : opportunity.estimatedValue * rate,
-        expectedValue: opportunity.expectedValue === null ? null : opportunity.expectedValue * rate,
-      };
-    });
+    const reportingOpportunities = opportunities.map((offer) => toReportingOpportunity(offer, reportingCurrency));
     const rollup = buildLeadOpportunityRollup(reportingOpportunities);
 
     await transaction

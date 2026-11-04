@@ -58,61 +58,47 @@ export default async function AdminSignInPage({
 
   return (
     <main
-      className="admin-shell relative flex min-h-screen items-center justify-center overflow-hidden px-4 py-12 text-white sm:px-6"
+      className="relative grid min-h-dvh place-items-center bg-[#111216] px-5 py-10 text-white sm:px-8 sm:py-16"
       style={{
         ...themeVariables,
         ...(settings.loginBackgroundUrl
           ? {
-              backgroundImage: `linear-gradient(180deg, rgba(2,6,23,0.24), rgba(2,6,23,0.76)), url(${settings.loginBackgroundUrl})`,
+              backgroundImage: `linear-gradient(180deg, rgba(17,18,22,0.45), rgba(17,18,22,0.8)), url(${settings.loginBackgroundUrl})`,
               backgroundSize: "cover",
               backgroundPosition: "center",
             }
           : {}),
       }}
-      data-design-style={settings.designStyle}
-      data-density={settings.density}
-      data-theme-mode={settings.themeMode}
-      data-glass={settings.glassEnabled ? "on" : "off"}
-      data-glass-style={settings.glassEnabled ? "vibrant" : "off"}
     >
-      <div className="ld-bg-overlay" aria-hidden="true" />
-      <div className="pointer-events-none absolute left-[8%] top-[12%] h-52 w-52 rounded-full bg-[color:var(--ld-color-primary)]/18 blur-3xl" aria-hidden="true" />
-      <div className="pointer-events-none absolute bottom-[8%] right-[6%] h-64 w-64 rounded-full bg-[color:var(--ld-color-accent)]/16 blur-3xl" aria-hidden="true" />
-      <div className="relative w-full max-w-[34rem]">
-        <section className="ld-glass ld-glass-vibrant ld-glass-card ld-inner-highlight rounded-[34px] border-white/16 p-5 shadow-[0_32px_110px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.16)] sm:p-8">
-          <div className="flex justify-center">
-            <div className="rounded-[22px] border border-white/10 bg-white/[0.07] px-5 py-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.1)]">
-              <LeadsDeskWordmark
-                tone="light"
-                companyName={settings.companyName}
-                logoUrl={resolveBrandLogo({
-                  logoUrl: settings.loginLogoUrl || settings.logoUrl,
-                  logoUrlLightMode: settings.loginLogoUrlLightMode || settings.logoUrlLightMode,
-                  logoUrlDarkMode: settings.loginLogoUrlDarkMode || settings.logoUrlDarkMode,
-                  surfaceMode: "dark",
-                })}
-                logoUrlLightMode={settings.loginLogoUrlLightMode || settings.logoUrlLightMode}
-                logoUrlDarkMode={settings.loginLogoUrlDarkMode || settings.logoUrlDarkMode}
-                surfaceMode="dark"
-              />
-            </div>
+      <div className="relative w-full max-w-md">
+        <section aria-labelledby="sign-in-title" className="rounded-[28px] border border-white/10 bg-[#1b1c21] px-6 py-8 shadow-[0_24px_80px_#0004] sm:px-10 sm:py-10">
+          <div>
+            <LeadsDeskWordmark
+              tone="light"
+              subtitle=""
+              companyName={settings.companyName}
+              logoUrl={resolveBrandLogo({
+                logoUrl: settings.loginLogoUrl || settings.logoUrl,
+                logoUrlLightMode: settings.loginLogoUrlLightMode || settings.logoUrlLightMode,
+                logoUrlDarkMode: settings.loginLogoUrlDarkMode || settings.logoUrlDarkMode,
+                surfaceMode: "dark",
+              })}
+              logoUrlLightMode={settings.loginLogoUrlLightMode || settings.logoUrlLightMode}
+              logoUrlDarkMode={settings.loginLogoUrlDarkMode || settings.logoUrlDarkMode}
+              surfaceMode="dark"
+            />
           </div>
 
-          <div className="mt-8 text-center">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/60">
-              Private workspace
-            </p>
-            <h1 className="mt-3 break-words font-[family:var(--font-heading)] text-[2.15rem] font-bold leading-[1.1] tracking-[-0.055em] text-white drop-shadow-[0_8px_28px_rgba(0,0,0,0.3)] sm:text-[2.7rem] sm:leading-[1.04]">
+          <div className="mt-8">
+            <h1 id="sign-in-title" className="break-words text-3xl font-semibold leading-tight tracking-[-0.04em] sm:text-[2.25rem]">
               {settings.loginHeadline}
             </h1>
-            <p className="mt-3 text-sm leading-7 text-white/70 sm:text-base">
-              {settings.loginSubheadline}
-            </p>
+            <p className="mt-2 text-sm leading-6 text-white/65">{settings.loginSubheadline}</p>
           </div>
 
-          <div className="mt-8 rounded-[24px] border border-white/10 bg-white/[0.055] p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.09)]">
+          <div className="mt-7 space-y-4">
             {errorMessage ? (
-              <div className="rounded-2xl border border-rose-300/20 bg-rose-500/10 px-4 py-3 text-sm leading-6 text-rose-100">
+              <div role="alert" className="rounded-2xl border border-rose-300/20 bg-rose-500/10 px-4 py-3 text-sm leading-6 text-rose-100">
                 {errorMessage}
               </div>
             ) : null}
@@ -135,7 +121,7 @@ export default async function AdminSignInPage({
               <div className="space-y-4">
                 <EmailPasswordSignInForm callbackUrl={callbackUrl} />
                 {googleLoginEnabled ? (
-                  <div className="flex items-center gap-3 text-[11px] font-medium uppercase tracking-[0.16em] text-white/40">
+                  <div className="flex items-center gap-3 text-xs font-medium text-white/60">
                     <span className="h-px flex-1 bg-white/10" />
                     or
                     <span className="h-px flex-1 bg-white/10" />
@@ -143,14 +129,12 @@ export default async function AdminSignInPage({
                 ) : null}
                 {googleLoginEnabled ? <AdminSignInButton callbackUrl={callbackUrl} /> : null}
                 {registrationPolicy.enabled ? (
-                  <>
-                    <div className="flex items-center gap-3 text-[11px] font-medium uppercase tracking-[0.16em] text-white/40">
-                      <span className="h-px flex-1 bg-white/10" />
-                      approved team
-                      <span className="h-px flex-1 bg-white/10" />
-                    </div>
-                    <ApprovedDomainRegistrationForm />
-                  </>
+                  <details className="border-t border-white/10 pt-4">
+                    <summary className="cursor-pointer rounded-sm text-sm font-medium text-white/70 hover:text-white focus-visible:outline-2 focus-visible:outline-offset-4">
+                      Request workspace access
+                    </summary>
+                    <div className="mt-4"><ApprovedDomainRegistrationForm /></div>
+                  </details>
                 ) : null}
               </div>
             )}

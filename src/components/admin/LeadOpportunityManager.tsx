@@ -109,10 +109,10 @@ export function LeadOpportunityManager({
       buildLeadOpportunityRollup(
         opportunities.map((item) => {
           const parsedRate = item.currency === currency ? 1 : Number(item.exchangeRateToGlobal);
-          const reportingRate = Number.isFinite(parsedRate) && parsedRate > 0 ? parsedRate : 0;
+          const reportingRate = Number.isFinite(parsedRate) && parsedRate > 0 ? parsedRate : null;
           return {
             status: item.status,
-            estimatedValue: item.estimatedValue
+            estimatedValue: item.estimatedValue && reportingRate !== null
               ? Number(item.estimatedValue) * reportingRate
               : null,
             expectedValue: null,
@@ -449,14 +449,13 @@ export function LeadOpportunityManager({
                 {opportunity.currency !== currency ? (
                   <label className="space-y-2">
                     <span className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.16em] text-white/70">
-                      Rate to {currency}
-                      <InfoTip label={`How many ${currency} one ${opportunity.currency} is worth. This snapshot keeps reports stable when rates change.`} />
+                      Rate to {currency} (optional)
+                      <InfoTip label={`Leads Desk uses a saved rate when available. Offers without a rate keep their original amount and stay out of reporting totals.`} />
                     </span>
                     <input
                       type="number"
                       min="0.00000001"
                       step="any"
-                      required
                       value={opportunity.exchangeRateToGlobal}
                       onChange={(event) =>
                         updateOpportunity(opportunity.localId, {

@@ -3,6 +3,7 @@
 import { FormEvent, useState } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
+import { Button } from "@/components/ui/button";
 
 export function EmailPasswordSignInForm({ callbackUrl }: { callbackUrl: string }) {
   const router = useRouter();
@@ -13,38 +14,46 @@ export function EmailPasswordSignInForm({ callbackUrl }: { callbackUrl: string }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (isSubmitting) return;
     setError(null);
     setIsSubmitting(true);
-
-    const result = await signIn("credentials", {
-      callbackUrl,
-      email,
-      password,
-      redirect: false,
-    });
-
-    setPassword("");
-    setIsSubmitting(false);
-
-    if (!result?.ok) {
-      setError("We couldn't verify those access details.");
-      return;
+    try {
+      const result = await signIn("credentials", {
+        callbackUrl,
+        email: email.trim(),
+        password,
+        redirect: false,
+      });
+      if (!result?.ok || result.error) {
+        setError("We couldn't verify those sign-in details.");
+        return;
+      }
+      setPassword("");
+      router.replace(result.url ?? callbackUrl);
+      router.refresh();
+    } catch {
+      setError("We couldn't connect. Try signing in again.");
+    } finally {
+      setIsSubmitting(false);
     }
-
-    router.push(result.url ?? callbackUrl);
-    router.refresh();
   }
 
+  const inputClass = "mt-1.5 h-11 w-full rounded-lg border border-white/15 bg-[#15161a] px-3.5 text-base text-white outline-none transition placeholder:text-white/45 focus-visible:border-white/55 focus-visible:ring-2 focus-visible:ring-white/15 sm:text-sm";
+
   return (
-    <form className="space-y-3" onSubmit={handleSubmit}>
-      <label className="sr-only" htmlFor="sign-in-email">Email</label>
-      <input id="sign-in-email" autoComplete="username" className="h-11 w-full rounded-xl border border-white/10 bg-slate-950/35 px-3.5 text-sm text-white outline-none transition placeholder:text-white/35 focus:border-cyan-200/45 focus:ring-2 focus:ring-cyan-200/15" onChange={(event) => setEmail(event.target.value)} placeholder="Email address" required type="email" value={email} />
-      <label className="sr-only" htmlFor="sign-in-password">Password</label>
-      <input id="sign-in-password" autoComplete="current-password" className="h-11 w-full rounded-xl border border-white/10 bg-slate-950/35 px-3.5 text-sm text-white outline-none transition placeholder:text-white/35 focus:border-cyan-200/45 focus:ring-2 focus:ring-cyan-200/15" onChange={(event) => setPassword(event.target.value)} placeholder="Password" required type="password" value={password} />
-      {error ? <p className="text-sm text-rose-200">{error}</p> : null}
-      <button className="inline-flex h-11 w-full items-center justify-center rounded-xl border border-white/15 bg-white/[0.09] px-4 text-sm font-semibold text-white transition hover:bg-white/[0.15] disabled:cursor-not-allowed disabled:opacity-60" disabled={isSubmitting} type="submit">
-        {isSubmitting ? "Signing in..." : "Sign in"}
-      </button>
+    <form className="space-y-4" onSubmit={handleSubmit}>
+      <div>
+        <label className="text-sm font-medium text-white/85" htmlFor="sign-in-email">Email address</label>
+        <input id="sign-in-email" name="email" autoComplete="username" className={inputClass} onChange={(event) => setEmail(event.target.value)} placeholder="you@company.com" required type="email" value={email} />
+      </div>
+      <div>
+        <label className="text-sm font-medium text-white/85" htmlFor="sign-in-password">Password</label>
+        <input id="sign-in-password" name="password" autoComplete="current-password" className={inputClass} onChange={(event) => setPassword(event.target.value)} required type="password" value={password} />
+      </div>
+      {error ? <p role="alert" className="text-sm text-rose-200">{error}</p> : null}
+      <Button className="w-full" disabled={isSubmitting} aria-busy={isSubmitting} type="submit">
+        {isSubmitting ? "Signing in…" : "Sign in"}
+      </Button>
     </form>
   );
 }

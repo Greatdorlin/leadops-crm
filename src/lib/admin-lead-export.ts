@@ -80,7 +80,7 @@ export async function buildLeadExportValues(
       ? leadStore.listLeadTasks({ completion: "all", leadIds: leads.map((lead) => lead.id) })
       : Promise.resolve([]),
     listCustomFields(),
-    listLeadOpportunitySummariesByLeadIds(leads.map((lead) => lead.id)),
+    listLeadOpportunitySummariesByLeadIds(leads.map((lead) => lead.id), currency),
     leads.length > 0
       ? loadAdminLeadReadContext(leads, { includeCustomFields: true })
       : Promise.resolve({

@@ -703,7 +703,10 @@ export class NeonLeadStore implements LeadStorage {
         },
       });
 
-      const automationApplied = await applyWorkspaceAutomationsToNewLead(created.id, db);
+      const automationApplied = await applyWorkspaceAutomationsToNewLead(created.id, db).catch((error) => {
+        console.error("[workspace-automation:apply]", { leadId: created.id, error });
+        return false;
+      });
       const automatedLead = automationApplied ? await this.getById(created.id) : null;
 
       return {

@@ -1,15 +1,17 @@
 "use client";
 
 import { signIn } from "next-auth/react";
+import { Button } from "@/components/ui/button";
 
 export function AdminSignInButton({ callbackUrl }: { callbackUrl: string }) {
   return (
-    <button
+    <Button
       type="button"
       onClick={() => signIn("google", { callbackUrl })}
-      className="admin-button-primary inline-flex h-12 w-full items-center justify-center rounded-2xl px-6 text-sm font-semibold"
+      variant="outline"
+      className="w-full"
     >
       Continue with Google
-    </button>
+    </Button>
   );
 }

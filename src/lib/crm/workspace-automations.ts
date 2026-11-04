@@ -2,6 +2,7 @@ import { and, asc, eq } from "drizzle-orm";
 import { z } from "zod";
 import { LEAD_PRIORITIES } from "@/lib/crm/constants";
 import { getDb, type DatabaseExecutor } from "@/lib/db/client";
+import { LEADS_DESK_SOURCE_BACKFILL_PLAN } from "@/lib/db/defaults";
 import {
   crmUsers,
   leadEvents,
@@ -45,24 +46,24 @@ export async function listWorkspaceAutomations() {
     .orderBy(asc(workspaceAutomationRules.sortOrder), asc(workspaceAutomationRules.createdAt));
 }
 
-export async function createWorkspaceAutomation(input: WorkspaceAutomationPayload, actorEmail: string) {
-  const [created] = await getDb().insert(workspaceAutomationRules).values({
+export async function createWorkspaceAutomation(input: WorkspaceAutomationPayload, actorEmail: string, db: DatabaseExecutor = getDb()) {
+  const [created] = await db.insert(workspaceAutomationRules).values({
     ...input,
     createdBy: actorEmail,
   }).returning();
   return created;
 }
 
-export async function updateWorkspaceAutomation(id: string, input: WorkspaceAutomationPayload) {
-  const [updated] = await getDb().update(workspaceAutomationRules).set({
+export async function updateWorkspaceAutomation(id: string, input: WorkspaceAutomationPayload, db: DatabaseExecutor = getDb()) {
+  const [updated] = await db.update(workspaceAutomationRules).set({
     ...input,
     updatedAt: new Date(),
   }).where(eq(workspaceAutomationRules.id, id)).returning();
   return updated ?? null;
 }
 
-export async function deleteWorkspaceAutomation(id: string) {
-  const [deleted] = await getDb().delete(workspaceAutomationRules)
+export async function deleteWorkspaceAutomation(id: string, db: DatabaseExecutor = getDb()) {
+  const [deleted] = await db.delete(workspaceAutomationRules)
     .where(eq(workspaceAutomationRules.id, id))
     .returning({ id: workspaceAutomationRules.id });
   return Boolean(deleted);
@@ -98,8 +99,12 @@ export async function applyWorkspaceAutomationsToNewLead(
     if (rules.length === 0) return false;
 
     const [source, stage] = await Promise.all([
-      lead.sourceId
-        ? transaction.query.leadSources.findFirst({ where: eq(leadSources.id, lead.sourceId) })
+      rules.some((rule) => rule.conditionField === "source")
+        ? transaction.query.leadSources.findFirst({
+            where: lead.sourceId
+              ? eq(leadSources.id, lead.sourceId)
+              : eq(leadSources.key, LEADS_DESK_SOURCE_BACKFILL_PLAN[lead.source] ?? lead.source),
+          })
         : Promise.resolve(undefined),
       lead.stageId
         ? transaction.query.leadStages.findFirst({ where: eq(leadStages.id, lead.stageId) })

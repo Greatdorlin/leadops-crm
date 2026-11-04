@@ -96,14 +96,14 @@ function SearchableLocationInput({
     if (optionButtons.length === 0) return;
     event.preventDefault();
     if (direction === "first") {
-      optionButtons[0]?.focus({ preventScroll: true });
+      optionButtons[0]?.focus();
       return;
     }
     const currentIndex = optionButtons.indexOf(event.currentTarget as HTMLButtonElement);
     const nextIndex = direction === "next"
       ? Math.min(currentIndex + 1, optionButtons.length - 1)
       : Math.max(currentIndex - 1, 0);
-    optionButtons[nextIndex]?.focus({ preventScroll: true });
+    optionButtons[nextIndex]?.focus();
   }
 
   return (

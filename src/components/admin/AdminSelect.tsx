@@ -61,23 +61,17 @@ function buildSelectChangeEvent(select: HTMLSelectElement) {
   } as ChangeEvent<HTMLSelectElement>;
 }
 
-function focusOption(
-  event: KeyboardEvent<HTMLButtonElement>,
-  optionIndex: number,
-  optionCount: number,
-) {
-  let nextIndex: number | null = null;
-  if (event.key === "ArrowDown") nextIndex = Math.min(optionIndex + 1, optionCount - 1);
-  if (event.key === "ArrowUp") nextIndex = Math.max(optionIndex - 1, 0);
-  if (event.key === "Home") nextIndex = 0;
-  if (event.key === "End") nextIndex = optionCount - 1;
-  if (nextIndex === null) return;
-
+function focusOption(event: KeyboardEvent<HTMLButtonElement>) {
+  const { key, currentTarget } = event;
+  if (!["ArrowDown", "ArrowUp", "Home", "End"].includes(key)) return;
+  const options = Array.from(currentTarget.closest('[role="listbox"]')
+    ?.querySelectorAll<HTMLButtonElement>('[role="option"]:not(:disabled)') ?? []);
+  const index = options.indexOf(currentTarget);
+  const last = options.length - 1;
+  const next = key === "Home" ? 0 : key === "End" ? last
+    : Math.max(0, Math.min(last, index + (key === "ArrowDown" ? 1 : -1)));
   event.preventDefault();
-  const listbox = event.currentTarget.closest('[role="listbox"]');
-  const options = listbox?.querySelectorAll<HTMLButtonElement>('[role="option"]:not(:disabled)');
-  const target = options?.[Math.min(nextIndex, Math.max((options?.length ?? 1) - 1, 0))];
-  target?.focus({ preventScroll: true });
+  options[next]?.focus();
 }
 
 function AdminMultiSelect({
@@ -188,7 +182,7 @@ function AdminMultiSelect({
           onClose={() => setOpen(false)}
         />
         <AdminPickerScrollArea id={listboxId} role="listbox" aria-multiselectable="true" className="max-h-[min(58dvh,340px)] p-1">
-          {options.map((option, index) => {
+          {options.map((option) => {
             const selected = selectedValues.includes(option.value);
             return (
               <button
@@ -205,7 +199,7 @@ function AdminMultiSelect({
                     toggle(option.value);
                     return;
                   }
-                  focusOption(event, index, options.length);
+                  focusOption(event);
                 }}
                 className={cn(
                   "ld-focus-ring flex min-h-11 w-full items-center gap-3 rounded-[14px] px-3 py-2.5 text-left text-sm transition",
@@ -358,7 +352,7 @@ export function AdminSelect({
                       choose(option.value);
                       return;
                     }
-                    focusOption(event, index, options.length);
+                    focusOption(event);
                   }}
                   className={cn(
                     "ld-focus-ring flex min-h-11 w-full items-center gap-3 rounded-[14px] px-3 py-2.5 text-left text-sm transition",

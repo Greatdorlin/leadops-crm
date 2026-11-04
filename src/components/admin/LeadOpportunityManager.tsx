@@ -220,7 +220,7 @@ export function LeadOpportunityManager({
   return (
     <div className="space-y-4">
       <p className="text-sm leading-6 text-white/70">
-        Each offer has its own qualification and outcome. Closing one offer keeps the others in play.
+        Each offer has its own qualification and outcome. Closing one offer keeps the others in play.{" "}
         {leadClosed ? "This lead is closed, so its offers are excluded from the open pipeline." : "Mark the whole lead Lost only when you want to close its entire pipeline."}
       </p>
       <div className="grid grid-cols-2 gap-x-4 gap-y-3 sm:grid-cols-3 xl:grid-cols-5">

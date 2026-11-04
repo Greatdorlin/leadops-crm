@@ -183,3 +183,22 @@ test("opportunity payload accepts CFA currencies and a reporting-rate snapshot",
   assert.equal(parsed.data?.opportunities[0]?.currency, "XOF");
   assert.equal(parsed.data?.opportunities[0]?.exchangeRateToGlobal, 0.00165);
 });
+
+test("zero probability remains zero when other offers on the same lead are lost", () => {
+  const offer = {
+    estimatedValue: 5000,
+    expectedValue: null,
+    closeProbability: 0,
+    expectedCloseDate: null,
+    reason: null,
+  };
+  const rollup = buildLeadOpportunityRollup([
+    { ...offer, status: "qualified" },
+    { ...offer, status: "lost", estimatedValue: 9000, reason: "Different product" },
+  ]);
+  assert.equal(rollup.estimatedValue, 5000);
+  assert.equal(rollup.expectedValue, 0);
+  assert.equal(rollup.closeProbability, 0);
+  assert.equal(rollup.qualifiedCount, 1);
+  assert.equal(rollup.inactiveCount, 1);
+});

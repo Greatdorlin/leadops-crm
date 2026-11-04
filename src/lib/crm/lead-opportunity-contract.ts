@@ -81,7 +81,7 @@ export function buildLeadOpportunityRollup(
   >,
 ): LeadOpportunityRollup {
   let estimatedValueTotal = 0;
-  let expectedValueTotal = 0;
+  let expectedValueTotal: number | null = null;
   let wonValueTotal = 0;
   let activeCount = 0;
   let qualifiedCount = 0;
@@ -102,7 +102,8 @@ export function buildLeadOpportunityRollup(
       }
 
       estimatedValueTotal += opportunity.estimatedValue ?? 0;
-      expectedValueTotal += expectedValue ?? opportunity.estimatedValue ?? 0;
+      const openValue = expectedValue ?? opportunity.estimatedValue;
+      if (openValue !== null) expectedValueTotal = (expectedValueTotal ?? 0) + openValue;
 
       if (
         opportunity.expectedCloseDate &&
@@ -129,10 +130,10 @@ export function buildLeadOpportunityRollup(
   }
 
   const estimatedValue = estimatedValueTotal > 0 ? roundMoney(estimatedValueTotal) : null;
-  const expectedValue = expectedValueTotal > 0 ? roundMoney(expectedValueTotal) : null;
+  const expectedValue = expectedValueTotal === null ? null : roundMoney(expectedValueTotal);
   const wonValue = wonValueTotal > 0 ? roundMoney(wonValueTotal) : null;
   const closeProbability =
-    estimatedValue && expectedValue
+    estimatedValue !== null && expectedValue !== null
       ? Math.max(0, Math.min(100, Math.round((expectedValue / estimatedValue) * 100)))
       : null;
 

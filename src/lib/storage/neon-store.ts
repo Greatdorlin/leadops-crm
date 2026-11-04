@@ -2292,10 +2292,18 @@ export class NeonLeadStore implements LeadStorage {
     const todayStartParam = timestampParam(startOfDay(now));
     const todayEndParam = timestampParam(endOfDay(now));
     const sevenDaysAgoParam = timestampParam(sevenDaysAgo);
-    const openLead = sql`${leads.wonAt} is null and ${leads.lostAt} is null`;
+    const lostLead = sql`(${leads.lostAt} is not null or exists (
+      select 1 from ${leadStages} as outcome_stage
+      where outcome_stage.id = ${leads.stageId} and outcome_stage.is_lost
+    ))`;
+    const wonLead = sql`(${leads.wonAt} is not null or exists (
+      select 1 from ${leadStages} as outcome_stage
+      where outcome_stage.id = ${leads.stageId} and outcome_stage.is_won
+    ))`;
+    const openLead = sql`not ${wonLead} and not ${lostLead}`;
     const pipelineValue = sql<number>`coalesce(sum(
       case
-        when ${leads.wonAt} is not null or ${leads.lostAt} is not null then 0
+        when ${wonLead} or ${lostLead} then 0
         else coalesce(
           ${leads.expectedValue},
           case
@@ -2309,7 +2317,7 @@ export class NeonLeadStore implements LeadStorage {
     ), 0)`;
     const wonValue = sql<number>`coalesce(sum(
       case
-        when ${leads.wonAt} is not null
+        when ${wonLead} and not ${lostLead}
           then coalesce(${leads.wonValue}, ${leads.expectedValue}, ${leads.estimatedValue}, 0)
         else 0
       end
@@ -2356,8 +2364,8 @@ export class NeonLeadStore implements LeadStorage {
           stuckLeads: sql<number>`count(*) filter (
             where ${openLead} and ${leads.lastActivityAt} < ${sevenDaysAgoParam}
           )`,
-          wonLeads: sql<number>`count(*) filter (where ${leads.wonAt} is not null)`,
-          lostLeads: sql<number>`count(*) filter (where ${leads.lostAt} is not null)`,
+          wonLeads: sql<number>`count(*) filter (where ${wonLead} and not ${lostLead})`,
+          lostLeads: sql<number>`count(*) filter (where ${lostLead})`,
           pipelineValue,
           wonValue,
         })
@@ -2367,7 +2375,7 @@ export class NeonLeadStore implements LeadStorage {
         .select({
           source: leads.source,
           totalLeads: sql<number>`count(*)`,
-          wonLeads: sql<number>`count(*) filter (where ${leads.wonAt} is not null)`,
+          wonLeads: sql<number>`count(*) filter (where ${wonLead} and not ${lostLead})`,
           wonValue,
           pipelineValue,
         })
@@ -2403,7 +2411,7 @@ export class NeonLeadStore implements LeadStorage {
           overdueFollowUps: sql<number>`count(*) filter (
             where ${openLead} and ${leads.nextFollowUpAt} < ${todayStartParam}
           )`,
-          wonLeads: sql<number>`count(*) filter (where ${leads.wonAt} is not null)`,
+          wonLeads: sql<number>`count(*) filter (where ${wonLead} and not ${lostLead})`,
           wonValue,
           pipelineValue,
         })

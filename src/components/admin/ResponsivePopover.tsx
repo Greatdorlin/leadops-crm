@@ -1,7 +1,7 @@
 "use client";
 
 import type { ReactNode, RefObject } from "react";
-import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useEffectEvent, useId, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { cn } from "@/lib/cn";
 import { usePreservedBodyScrollLock } from "./AdminOverlayPortal";
@@ -61,6 +61,7 @@ export function ResponsivePopover({
   scrollable?: boolean;
 }) {
   const popoverId = useId();
+  const dismiss = useEffectEvent(() => onClose());
   const panelRef = useRef<HTMLDivElement>(null);
   const frameRef = useRef<number | null>(null);
   const [isMobile, setIsMobile] = useState(false);
@@ -94,11 +95,6 @@ export function ResponsivePopover({
       }
 
       const rect = anchor.getBoundingClientRect();
-      if (rect.bottom < 0 || rect.top > viewportHeight) {
-        onClose();
-        return;
-      }
-
       const margin = 12;
       const gap = 8;
       const panelHeight = panelRef.current?.offsetHeight ?? 360;
@@ -107,20 +103,23 @@ export function ResponsivePopover({
         viewportWidth - margin * 2,
       );
       const left = clamp(rect.left, margin, viewportWidth - width - margin);
-      const spaceBelow = viewportHeight - rect.bottom - margin - gap;
-      const spaceAbove = rect.top - margin - gap;
+      const anchorBottom = clamp(rect.bottom, margin, viewportHeight - margin);
+      const anchorTop = clamp(rect.top, margin, viewportHeight - margin);
+      const spaceBelow = viewportHeight - anchorBottom - margin - gap;
+      const spaceAbove = anchorTop - margin - gap;
       const placeBelow = spaceBelow >= Math.min(panelHeight, 280) || spaceBelow >= spaceAbove;
       const availableHeight = Math.max(180, placeBelow ? spaceBelow : spaceAbove);
       const maxHeight = Math.min(desktopMaxHeight, availableHeight);
       const renderedHeight = Math.min(panelHeight, maxHeight);
       const top = placeBelow
-        ? rect.bottom + gap
-        : Math.max(margin, rect.top - gap - renderedHeight);
+        ? anchorBottom + gap
+        : Math.max(margin, anchorTop - gap - renderedHeight);
 
       setPosition({ left, maxHeight, top, width });
     }
 
-    function schedulePositionUpdate() {
+    function schedulePositionUpdate(event?: Event) {
+      if (event?.target instanceof Node && panelRef.current?.contains(event.target)) return;
       if (frameRef.current !== null) {
         cancelAnimationFrame(frameRef.current);
       }
@@ -128,7 +127,7 @@ export function ResponsivePopover({
     }
 
     updatePosition();
-    const observer = new ResizeObserver(schedulePositionUpdate);
+    const observer = new ResizeObserver(() => schedulePositionUpdate());
     if (panelRef.current) {
       observer.observe(panelRef.current);
     }
@@ -144,26 +143,47 @@ export function ResponsivePopover({
         frameRef.current = null;
       }
     };
-  }, [anchorRef, desktopMaxHeight, desktopWidth, onClose, open]);
+  }, [anchorRef, desktopMaxHeight, desktopWidth, open]);
 
   useEffect(() => {
     if (!open) {
       return;
     }
 
-    function handleDocumentClick(event: MouseEvent) {
-      const target = event.target as Node;
+    let outsidePress: { id: number; x: number; y: number } | null = null;
+
+    function isOutside(target: EventTarget | null) {
+      if (!(target instanceof Node)) return false;
       const targetPanel = target instanceof Element
         ? target.closest<HTMLElement>("[data-responsive-popover-id]")
         : null;
-      if (
-        panelRef.current?.contains(target) ||
-        anchorRef.current?.contains(target) ||
-        (targetPanel && isDescendantPopover(targetPanel, popoverId))
-      ) {
-        return;
+      return !panelRef.current?.contains(target)
+        && !anchorRef.current?.contains(target)
+        && !(targetPanel && isDescendantPopover(targetPanel, popoverId));
+    }
+
+    function handlePointerDown(event: PointerEvent) {
+      outsidePress = event.isPrimary && event.button === 0 && isOutside(event.target)
+        ? { id: event.pointerId, x: event.clientX, y: event.clientY }
+        : null;
+    }
+
+    function handlePointerMove(event: PointerEvent) {
+      if (outsidePress?.id === event.pointerId &&
+          Math.hypot(event.clientX - outsidePress.x, event.clientY - outsidePress.y) > 8) {
+        outsidePress = null;
       }
-      onClose();
+    }
+
+    function handlePointerUp(event: PointerEvent) {
+      const press = outsidePress;
+      outsidePress = null;
+      if (press?.id !== event.pointerId || !isOutside(event.target)) return;
+      if (Math.hypot(event.clientX - press.x, event.clientY - press.y) <= 8) dismiss();
+    }
+
+    function clearOutsidePress() {
+      outsidePress = null;
     }
 
     function handleKeyDown(event: KeyboardEvent) {
@@ -173,7 +193,7 @@ export function ResponsivePopover({
 
       if (event.key === "Escape") {
         event.preventDefault();
-        onClose();
+        dismiss();
         anchorRef.current?.focus({ preventScroll: true });
         return;
       }
@@ -202,13 +222,21 @@ export function ResponsivePopover({
       }
     }
 
-    document.addEventListener("click", handleDocumentClick);
+    document.addEventListener("pointerdown", handlePointerDown, true);
+    document.addEventListener("pointermove", handlePointerMove, true);
+    document.addEventListener("pointerup", handlePointerUp, true);
+    document.addEventListener("pointercancel", clearOutsidePress, true);
+    document.addEventListener("scroll", clearOutsidePress, true);
     document.addEventListener("keydown", handleKeyDown);
     return () => {
-      document.removeEventListener("click", handleDocumentClick);
+      document.removeEventListener("pointerdown", handlePointerDown, true);
+      document.removeEventListener("pointermove", handlePointerMove, true);
+      document.removeEventListener("pointerup", handlePointerUp, true);
+      document.removeEventListener("pointercancel", clearOutsidePress, true);
+      document.removeEventListener("scroll", clearOutsidePress, true);
       document.removeEventListener("keydown", handleKeyDown);
     };
-  }, [anchorRef, isMobile, onClose, open, popoverId]);
+  }, [anchorRef, isMobile, open, popoverId]);
 
   useEffect(() => {
     if (!open) return;
@@ -231,7 +259,7 @@ export function ResponsivePopover({
     return () => cancelAnimationFrame(frame);
   }, [anchorRef, isMobile, open]);
 
-  usePreservedBodyScrollLock(open);
+  usePreservedBodyScrollLock(open && isMobile);
 
   if (!open || typeof document === "undefined") {
     return null;
@@ -241,7 +269,7 @@ export function ResponsivePopover({
     <>
       {isMobile ? (
         <div
-          className="fixed inset-0 z-[200] bg-[#02040c]/64 backdrop-blur-[3px]"
+          className="fixed inset-0 z-[200] bg-black/50"
           aria-hidden="true"
         />
       ) : null}
@@ -255,35 +283,14 @@ export function ResponsivePopover({
         data-responsive-popover-parent-id={parentPopoverId}
         tabIndex={-1}
         className={cn(
-          "ld-glass-panel fixed z-[210] flex min-h-0 flex-col border border-white/14 bg-[#070b18]/[0.97] shadow-[0_28px_90px_rgba(0,0,0,0.58),inset_0_1px_0_rgba(255,255,255,0.11)]",
+          "fixed z-[210] flex min-h-0 flex-col border border-white/12 bg-[#171922] shadow-xl",
           scrollable ? "overflow-x-hidden overflow-y-auto" : "overflow-hidden",
           isMobile
-            ? "inset-x-2.5 bottom-[max(0.625rem,env(safe-area-inset-bottom))] max-h-[min(86dvh,680px)] max-w-[calc(100vw-1.25rem)] rounded-[26px] p-2.5"
-            : "rounded-[24px] p-2.5",
+            ? "inset-x-2.5 bottom-[max(0.625rem,env(safe-area-inset-bottom))] max-h-[min(86dvh,680px)] max-w-[calc(100vw-1.25rem)] rounded-2xl p-2"
+            : "rounded-xl p-2",
           className,
         )}
-        style={
-          isMobile
-            ? {
-                backgroundColor: "rgba(7, 11, 24, 0.97)",
-                backdropFilter: "blur(26px) saturate(155%)",
-              }
-            : position
-              ? {
-                  backgroundColor: "rgba(7, 11, 24, 0.97)",
-                  backdropFilter: "blur(26px) saturate(155%)",
-                  left: position.left,
-                  maxHeight: position.maxHeight,
-                  top: position.top,
-                  width: position.width,
-                }
-              : {
-                  backgroundColor: "rgba(7, 11, 24, 0.97)",
-                  backdropFilter: "blur(26px) saturate(155%)",
-                  opacity: 0,
-                  pointerEvents: "none",
-                }
-        }
+        style={isMobile ? undefined : position ?? { visibility: "hidden" }}
       >
         {children}
       </div>

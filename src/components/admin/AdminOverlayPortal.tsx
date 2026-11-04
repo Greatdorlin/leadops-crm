@@ -85,6 +85,7 @@ export function AdminOverlayPortal({
   open?: boolean;
 }) {
   const rootRef = useRef<HTMLDivElement>(null);
+  const canClose = Boolean(onClose);
   const closeOverlay = useEffectEvent(() => onClose?.());
   usePreservedBodyScrollLock(open);
 
@@ -115,7 +116,7 @@ export function AdminOverlayPortal({
         return;
       }
 
-      if (event.key === "Escape" && onClose) {
+      if (event.key === "Escape" && canClose) {
         event.preventDefault();
         closeOverlay();
         return;
@@ -147,7 +148,7 @@ export function AdminOverlayPortal({
         if (previousFocus?.isConnected) previousFocus.focus({ preventScroll: true });
       });
     };
-  }, [open, onClose]);
+  }, [open, canClose]);
 
   return !open || typeof document === "undefined"
     ? null

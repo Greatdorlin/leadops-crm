@@ -217,12 +217,17 @@ export function LeadOpportunityManager({
 
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-2 gap-x-4 gap-y-3 md:grid-cols-4">
+      <p className="text-sm leading-6 text-white/70">
+        Each offer has its own qualification and outcome. Closing one offer keeps the others in play.
+        Mark the whole lead Lost only when you want to close its entire pipeline.
+      </p>
+      <div className="grid grid-cols-2 gap-x-4 gap-y-3 sm:grid-cols-3 xl:grid-cols-5">
         {[
           ["Pipeline value", formatMoney(rollup.expectedValue ?? rollup.estimatedValue, currency)],
           ["Open offers", String(rollup.activeCount)],
           ["Qualified", String(rollup.qualifiedCount)],
-          ["Removed", String(rollup.inactiveCount)],
+          ["Closed or unqualified", String(rollup.inactiveCount)],
+          ["Won value", formatMoney(rollup.wonValue, currency)],
         ].map(([label, value]) => (
           <div
             key={label}
@@ -324,10 +329,12 @@ export function LeadOpportunityManager({
                       "inline-flex items-center justify-center rounded-full border px-3 py-1.5 text-xs font-semibold transition",
                       countsTowardPipeline
                         ? "border-cyan-300/22 bg-cyan-400/10 text-cyan-100"
-                        : "border-rose-300/22 bg-rose-400/10 text-rose-100",
+                        : opportunity.status === "won"
+                          ? "border-emerald-300/22 bg-emerald-400/10 text-emerald-100"
+                          : "border-white/12 bg-white/[0.04] text-white/65",
                     ].join(" ")}
                   >
-                    {countsTowardPipeline ? "Counts in pipeline" : "Removed from pipeline"}
+                    {opportunity.status === "won" ? "Won" : countsTowardPipeline ? "In pipeline" : "Out of pipeline"}
                   </span>
                   <button
                     type="button"

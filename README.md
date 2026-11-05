@@ -5,18 +5,28 @@ Leads Desk is a private, single-client lead operations system for capture, assig
 ## Local Setup
 
 ```bash
+cp .env.example .env
+# Edit .env: DATABASE_URL, AUTH_SECRET, public URL and initial administrator.
 npm ci
 npm run db:migrate
 npm run db:seed:defaults:full
 npm run dev
 ```
 
-Copy `.env.example` to `.env.local` and replace every placeholder first.
+Requires Node.js 24 and PostgreSQL 16 or newer. Create an empty database first.
+Generate AUTH_SECRET with `openssl rand -base64 32`. Use a working database URL and your own initial administrator email; optional provider secrets may stay empty. Both Next.js and the database CLI load `.env`. Never commit it.
+
+The seed creates configuration only. Use `npm run auth:invite-initial-admin` to generate the initial owner activation link, then open the link to set a password. Use `npm run db:seed:demo` only when you deliberately want sample records.
 
 ## Release Verification
 
 ```bash
 npm run verify
+# Individual checks
+npm test
+npm run typecheck
+npm run test:coverage
+npm run audit
 ```
 
 Production schema changes use `npm run db:migrate`. `npm run db:push` is for disposable development databases only.
@@ -49,3 +59,5 @@ Inspect the read-only capacity harness with `npm run load:smoke -- --help`. Live
 The runtime is provider-neutral: it requires PostgreSQL through `DATABASE_URL` and does not depend on a specific database vendor.
 
 Docker buyers can choose bundled Postgres with `docker-compose.yml` or an external managed database with `docker-compose.external.yml`.
+
+See [buyer readiness evidence](./docs/BUYER_READINESS.md) for verification scope, operational requirements, and remaining limits.

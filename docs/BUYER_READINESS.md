@@ -83,18 +83,33 @@ For agencies: keep one database, secrets set, domain, administrator bootstrap, b
 
 The Node.js standalone build can run on a VPS/container with PostgreSQL or behind Cloudflare proxy/DNS. Native Cloudflare Workers requires a separately verified compatible adapter/runtime path. Hosting behind Cloudflare is not evidence that native Workers is supported. Connector readiness requires the client's provider token, scopes, callback domain, signature verification, and a provider-side test lead; code-only tests cannot prove live provider access.
 
-## Verification record and external blocker
+## Final verification record
 
-The initial working candidate passed 305 tests, typecheck, production build and no-drift schema generation locally before the final follow-up patches. The expanded suite now passes 308 tests with 26.42% whole-repository line coverage and 87.40% business-contract aggregate line coverage. A separate empty clone successfully installed dependencies and caught a newly introduced missing SMOKE_BASE_URL example; that variable was then added and verification was repeated. See the PR for the final exact-commit results.
+The code snapshot at GitHub commit `532af6010ae537118e5ca5f936cdb4769b48386d` was verified using Node.js 24.22.1 and npm 11.9.0 in a separate clean clone. `npm ci` and the complete `npm run verify` pass, including lint, environment inventory, explicit typecheck, coverage, audit, migration drift and production build.
 
-GitHub Actions run 41974375722 could not start any job. Its annotation states: "The job was not started because your account is locked due to a billing issue." This is an account-level blocker, not a passing CI run. The PostgreSQL service smoke job and required-status enforcement must be verified after the owner resolves that account issue. No release should be presented as CI-verified while the run remains blocked.
+| Evidence | Result |
+| --- | --- |
+| Automated tests | 310 passed, zero failed/skipped |
+| Full-repository line coverage | 26.43%; enforced floor 26% |
+| Business-contract aggregate line coverage | 87.40%; enforced target 80% |
+| Dependency audit | Zero findings across all severities at verification time |
+| Typecheck gate probe | Temporary intentional type error rejected, then removed |
+| Coverage gate probe | Deliberately excessive threshold rejected, then restored |
+| Migration drift probe | Untracked SQL file rejected, then removed |
+| Schema journal | No uncommitted generation changes after migration 0027 |
+| Preview deployment | Code snapshot built to READY; login and denied API boundaries checked |
+| Production | Existing release retained; health endpoint returned 200 |
 
-See DATA_LINEAGE.md for source-to-record transformations, identity/retry behavior, reporting boundaries and operator ownership.
+Migration 0027 corrects two historical default mismatches: forms.is_active was false in historical SQL but true in the typed schema; crm_users.is_active was false in the typed schema but true in historical SQL. Both now agree on false. This changes defaults only; existing records and explicit activation choices are preserved. A regression test compares every literal boolean default with the freshly migrated database.
 
-Follow-up SQL tests also found two historical default mismatches: forms.is_active was false in historical SQL but true in the typed schema; crm_users.is_active was false in the typed schema but true in historical SQL. Migration 0027 and the form schema now agree on false. The migration changes defaults only; existing records and explicit activation choices are preserved. A regression test compares every literal boolean default with the freshly migrated database.
+CLI seed and owner-invitation commands explicitly close their database pool on success or failure. They no longer depend on idle timers to let automation exit. The fresh-install workflow records migration, seeding and repeat runs as separately bounded steps. Database shutdown has dedicated success, idempotency and failure-path tests.
 
-The typecheck gate was tested with a temporary intentional string-to-number type error and correctly rejected it; the probe was then removed. Final dependency verification uses a clean npm ci and reports zero vulnerabilities. The whole-repository floors were raised to 26% lines/statements, 62% functions and 66% branches after the expanded SQL tests, while the critical business-contract line target remains 80%.
+## External release blockers
 
-The initial preview deployment built successfully and returned login 200 and anonymous forms API 401. Its health endpoint returned 503 because auth/owner bootstrap variables target production only; production health returned 200. No production credentials were copied into preview. The existing provider-managed database variables target multiple environments, so authenticated staging writes must wait for a separately isolated test database. This preview is build/access-boundary evidence, not a fully provisioned staging acceptance result.
+GitHub Actions run 41976298643 could not start its jobs. Its annotation states: "The job was not started because your account is locked due to a billing issue." This is an account-level blocker and is not a green CI run. Resolve the account restriction and rerun the exact candidate before describing it as CI-verified. The PostgreSQL service smoke job and repository required-status enforcement still need completed verification. The passing in-process PostgreSQL suite does not substitute for a completed production-driver service smoke test.
 
-CLI seed and owner-invitation commands now explicitly close their database pool on success or failure. They no longer depend on idle timers to let automation exit. The fresh-install workflow records migration, seeding and repeat runs as separately bounded steps, making a stalled bootstrap visible rather than holding the entire job indefinitely. Database shutdown has dedicated success, idempotency and failure-path tests.
+The preview health endpoint returns 503 because auth/owner bootstrap variables target production only. Login renders and the anonymous forms API returns 401. No production credentials were copied into preview. Existing provider-managed database variables target multiple environments, so authenticated staging writes must wait for a separately isolated test database. The preview is build/access-boundary evidence, not a fully provisioned staging acceptance result.
+
+This candidate is available in pull request #1 and has not been merged into master or promoted over the live deployment. Migration 0027 has not been applied to the live client database by this work. After resolving CI and staging acceptance, rehearse the migration on a restored database, apply it through the normal release process, promote the exact tested commit, and verify health/login/core workflows before issuing a release tag or requesting a new independent score.
+
+See DATA_LINEAGE.md for source-to-record transformations, identity/retry behavior, reporting boundaries and operator ownership. Remaining evidence gaps include broad UI/route coverage, provider-account acceptance tests, client backup restoration, native Cloudflare Workers compatibility, branch-rule enforcement and commercial/IP review. These gaps must remain visible in a buyer handover.

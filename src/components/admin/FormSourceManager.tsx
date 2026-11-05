@@ -1,8 +1,9 @@
 "use client";
 
-import { startTransition, useMemo, useState, type ReactNode } from "react";
+import { startTransition, useMemo, useState, useSyncExternalStore, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
-import { Copy, RefreshCcw, RotateCcw } from "lucide-react";
+import { RefreshCcw, RotateCcw } from "lucide-react";
+import { CopyButton } from "./CopyButton";
 import { AdminSelect } from "@/components/admin/AdminSelect";
 import {
   type AdminFormSourceRecord,
@@ -32,7 +33,7 @@ function normalizeWebhookSeed(value: string) {
 
 function generateWebhookKey(seed: string) {
   const base = normalizeWebhookSeed(seed);
-  const suffix = Math.random().toString(36).slice(2, 8);
+  const suffix = globalThis.crypto.randomUUID().replaceAll("-", "");
   return `${base || "form_source"}_${suffix}`;
 }
 
@@ -226,125 +227,130 @@ function SourceDefaultsEditor({
           ))}
         </AdminSelect>
       </label>
-      <label className="space-y-2">
-        <span className="text-xs font-semibold uppercase tracking-[0.16em] text-white/70">Source ID</span>
-        <input
-          type="text"
-          value={draft.sourceId}
-          onChange={(event) => onChange({ ...draft, sourceId: event.target.value })}
-          placeholder="landing-page-01"
-          className="admin-input h-11 w-full rounded-2xl px-4 text-sm outline-none"
-        />
-      </label>
-      <label className="space-y-2">
-        <span className="text-xs font-semibold uppercase tracking-[0.16em] text-white/70">Webhook Key</span>
-        <input
-          type="text"
-          value={draft.webhookKey}
-          onChange={(event) => onChange({ ...draft, webhookKey: event.target.value })}
-          placeholder="sales_form_01"
-          className="admin-input h-11 w-full rounded-2xl px-4 text-sm outline-none"
-        />
-      </label>
-      <label className="space-y-2">
-        <span className="text-xs font-semibold uppercase tracking-[0.16em] text-white/70">Default Stage</span>
-        <AdminSelect
-          value={draft.defaultStageId}
-          onChange={(event) => onChange({ ...draft, defaultStageId: event.target.value })}
-          className="h-11"
-        >
-          <option value="">No default stage</option>
-          {referenceData.stages.map((stage) => (
-            <option key={stage.id} value={stage.id}>
-              {stage.name}
-            </option>
-          ))}
-        </AdminSelect>
-      </label>
-      <label className="space-y-2">
-        <span className="text-xs font-semibold uppercase tracking-[0.16em] text-white/70">Default Owner</span>
-        <AdminSelect
-          value={draft.defaultAssignedUserId}
-          onChange={(event) => onChange({ ...draft, defaultAssignedUserId: event.target.value })}
-          className="h-11"
-        >
-          <option value="">No default owner</option>
-          {referenceData.users.map((user) => (
-            <option key={user.id} value={user.id}>
-              {user.label}
-            </option>
-          ))}
-        </AdminSelect>
-      </label>
-      <label className="space-y-2">
-        <span className="text-xs font-semibold uppercase tracking-[0.16em] text-white/70">Default Team</span>
-        <AdminSelect
-          value={draft.defaultTeamId}
-          onChange={(event) => onChange({ ...draft, defaultTeamId: event.target.value })}
-          className="h-11"
-        >
-          <option value="">No default team</option>
-          {referenceData.teams.map((team) => (
-            <option key={team.id} value={team.id}>
-              {team.name}
-            </option>
-          ))}
-        </AdminSelect>
-      </label>
-      <label className="space-y-2">
-        <span className="text-xs font-semibold uppercase tracking-[0.16em] text-white/70">Default Branch</span>
-        <AdminSelect
-          value={draft.defaultBranchId}
-          onChange={(event) => onChange({ ...draft, defaultBranchId: event.target.value })}
-          className="h-11"
-        >
-          <option value="">No default branch</option>
-          {referenceData.branches.map((branch) => (
-            <option key={branch.id} value={branch.id}>
-              {branch.name}
-            </option>
-          ))}
-        </AdminSelect>
-      </label>
-      <label className="space-y-2">
-        <span className="text-xs font-semibold uppercase tracking-[0.16em] text-white/70">Default Department</span>
-        <AdminSelect
-          value={draft.defaultDepartmentId}
-          onChange={(event) => onChange({ ...draft, defaultDepartmentId: event.target.value })}
-          className="h-11"
-        >
-          <option value="">No default department</option>
-          {referenceData.departments.map((department) => (
-            <option key={department.id} value={department.id}>
-              {department.name}
-            </option>
-          ))}
-        </AdminSelect>
-      </label>
-      <label className="space-y-2">
-        <span className="text-xs font-semibold uppercase tracking-[0.16em] text-white/70">Default Priority</span>
-        <AdminSelect
-          value={draft.defaultPriority}
-          onChange={(event) => onChange({ ...draft, defaultPriority: event.target.value })}
-          className="h-11"
-        >
-          <option value="">No default priority</option>
-          {LEAD_PRIORITIES.map((priority) => (
-            <option key={priority} value={priority}>
-              {priorityLabels[priority]}
-            </option>
-          ))}
-        </AdminSelect>
-      </label>
-      <label className="inline-flex items-center justify-between gap-3 rounded-2xl border border-white/10 bg-white/[0.045] px-4 py-3 text-sm font-semibold text-white/70 sm:col-span-2">
-        <span>Active</span>
-        <input
-          type="checkbox"
-          checked={draft.isActive}
-          onChange={(event) => onChange({ ...draft, isActive: event.target.checked })}
-          className="admin-toggle"
-        />
-      </label>
+      <details className="min-w-0 sm:col-span-2">
+        <summary className="cursor-pointer rounded-lg py-3 text-sm font-semibold text-white/75">Routing and advanced settings</summary>
+        <div className="grid min-w-0 gap-3 pt-2 sm:grid-cols-2">
+          <label className="space-y-2">
+            <span className="text-xs font-semibold uppercase tracking-[0.16em] text-white/70">Source ID</span>
+            <input
+              type="text"
+              value={draft.sourceId}
+              onChange={(event) => onChange({ ...draft, sourceId: event.target.value })}
+              placeholder="landing-page-01"
+              className="admin-input h-11 w-full rounded-2xl px-4 text-sm outline-none"
+            />
+          </label>
+          <label className="space-y-2">
+            <span className="text-xs font-semibold uppercase tracking-[0.16em] text-white/70">Webhook Key</span>
+            <input
+              type="text"
+              value={draft.webhookKey}
+              onChange={(event) => onChange({ ...draft, webhookKey: event.target.value })}
+              placeholder="sales_form_01"
+              className="admin-input h-11 w-full rounded-2xl px-4 text-sm outline-none"
+            />
+          </label>
+          <label className="space-y-2">
+            <span className="text-xs font-semibold uppercase tracking-[0.16em] text-white/70">Default Stage</span>
+            <AdminSelect
+              value={draft.defaultStageId}
+              onChange={(event) => onChange({ ...draft, defaultStageId: event.target.value })}
+              className="h-11"
+            >
+              <option value="">No default stage</option>
+              {referenceData.stages.map((stage) => (
+                <option key={stage.id} value={stage.id}>
+                  {stage.name}
+                </option>
+              ))}
+            </AdminSelect>
+          </label>
+          <label className="space-y-2">
+            <span className="text-xs font-semibold uppercase tracking-[0.16em] text-white/70">Default Owner</span>
+            <AdminSelect
+              value={draft.defaultAssignedUserId}
+              onChange={(event) => onChange({ ...draft, defaultAssignedUserId: event.target.value })}
+              className="h-11"
+            >
+              <option value="">No default owner</option>
+              {referenceData.users.map((user) => (
+                <option key={user.id} value={user.id}>
+                  {user.label}
+                </option>
+              ))}
+            </AdminSelect>
+          </label>
+          <label className="space-y-2">
+            <span className="text-xs font-semibold uppercase tracking-[0.16em] text-white/70">Default Team</span>
+            <AdminSelect
+              value={draft.defaultTeamId}
+              onChange={(event) => onChange({ ...draft, defaultTeamId: event.target.value })}
+              className="h-11"
+            >
+              <option value="">No default team</option>
+              {referenceData.teams.map((team) => (
+                <option key={team.id} value={team.id}>
+                  {team.name}
+                </option>
+              ))}
+            </AdminSelect>
+          </label>
+          <label className="space-y-2">
+            <span className="text-xs font-semibold uppercase tracking-[0.16em] text-white/70">Default Branch</span>
+            <AdminSelect
+              value={draft.defaultBranchId}
+              onChange={(event) => onChange({ ...draft, defaultBranchId: event.target.value })}
+              className="h-11"
+            >
+              <option value="">No default branch</option>
+              {referenceData.branches.map((branch) => (
+                <option key={branch.id} value={branch.id}>
+                  {branch.name}
+                </option>
+              ))}
+            </AdminSelect>
+          </label>
+          <label className="space-y-2">
+            <span className="text-xs font-semibold uppercase tracking-[0.16em] text-white/70">Default Department</span>
+            <AdminSelect
+              value={draft.defaultDepartmentId}
+              onChange={(event) => onChange({ ...draft, defaultDepartmentId: event.target.value })}
+              className="h-11"
+            >
+              <option value="">No default department</option>
+              {referenceData.departments.map((department) => (
+                <option key={department.id} value={department.id}>
+                  {department.name}
+                </option>
+              ))}
+            </AdminSelect>
+          </label>
+          <label className="space-y-2">
+            <span className="text-xs font-semibold uppercase tracking-[0.16em] text-white/70">Default Priority</span>
+            <AdminSelect
+              value={draft.defaultPriority}
+              onChange={(event) => onChange({ ...draft, defaultPriority: event.target.value })}
+              className="h-11"
+            >
+              <option value="">No default priority</option>
+              {LEAD_PRIORITIES.map((priority) => (
+                <option key={priority} value={priority}>
+                  {priorityLabels[priority]}
+                </option>
+              ))}
+            </AdminSelect>
+          </label>
+          <label className="inline-flex items-center justify-between gap-3 rounded-2xl border border-white/10 bg-white/[0.045] px-4 py-3 text-sm font-semibold text-white/70 sm:col-span-2">
+            <span>Active</span>
+            <input
+              type="checkbox"
+              checked={draft.isActive}
+              onChange={(event) => onChange({ ...draft, isActive: event.target.checked })}
+              className="admin-toggle"
+            />
+          </label>
+        </div>
+      </details>
     </div>
   );
 }
@@ -499,6 +505,14 @@ function FieldMappingsEditor({
   );
 }
 
+function subscribeToOrigin() {
+  return () => {};
+}
+
+function readOrigin() {
+  return window.location.origin;
+}
+
 function FormSourceEditor({
   title,
   draft,
@@ -526,22 +540,11 @@ function FormSourceEditor({
   showMappings: boolean;
   extraAction?: ReactNode;
 }) {
-  const origin = typeof window !== "undefined" ? window.location.origin : "";
+  const origin = useSyncExternalStore(subscribeToOrigin, readOrigin, () => "");
   const webhookPath = draft.webhookKey ? `/api/intake/webhook/${draft.webhookKey}` : "";
   const webhookUrl = webhookPath && origin ? `${origin}${webhookPath}` : webhookPath;
   const samplePayload = useMemo(() => buildSamplePayload(draft.mappings), [draft.mappings]);
 
-  async function copyWebhookUrl() {
-    if (!webhookUrl || typeof navigator === "undefined" || !navigator.clipboard) {
-      return;
-    }
-
-    try {
-      await navigator.clipboard.writeText(webhookUrl);
-    } catch {
-      // Ignore clipboard failures in unsupported browsers.
-    }
-  }
 
   return (
     <div className="admin-surface-soft space-y-4 rounded-[28px] p-4">
@@ -570,15 +573,7 @@ function FormSourceEditor({
                 <RefreshCcw className="mr-2 h-4 w-4" />
                 Regenerate
               </button>
-              <button
-                type="button"
-                disabled={!webhookUrl}
-                onClick={() => void copyWebhookUrl()}
-                className="admin-button-secondary inline-flex h-10 items-center justify-center rounded-2xl px-4 text-sm font-medium disabled:opacity-60"
-              >
-                <Copy className="mr-2 h-4 w-4" />
-                Copy URL
-              </button>
+              {webhookUrl ? <CopyButton text={webhookUrl} className="min-h-11 px-3" /> : null}
             </div>
           </div>
           <div className="mt-4 rounded-2xl border border-white/10 bg-black/20 px-4 py-3 text-sm text-white/70 [overflow-wrap:anywhere]">
@@ -602,7 +597,10 @@ function FormSourceEditor({
 
         <div className="rounded-[22px] border border-white/10 bg-white/[0.045] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
           <div>
-            <p className="text-sm font-semibold text-white">Sample Payload</p>
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <p className="text-sm font-semibold text-white">Test example</p>
+              <CopyButton text={JSON.stringify(samplePayload, null, 2)} className="min-h-11" />
+            </div>
             <p className="mt-1 text-sm text-white/70">
               This example reflects the current field mappings for this source.
             </p>
@@ -683,17 +681,22 @@ export function FormSourceManager({
       const response = await fetch("/api/admin/form-sources", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(buildSourcePayload(newSource)),
+        body: JSON.stringify({ ...buildSourcePayload(newSource), standardContactFields: true }),
       });
-      const payload = (await response.json().catch(() => null)) as { error?: string } | null;
+      const payload = (await response.json().catch(() => null)) as { error?: string; source?: AdminFormSourceRecord } | null;
       if (!response.ok) {
         setNewMessage(payload?.error ?? "We couldn't save this source right now.");
         setNewSaving(false);
         return;
       }
 
+      const source = payload?.source;
+      if (source) {
+        setDrafts((current) => ({ ...current, [source.id]: buildSourceDraft(source) }));
+        setEditingId(source.id);
+      }
       setNewSource(createEmptySourceDraft());
-      setNewMessage("Source saved.");
+      setNewMessage("Source saved with name, email and phone mapping. Copy its URL, send a test, then check Intake Log.");
       setNewSaving(false);
       startTransition(() => router.refresh());
     } catch {
@@ -823,6 +826,9 @@ export function FormSourceManager({
 
   return (
     <div className="space-y-6">
+      <div id="add-source" className="scroll-mt-24 space-y-2">
+        <p className="text-sm text-white/70">Name your connection and save. Name, email and phone fields are mapped automatically. Then paste its URL into your form tool.</p>
+      </div>
       <FormSourceEditor
         title="Add Source"
         draft={newSource}

@@ -1,3 +1,4 @@
+import { randomBytes } from "node:crypto";
 import { NextResponse } from "next/server";
 import { getAdminRequestContext } from "@/lib/admin";
 import { canManageFormSources } from "@/lib/crm/authz";
@@ -36,9 +37,13 @@ export async function POST(request: Request) {
   }
 
   const payload = await request.json().catch(() => null);
-  const parsed = normalizeAdminFormSourcePayload(
-    typeof payload === "object" && payload ? (payload as Record<string, unknown>) : {},
-  );
+  const values = typeof payload === "object" && payload && !Array.isArray(payload)
+    ? payload as Record<string, unknown> : {};
+  const standardContactFields = values.standardContactFields === true;
+  const parsed = normalizeAdminFormSourcePayload({
+    ...values,
+    webhookKey: values.webhookKey || (standardContactFields ? randomBytes(24).toString("hex") : null),
+  });
 
   if (!parsed.success) {
     return NextResponse.json(
@@ -48,7 +53,9 @@ export async function POST(request: Request) {
   }
 
   try {
-    const source = await createFormSource(parsed.data);
+    const source = await createFormSource(parsed.data, {
+      standardContactFields,
+    });
     return NextResponse.json({ source }, { status: 201 });
   } catch (error) {
     if (error instanceof FormSourceAdminError) {

@@ -155,6 +155,7 @@ export default async function AdminTikTokIntegrationPage() {
         )}
 
         <IntegrationSetupPanel
+          callbackUrl={baseUrl ? `${baseUrl}/api/integrations/tiktok/webhook` : undefined}
           provider="tiktok"
           title="Connect TikTok Lead Ads"
           description="Forward full lead answers through a TikTok-capable relay and confirm delivery with a test lead."

@@ -273,6 +273,7 @@ export default async function AdminGoogleAdsIntegrationPage() {
         )}
 
         <IntegrationSetupPanel
+          callbackUrl={baseUrl ? `${baseUrl}/api/integrations/google-ads/webhook` : undefined}
           provider="google_ads"
           title="Connect Google Ads"
           description="Set up account reporting and lead delivery without exposing credentials in the browser."

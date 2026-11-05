@@ -1,3 +1,4 @@
+import { STANDARD_WEBHOOK_MAPPINGS } from "./standard-webhook-mappings";
 import { and, asc, eq, inArray, ne } from "drizzle-orm";
 import { z } from "zod";
 import type {
@@ -434,31 +435,36 @@ export async function getFormSource(id: string) {
   return records.find((record) => record.id === id) ?? null;
 }
 
-export async function createFormSource(input: AdminFormSourceInput) {
+export async function createFormSource(input: AdminFormSourceInput, options: { standardContactFields?: boolean } = {}) {
   await assertWebhookKeyAvailable(input.webhookKey ?? null);
 
   const db = getDb();
-  const [created] = await db
-    .insert(formSources)
-    .values({
-      name: input.name.trim(),
-      type: input.type,
-      sourceId: input.sourceId ?? null,
-      webhookKey: input.webhookKey ?? null,
-      isActive: input.isActive ?? true,
-      defaultStageId: input.defaultStageId ?? null,
-      defaultAssignedUserId: input.defaultAssignedUserId ?? null,
-      defaultTeamId: input.defaultTeamId ?? null,
-      defaultBranchId: input.defaultBranchId ?? null,
-      defaultDepartmentId: input.defaultDepartmentId ?? null,
-      defaultPriority: toStoragePriority(input.defaultPriority),
-    })
-    .returning();
+  return db.transaction(async (tx) => {
+    const [created] = await tx
+      .insert(formSources)
+      .values({
+        name: input.name.trim(),
+        type: input.type,
+        sourceId: input.sourceId ?? null,
+        webhookKey: input.webhookKey ?? null,
+        isActive: input.isActive ?? true,
+        defaultStageId: input.defaultStageId ?? null,
+        defaultAssignedUserId: input.defaultAssignedUserId ?? null,
+        defaultTeamId: input.defaultTeamId ?? null,
+        defaultBranchId: input.defaultBranchId ?? null,
+        defaultDepartmentId: input.defaultDepartmentId ?? null,
+        defaultPriority: toStoragePriority(input.defaultPriority),
+      })
+      .returning();
 
-  return {
-    ...mapFormSource(created),
-    mappings: [],
-  } satisfies AdminFormSourceRecord;
+    const mappings = options.standardContactFields
+      ? await tx.insert(formFieldMappings).values(STANDARD_WEBHOOK_MAPPINGS.map((mapping) => ({ ...mapping, formSourceId: created.id }))).returning()
+      : [];
+    return {
+      ...mapFormSource(created),
+      mappings: mappings.map(mapFormFieldMapping),
+    } satisfies AdminFormSourceRecord;
+  });
 }
 
 export async function updateFormSource(id: string, input: AdminFormSourceInput) {

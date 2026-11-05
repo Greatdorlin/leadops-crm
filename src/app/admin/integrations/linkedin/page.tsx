@@ -157,6 +157,7 @@ export default async function AdminLinkedInIntegrationPage() {
         )}
 
         <IntegrationSetupPanel
+          callbackUrl={baseUrl ? `${baseUrl}/api/integrations/linkedin/webhook` : undefined}
           provider="linkedin"
           title="Connect LinkedIn Lead Gen Forms"
           description="Verify Lead Sync permissions for the account and confirm delivery with a test lead."

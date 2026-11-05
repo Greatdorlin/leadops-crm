@@ -175,6 +175,7 @@ export default async function AdminFacebookIntegrationPage() {
         )}
 
         <IntegrationSetupPanel
+          callbackUrl={baseUrl ? `${baseUrl}/api/integrations/facebook/webhook` : undefined}
           provider="facebook"
           title="Connect Meta Lead Ads"
           description="Three steps from page access to a verified lead delivery."

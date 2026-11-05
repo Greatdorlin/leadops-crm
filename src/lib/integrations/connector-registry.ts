@@ -48,7 +48,7 @@ export const connectorRegistry: ConnectorDefinition[] = [
     availability: "available",
     connectionMethods: ["webhook"],
     description: "Key-protected JSON intake with field mapping and delivery logs.",
-    operations: { setupPath: "/settings/form-sources", healthPath: "/intake" },
+    operations: { setupPath: "/settings/form-sources#add-source", healthPath: "/intake" },
   },
   {
     id: "meta_lead_ads",

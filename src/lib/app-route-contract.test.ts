@@ -49,3 +49,12 @@ test("every clean workspace route has a Next.js page entry", () => {
     assert.equal(existsSync(pagePath), true, `${route} is missing ${pagePath}`);
   }
 });
+
+
+test("each clean workspace route is wrapped in a workspace layout", () => {
+  for (const route of cleanPageRoutes) {
+    const segment = route.split("/").filter(Boolean)[0];
+    const layoutPath = path.join(process.cwd(), "src", "app", segment, "layout.tsx");
+    assert.equal(existsSync(layoutPath), true, `${route} is missing its workspace layout`);
+  }
+});

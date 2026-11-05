@@ -1,5 +1,7 @@
 "use client";
 
+import { STANDARD_WEBHOOK_MAPPINGS } from "@/lib/crm/standard-webhook-mappings";
+
 import { startTransition, useMemo, useState, useSyncExternalStore, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { RefreshCcw, RotateCcw } from "lucide-react";
@@ -39,9 +41,9 @@ function generateWebhookKey(seed: string) {
 
 function buildSamplePayload(mappings: MappingDraft[]) {
   const defaults: Record<string, string | number> = {
-    name: "Ada Okafor",
+    name: "Demo contact",
     email: "lead@example.com",
-    phone: "+2348012345678",
+    phone: "+12025550123",
     companyName: "Northwind Ventures",
     sourceId: "website",
     campaignLabel: "June Campaign",
@@ -131,7 +133,7 @@ function createEmptySourceDraft(): SourceDraft {
     defaultBranchId: "",
     defaultDepartmentId: "",
     defaultPriority: "",
-    mappings: [],
+    mappings: STANDARD_WEBHOOK_MAPPINGS.map((mapping) => ({ ...createEmptyMappingDraft(), ...mapping })),
   };
 }
 
@@ -577,7 +579,7 @@ function FormSourceEditor({
             </div>
           </div>
           <div className="mt-4 rounded-2xl border border-white/10 bg-black/20 px-4 py-3 text-sm text-white/70 [overflow-wrap:anywhere]">
-            {webhookUrl || "Save or enter a webhook key to generate the webhook URL preview."}
+            {webhookUrl || "Save the connection to generate its protected webhook URL."}
           </div>
           <div className="mt-3 grid gap-3 md:grid-cols-2">
             <div className="rounded-2xl border border-white/10 bg-white/[0.035] px-4 py-3">
@@ -589,7 +591,7 @@ function FormSourceEditor({
             <div className="rounded-2xl border border-white/10 bg-white/[0.035] px-4 py-3">
               <p className="text-xs font-semibold uppercase tracking-[0.14em] text-white/70">Setup notes</p>
               <p className="mt-1.5 text-sm text-white/72">
-                Map the form fields first, then send a JSON POST request to this URL.
+                Send the test example as JSON to this URL. Change field mappings only if your form tool uses different field names.
               </p>
             </div>
           </div>

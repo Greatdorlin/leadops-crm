@@ -1,4 +1,5 @@
 import "dotenv/config";
+import { closeDb } from "@/lib/db/client";
 import { getInitialAdminEmail, getInitialAdminName } from "@/lib/admin-access";
 import { issueUserInvitation } from "@/lib/auth-credentials";
 import { leadStore } from "@/lib/storage";
@@ -36,7 +37,7 @@ async function main() {
   );
 }
 
-main().catch((error) => {
+main().finally(closeDb).catch((error) => {
   console.error(
     JSON.stringify(
       {

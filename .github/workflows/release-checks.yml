@@ -142,12 +142,18 @@ jobs:
       - run: npm ci
       - name: Generate ephemeral test secret
         run: echo "AUTH_SECRET=$(openssl rand -base64 32)" >> "$GITHUB_ENV"
-      - name: Migrate and seed an empty database, then verify reruns
-        run: |
-          npm run db:migrate
-          npm run db:seed:defaults:full
-          npm run db:migrate
-          npm run db:seed:defaults:full
+      - name: Migrate empty database
+        timeout-minutes: 3
+        run: npm run db:migrate
+      - name: Seed default configuration
+        timeout-minutes: 3
+        run: npm run db:seed:defaults:full
+      - name: Verify migrations are repeatable
+        timeout-minutes: 3
+        run: npm run db:migrate
+      - name: Verify seed is repeatable
+        timeout-minutes: 3
+        run: npm run db:seed:defaults:full
       - run: npm run build
       - name: Boot production server and check protected boundaries
         run: |

@@ -36,3 +36,11 @@ export function getDb() {
 
   return database;
 }
+
+/** CLI lifecycle only: finish database work before allowing a short-lived command to exit. */
+export async function closeDb() {
+  const client = globalDatabase.__leadsDeskPostgres;
+  globalDatabase.__leadsDeskDb = undefined;
+  globalDatabase.__leadsDeskPostgres = undefined;
+  if (client) await client.end({ timeout: 5 });
+}

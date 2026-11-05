@@ -1,4 +1,16 @@
-import { and, eq, gte, ilike, inArray, isNotNull, isNull, lte, or, sql, type SQL } from "drizzle-orm";
+import {
+  and,
+  eq,
+  gte,
+  ilike,
+  inArray,
+  isNotNull,
+  isNull,
+  lte,
+  or,
+  sql,
+  type SQL,
+} from "drizzle-orm";
 import { serializeLeadAssignees } from "@/lib/crm/lead-assignees";
 import { leadStages, leadTasks, leads } from "@/lib/db/schema";
 import type { LeadListFilters, LeadTaskListFilters } from "./types";
@@ -43,7 +55,9 @@ export function timestampParam(value: Date) {
   return sql`${value.toISOString()}::timestamptz`;
 }
 
-export function buildLeadStatusFilterCondition(status: NonNullable<LeadListFilters["status"]>) {
+export function buildLeadStatusFilterCondition(
+  status: NonNullable<LeadListFilters["status"]>,
+) {
   if (status === "all") {
     return null;
   }
@@ -53,15 +67,21 @@ export function buildLeadStatusFilterCondition(status: NonNullable<LeadListFilte
   )`;
 
   if (status === "converted") {
-    return or(isNotNull(leads.wonAt), sql`${leads.stageId} in (
+    return or(
+      isNotNull(leads.wonAt),
+      sql`${leads.stageId} in (
       select ${leadStages.id} from ${leadStages} where ${leadStages.isWon} = true
-    )`);
+    )`,
+    );
   }
 
   if (status === "lost") {
-    return or(isNotNull(leads.lostAt), sql`${leads.stageId} in (
+    return or(
+      isNotNull(leads.lostAt),
+      sql`${leads.stageId} in (
       select ${leadStages.id} from ${leadStages} where ${leadStages.isLost} = true
-    )`);
+    )`,
+    );
   }
 
   if (status === "new") {
@@ -151,7 +171,9 @@ export function buildLeadListConditions(filters: LeadListFilters) {
   }
 
   if (filters.assignedTo?.trim()) {
-    const condition = buildLeadAssigneeFilterCondition(filters.assignedTo.trim());
+    const condition = buildLeadAssigneeFilterCondition(
+      filters.assignedTo.trim(),
+    );
     if (condition) {
       conditions.push(condition);
     }
@@ -162,7 +184,9 @@ export function buildLeadListConditions(filters: LeadListFilters) {
   }
 
   if (filters.affiliateReferrerId?.trim()) {
-    conditions.push(eq(leads.affiliateReferrerId, filters.affiliateReferrerId.trim()));
+    conditions.push(
+      eq(leads.affiliateReferrerId, filters.affiliateReferrerId.trim()),
+    );
   }
 
   if (filters.branchId?.trim()) {
@@ -178,7 +202,9 @@ export function buildLeadListConditions(filters: LeadListFilters) {
   }
 
   if (filters.assignment === "unassigned") {
-    conditions.push(sql`nullif(trim(coalesce(${leads.assignedTo}, '')), '') is null`);
+    conditions.push(
+      sql`nullif(trim(coalesce(${leads.assignedTo}, '')), '') is null`,
+    );
   }
 
   if (filters.search?.trim()) {
@@ -237,7 +263,10 @@ export function buildLeadTaskFilterConditions(filters: LeadTaskListFilters) {
 
   if (filters.overdueOnly) {
     taskConditions.push(
-      and(isNull(leadTasks.completedAt), lte(leadTasks.dueAt, new Date())) as SQL,
+      and(
+        isNull(leadTasks.completedAt),
+        lte(leadTasks.dueAt, new Date()),
+      ) as SQL,
     );
   }
 

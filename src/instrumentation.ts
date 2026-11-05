@@ -30,7 +30,11 @@ export async function register() {
   });
 }
 
-export const onRequestError: Instrumentation.onRequestError = async (error, request, context) => {
+export const onRequestError: Instrumentation.onRequestError = async (
+  error,
+  request,
+  context,
+) => {
   if (process.env.NEXT_RUNTIME !== "nodejs" || !process.env.SENTRY_DSN) return;
   const { captureRequestError } = await import("@sentry/nextjs");
   captureRequestError(error, request, context);

@@ -1,6 +1,19 @@
-import { boolean, check, date, index, integer, jsonb, numeric, pgTable, text, timestamp, uniqueIndex, uuid } from "drizzle-orm/pg-core";
+import {
+  boolean,
+  check,
+  date,
+  index,
+  integer,
+  jsonb,
+  numeric,
+  pgTable,
+  text,
+  timestamp,
+  uniqueIndex,
+  uuid,
+} from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
-import { salesTargetScopeEnum, salesTargetPeriodEnum } from './enums';
+import { salesTargetScopeEnum, salesTargetPeriodEnum } from "./enums";
 
 export const branches = pgTable(
   "branches",
@@ -11,8 +24,12 @@ export const branches = pgTable(
     managerUserId: uuid("manager_user_id"),
     currency: text("currency"),
     archived: boolean("archived").notNull().default(false),
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
   },
   (table) => ({
     nameIdx: index("branches_name_idx").on(table.name),
@@ -27,8 +44,12 @@ export const departments = pgTable(
     name: text("name").notNull(),
     managerUserId: uuid("manager_user_id"),
     archived: boolean("archived").notNull().default(false),
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
   },
   (table) => ({
     nameIdx: index("departments_name_idx").on(table.name),
@@ -45,8 +66,12 @@ export const teams = pgTable(
     branchId: uuid("branch_id"),
     departmentId: uuid("department_id"),
     archived: boolean("archived").notNull().default(false),
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
   },
   (table) => ({
     nameIdx: index("teams_name_idx").on(table.name),
@@ -67,8 +92,12 @@ export const leadStages = pgTable(
     isWon: boolean("is_won").notNull().default(false),
     isLost: boolean("is_lost").notNull().default(false),
     archived: boolean("archived").notNull().default(false),
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
   },
   (table) => ({
     keyUnique: uniqueIndex("lead_stages_key_unique").on(table.key),
@@ -86,8 +115,12 @@ export const leadSources = pgTable(
     type: text("type"),
     color: text("color"),
     archived: boolean("archived").notNull().default(false),
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
   },
   (table) => ({
     keyUnique: uniqueIndex("lead_sources_key_unique").on(table.key),
@@ -109,17 +142,21 @@ export const workspaceAutomationRules = pgTable(
     isActive: boolean("is_active").notNull().default(true),
     sortOrder: integer("sort_order").notNull().default(0),
     createdBy: text("created_by"),
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
   },
   (table) => ({
     activeOrderIdx: index("workspace_automation_rules_active_order_idx").on(
       table.isActive,
       table.sortOrder,
     ),
-    conditionFieldIdx: index("workspace_automation_rules_condition_field_idx").on(
-      table.conditionField,
-    ),
+    conditionFieldIdx: index(
+      "workspace_automation_rules_condition_field_idx",
+    ).on(table.conditionField),
     conditionOperatorCheck: check(
       "workspace_automation_rules_condition_operator_check",
       sql`${table.conditionOperator} in ('equals', 'not_equals')`,
@@ -132,7 +169,10 @@ export const workspaceAutomationRules = pgTable(
       "workspace_automation_rules_action_type_check",
       sql`${table.actionType} in ('assign_owner', 'set_stage', 'set_priority')`,
     ),
-    sortOrderCheck: check("workspace_automation_rules_sort_order_check", sql`${table.sortOrder} >= 0`),
+    sortOrderCheck: check(
+      "workspace_automation_rules_sort_order_check",
+      sql`${table.sortOrder} >= 0`,
+    ),
   }),
 );
 
@@ -150,8 +190,12 @@ export const salesTargets = pgTable(
     endDate: date("end_date").notNull(),
     isActive: boolean("is_active").notNull().default(true),
     archived: boolean("archived").notNull().default(false),
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
   },
   (table) => ({
     scopeIdx: index("sales_targets_scope_idx").on(table.scope, table.scopeId),
@@ -182,7 +226,9 @@ export const companySettings = pgTable(
     textColor: text("text_color").notNull().default("#0f172a"),
     borderColor: text("border_color").notNull().default("#d8e2f0"),
     borderRadius: integer("border_radius").notNull().default(24),
-    fontScale: numeric("font_scale", { precision: 4, scale: 2 }).notNull().default("1.00"),
+    fontScale: numeric("font_scale", { precision: 4, scale: 2 })
+      .notNull()
+      .default("1.00"),
     fontPreset: text("font_preset").notNull().default("brand"),
     density: text("density").notNull().default("comfortable"),
     themeMode: text("theme_mode").notNull().default("light"),
@@ -190,32 +236,60 @@ export const companySettings = pgTable(
     glassEnabled: boolean("glass_enabled").notNull().default(false),
     glassOpacity: integer("glass_opacity").notNull().default(72),
     glassBlur: integer("glass_blur").notNull().default(18),
-    celebrationsEnabled: boolean("celebrations_enabled").notNull().default(true),
-    stageCelebrationsEnabled: boolean("stage_celebrations_enabled").notNull().default(true),
-    targetCelebrationsEnabled: boolean("target_celebrations_enabled").notNull().default(true),
+    celebrationsEnabled: boolean("celebrations_enabled")
+      .notNull()
+      .default(true),
+    stageCelebrationsEnabled: boolean("stage_celebrations_enabled")
+      .notNull()
+      .default(true),
+    targetCelebrationsEnabled: boolean("target_celebrations_enabled")
+      .notNull()
+      .default(true),
     celebrationStyle: text("celebration_style").notNull().default("balanced"),
     loginBackgroundUrl: text("login_background_url"),
     loginHeadline: text("login_headline"),
     loginSubheadline: text("login_subheadline"),
-    navigationConfig: jsonb("navigation_config").$type<Record<string, unknown> | null>(),
-    dashboardConfig: jsonb("dashboard_config").$type<Record<string, unknown> | null>(),
-    leadPreviewConfig: jsonb("lead_preview_config").$type<Record<string, unknown> | null>(),
-    industryPreset: text("industry_preset").notNull().default("general_business"),
-    onboardingProfile: jsonb("onboarding_profile").$type<Record<string, unknown> | null>(),
-    onboardingCompletedAt: timestamp("onboarding_completed_at", { withTimezone: true }),
+    navigationConfig: jsonb("navigation_config").$type<Record<
+      string,
+      unknown
+    > | null>(),
+    dashboardConfig: jsonb("dashboard_config").$type<Record<
+      string,
+      unknown
+    > | null>(),
+    leadPreviewConfig: jsonb("lead_preview_config").$type<Record<
+      string,
+      unknown
+    > | null>(),
+    industryPreset: text("industry_preset")
+      .notNull()
+      .default("general_business"),
+    onboardingProfile: jsonb("onboarding_profile").$type<Record<
+      string,
+      unknown
+    > | null>(),
+    onboardingCompletedAt: timestamp("onboarding_completed_at", {
+      withTimezone: true,
+    }),
     globalCurrency: text("global_currency").notNull().default("USD"),
     timeZone: text("time_zone"),
     defaultCountry: text("default_country"),
     defaultRegion: text("default_region"),
     defaultCity: text("default_city"),
     locale: text("locale"),
-    domainRegistrationEnabled: boolean("domain_registration_enabled").notNull().default(false),
+    domainRegistrationEnabled: boolean("domain_registration_enabled")
+      .notNull()
+      .default(false),
     approvedRegistrationDomains: text("approved_registration_domains")
       .array()
       .notNull()
       .default(sql`ARRAY[]::text[]`),
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
   },
   (table) => ({
     updatedAtIdx: index("company_settings_updated_at_idx").on(table.updatedAt),
@@ -232,9 +306,11 @@ export type LeadStageRow = typeof leadStages.$inferSelect;
 
 export type LeadSourceRow = typeof leadSources.$inferSelect;
 
-export type WorkspaceAutomationRuleRow = typeof workspaceAutomationRules.$inferSelect;
+export type WorkspaceAutomationRuleRow =
+  typeof workspaceAutomationRules.$inferSelect;
 
-export type NewWorkspaceAutomationRuleRow = typeof workspaceAutomationRules.$inferInsert;
+export type NewWorkspaceAutomationRuleRow =
+  typeof workspaceAutomationRules.$inferInsert;
 
 export type SalesTargetRow = typeof salesTargets.$inferSelect;
 

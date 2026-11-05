@@ -3,7 +3,9 @@ import { leads } from "@/lib/db/schema";
 import { parseNigeriaStateValue } from "@/lib/nigeria-state-options";
 import type { LeadRecord, SyncStatus } from "@/lib/crm/types";
 
-export function defaultSyncState(message: string): LeadRecord["sync"]["sender"] {
+export function defaultSyncState(
+  message: string,
+): LeadRecord["sync"]["sender"] {
   return {
     status: "pending",
     message,
@@ -75,7 +77,9 @@ export function normalizeLeadRegion(value?: string | null) {
   return parseNigeriaStateValue(value) ?? normalizeText(value);
 }
 
-export function deriveCompatibilityStatus(row: typeof leads.$inferSelect): LeadRecord["crmStatus"] {
+export function deriveCompatibilityStatus(
+  row: typeof leads.$inferSelect,
+): LeadRecord["crmStatus"] {
   if (row.wonAt) {
     return "converted";
   }

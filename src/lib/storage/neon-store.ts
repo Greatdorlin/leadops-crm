@@ -1,26 +1,90 @@
 import type { IntegrationProvider, LeadPriority } from "@/lib/crm/types";
-import type { AdCampaignMetricListFilters, AdCampaignMetricUpsertInput, DashboardTrendPoint, CrmUserUpsertInput, ExternalLeadUpsertInput, ExternalLeadUpsertResult, IntegrationUpsertInput, LeadDuplicateLookupInput, LeadDuplicateListInput, LeadDistributionReport, LeadEventCreateInput, LeadEventCountFilters, LeadListFilters, LeadNoteCreateInput, LeadProfileUpdateInput, LeadSourcePayloadCreateInput, LeadTaskCreateInput, LeadTaskListFilters, LeadTaskQueueRecord, LeadWorkflowUpdateInput, SyncJobCreateInput, SyncJobListFilters, SyncJobUpdateInput } from "./types";
+import type {
+  AdCampaignMetricListFilters,
+  AdCampaignMetricUpsertInput,
+  DashboardTrendPoint,
+  CrmUserUpsertInput,
+  ExternalLeadUpsertInput,
+  ExternalLeadUpsertResult,
+  IntegrationUpsertInput,
+  LeadDuplicateLookupInput,
+  LeadDuplicateListInput,
+  LeadDistributionReport,
+  LeadEventCreateInput,
+  LeadEventCountFilters,
+  LeadListFilters,
+  LeadNoteCreateInput,
+  LeadProfileUpdateInput,
+  LeadSourcePayloadCreateInput,
+  LeadTaskCreateInput,
+  LeadTaskListFilters,
+  LeadTaskQueueRecord,
+  LeadWorkflowUpdateInput,
+  SyncJobCreateInput,
+  SyncJobListFilters,
+  SyncJobUpdateInput,
+} from "./types";
 
-import { getDb, type DatabaseExecutor } from '@/lib/db/client';
-import type { LeadStorage } from './types';
-import { getById, list, countLeads } from './neon-reads';
-import { upsertExternalLead, createExternalLead } from './neon-intake';
-import { findDuplicateLead, listDuplicateLeads } from './neon-duplicates';
-import { addLeadEvent, listLeadEvents, countLeadEvents, addLeadNote, listLeadNotes, getLeadNoteCounts } from './neon-activity';
-import { addLeadTask, listLeadTasks, listLeadTaskQueue, getLeadTaskById, completeLeadTask } from './neon-tasks';
-import { assignLead, assignLeadOwners } from './neon-assignments';
-import { updateLeadWorkflow } from './neon-workflow';
-import { updateLeadProfile } from './neon-profile';
-import { softDeleteLead, restoreLead, permanentlyDeleteLead, updateLeadPriority } from './neon-lifecycle';
-import { saveSourcePayload, markPayloadProcessing, markPayloadProcessed, markPayloadFailed, listFailedPayloads, retrySourcePayload } from './neon-payloads';
-import { createSyncJob, updateSyncJob, listSyncJobs } from './neon-sync';
-import { upsertAdCampaignMetric, listAdCampaignMetrics } from './neon-metrics';
-import { getDashboardStats, getDashboardTrend } from './neon-dashboard';
-import { getSalesPipelineAggregate } from './neon-pipeline';
-import { getTeamPerformance } from './neon-team';
-import { getSourceReport, getLeadDistributionReport, getCampaignReport, countGoogleAdsCampaignLeads } from './neon-reports';
-import { listCrmUsers, getCrmUserByEmail, getCrmUserById, upsertCrmUser, setCrmUserActive } from './neon-users';
-import { listIntegrations, getIntegration, upsertIntegration } from './neon-integrations';
+import { getDb, type DatabaseExecutor } from "@/lib/db/client";
+import type { LeadStorage } from "./types";
+import { getById, list, countLeads } from "./neon-reads";
+import { upsertExternalLead, createExternalLead } from "./neon-intake";
+import { findDuplicateLead, listDuplicateLeads } from "./neon-duplicates";
+import {
+  addLeadEvent,
+  listLeadEvents,
+  countLeadEvents,
+  addLeadNote,
+  listLeadNotes,
+  getLeadNoteCounts,
+} from "./neon-activity";
+import {
+  addLeadTask,
+  listLeadTasks,
+  listLeadTaskQueue,
+  getLeadTaskById,
+  completeLeadTask,
+} from "./neon-tasks";
+import { assignLead, assignLeadOwners } from "./neon-assignments";
+import { updateLeadWorkflow } from "./neon-workflow";
+import { updateLeadProfile } from "./neon-profile";
+import {
+  softDeleteLead,
+  restoreLead,
+  permanentlyDeleteLead,
+  updateLeadPriority,
+} from "./neon-lifecycle";
+import {
+  saveSourcePayload,
+  markPayloadProcessing,
+  markPayloadProcessed,
+  markPayloadFailed,
+  listFailedPayloads,
+  retrySourcePayload,
+} from "./neon-payloads";
+import { createSyncJob, updateSyncJob, listSyncJobs } from "./neon-sync";
+import { upsertAdCampaignMetric, listAdCampaignMetrics } from "./neon-metrics";
+import { getDashboardStats, getDashboardTrend } from "./neon-dashboard";
+import { getSalesPipelineAggregate } from "./neon-pipeline";
+import { getTeamPerformance } from "./neon-team";
+import {
+  getSourceReport,
+  getLeadDistributionReport,
+  getCampaignReport,
+  countGoogleAdsCampaignLeads,
+} from "./neon-reports";
+import {
+  listCrmUsers,
+  getCrmUserByEmail,
+  getCrmUserById,
+  upsertCrmUser,
+  setCrmUserActive,
+} from "./neon-users";
+import {
+  listIntegrations,
+  getIntegration,
+  upsertIntegration,
+} from "./neon-integrations";
 
 /** Postgres storage facade. Domain modules retain the shared transaction executor. */
 export class NeonLeadStore implements LeadStorage {
@@ -38,7 +102,9 @@ export class NeonLeadStore implements LeadStorage {
     return countLeads.call(this, this.getDatabase, filters);
   }
 
-  upsertExternalLead(input: ExternalLeadUpsertInput): Promise<ExternalLeadUpsertResult> {
+  upsertExternalLead(
+    input: ExternalLeadUpsertInput,
+  ): Promise<ExternalLeadUpsertResult> {
     return upsertExternalLead.call(this, this.getDatabase, input);
   }
 
@@ -86,7 +152,9 @@ export class NeonLeadStore implements LeadStorage {
     return listLeadTasks.call(this, this.getDatabase, filters);
   }
 
-  listLeadTaskQueue(filters: LeadTaskListFilters = {}): Promise<LeadTaskQueueRecord[]> {
+  listLeadTaskQueue(
+    filters: LeadTaskListFilters = {},
+  ): Promise<LeadTaskQueueRecord[]> {
     return listLeadTaskQueue.call(this, this.getDatabase, filters);
   }
 
@@ -102,15 +170,39 @@ export class NeonLeadStore implements LeadStorage {
     return assignLead.call(this, this.getDatabase, id, assignedTo, changedBy);
   }
 
-  assignLeadOwners(id: string, assignedToList: string[], changedBy?: string | null) {
-    return assignLeadOwners.call(this, this.getDatabase, id, assignedToList, changedBy);
+  assignLeadOwners(
+    id: string,
+    assignedToList: string[],
+    changedBy?: string | null,
+  ) {
+    return assignLeadOwners.call(
+      this,
+      this.getDatabase,
+      id,
+      assignedToList,
+      changedBy,
+    );
   }
 
-  updateLeadWorkflow(id: string, input: LeadWorkflowUpdateInput, changedBy?: string | null) {
-    return updateLeadWorkflow.call(this, this.getDatabase, id, input, changedBy);
+  updateLeadWorkflow(
+    id: string,
+    input: LeadWorkflowUpdateInput,
+    changedBy?: string | null,
+  ) {
+    return updateLeadWorkflow.call(
+      this,
+      this.getDatabase,
+      id,
+      input,
+      changedBy,
+    );
   }
 
-  updateLeadProfile(id: string, input: LeadProfileUpdateInput, changedBy?: string | null) {
+  updateLeadProfile(
+    id: string,
+    input: LeadProfileUpdateInput,
+    changedBy?: string | null,
+  ) {
     return updateLeadProfile.call(this, this.getDatabase, id, input, changedBy);
   }
 
@@ -126,8 +218,18 @@ export class NeonLeadStore implements LeadStorage {
     return permanentlyDeleteLead.call(this, this.getDatabase, id);
   }
 
-  updateLeadPriority(id: string, priority: LeadPriority, changedBy?: string | null) {
-    return updateLeadPriority.call(this, this.getDatabase, id, priority, changedBy);
+  updateLeadPriority(
+    id: string,
+    priority: LeadPriority,
+    changedBy?: string | null,
+  ) {
+    return updateLeadPriority.call(
+      this,
+      this.getDatabase,
+      id,
+      priority,
+      changedBy,
+    );
   }
 
   saveSourcePayload(input: LeadSourcePayloadCreateInput) {
@@ -178,7 +280,10 @@ export class NeonLeadStore implements LeadStorage {
     return getDashboardStats.call(this, this.getDatabase, filters);
   }
 
-  getDashboardTrend(filters: LeadListFilters = {}, days = 14): Promise<DashboardTrendPoint[]> {
+  getDashboardTrend(
+    filters: LeadListFilters = {},
+    days = 14,
+  ): Promise<DashboardTrendPoint[]> {
     return getDashboardTrend.call(this, this.getDatabase, filters, days);
   }
 
@@ -194,7 +299,9 @@ export class NeonLeadStore implements LeadStorage {
     return getSourceReport.call(this, this.getDatabase, filters);
   }
 
-  getLeadDistributionReport(filters: LeadListFilters = {}): Promise<LeadDistributionReport> {
+  getLeadDistributionReport(
+    filters: LeadListFilters = {},
+  ): Promise<LeadDistributionReport> {
     return getLeadDistributionReport.call(this, this.getDatabase, filters);
   }
 
@@ -202,7 +309,10 @@ export class NeonLeadStore implements LeadStorage {
     return getCampaignReport.call(this, this.getDatabase);
   }
 
-  countGoogleAdsCampaignLeads(input: { campaignId: string; campaignName: string }) {
+  countGoogleAdsCampaignLeads(input: {
+    campaignId: string;
+    campaignName: string;
+  }) {
     return countGoogleAdsCampaignLeads.call(this, this.getDatabase, input);
   }
 

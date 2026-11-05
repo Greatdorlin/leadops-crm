@@ -1,5 +1,12 @@
-import { index, jsonb, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
-import { leads } from './leads';
+import {
+  index,
+  jsonb,
+  pgTable,
+  text,
+  timestamp,
+  uuid,
+} from "drizzle-orm/pg-core";
+import { leads } from "./leads";
 
 export const leadEvents = pgTable(
   "lead_events",
@@ -11,7 +18,9 @@ export const leadEvents = pgTable(
     eventType: text("event_type").notNull(),
     eventData: jsonb("event_data").$type<Record<string, unknown> | null>(),
     createdBy: text("created_by"),
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
   },
   (table) => ({
     leadIdIdx: index("lead_events_lead_id_idx").on(table.leadId),
@@ -29,7 +38,9 @@ export const leadNotes = pgTable(
       .references(() => leads.id, { onDelete: "cascade" }),
     note: text("note").notNull(),
     createdBy: text("created_by"),
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
   },
   (table) => ({
     leadIdIdx: index("lead_notes_lead_id_idx").on(table.leadId),
@@ -50,7 +61,9 @@ export const leadTasks = pgTable(
     completedAt: timestamp("completed_at", { withTimezone: true }),
     assignedTo: text("assigned_to"),
     createdBy: text("created_by"),
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
   },
   (table) => ({
     leadIdIdx: index("lead_tasks_lead_id_idx").on(table.leadId),

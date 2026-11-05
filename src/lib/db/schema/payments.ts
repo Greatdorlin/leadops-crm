@@ -1,7 +1,15 @@
-import { check, index, numeric, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
+import {
+  check,
+  index,
+  numeric,
+  pgTable,
+  text,
+  timestamp,
+  uuid,
+} from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
-import { leads } from './leads';
-import { crmUsers } from './users';
+import { leads } from "./leads";
+import { crmUsers } from "./users";
 
 export const paymentClaims = pgTable(
   "payment_claims",
@@ -13,13 +21,19 @@ export const paymentClaims = pgTable(
     amount: numeric("amount", { precision: 12, scale: 2 }).notNull(),
     currency: text("currency").notNull(),
     status: text("status").notNull().default("pending"),
-    submittedByUserId: uuid("submitted_by_user_id").references(() => crmUsers.id, {
-      onDelete: "set null",
-    }),
+    submittedByUserId: uuid("submitted_by_user_id").references(
+      () => crmUsers.id,
+      {
+        onDelete: "set null",
+      },
+    ),
     submittedByEmail: text("submitted_by_email"),
-    reviewedByUserId: uuid("reviewed_by_user_id").references(() => crmUsers.id, {
-      onDelete: "set null",
-    }),
+    reviewedByUserId: uuid("reviewed_by_user_id").references(
+      () => crmUsers.id,
+      {
+        onDelete: "set null",
+      },
+    ),
     reviewedByEmail: text("reviewed_by_email"),
     reviewedAt: timestamp("reviewed_at", { withTimezone: true }),
     rejectionReason: text("rejection_reason"),
@@ -28,13 +42,18 @@ export const paymentClaims = pgTable(
       () => crmUsers.id,
       { onDelete: "set null" },
     ),
-    commissionConfirmedAt: timestamp("commission_confirmed_at", { withTimezone: true }),
-    commissionConfirmedByUserId: uuid("commission_confirmed_by_user_id").references(
-      () => crmUsers.id,
-      { onDelete: "set null" },
-    ),
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+    commissionConfirmedAt: timestamp("commission_confirmed_at", {
+      withTimezone: true,
+    }),
+    commissionConfirmedByUserId: uuid(
+      "commission_confirmed_by_user_id",
+    ).references(() => crmUsers.id, { onDelete: "set null" }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
   },
   (table) => ({
     leadIdIdx: index("payment_claims_lead_id_idx").on(table.leadId),

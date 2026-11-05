@@ -1,6 +1,16 @@
-import { boolean, index, integer, jsonb, pgTable, text, timestamp, uniqueIndex, uuid } from "drizzle-orm/pg-core";
-import { customFieldTypeEnum } from './enums';
-import { leads } from './leads';
+import {
+  boolean,
+  index,
+  integer,
+  jsonb,
+  pgTable,
+  text,
+  timestamp,
+  uniqueIndex,
+  uuid,
+} from "drizzle-orm/pg-core";
+import { customFieldTypeEnum } from "./enums";
+import { leads } from "./leads";
 
 export const customFields = pgTable(
   "custom_fields",
@@ -19,8 +29,12 @@ export const customFields = pgTable(
     searchable: boolean("searchable").notNull().default(false),
     filterable: boolean("filterable").notNull().default(false),
     sortOrder: integer("sort_order").notNull().default(0),
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
   },
   (table) => ({
     keyUnique: uniqueIndex("custom_fields_key_unique").on(table.key),
@@ -41,11 +55,17 @@ export const customFieldOptions = pgTable(
     color: text("color"),
     sortOrder: integer("sort_order").notNull().default(0),
     archived: boolean("archived").notNull().default(false),
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
   },
   (table) => ({
-    customFieldIdIdx: index("custom_field_options_custom_field_id_idx").on(table.customFieldId),
+    customFieldIdIdx: index("custom_field_options_custom_field_id_idx").on(
+      table.customFieldId,
+    ),
     archivedIdx: index("custom_field_options_archived_idx").on(table.archived),
   }),
 );
@@ -62,16 +82,21 @@ export const leadCustomFieldValues = pgTable(
       .references(() => customFields.id, { onDelete: "cascade" }),
     value: jsonb("value").$type<unknown>().notNull(),
     displayValue: text("display_value"),
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
   },
   (table) => ({
     leadIdIdx: index("lead_custom_field_values_lead_id_idx").on(table.leadId),
-    customFieldIdIdx: index("lead_custom_field_values_custom_field_id_idx").on(table.customFieldId),
-    leadIdCustomFieldIdUnique: uniqueIndex("lead_custom_field_values_lead_field_unique").on(
-      table.leadId,
+    customFieldIdIdx: index("lead_custom_field_values_custom_field_id_idx").on(
       table.customFieldId,
     ),
+    leadIdCustomFieldIdUnique: uniqueIndex(
+      "lead_custom_field_values_lead_field_unique",
+    ).on(table.leadId, table.customFieldId),
   }),
 );
 

@@ -1,16 +1,41 @@
-import { boolean, check, index, integer, jsonb, numeric, pgTable, text, timestamp, uniqueIndex, uuid } from "drizzle-orm/pg-core";
+import {
+  boolean,
+  check,
+  index,
+  integer,
+  jsonb,
+  numeric,
+  pgTable,
+  text,
+  timestamp,
+  uniqueIndex,
+  uuid,
+} from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
-import type { LeadCustomerType, LeadPriority, LeadSource } from "@/lib/crm/types";
-import { leadPriorityEnum, leadOpportunityStatusEnum } from './enums';
+import type {
+  LeadCustomerType,
+  LeadPriority,
+  LeadSource,
+} from "@/lib/crm/types";
+import { leadPriorityEnum, leadOpportunityStatusEnum } from "./enums";
 
 export const leads = pgTable(
   "leads",
   {
     id: uuid("id").defaultRandom().primaryKey(),
-    source: text("source").$type<LeadSource>().notNull().default("manual_entry"),
+    source: text("source")
+      .$type<LeadSource>()
+      .notNull()
+      .default("manual_entry"),
     sourceDetail: text("source_detail"),
-    priority: leadPriorityEnum("priority").$type<LeadPriority>().notNull().default("medium"),
-    leadCustomerType: text("lead_customer_type").$type<LeadCustomerType>().notNull().default("direct"),
+    priority: leadPriorityEnum("priority")
+      .$type<LeadPriority>()
+      .notNull()
+      .default("medium"),
+    leadCustomerType: text("lead_customer_type")
+      .$type<LeadCustomerType>()
+      .notNull()
+      .default("direct"),
     assignedTo: text("assigned_to"),
     affiliateReferrerId: uuid("affiliate_referrer_id"),
     companyName: text("company_name"),
@@ -61,31 +86,51 @@ export const leads = pgTable(
     utmContent: text("utm_content"),
     utmTerm: text("utm_term"),
     landingPage: text("landing_page"),
-    sourcePayload: jsonb("source_payload").$type<Record<string, unknown> | null>(),
+    sourcePayload: jsonb("source_payload").$type<Record<
+      string,
+      unknown
+    > | null>(),
     deletedAt: timestamp("deleted_at", { withTimezone: true }),
     deletedBy: text("deleted_by"),
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
-    lastActivityAt: timestamp("last_activity_at", { withTimezone: true }).notNull().defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    lastActivityAt: timestamp("last_activity_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
   },
   (table) => ({
     sourceIdx: index("leads_source_idx").on(table.source),
     sourceIdIdx: index("leads_source_id_idx").on(table.sourceId),
     priorityIdx: index("leads_priority_idx").on(table.priority),
-    customerTypeIdx: index("leads_customer_type_idx").on(table.leadCustomerType),
+    customerTypeIdx: index("leads_customer_type_idx").on(
+      table.leadCustomerType,
+    ),
     assignedToIdx: index("leads_assigned_to_idx").on(table.assignedTo),
-    affiliateReferrerIdx: index("leads_affiliate_referrer_id_idx").on(table.affiliateReferrerId),
-    assignedUserIdIdx: index("leads_assigned_user_id_idx").on(table.assignedUserId),
+    affiliateReferrerIdx: index("leads_affiliate_referrer_id_idx").on(
+      table.affiliateReferrerId,
+    ),
+    assignedUserIdIdx: index("leads_assigned_user_id_idx").on(
+      table.assignedUserId,
+    ),
     stageIdIdx: index("leads_stage_id_idx").on(table.stageId),
     teamIdIdx: index("leads_team_id_idx").on(table.teamId),
     branchIdIdx: index("leads_branch_id_idx").on(table.branchId),
     departmentIdIdx: index("leads_department_id_idx").on(table.departmentId),
-    nextFollowUpAtIdx: index("leads_next_follow_up_at_idx").on(table.nextFollowUpAt),
+    nextFollowUpAtIdx: index("leads_next_follow_up_at_idx").on(
+      table.nextFollowUpAt,
+    ),
     archivedAtIdx: index("leads_archived_at_idx").on(table.archivedAt),
     deletedAtIdx: index("leads_deleted_at_idx").on(table.deletedAt),
     createdAtIdx: index("leads_created_at_idx").on(table.createdAt),
     updatedAtIdx: index("leads_updated_at_idx").on(table.updatedAt),
-    updatedAtIdIdx: index("leads_updated_at_id_idx").on(table.updatedAt, table.id),
+    updatedAtIdIdx: index("leads_updated_at_id_idx").on(
+      table.updatedAt,
+      table.id,
+    ),
     activeQueueIdx: index("leads_active_queue_idx").on(
       table.deletedAt,
       table.updatedAt,
@@ -109,26 +154,26 @@ export const leads = pgTable(
       table.updatedAt,
       table.id,
     ),
-    customerTypeActiveQueueIdx: index("leads_customer_type_active_queue_idx").on(
-      table.leadCustomerType,
-      table.deletedAt,
-      table.updatedAt,
-      table.id,
-    ),
+    customerTypeActiveQueueIdx: index(
+      "leads_customer_type_active_queue_idx",
+    ).on(table.leadCustomerType, table.deletedAt, table.updatedAt, table.id),
     emailIdx: index("leads_email_idx").on(table.email),
-    whatsappNumberIdx: index("leads_whatsapp_number_idx").on(table.whatsappNumber),
+    whatsappNumberIdx: index("leads_whatsapp_number_idx").on(
+      table.whatsappNumber,
+    ),
     stateIdx: index("leads_state_idx").on(table.state),
     countryIdx: index("leads_country_idx").on(table.country),
     regionIdx: index("leads_region_idx").on(table.region),
     cityIdx: index("leads_city_idx").on(table.city),
-    sourceExternalLeadIdUnique: uniqueIndex("leads_source_external_lead_id_unique").on(
-      table.source,
-      table.externalLeadId,
-    ),
+    sourceExternalLeadIdUnique: uniqueIndex(
+      "leads_source_external_lead_id_unique",
+    ).on(table.source, table.externalLeadId),
     facebookLeadgenIdUnique: uniqueIndex("leads_facebook_leadgen_id_unique").on(
       table.facebookLeadgenId,
     ),
-    googleClickIdIdx: index("leads_google_click_id_idx").on(table.googleClickId),
+    googleClickIdIdx: index("leads_google_click_id_idx").on(
+      table.googleClickId,
+    ),
     utmCampaignIdx: index("leads_utm_campaign_idx").on(table.utmCampaign),
   }),
 );
@@ -145,7 +190,10 @@ export const leadOpportunities = pgTable(
     estimatedValue: numeric("estimated_value", { precision: 12, scale: 2 }),
     expectedValue: numeric("expected_value", { precision: 12, scale: 2 }),
     currency: text("currency"),
-    exchangeRateToGlobal: numeric("exchange_rate_to_global", { precision: 18, scale: 8 }),
+    exchangeRateToGlobal: numeric("exchange_rate_to_global", {
+      precision: 18,
+      scale: 8,
+    }),
     closeProbability: integer("close_probability"),
     expectedCloseDate: timestamp("expected_close_date", { withTimezone: true }),
     reason: text("reason"),
@@ -153,8 +201,12 @@ export const leadOpportunities = pgTable(
     isPrimary: boolean("is_primary").notNull().default(false),
     sortOrder: integer("sort_order").notNull().default(0),
     archivedAt: timestamp("archived_at", { withTimezone: true }),
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
   },
   (table) => ({
     leadIdIdx: index("lead_opportunities_lead_id_idx").on(table.leadId),
@@ -168,8 +220,12 @@ export const leadOpportunities = pgTable(
       table.status,
       table.leadId,
     ),
-    archivedAtIdx: index("lead_opportunities_archived_at_idx").on(table.archivedAt),
-    sortOrderIdx: index("lead_opportunities_sort_order_idx").on(table.sortOrder),
+    archivedAtIdx: index("lead_opportunities_archived_at_idx").on(
+      table.archivedAt,
+    ),
+    sortOrderIdx: index("lead_opportunities_sort_order_idx").on(
+      table.sortOrder,
+    ),
     probabilityCheck: check(
       "lead_opportunities_probability_check",
       sql`${table.closeProbability} is null or (${table.closeProbability} >= 0 and ${table.closeProbability} <= 100)`,
@@ -207,8 +263,12 @@ export const currencyExchangeRates = pgTable(
     source: text("source").notNull().default("manual"),
     updatedBy: text("updated_by"),
     fetchedAt: timestamp("fetched_at", { withTimezone: true }),
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
   },
   (table) => ({
     pairUnique: uniqueIndex("currency_exchange_rates_pair_unique").on(

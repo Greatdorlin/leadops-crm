@@ -1,8 +1,23 @@
-import { boolean, index, jsonb, pgTable, text, timestamp, uniqueIndex, uuid } from "drizzle-orm/pg-core";
+import {
+  boolean,
+  index,
+  jsonb,
+  pgTable,
+  text,
+  timestamp,
+  uniqueIndex,
+  uuid,
+} from "drizzle-orm/pg-core";
 import type { LeadPriority } from "@/lib/crm/types";
-import { leadPriorityEnum, formSourceTypeEnum, formFieldTargetTypeEnum, formFieldCoreTargetEnum, leadIntakeEventStatusEnum } from './enums';
-import { leads } from './leads';
-import { customFields } from './custom-fields';
+import {
+  leadPriorityEnum,
+  formSourceTypeEnum,
+  formFieldTargetTypeEnum,
+  formFieldCoreTargetEnum,
+  leadIntakeEventStatusEnum,
+} from "./enums";
+import { leads } from "./leads";
+import { customFields } from "./custom-fields";
 
 export const formSources = pgTable(
   "form_sources",
@@ -19,12 +34,18 @@ export const formSources = pgTable(
     defaultBranchId: uuid("default_branch_id"),
     defaultDepartmentId: uuid("default_department_id"),
     defaultPriority: leadPriorityEnum("default_priority").$type<LeadPriority>(),
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
   },
   (table) => ({
     typeIdx: index("form_sources_type_idx").on(table.type),
-    webhookKeyUnique: uniqueIndex("form_sources_webhook_key_unique").on(table.webhookKey),
+    webhookKeyUnique: uniqueIndex("form_sources_webhook_key_unique").on(
+      table.webhookKey,
+    ),
     isActiveIdx: index("form_sources_is_active_idx").on(table.isActive),
   }),
 );
@@ -40,16 +61,26 @@ export const formFieldMappings = pgTable(
     externalFieldLabel: text("external_field_label"),
     targetType: formFieldTargetTypeEnum("target_type").notNull(),
     targetField: formFieldCoreTargetEnum("target_field"),
-    customFieldId: uuid("custom_field_id").references(() => customFields.id, { onDelete: "set null" }),
+    customFieldId: uuid("custom_field_id").references(() => customFields.id, {
+      onDelete: "set null",
+    }),
     required: boolean("required").notNull().default(false),
     transformRule: text("transform_rule"),
     fallbackValue: text("fallback_value"),
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
   },
   (table) => ({
-    formSourceIdIdx: index("form_field_mappings_form_source_id_idx").on(table.formSourceId),
-    customFieldIdIdx: index("form_field_mappings_custom_field_id_idx").on(table.customFieldId),
+    formSourceIdIdx: index("form_field_mappings_form_source_id_idx").on(
+      table.formSourceId,
+    ),
+    customFieldIdIdx: index("form_field_mappings_custom_field_id_idx").on(
+      table.customFieldId,
+    ),
   }),
 );
 
@@ -57,19 +88,34 @@ export const leadIntakeEvents = pgTable(
   "lead_intake_events",
   {
     id: uuid("id").defaultRandom().primaryKey(),
-    formSourceId: uuid("form_source_id").references(() => formSources.id, { onDelete: "set null" }),
-    leadId: uuid("lead_id").references(() => leads.id, { onDelete: "set null" }),
-    rawPayload: jsonb("raw_payload").$type<Record<string, unknown> | null>().notNull(),
-    normalizedPayload: jsonb("normalized_payload").$type<Record<string, unknown> | null>(),
+    formSourceId: uuid("form_source_id").references(() => formSources.id, {
+      onDelete: "set null",
+    }),
+    leadId: uuid("lead_id").references(() => leads.id, {
+      onDelete: "set null",
+    }),
+    rawPayload: jsonb("raw_payload")
+      .$type<Record<string, unknown> | null>()
+      .notNull(),
+    normalizedPayload: jsonb("normalized_payload").$type<Record<
+      string,
+      unknown
+    > | null>(),
     status: leadIntakeEventStatusEnum("status").notNull(),
     errorMessage: text("error_message"),
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
   },
   (table) => ({
-    formSourceIdIdx: index("lead_intake_events_form_source_id_idx").on(table.formSourceId),
+    formSourceIdIdx: index("lead_intake_events_form_source_id_idx").on(
+      table.formSourceId,
+    ),
     leadIdIdx: index("lead_intake_events_lead_id_idx").on(table.leadId),
     statusIdx: index("lead_intake_events_status_idx").on(table.status),
-    createdAtIdx: index("lead_intake_events_created_at_idx").on(table.createdAt),
+    createdAtIdx: index("lead_intake_events_created_at_idx").on(
+      table.createdAt,
+    ),
   }),
 );
 

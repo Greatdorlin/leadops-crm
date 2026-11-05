@@ -1,13 +1,20 @@
 /** Strip CRM/customer data before an event may leave the deployment. */
-export function sanitizeErrorEvent<T extends {
-  request?: unknown;
-  user?: unknown;
-  breadcrumbs?: unknown;
-  extra?: unknown;
-  contexts?: unknown;
-  exception?: { values?: Array<{ value?: string; stacktrace?: { frames?: Array<{ vars?: unknown }> } }> };
-  message?: string;
-}>(event: T): T {
+export function sanitizeErrorEvent<
+  T extends {
+    request?: unknown;
+    user?: unknown;
+    breadcrumbs?: unknown;
+    extra?: unknown;
+    contexts?: unknown;
+    exception?: {
+      values?: Array<{
+        value?: string;
+        stacktrace?: { frames?: Array<{ vars?: unknown }> };
+      }>;
+    };
+    message?: string;
+  },
+>(event: T): T {
   delete event.request;
   delete event.user;
   delete event.breadcrumbs;

@@ -1,7 +1,35 @@
-import { getPrimaryLeadAssignee, parseLeadAssignees } from "@/lib/crm/lead-assignees";
-import { adCampaignMetrics, crmUsers, integrations, leadEvents, leadNotes, leadSourcePayloads, leadTasks, leads, syncJobs } from "@/lib/db/schema";
-import type { AdCampaignMetricRecord, CrmUserRecord, IntegrationRecord, LeadEventRecord, LeadNoteRecord, LeadRecord, LeadSourcePayloadRecord, LeadTaskRecord, SyncJobRecord } from "@/lib/crm/types";
-import { defaultSyncMetadata, toIsoString, formatSpend, deriveCompatibilityStatus } from './values';
+import {
+  getPrimaryLeadAssignee,
+  parseLeadAssignees,
+} from "@/lib/crm/lead-assignees";
+import {
+  adCampaignMetrics,
+  crmUsers,
+  integrations,
+  leadEvents,
+  leadNotes,
+  leadSourcePayloads,
+  leadTasks,
+  leads,
+  syncJobs,
+} from "@/lib/db/schema";
+import type {
+  AdCampaignMetricRecord,
+  CrmUserRecord,
+  IntegrationRecord,
+  LeadEventRecord,
+  LeadNoteRecord,
+  LeadRecord,
+  LeadSourcePayloadRecord,
+  LeadTaskRecord,
+  SyncJobRecord,
+} from "@/lib/crm/types";
+import {
+  defaultSyncMetadata,
+  toIsoString,
+  formatSpend,
+  deriveCompatibilityStatus,
+} from "./values";
 
 export function mapLeadRecord(row: typeof leads.$inferSelect): LeadRecord {
   const assignedToList = parseLeadAssignees(row.assignedTo);
@@ -11,7 +39,8 @@ export function mapLeadRecord(row: typeof leads.$inferSelect): LeadRecord {
     id: row.id,
     createdAt: toIsoString(row.createdAt) ?? new Date(0).toISOString(),
     updatedAt: toIsoString(row.updatedAt) ?? new Date(0).toISOString(),
-    lastActivityAt: toIsoString(row.lastActivityAt) ?? new Date(0).toISOString(),
+    lastActivityAt:
+      toIsoString(row.lastActivityAt) ?? new Date(0).toISOString(),
     deletedAt: toIsoString(row.deletedAt),
     deletedBy: row.deletedBy,
     crmStatus: compatibilityStatus,
@@ -31,8 +60,12 @@ export function mapLeadRecord(row: typeof leads.$inferSelect): LeadRecord {
     teamId: row.teamId,
     branchId: row.branchId,
     departmentId: row.departmentId,
-    estimatedValue: row.estimatedValue === null ? null : Number.parseFloat(row.estimatedValue),
-    expectedValue: row.expectedValue === null ? null : Number.parseFloat(row.expectedValue),
+    estimatedValue:
+      row.estimatedValue === null
+        ? null
+        : Number.parseFloat(row.estimatedValue),
+    expectedValue:
+      row.expectedValue === null ? null : Number.parseFloat(row.expectedValue),
     wonValue: row.wonValue === null ? null : Number.parseFloat(row.wonValue),
     closeProbability: row.closeProbability,
     expectedCloseDate: toIsoString(row.expectedCloseDate),
@@ -71,11 +104,15 @@ export function mapLeadRecord(row: typeof leads.$inferSelect): LeadRecord {
     utmTerm: row.utmTerm,
     landingPage: row.landingPage,
     sourcePayload: row.sourcePayload ?? null,
-    sync: defaultSyncMetadata("Legacy sync fields retired. Use Leads Desk exports and intake logs."),
+    sync: defaultSyncMetadata(
+      "Legacy sync fields retired. Use Leads Desk exports and intake logs.",
+    ),
   };
 }
 
-export function mapCrmUserRecord(row: typeof crmUsers.$inferSelect): CrmUserRecord {
+export function mapCrmUserRecord(
+  row: typeof crmUsers.$inferSelect,
+): CrmUserRecord {
   return {
     id: row.id,
     email: row.email,
@@ -92,7 +129,9 @@ export function mapCrmUserRecord(row: typeof crmUsers.$inferSelect): CrmUserReco
   };
 }
 
-export function mapLeadEventRecord(row: typeof leadEvents.$inferSelect): LeadEventRecord {
+export function mapLeadEventRecord(
+  row: typeof leadEvents.$inferSelect,
+): LeadEventRecord {
   return {
     id: row.id,
     leadId: row.leadId,
@@ -103,7 +142,9 @@ export function mapLeadEventRecord(row: typeof leadEvents.$inferSelect): LeadEve
   };
 }
 
-export function mapLeadNoteRecord(row: typeof leadNotes.$inferSelect): LeadNoteRecord {
+export function mapLeadNoteRecord(
+  row: typeof leadNotes.$inferSelect,
+): LeadNoteRecord {
   return {
     id: row.id,
     leadId: row.leadId,
@@ -113,7 +154,9 @@ export function mapLeadNoteRecord(row: typeof leadNotes.$inferSelect): LeadNoteR
   };
 }
 
-export function mapLeadTaskRecord(row: typeof leadTasks.$inferSelect): LeadTaskRecord {
+export function mapLeadTaskRecord(
+  row: typeof leadTasks.$inferSelect,
+): LeadTaskRecord {
   return {
     id: row.id,
     leadId: row.leadId,
@@ -143,7 +186,9 @@ export function mapLeadSourcePayloadRecord(
   };
 }
 
-export function mapIntegrationRecord(row: typeof integrations.$inferSelect): IntegrationRecord {
+export function mapIntegrationRecord(
+  row: typeof integrations.$inferSelect,
+): IntegrationRecord {
   return {
     id: row.id,
     provider: row.provider,
@@ -160,7 +205,9 @@ export function mapIntegrationRecord(row: typeof integrations.$inferSelect): Int
   };
 }
 
-export function mapSyncJobRecord(row: typeof syncJobs.$inferSelect): SyncJobRecord {
+export function mapSyncJobRecord(
+  row: typeof syncJobs.$inferSelect,
+): SyncJobRecord {
   return {
     id: row.id,
     provider: row.provider,

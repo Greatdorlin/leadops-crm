@@ -9,7 +9,7 @@ This is an engineering handover for the November 2026 hardening release. It is n
 | Single CI job; no explicit typecheck | Separate cached lint, typecheck, test/coverage, migration, build, security, and fresh-install jobs with aggregate release gate | Local commands and the PR workflow |
 | Workflow watched main, while production uses master | Watch master, development, test, main, and working codex branches | Committed workflow triggers |
 | Large Postgres storage implementation | Preserve NeonLeadStore facade; move operations into entity/domain modules with injected database executor | Typecheck and existing tests; real SQL regression tests |
-| Large Drizzle schema | Domain table modules behind the original schema.ts entry point | Drizzle generates no schema or migration changes |
+| Large Drizzle schema | Domain table modules behind the original schema.ts entry point | The module split generated no schema changes; follow-up migration 0027 aligns inactive form/user defaults |
 | Fresh installation migration failure | Commit each journaled migration separately, serialize CLI migrations with a Postgres advisory lock | Fresh in-process PostgreSQL migration and journal rerun/tamper tests; CI Postgres service |
 | No full coverage report | c8 includes every TS/TSX source file, including untested pages | LCOV, JSON summary, CI artifact, whole-repository baseline gate |
 | No enforceable critical coverage target | Explicit business-contract scope with minimum 80% line coverage | Coverage gate reads same whole-repository summary |
@@ -71,7 +71,7 @@ To enable: create a project in the client's monitoring account, add its DSN to d
 
 ## Security and maintenance
 
-`npm run audit` fails on high/critical findings, including development tools. Weekly Dependabot creates npm and GitHub Actions update PRs. Update PRs must pass the same release gate. A passing audit means no high/critical advisories were reported by the registry at that time; it does not prove absence of vulnerabilities. Moderate findings must still be reviewed and tracked. Some suggested fixes downgrade major tool versions; do not apply force upgrades/downgrades without testing migration generation, build, and auth.
+`npm run audit` fails on high/critical findings, including development tools. Weekly Dependabot creates npm and GitHub Actions update PRs. Update PRs must pass the same release gate. A passing audit means no high/critical advisories were reported by the registry at that time; it does not prove absence of vulnerabilities. The initial audit found 33 findings. Follow-up compatible/runtime patches and tested tooling overrides cleared all severities in the final local audit. Dependency advisories change; keep the gate and weekly updates active. Do not apply force upgrades/downgrades without testing migration generation, build, and auth.
 
 Configure branch protection or a ruleset to require `release-gate` on master, development, and test. Merely committing a workflow does not enforce branch protection. Verify those settings in the repository owner's GitHub account and plan. CI uses read-only repository permissions and no production secrets for verification. A production deployment must only promote a reviewed commit with passing checks. This release does not fabricate a long maintenance record or backdate releases.
 
@@ -82,3 +82,17 @@ This remains a private commercial product. No open-source license or public redi
 For agencies: keep one database, secrets set, domain, administrator bootstrap, backup schedule, and monitoring destination per client. Do not share a database connection or provider token across unrelated client deployments. A private per-client install is not a shared multi-tenant SaaS isolation claim.
 
 The Node.js standalone build can run on a VPS/container with PostgreSQL or behind Cloudflare proxy/DNS. Native Cloudflare Workers requires a separately verified compatible adapter/runtime path. Hosting behind Cloudflare is not evidence that native Workers is supported. Connector readiness requires the client's provider token, scopes, callback domain, signature verification, and a provider-side test lead; code-only tests cannot prove live provider access.
+
+## Verification record and external blocker
+
+The initial working candidate passed 305 tests, typecheck, production build and no-drift schema generation locally before the final follow-up patches. The expanded suite now passes 308 tests with 26.42% whole-repository line coverage and 87.40% business-contract aggregate line coverage. A separate empty clone successfully installed dependencies and caught a newly introduced missing SMOKE_BASE_URL example; that variable was then added and verification was repeated. See the PR for the final exact-commit results.
+
+GitHub Actions run 41974375722 could not start any job. Its annotation states: "The job was not started because your account is locked due to a billing issue." This is an account-level blocker, not a passing CI run. The PostgreSQL service smoke job and required-status enforcement must be verified after the owner resolves that account issue. No release should be presented as CI-verified while the run remains blocked.
+
+See DATA_LINEAGE.md for source-to-record transformations, identity/retry behavior, reporting boundaries and operator ownership.
+
+Follow-up SQL tests also found two historical default mismatches: forms.is_active was false in historical SQL but true in the typed schema; crm_users.is_active was false in the typed schema but true in historical SQL. Migration 0027 and the form schema now agree on false. The migration changes defaults only; existing records and explicit activation choices are preserved. A regression test compares every literal boolean default with the freshly migrated database.
+
+The typecheck gate was tested with a temporary intentional string-to-number type error and correctly rejected it; the probe was then removed. Final dependency verification uses a clean npm ci and reports zero vulnerabilities. The whole-repository floors were raised to 26% lines/statements, 62% functions and 66% branches after the expanded SQL tests, while the critical business-contract line target remains 80%.
+
+The initial preview deployment built successfully and returned login 200 and anonymous forms API 401. Its health endpoint returned 503 because auth/owner bootstrap variables target production only; production health returned 200. No production credentials were copied into preview. The existing provider-managed database variables target multiple environments, so authenticated staging writes must wait for a separately isolated test database. This preview is build/access-boundary evidence, not a fully provisioned staging acceptance result.

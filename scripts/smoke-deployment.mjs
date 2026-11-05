@@ -17,6 +17,6 @@ assert.match(await login.text(), /<form/);
 const privatePage = await fetch(new URL("/dashboard", origin), { redirect: "manual" });
 assert.ok([302, 303, 307, 308].includes(privatePage.status), "Anonymous dashboard must redirect to login");
 assert.match(privatePage.headers.get("location") || "", /login/);
-const privateApi = await fetch(new URL("/api/admin/leads", origin), { redirect: "manual" });
-assert.equal(privateApi.status, 401, "Anonymous leads API must reject access");
+const privateApi = await fetch(new URL("/api/admin/forms", origin), { redirect: "manual" });
+assert.equal(privateApi.status, 401, "Anonymous forms API must reject access");
 console.log("Deployment smoke passed: healthy database, login render, private page and API access.");

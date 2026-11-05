@@ -80,8 +80,7 @@ jobs:
       - run: npm ci
       - name: Migrations
         run: |
-          npm run db:generate
-          git diff --exit-code -- drizzle
+          npm run db:check
   build:
     runs-on: ubuntu-latest
     timeout-minutes: 20

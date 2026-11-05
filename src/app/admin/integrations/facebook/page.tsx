@@ -1,3 +1,4 @@
+import { resolvePublicAppOrigin } from "@/lib/public-app-origin";
 import { AdminActionButton } from "@/components/admin/AdminActionButton";
 import { AdminShell } from "@/components/admin/AdminShell";
 import { ErrorState } from "@/components/admin/ErrorState";
@@ -58,9 +59,7 @@ export default async function AdminFacebookIntegrationPage() {
     logCrmPageError("integrations:facebook", error);
   }
 
-  const baseUrl =
-    normalizeEnvValue(process.env.CRM_PUBLIC_BASE_URL) ||
-    normalizeEnvValue(process.env.NEXT_PUBLIC_APP_URL);
+  const baseUrl = resolvePublicAppOrigin();
   const credentialsConfigured =
     Boolean(normalizeEnvValue(process.env.META_APP_SECRET)) &&
     Boolean(normalizeEnvValue(process.env.META_VERIFY_TOKEN)) &&

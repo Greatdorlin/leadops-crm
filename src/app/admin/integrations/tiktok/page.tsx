@@ -1,3 +1,4 @@
+import { resolvePublicAppOrigin } from "@/lib/public-app-origin";
 import { AdminActionButton } from "@/components/admin/AdminActionButton";
 import { AdminShell } from "@/components/admin/AdminShell";
 import { ErrorState } from "@/components/admin/ErrorState";
@@ -49,9 +50,7 @@ export default async function AdminTikTokIntegrationPage() {
     logCrmPageError("integrations:tiktok", error);
   }
 
-  const baseUrl =
-    normalizeEnvValue(process.env.CRM_PUBLIC_BASE_URL) ||
-    normalizeEnvValue(process.env.NEXT_PUBLIC_APP_URL);
+  const baseUrl = resolvePublicAppOrigin();
   const secretConfigured = Boolean(normalizeEnvValue(process.env.TIKTOK_WEBHOOK_SECRET));
 
   return (

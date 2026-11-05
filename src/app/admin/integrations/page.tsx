@@ -159,7 +159,7 @@ export default async function AdminIntegrationsPage({ searchParams }: { searchPa
           <>
             <nav className="flex gap-2 overflow-x-auto rounded-[20px] border border-white/10 bg-white/[0.035] p-1.5" aria-label="Integration sections">
               {[["connections", "Connections"], ["catalog", "Add tools"], ["activity", "Activity"]].map(([id, label]) => (
-                <Link key={id} href={`${appRoutes.integrations}?tab=${id}`} className={activeTab === id ? "shrink-0 rounded-[14px] bg-white/[0.12] px-4 py-2.5 text-sm font-semibold text-white" : "shrink-0 rounded-[14px] px-4 py-2.5 text-sm font-semibold text-white/65 hover:text-white"}>{label}</Link>
+                <Link key={id} href={`${appRoutes.integrations}?tab=${id}`} scroll={false} aria-current={activeTab === id ? "page" : undefined} className={activeTab === id ? "shrink-0 rounded-[14px] bg-white/[0.12] px-4 py-2.5 text-sm font-semibold text-white" : "shrink-0 rounded-[14px] px-4 py-2.5 text-sm font-semibold text-white/65 hover:text-white"}>{label}</Link>
               ))}
             </nav>
             <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
@@ -203,7 +203,7 @@ export default async function AdminIntegrationsPage({ searchParams }: { searchPa
               <div className="mt-4 grid gap-4 lg:grid-cols-2">
                 {cards.map((card) => (
                   <div key={card.integration.provider} className="space-y-3">
-                    <IntegrationHealthCard integration={card.integration} href={card.href} />
+                    <IntegrationHealthCard integration={card.integration} href={card.integration.status === "not_configured" && card.integration.provider !== "website" ? `${card.href}#setup` : card.href} />
                     {card.action &&
                     isConnectorOperationConfigured(card.integration.provider, card.action.endpoint) &&
                     !["not_configured", "disabled"].includes(card.integration.status) ? (

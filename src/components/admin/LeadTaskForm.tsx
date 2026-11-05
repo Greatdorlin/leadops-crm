@@ -1,7 +1,7 @@
 "use client";
 
 import { IconInput } from "./IconInput";
-import { startTransition, useState } from "react";
+import { startTransition, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { CalendarClock, Check, ListTodo, Mail, PhoneCall, Search } from "lucide-react";
 import { cn } from "@/lib/cn";
@@ -61,6 +61,7 @@ export function LeadTaskForm({
   );
   const [assignedTo, setAssignedTo] = useState(defaultAssignedTo);
   const [isSaving, setIsSaving] = useState(false);
+  const requestInFlight = useRef(false);
   const [message, setMessage] = useState("");
   const [hasError, setHasError] = useState(false);
 
@@ -72,6 +73,7 @@ export function LeadTaskForm({
   }
 
   async function saveTask() {
+    if (requestInFlight.current) return;
     if (!selectedLeadId) {
       setHasError(true);
       setMessage("Choose a lead first.");
@@ -90,6 +92,7 @@ export function LeadTaskForm({
       return;
     }
 
+    requestInFlight.current = true;
     setIsSaving(true);
     setHasError(false);
     setMessage("");
@@ -109,17 +112,18 @@ export function LeadTaskForm({
       if (!response.ok) {
         setHasError(true);
         setMessage(payload?.error ?? "We couldn't create this task.");
-        setIsSaving(false);
         return;
       }
 
+      setTitle("");
       setDescription("");
       setMessage("Task created.");
-      setIsSaving(false);
       startTransition(() => router.refresh());
     } catch {
       setHasError(true);
       setMessage("We couldn't create this task.");
+    } finally {
+      requestInFlight.current = false;
       setIsSaving(false);
     }
   }

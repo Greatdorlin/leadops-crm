@@ -1,3 +1,4 @@
+import { resolvePublicAppOrigin } from "@/lib/public-app-origin";
 import { notFound } from "next/navigation";
 import { headers } from "next/headers";
 import { Code, ExternalLink } from "lucide-react";
@@ -25,12 +26,11 @@ export default async function FormEmbedPage({
   const host = forwardedHost || requestHeaders.get("host") || "localhost:3000";
   const forwardedProtocol = requestHeaders.get("x-forwarded-proto")?.split(",")[0]?.trim();
   const protocol = forwardedProtocol || (process.env.NODE_ENV === "production" ? "https" : "http");
-  const configuredBaseUrl = process.env.NEXT_PUBLIC_APP_URL?.trim().replace(/\/+$/, "");
   const { formUrl, iframeCode, scriptCode } = buildFormEmbedCodes({
     formId: form.id,
     formName: form.name,
     formSlug: form.slug,
-    baseUrl: configuredBaseUrl || `${protocol}://${host}`,
+    baseUrl: resolvePublicAppOrigin(process.env, `${protocol}://${host}`),
   });
   const directLinkCode = formUrl;
 

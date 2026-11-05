@@ -1,3 +1,4 @@
+import { resolvePublicAppOrigin } from "@/lib/public-app-origin";
 import { AdminActionButton } from "@/components/admin/AdminActionButton";
 import { AdminShell } from "@/components/admin/AdminShell";
 import { ErrorState } from "@/components/admin/ErrorState";
@@ -78,9 +79,7 @@ export default async function AdminGoogleAdsIntegrationPage() {
     process.env.GOOGLE_ADS_REFRESH_TOKEN,
     process.env.GOOGLE_ADS_CUSTOMER_ID,
   ].every((value) => Boolean(normalizeEnvValue(value)));
-  const baseUrl =
-    normalizeEnvValue(process.env.CRM_PUBLIC_BASE_URL) ||
-    normalizeEnvValue(process.env.NEXT_PUBLIC_APP_URL);
+  const baseUrl = resolvePublicAppOrigin();
 
   return (
     <AdminShell

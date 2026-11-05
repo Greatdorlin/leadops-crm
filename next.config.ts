@@ -150,12 +150,20 @@ const nextConfig: NextConfig = {
         headers: privateFrameHeaders,
       },
       {
-        source: "/forms/:path*",
+        source: "/forms/:slug",
         headers: publicFormFrameHeaders,
       },
       {
-        source: "/embed/forms/:path*",
+        source: "/embed/forms/:id",
         headers: publicFormFrameHeaders,
+      },
+      {
+        source: "/forms/new",
+        headers: privateFrameHeaders,
+      },
+      {
+        source: "/forms/manage/:path*",
+        headers: privateFrameHeaders,
       },
     ];
   },

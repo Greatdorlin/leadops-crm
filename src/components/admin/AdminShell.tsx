@@ -21,6 +21,7 @@ import {
   getDesignStyleClass,
 } from "@/lib/crm/workspace-settings";
 import { LeadsDeskWordmark } from "@/components/brand/LeadsDeskWordmark";
+import { AdminSectionNavigation } from "./AdminSectionNavigation";
 import { AdminSidebar, SidebarNavigation } from "./AdminSidebar";
 import { AdminSignOutButton } from "./AdminSignOutButton";
 import { AdminTopbar } from "./AdminTopbar";
@@ -142,7 +143,7 @@ export function AdminShell({
         <a href="#workspace-content" className="sr-only focus:not-sr-only focus:absolute focus:z-50 focus:rounded-lg focus:bg-zinc-900 focus:p-3">Skip to content</a>
         <div
           className={[
-            "grid min-h-[calc(100vh-1.5rem)] gap-4 lg:gap-6",
+            "grid grid-cols-[minmax(0,1fr)] min-h-[calc(100vh-1.5rem)] gap-4 lg:gap-6",
             isSidebarCollapsed
               ? "lg:grid-cols-[76px_minmax(0,1fr)]"
               : "lg:grid-cols-[min(220px,var(--ld-sidebar-width))_minmax(0,1fr)] xl:grid-cols-[var(--ld-sidebar-width)_minmax(0,1fr)]",
@@ -206,7 +207,8 @@ export function AdminShell({
               actions={actions}
               searchSlot={searchSlot}
             />
-            <main id="workspace-content" tabIndex={-1} className="scroll-smooth px-0 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-4 sm:pb-6 sm:pt-5">
+            <main id="workspace-content" tabIndex={-1} className="min-w-0 max-w-full [overflow-wrap:anywhere] px-0 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-4 sm:pb-6 sm:pt-5">
+              <AdminSectionNavigation />
               {children}
             </main>
           </div>

@@ -1,3 +1,4 @@
+import { resolvePublicAppOrigin } from "@/lib/public-app-origin";
 import { NextResponse } from "next/server";
 import { getAdminRequestContext } from "@/lib/admin";
 import { canManageForms } from "@/lib/crm/authz";
@@ -23,8 +24,7 @@ export async function GET(
     return NextResponse.json({ error: "Form not found." }, { status: 404 });
   }
 
-  const configuredBaseUrl = process.env.NEXT_PUBLIC_APP_URL?.trim().replace(/\/+$/, "");
-  const baseUrl = configuredBaseUrl || new URL(request.url).origin;
+  const baseUrl = resolvePublicAppOrigin(process.env, new URL(request.url).origin);
   const codes = buildFormEmbedCodes({
     formId: form.id,
     formName: form.name,

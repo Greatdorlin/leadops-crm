@@ -27,15 +27,15 @@ export function IntegrationSetupPanel({
   verificationMode?: "provider" | "delivery";
 }) {
   return (
-    <section id="setup" className="admin-surface scroll-mt-24 rounded-[24px] p-4 sm:p-5">
+    <section id="setup" className="admin-surface min-w-0 scroll-mt-24 rounded-[24px] p-4 sm:p-5">
       <SectionHeader
         eyebrow="Guided setup"
         title={title}
         description={description}
       />
 
-      <div className="mt-5 grid gap-5 xl:grid-cols-[minmax(0,1fr)_minmax(280px,0.42fr)]">
-        <ol className="space-y-3">
+      <div className="mt-5 grid min-w-0 grid-cols-1 gap-5 xl:grid-cols-[minmax(0,1fr)_minmax(280px,0.42fr)]">
+        <ol className="min-w-0 space-y-3">
           {steps.map((step, index) => {
             const StepIcon = index === 0 ? KeyRound : index === 1 ? Settings2 : Send;
             return (
@@ -50,19 +50,19 @@ export function IntegrationSetupPanel({
                   <p className="text-sm font-semibold text-white">
                     {index + 1}. {step.title}
                   </p>
-                  <p className="mt-1 text-sm leading-6 text-white/64">{step.description}</p>
+                  <p className="mt-1 text-sm leading-6 text-white/64 [overflow-wrap:anywhere]">{step.description}</p>
                 </div>
               </li>
             );
           })}
         </ol>
 
-        <aside className="space-y-4 rounded-[20px] border border-white/10 bg-black/15 p-4">
+        <aside className="min-w-0 space-y-4 rounded-[20px] border border-white/10 bg-black/15 p-4">
           <div className="flex items-start gap-3">
             <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-emerald-400/10 text-emerald-100">
               <LockKeyhole className="h-4 w-4" aria-hidden="true" />
             </span>
-            <div>
+            <div className="min-w-0">
               <p className="text-sm font-semibold text-white">Private by design</p>
               <p className="mt-1 text-xs leading-5 text-white/60">
                 Credentials stay in deployment secrets. Leads Desk never sends secret values to this page.

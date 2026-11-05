@@ -1,3 +1,4 @@
+import { hasPublicFormFields } from "@/lib/crm/public-form";
 import { NextResponse } from "next/server";
 import { getAdminRequestContext } from "@/lib/admin";
 import { canManageForms } from "@/lib/crm/authz";
@@ -97,6 +98,9 @@ export async function POST(request: Request) {
 
     const initialStatus = parsed.data.isPublic ? "active" : "draft";
     const availability = resolveFormAvailability(initialStatus, parsed.data.isPublic);
+    if (availability.isPublic && !hasPublicFormFields(parsed.data.fields)) {
+      return NextResponse.json({ error: "Add a visible field before publishing this form." }, { status: 400 });
+    }
     const created = await createFormWithFields({
       name: parsed.data.name,
       slug: parsed.data.slug,

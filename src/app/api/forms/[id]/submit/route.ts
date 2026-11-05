@@ -4,7 +4,7 @@ import {
   getFormById,
   listFormFields,
   createFormSubmission,
-  updateFormSubmission,
+  markFormSubmissionFailed,
   createLeadFromFormSubmission,
   listFormRules,
 } from "@/lib/crm/form-builder-store";
@@ -26,6 +26,8 @@ import { resolveQuickScheduleDate } from "@/lib/crm/schedule-presets";
 import { getDb } from "@/lib/db/client";
 import { crmUsers } from "@/lib/db/schema";
 import { readBoundedJsonObject } from "@/lib/http/bounded-body";
+import { hasPublicFormFields } from "@/lib/crm/public-form";
+import { deriveFormSubmissionId } from "@/lib/crm/form-submission-id";
 import { getFormOwnerReference, isFormUuid } from "@/lib/crm/form-routing-identifiers";
 
 function getClientIp(request: Request): string | null {
@@ -110,6 +112,10 @@ export async function POST(
     return NextResponse.json({ error: body.error }, { status: body.status });
   }
   const payload = body.value;
+  const retryKey = request.headers.get("idempotency-key");
+  if (retryKey && !isFormUuid(retryKey)) {
+    return NextResponse.json({ error: "Invalid submission retry key." }, { status: 400 });
+  }
 
   const form = await getFormById(id);
   if (!form || !form.isPublic || !form.isActive || form.status !== "active") {
@@ -125,6 +131,9 @@ export async function POST(
     listFormRules(id),
     listCustomFields(),
   ]);
+  if (!hasPublicFormFields(fields)) {
+    return NextResponse.json({ error: "This form is not accepting submissions." }, { status: 404 });
+  }
   const validation = validateFormSubmissionData(
     fields,
     payload.data as Record<string, unknown>,
@@ -139,6 +148,9 @@ export async function POST(
     );
   }
   const data = validation.data;
+  if (Object.keys(data).length === 0) {
+    return NextResponse.json({ error: "Enter at least one answer before submitting." }, { status: 400 });
+  }
 
   const availableFieldIds = new Set(fields.map((field) => field.id));
   const autoQualifyRules = form.enableAutoQualify
@@ -260,6 +272,7 @@ export async function POST(
   }
 
   const submission = await createFormSubmission({
+    id: retryKey ? deriveFormSubmissionId(id, retryKey, data) : undefined,
     formId: id,
     leadId: null,
     data,
@@ -312,9 +325,7 @@ export async function POST(
     });
   } catch (error) {
     console.error("[public-form:submit]", error);
-    await updateFormSubmission(submission.id, {
-      status: "failed",
-    });
+    await markFormSubmissionFailed(submission.id);
     return NextResponse.json(
       { error: "We couldn't create the lead right now. Please try again." },
       { status: 500 },
@@ -322,7 +333,7 @@ export async function POST(
   }
 
   if (!leadResult) {
-    await updateFormSubmission(submission.id, { status: "failed" });
+    await markFormSubmissionFailed(submission.id);
     return NextResponse.json(
       { error: "We couldn't create the lead right now. Please try again." },
       { status: 500 },
@@ -332,7 +343,7 @@ export async function POST(
   const qualifiedOffers = opportunityOverrides
     .filter((opportunity) => opportunity.status === "qualified")
     .map((opportunity) => opportunity.offerLabel);
-  if (qualifiedOffers.length > 0) {
+  if (leadResult.created && leadResult.leadId && qualifiedOffers.length > 0) {
     try {
       await notifyLeadOffersQualified({
         recipientUserId: leadResult.assignedUserId,

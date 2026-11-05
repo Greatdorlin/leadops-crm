@@ -19,6 +19,10 @@ function isPublicFormFieldType(value: string): value is PublicFormFieldType {
   return (PUBLIC_FORM_FIELD_TYPES as readonly string[]).includes(value);
 }
 
+export function hasPublicFormFields(fields: ReadonlyArray<{ isVisible?: boolean; fieldType: string }>) {
+  return fields.some((field) => field.isVisible !== false && isPublicFormFieldType(field.fieldType));
+}
+
 export function buildPublicFormDefinition(form: FormRow) {
   return {
     id: form.id,

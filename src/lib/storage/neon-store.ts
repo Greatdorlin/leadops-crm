@@ -1273,37 +1273,30 @@ export class NeonLeadStore implements LeadStorage {
     const db = this.getDatabase();
     return db.transaction(async (transaction) => {
     const activityAt = new Date();
-    const existing = await transaction.query.leadTasks.findFirst({
-      where: eq(leadTasks.id, taskId),
-    });
-
-    if (!existing) {
-      return null;
-    }
-
-    if (existing.completedAt) {
-      return mapLeadTaskRecord(existing);
-    }
-
     const [updated] = await transaction
       .update(leadTasks)
-      .set({
-        completedAt: activityAt,
-      })
-      .where(eq(leadTasks.id, taskId))
+      .set({ completedAt: activityAt })
+      .where(and(eq(leadTasks.id, taskId), isNull(leadTasks.completedAt)))
       .returning();
 
+    if (!updated) {
+      const existing = await transaction.query.leadTasks.findFirst({
+        where: eq(leadTasks.id, taskId),
+      });
+      return existing ? mapLeadTaskRecord(existing) : null;
+    }
+
     await transaction.insert(leadEvents).values({
-      leadId: existing.leadId,
+      leadId: updated.leadId,
       eventType: leadEventTypes.taskCompleted,
       eventData: {
         taskId,
-        title: existing.title,
+        title: updated.title,
         changes: buildLeadAuditChanges([{
           field: "completedAt",
           label: "Completed at",
           before: null,
-          after: updated?.completedAt ?? null,
+          after: updated.completedAt,
         }]),
       },
       createdBy: completedBy ?? null,
@@ -1312,9 +1305,9 @@ export class NeonLeadStore implements LeadStorage {
     await transaction
       .update(leads)
       .set({ updatedAt: activityAt, lastActivityAt: activityAt })
-      .where(eq(leads.id, existing.leadId));
+      .where(eq(leads.id, updated.leadId));
 
-    return updated ? mapLeadTaskRecord(updated) : null;
+    return mapLeadTaskRecord(updated);
     });
   }
 

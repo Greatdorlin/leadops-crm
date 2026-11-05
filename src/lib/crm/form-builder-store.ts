@@ -1,3 +1,4 @@
+import { hasPublicFormFields } from "@/lib/crm/public-form";
 import { isFormUuid } from "@/lib/crm/form-routing-identifiers";
 import { and, asc, desc, eq, gt, inArray, lt, or, sql } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
@@ -404,24 +405,25 @@ export async function deleteFormRule(id: string): Promise<boolean> {
 // ===== Form Submissions =====
 
 export async function createFormSubmission(
-  input: Omit<NewFormSubmissionRow, "id" | "createdAt" | "updatedAt">,
+  input: Omit<NewFormSubmissionRow, "createdAt" | "updatedAt">,
 ): Promise<FormSubmissionRow> {
   const db = getDb();
-  const rows = await db.insert(formSubmissions).values(input).returning();
-  return rows[0];
+  const [created] = await db.insert(formSubmissions).values(input)
+    .onConflictDoNothing({ target: formSubmissions.id }).returning();
+  if (created) return created;
+  if (!input.id) throw new Error("Submission could not be created.");
+
+  const [existing] = await db.select().from(formSubmissions)
+    .where(and(eq(formSubmissions.id, input.id), eq(formSubmissions.formId, input.formId))).limit(1);
+  if (!existing) throw new Error("Submission could not be recovered.");
+  return existing;
 }
 
-export async function updateFormSubmission(
-  id: string,
-  input: Partial<Omit<NewFormSubmissionRow, "id" | "createdAt" | "updatedAt">>,
-): Promise<FormSubmissionRow | null> {
+export async function markFormSubmissionFailed(id: string) {
   const db = getDb();
-  const rows = await db
-    .update(formSubmissions)
-    .set({ ...input, updatedAt: new Date() })
-    .where(eq(formSubmissions.id, id))
-    .returning();
-  return rows[0] ?? null;
+  await db.update(formSubmissions)
+    .set({ status: "failed", updatedAt: new Date() })
+    .where(and(eq(formSubmissions.id, id), sql`${formSubmissions.status} <> 'processed'`));
 }
 
 export async function listFormSubmissions(
@@ -505,10 +507,19 @@ export interface FormSubmissionLeadInput {
 export async function createLeadFromFormSubmission(
   submissionId: string,
   leadInput: FormSubmissionLeadInput,
-): Promise<{ leadId: string; assignedUserId: string | null } | null> {
+): Promise<{ leadId: string | null; assignedUserId: string | null; created: boolean } | null> {
   const db = getDb();
 
   return db.transaction(async (tx) => {
+    const [submission] = await tx.select({
+      status: formSubmissions.status,
+      leadId: formSubmissions.createdLeadId,
+    }).from(formSubmissions).where(eq(formSubmissions.id, submissionId)).for("update");
+    if (!submission) return null;
+    if (submission.status === "processed") {
+      return { leadId: submission.leadId, assignedUserId: null, created: false };
+    }
+
     const opportunityRows = (leadInput.opportunities ?? []).filter(
       (opportunity) => opportunity.offerLabel.trim().length > 0,
     );
@@ -647,6 +658,7 @@ export async function createLeadFromFormSubmission(
     return {
       leadId: createdLead.id,
       assignedUserId: routedLead?.assignedUserId ?? leadInput.assignedUserId ?? null,
+      created: true,
     };
   });
 }
@@ -665,7 +677,7 @@ export async function getPublicFormBySlug(slug: string): Promise<PublicFormResul
   }
 
   const fields = await listFormFields(form.id);
-  return { form, fields };
+  return hasPublicFormFields(fields) ? { form, fields } : null;
 }
 
 export async function getPublicFormById(id: string): Promise<PublicFormResult | null> {
@@ -675,5 +687,5 @@ export async function getPublicFormById(id: string): Promise<PublicFormResult | 
   }
 
   const fields = await listFormFields(form.id);
-  return { form, fields };
+  return hasPublicFormFields(fields) ? { form, fields } : null;
 }

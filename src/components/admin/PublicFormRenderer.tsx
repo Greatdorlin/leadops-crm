@@ -153,6 +153,8 @@ export function PublicFormRenderer({ form, fields, previewMode = false }: Public
   } | null>(null);
   const [stepIndex, setStepIndex] = useState(0);
   const stepHeadingRef = useRef<HTMLHeadingElement>(null);
+  const requestInFlight = useRef(false);
+  const retryKey = useRef<string | null>(null);
 
   const handleChange = useCallback(
     (fieldId: string, value: unknown) => {
@@ -219,6 +221,7 @@ export function PublicFormRenderer({ form, fields, previewMode = false }: Public
   const handleSubmit = useCallback(
     async (e: FormEvent) => {
       e.preventDefault();
+      if (requestInFlight.current) return;
       setSubmitError(null);
 
       if (usesStepPresentation && !isLastStep) {
@@ -239,6 +242,7 @@ export function PublicFormRenderer({ form, fields, previewMode = false }: Public
         return;
       }
 
+      requestInFlight.current = true;
       setSubmitting(true);
 
       try {
@@ -248,9 +252,13 @@ export function PublicFormRenderer({ form, fields, previewMode = false }: Public
           return;
         }
 
+        retryKey.current ??= globalThis.crypto?.randomUUID?.() ?? null;
         const response = await fetch(`/api/forms/${form.id}/submit`, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+            ...(retryKey.current ? { "Idempotency-Key": retryKey.current } : {}),
+          },
           body: JSON.stringify({ data: values }),
         });
 
@@ -299,6 +307,7 @@ export function PublicFormRenderer({ form, fields, previewMode = false }: Public
           err instanceof Error ? err.message : "Network error. Please try again."
         );
       } finally {
+        requestInFlight.current = false;
         setSubmitting(false);
       }
     },

@@ -17,7 +17,7 @@ export async function PATCH(
   }
 
   const payload = (await request.json().catch(() => null)) as { completed?: boolean } | null;
-  if (!payload?.completed) {
+  if (payload?.completed !== true) {
     return NextResponse.json({ error: "Unsupported task update." }, { status: 400 });
   }
 

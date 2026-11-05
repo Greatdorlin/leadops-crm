@@ -1,3 +1,4 @@
+import { isFormUuid } from "@/lib/crm/form-routing-identifiers";
 import { and, asc, desc, eq, gt, inArray, lt, or, sql } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
 import { decodeFormSubmissionCursor } from "@/lib/crm/form-submission-pagination";
@@ -38,6 +39,7 @@ export async function listForms(options?: { includeArchived?: boolean }): Promis
 }
 
 export async function getFormById(id: string): Promise<FormRow | null> {
+  if (!isFormUuid(id)) return null;
   const db = getDb();
   const rows = await db.select().from(forms).where(eq(forms.id, id)).limit(1);
   return rows[0] ?? null;
@@ -308,6 +310,7 @@ export async function listFormFields(formId: string): Promise<FormFieldRow[]> {
 }
 
 export async function getFormFieldById(id: string): Promise<FormFieldRow | null> {
+  if (!isFormUuid(id)) return null;
   const db = getDb();
   const rows = await db.select().from(formFields).where(eq(formFields.id, id)).limit(1);
   return rows[0] ?? null;
@@ -365,6 +368,7 @@ export async function listFormRules(formId: string): Promise<FormRuleRow[]> {
 }
 
 export async function getFormRuleById(id: string): Promise<FormRuleRow | null> {
+  if (!isFormUuid(id)) return null;
   const db = getDb();
   const rows = await db.select().from(formRules).where(eq(formRules.id, id)).limit(1);
   return rows[0] ?? null;
@@ -481,6 +485,7 @@ export interface FormSubmissionLeadInput {
   assignedTo?: string | null;
   assignedUserId?: string | null;
   stageId?: string | null;
+  stageOutcome?: "won" | "lost" | null;
   customFields?: Record<string, unknown>;
   customFieldValues?: LeadCustomFieldValueInputRecord[];
   opportunities?: Array<{
@@ -534,6 +539,8 @@ export async function createLeadFromFormSubmission(
         assignedTo: leadInput.assignedTo,
         assignedUserId: leadInput.assignedUserId ?? null,
         stageId: leadInput.stageId,
+        wonAt: leadInput.stageOutcome === "won" ? new Date() : null,
+        lostAt: leadInput.stageOutcome === "lost" ? new Date() : null,
         estimatedValue: estimatedValue > 0 ? String(estimatedValue) : null,
         expectedValue: estimatedValue > 0 ? String(estimatedValue) : null,
         wonValue: wonValue > 0 ? String(wonValue) : null,

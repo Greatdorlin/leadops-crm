@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { and, eq, or } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import {
   getFormById,
   listFormFields,
@@ -25,6 +25,8 @@ import {
 import { resolveQuickScheduleDate } from "@/lib/crm/schedule-presets";
 import { getDb } from "@/lib/db/client";
 import { crmUsers } from "@/lib/db/schema";
+import { readBoundedJsonObject } from "@/lib/http/bounded-body";
+import { getFormOwnerReference, isFormUuid } from "@/lib/crm/form-routing-identifiers";
 
 function getClientIp(request: Request): string | null {
   const forwarded = request.headers.get("x-forwarded-for");
@@ -34,7 +36,7 @@ function getClientIp(request: Request): string | null {
   return null;
 }
 
-async function resolveStageId(
+function resolveStage(
   stageValue: string | null | undefined,
   stages: Awaited<ReturnType<typeof listLeadStages>>,
 ) {
@@ -51,7 +53,7 @@ async function resolveStageId(
     (stage) => stage.id === stageValue || stage.key === stageValue,
   );
   if (exactMatch) {
-    return exactMatch.id;
+    return exactMatch;
   }
 
   const normalizedMatch = stages.find(
@@ -59,12 +61,12 @@ async function resolveStageId(
       stage.id === normalizedLookupValue || stage.key === normalizedLookupValue,
   );
 
-  return normalizedMatch?.id ?? null;
+  return normalizedMatch ?? null;
 }
 
 async function resolveLeadAssignment(assignmentValue?: string | null) {
-  const normalizedValue = assignmentValue?.trim() ?? "";
-  if (!normalizedValue) {
+  const owner = getFormOwnerReference(assignmentValue);
+  if (!owner) {
     return { assignedTo: null, assignedUserId: null };
   }
 
@@ -75,7 +77,7 @@ async function resolveLeadAssignment(assignmentValue?: string | null) {
     .where(
       and(
         eq(crmUsers.isActive, true),
-        or(eq(crmUsers.id, normalizedValue), eq(crmUsers.email, normalizedValue)),
+        owner.id ? eq(crmUsers.id, owner.id) : eq(sql`lower(${crmUsers.email})`, owner.email),
       ),
     )
     .limit(1);
@@ -96,29 +98,25 @@ export async function POST(
 ) {
   const { id } = await params;
 
+  if (!isFormUuid(id)) {
+    return NextResponse.json({ error: "Form not found or not active." }, { status: 404 });
+  }
+
+  if (request.headers.get("content-type")?.split(";")[0]?.trim().toLowerCase() !== "application/json") {
+    return NextResponse.json({ error: "Submit this form as JSON." }, { status: 415 });
+  }
+  const body = await readBoundedJsonObject(request, MAX_FORM_SUBMISSION_BODY_BYTES);
+  if (!body.ok) {
+    return NextResponse.json({ error: body.error }, { status: body.status });
+  }
+  const payload = body.value;
+
   const form = await getFormById(id);
   if (!form || !form.isPublic || !form.isActive || form.status !== "active") {
     return NextResponse.json({ error: "Form not found or not active." }, { status: 404 });
   }
 
-  if (!request.headers.get("content-type")?.toLowerCase().includes("application/json")) {
-    return NextResponse.json({ error: "Submit this form as JSON." }, { status: 415 });
-  }
-  const declaredLength = Number.parseInt(request.headers.get("content-length") ?? "0", 10);
-  if (Number.isFinite(declaredLength) && declaredLength > MAX_FORM_SUBMISSION_BODY_BYTES) {
-    return NextResponse.json({ error: "This submission is too large." }, { status: 413 });
-  }
-  const rawBody = await request.text();
-  if (new TextEncoder().encode(rawBody).byteLength > MAX_FORM_SUBMISSION_BODY_BYTES) {
-    return NextResponse.json({ error: "This submission is too large." }, { status: 413 });
-  }
-  let payload: Record<string, unknown> | null = null;
-  try {
-    payload = JSON.parse(rawBody) as Record<string, unknown>;
-  } catch {
-    payload = null;
-  }
-  if (!payload || typeof payload.data !== "object" || payload.data === null || Array.isArray(payload.data)) {
+  if (typeof payload.data !== "object" || payload.data === null || Array.isArray(payload.data)) {
     return NextResponse.json({ error: "Invalid submission data." }, { status: 400 });
   }
 
@@ -159,9 +157,9 @@ export async function POST(
     taskOverrides,
   } = mergeSubmissionRuleEvaluations(autoQualifyEvaluation, ruleEvaluation);
   const stages = await listLeadStages();
-  const resolvedStageId =
-    (await resolveStageId(leadOverrides.stageValue, stages)) ??
-    (await resolveStageId(form.defaultStatus, stages));
+  const resolvedStage = resolveStage(leadOverrides.stageValue, stages)
+    ?? resolveStage(form.defaultStatus, stages)
+    ?? resolveStage("new", stages);
 
   let firstName: string | null = null;
   let lastName: string | null = null;
@@ -292,7 +290,8 @@ export async function POST(
       priority: (leadOverrides.priority as string) ?? form.defaultPriority ?? "medium",
       assignedTo: resolvedAssignment.assignedTo,
       assignedUserId: resolvedAssignment.assignedUserId,
-      stageId: resolvedStageId,
+      stageId: resolvedStage?.id ?? null,
+      stageOutcome: resolvedStage?.isWon ? "won" : resolvedStage?.isLost ? "lost" : null,
       customFields: Object.keys(customFields).length > 0 ? customFields : undefined,
       customFieldValues: customFieldValidation.values,
       opportunities: opportunityOverrides.map((opportunity) => ({

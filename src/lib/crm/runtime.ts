@@ -1,3 +1,5 @@
+import { logger, classifyError } from "@/lib/logger";
+
 function getCrmPageErrorDetails(error: unknown) {
   if (process.env.NODE_ENV !== "development") {
     return null;
@@ -50,6 +52,6 @@ export function getCrmPageErrorCopy(error: unknown) {
 }
 
 export function logCrmPageError(scope: string, error: unknown) {
-  const logger = isCrmConfigurationError(error) ? console.warn : console.error;
-  logger(`[crm:${scope}]`, error);
+  const level = isCrmConfigurationError(error) ? "warn" : "error";
+  logger[level]({ scope, error: classifyError(error) }, "CRM page failed");
 }

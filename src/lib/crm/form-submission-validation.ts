@@ -1,5 +1,5 @@
 import type { FormFieldRow } from "@/lib/db/schema";
-import { evaluateSubmissionCondition } from "@/lib/crm/form-submission-routing";
+import { resolveVisibleFormFields } from "@/lib/crm/form-field-visibility";
 import { PUBLIC_FORM_FIELD_TYPES } from "@/lib/crm/public-form";
 
 export const MAX_FORM_SUBMISSION_BODY_BYTES = 256 * 1024;
@@ -8,6 +8,7 @@ export interface FormSubmissionValidationResult {
   success: boolean;
   data: Record<string, unknown>;
   fieldErrors: Record<string, string>;
+  visibleFieldIds: string[];
 }
 
 function isBlank(value: unknown) {
@@ -17,22 +18,6 @@ function isBlank(value: unknown) {
     (typeof value === "string" && value.trim() === "") ||
     (Array.isArray(value) && value.length === 0)
   );
-}
-
-function isConditionallyVisible(field: FormFieldRow, data: Record<string, unknown>) {
-  const condition = field.showWhen;
-  if (!condition || Object.keys(condition).length === 0) {
-    return true;
-  }
-
-  const fieldId = typeof condition.fieldId === "string" ? condition.fieldId : null;
-  const operator = typeof condition.operator === "string" ? condition.operator : null;
-  const expectedValue = typeof condition.value === "string" ? condition.value : null;
-  if (!fieldId || !operator) {
-    return true;
-  }
-
-  return evaluateSubmissionCondition(data[fieldId], operator, expectedValue);
 }
 
 function validateStringRules(
@@ -73,7 +58,7 @@ function normalizeFieldValue(
   }
 
   if (field.fieldType === "number") {
-    const numberValue = typeof value === "number" ? value : Number(value);
+    const numberValue = typeof value === "number" || typeof value === "string" ? Number(value) : NaN;
     if (!Number.isFinite(numberValue)) {
       return { value: null, error: `${field.label} must be a valid number.` };
     }
@@ -89,7 +74,7 @@ function normalizeFieldValue(
 
   const optionValues = new Set((field.options ?? []).map((option) => option.value));
   if (field.fieldType === "checkbox") {
-    if (!Array.isArray(value) || value.length > 100) {
+    if (!Array.isArray(value) || value.length > 100 || value.some((item) => typeof item !== "string")) {
       return { value: null, error: `${field.label} contains an invalid selection.` };
     }
     const values = [...new Set(value.map((item) => String(item).trim()).filter(Boolean))];
@@ -121,8 +106,11 @@ function normalizeFieldValue(
   ) {
     return { value: null, error: `${field.label} must be a valid email address.` };
   }
-  if (field.fieldType === "date" && !/^\d{4}-\d{2}-\d{2}$/.test(stringValue)) {
-    return { value: null, error: `${field.label} must be a valid date.` };
+  if (field.fieldType === "date") {
+    const date = new Date(`${stringValue}T00:00:00Z`);
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(stringValue) || !Number.isFinite(date.getTime()) || date.toISOString().slice(0, 10) !== stringValue) {
+      return { value: null, error: `${field.label} must be a valid date.` };
+    }
   }
 
   return {
@@ -138,12 +126,21 @@ export function validateFormSubmissionData(
   const data: Record<string, unknown> = {};
   const fieldErrors: Record<string, string> = {};
 
-  for (const field of fields) {
-    if (!field.isVisible || !isConditionallyVisible(field, rawData)) {
-      continue;
-    }
-
+  const normalizedValues = new Map<string, ReturnType<typeof normalizeFieldValue>>();
+  function readNormalized(field: FormFieldRow) {
+    const existing = normalizedValues.get(field.id);
+    if (existing) return existing;
     const normalized = normalizeFieldValue(field, rawData[field.id]);
+    normalizedValues.set(field.id, normalized);
+    return normalized;
+  }
+  const visibleFields = resolveVisibleFormFields(fields, (field) => {
+    const answer = readNormalized(field);
+    return answer.error ? undefined : answer.value;
+  });
+
+  for (const field of visibleFields) {
+    const normalized = readNormalized(field);
     if (normalized.error) {
       fieldErrors[field.id] = normalized.error;
       continue;
@@ -161,5 +158,6 @@ export function validateFormSubmissionData(
     success: Object.keys(fieldErrors).length === 0,
     data,
     fieldErrors,
+    visibleFieldIds: visibleFields.map((field) => field.id),
   };
 }

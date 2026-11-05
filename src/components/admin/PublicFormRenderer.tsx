@@ -3,6 +3,7 @@
 import type { CSSProperties, FormEvent } from "react";
 import { useState, useCallback, useEffect, useMemo, useRef } from "react";
 import { cn } from "@/lib/cn";
+import { resolveVisibleFormFields } from "@/lib/crm/form-field-visibility";
 import { clampFormStep, getFormStepProgress } from "@/lib/crm/form-presentation";
 import { PublicFormField } from "./PublicFormField";
 import type { PublicFormFieldData } from "./PublicFormField";
@@ -38,48 +39,6 @@ function buildDefaultFieldValues(fields: PublicFormFieldData[]) {
     }
     return defaults;
   }, {});
-}
-
-function evaluateShowWhen(
-  showWhen: Record<string, unknown> | null | undefined,
-  formValues: Record<string, unknown>
-): boolean {
-  if (!showWhen || Object.keys(showWhen).length === 0) {
-    return true;
-  }
-
-  const fieldId = showWhen.fieldId as string | undefined;
-  const operator = showWhen.operator as string | undefined;
-  const expectedValue = showWhen.value as string | undefined;
-
-  if (!fieldId || !operator) {
-    return true;
-  }
-
-  const actualValue = formValues[fieldId];
-
-  switch (operator) {
-    case "equals":
-      return String(actualValue) === (expectedValue ?? "");
-    case "not_equals":
-      return String(actualValue) !== (expectedValue ?? "");
-    case "contains":
-      return String(actualValue).includes(expectedValue ?? "");
-    case "greater_than":
-      return Number(actualValue) > Number(expectedValue);
-    case "less_than":
-      return Number(actualValue) < Number(expectedValue);
-    case "checked":
-      return Boolean(actualValue) === true;
-    case "unchecked":
-      return Boolean(actualValue) === false;
-    case "empty":
-      return actualValue === undefined || actualValue === null || actualValue === "";
-    case "not_empty":
-      return actualValue !== undefined && actualValue !== null && actualValue !== "";
-    default:
-      return true;
-  }
 }
 
 function validateField(
@@ -167,8 +126,7 @@ export function PublicFormRenderer({ form, fields, previewMode = false }: Public
   );
 
   const visibleFields = useMemo(() => {
-    return fields
-      .filter((field) => evaluateShowWhen(field.showWhen, values))
+    return resolveVisibleFormFields(fields, (field) => values[field.id])
       .sort((a, b) => a.order - b.order);
   }, [fields, values]);
   const usesStepPresentation = form.presentationMode === "step";

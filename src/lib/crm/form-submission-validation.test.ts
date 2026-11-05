@@ -75,3 +75,27 @@ test("submission validation rejects invalid options, numbers, and file fields", 
   assert.equal(result.success, false);
   assert.equal(Object.keys(result.fieldErrors).length, 3);
 });
+
+
+test("conditional chains reject forged hidden answers and work regardless of field order", () => {
+  const entry = field({ id: "entry" });
+  const controller = field({ id: "controller", showWhen: { fieldId: entry.id, operator: "equals", value: "yes" } });
+  const dependent = field({ id: "dependent", showWhen: { fieldId: controller.id, operator: "equals", value: "unlock" } });
+  const fields = [dependent, controller, entry];
+  const forged = validateFormSubmissionData(fields, { entry: "no", controller: "unlock", dependent: "forged" });
+  assert.deepEqual(forged.visibleFieldIds, ["entry"]);
+  assert.deepEqual(forged.data, { entry: "no" });
+  const genuine = validateFormSubmissionData(fields, { entry: "yes", controller: "unlock", dependent: "valid" });
+  assert.deepEqual(genuine.data, { dependent: "valid", controller: "unlock", entry: "yes" });
+});
+
+test("cycles, impossible dates and non-numeric JSON values are handled safely", () => {
+  const result = validateFormSubmissionData([
+    field({ id: "first", showWhen: { fieldId: "second", operator: "empty" } }),
+    field({ id: "second", showWhen: { fieldId: "first", operator: "empty" } }),
+    field({ id: "date", fieldType: "date" }),
+    field({ id: "count", fieldType: "number" }),
+  ], { first: "hidden", second: "hidden", date: "2026-02-31", count: true });
+  assert.deepEqual(result.visibleFieldIds, ["date", "count"]);
+  assert.deepEqual(Object.keys(result.fieldErrors), ["date", "count"]);
+});

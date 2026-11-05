@@ -152,7 +152,7 @@ export async function POST(
     return NextResponse.json({ error: "Enter at least one answer before submitting." }, { status: 400 });
   }
 
-  const availableFieldIds = new Set(fields.map((field) => field.id));
+  const availableFieldIds = new Set(validation.visibleFieldIds);
   const autoQualifyRules = form.enableAutoQualify
     ? normalizeAutoQualifyRules(form.autoQualifyRules)
     : [];

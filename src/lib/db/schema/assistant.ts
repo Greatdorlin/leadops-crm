@@ -14,12 +14,14 @@ export const assistantSettings = pgTable("assistant_settings", {
   id: text("id").primaryKey().default("workspace"),
   name: text("name").notNull().default("Yapper"),
   nameLocked: boolean("name_locked").notNull().default(false),
+  enabled: boolean("enabled").notNull().default(true),
 });
 export const assistantMembers = pgTable("assistant_members", {
   userId: uuid("user_id")
     .primaryKey()
     .references(() => crmUsers.id, { onDelete: "cascade" }),
   personalName: text("personal_name"),
+  showLauncher: boolean("show_launcher").notNull().default(true),
   enabled: boolean("enabled").notNull().default(false),
   canWrite: boolean("can_write").notNull().default(false),
   generation: integer("generation").notNull().default(0),

@@ -24,6 +24,17 @@ import {
 } from "@/lib/crm/role-permissions-contract";
 import { AssistantError, effectiveName } from "./contracts";
 export type Actor = Awaited<ReturnType<typeof actorForUser>>;
+export function isAssistantOwner(user: {
+  email: string;
+  role: Parameters<typeof resolveAdminAccessLevel>[0]["role"];
+}) {
+  return (
+    resolveLeadsDeskRole({
+      accessLevel: resolveAdminAccessLevel(user),
+      role: user.role,
+    }) === "owner"
+  );
+}
 export async function actorForUser(
   userId: string,
   db: DatabaseExecutor = getDb(),
@@ -42,10 +53,12 @@ export async function actorForUser(
     .where(eq(assistantMembers.userId, userId));
   // Use the same stored role resolution as the rest of the CRM. The legacy
   // database role `admin` is the product Owner; manager is not an Owner.
-  const owner = resolveLeadsDeskRole({
-    accessLevel: resolveAdminAccessLevel({ email: user.email, role: user.role }),
-    role: user.role,
-  }) === "owner";
+  const owner = isAssistantOwner(crmUser);
+  const [workspace] = await db
+    .select({ enabled: assistantSettings.enabled })
+    .from(assistantSettings)
+    .where(eq(assistantSettings.id, "workspace"));
+  const workspaceEnabled = workspace?.enabled ?? true;
   const roleRows = await db
     .select()
     .from(rolePermissions)
@@ -66,8 +79,9 @@ export async function actorForUser(
     user: crmUser,
     owner,
     member,
-    enabled: owner || Boolean(member?.enabled),
-    canWrite: owner || Boolean(member?.canWrite),
+    workspaceEnabled,
+    enabled: workspaceEnabled && (owner || Boolean(member?.enabled)),
+    canWrite: workspaceEnabled && (owner || Boolean(member?.canWrite)),
     generation: member?.generation ?? 0,
     permissions,
     accessLevel: resolveAdminAccessLevel({
@@ -124,7 +138,9 @@ export async function workspaceAssistant() {
     .select()
     .from(assistantSettings)
     .where(eq(assistantSettings.id, "workspace"));
-  return row ?? { id: "workspace", name: "Yapper", nameLocked: false };
+  return (
+    row ?? { id: "workspace", name: "Yapper", nameLocked: false, enabled: true }
+  );
 }
 export async function actorLabel(actor: Actor) {
   return effectiveName(await workspaceAssistant(), actor.member?.personalName);

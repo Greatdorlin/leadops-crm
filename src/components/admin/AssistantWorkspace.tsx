@@ -24,7 +24,9 @@ export function AssistantWorkspace({
     [leads, setLeads] = useState<Lead[]>([]),
     [report, setReport] = useState<Performance | null>(null),
     [note, setNote] = useState(""),
-    [lead, setLead] = useState<Lead | null>(null);
+    [lead, setLead] = useState<Lead | null>(null),
+    [composing, setComposing] = useState(false);
+  const questionInput = useRef<HTMLInputElement>(null);
   const guard = useRef(false);
   const reviewAfterRefresh = useRef(false);
   const noteRequestId = useRef<string | null>(null);
@@ -93,6 +95,7 @@ export function AssistantWorkspace({
       return;
     }
     if (/contacted|called|note|payment/i.test(question)) {
+      setComposing(true);
       setNote(
         question.replace(
           /^(?:can you (?:help me )?|please )?(?:add|save|record)(?: a)? note(?: that)?[:\s]*/i,
@@ -114,9 +117,12 @@ export function AssistantWorkspace({
       .replace(/^(find|search(?: for)?|show)\s+(?:leads?\s+)?/i, "")
       .trim();
     if (!query) return;
-    setLeads((await send({ op: "search", query })).leads);
+    const results = (await send({ op: "search", query })).leads;
+    setLeads(results);
     setNotice(
-      "Choose a lead to prepare a note. For open-ended reasoning, use your connected AI tool.",
+      results.length
+        ? "Select a lead to prepare a note."
+        : "No matching leads found. Try a name or email.",
     );
   }
   if (!data)
@@ -136,7 +142,7 @@ export function AssistantWorkspace({
       </div>
     );
   return (
-    <div className="mx-auto max-w-5xl space-y-6 pb-16">
+    <div className="mx-auto max-w-3xl space-y-6 pb-16">
       {error ? (
         <p
           role="alert"
@@ -154,27 +160,26 @@ export function AssistantWorkspace({
         <section className="admin-surface rounded-3xl p-5 sm:p-7">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
-              <p className="text-xs uppercase tracking-widest text-white/50">
-                Your workspace assistant
-              </p>
-              <h2 className="mt-2 break-words text-2xl font-semibold">
-                Talk to {data.name}
+              <h2 className="break-words text-2xl font-semibold">
+                {data.name}
               </h2>
               <p className="mt-2 max-w-xl text-sm text-white/65">
-                Quick answers from your CRM. Connect your own AI tool for
-                open-ended questions. No Leads Desk AI credits.
+                Find a lead, check sales performance or prepare a follow-up
+                note.
               </p>
             </div>
             <Link
               className="admin-button-secondary min-h-11 px-4 py-2"
               href="/settings/assistant"
             >
-              Assistant settings
+              Settings
             </Link>
           </div>
           {!data.enabled ? (
             <p className="mt-5 rounded-2xl bg-white/5 p-4 text-sm">
-              Ask the workspace owner to grant assistant access.
+              {data.workspace.enabled
+                ? "Ask the workspace owner to grant assistant access."
+                : "The assistant is turned off for this workspace. You can turn it on in Assistant settings."}
             </p>
           ) : (
             <>
@@ -186,6 +191,7 @@ export function AssistantWorkspace({
                 className="mt-6 flex flex-col gap-3 sm:flex-row"
               >
                 <input
+                  ref={questionInput}
                   aria-label={`Ask ${data.name}`}
                   value={question}
                   onChange={(e) => setQuestion(e.target.value)}
@@ -213,18 +219,26 @@ export function AssistantWorkspace({
                   Who is performing best?
                 </button>
                 <button
-                  className="admin-button-secondary min-h-11 px-4 py-2 text-sm"
+                  type="button"
                   disabled={busy}
-                  onClick={() => void run(refresh)}
-                >
-                  Refresh proposals
-                </button>
-                <a
                   className="admin-button-secondary min-h-11 px-4 py-2 text-sm"
-                  href="#connect-ai"
+                  onClick={() => {
+                    setQuestion("Find ");
+                    questionInput.current?.focus();
+                  }}
                 >
-                  Connect my AI tool
-                </a>
+                  Find a lead
+                </button>
+                {data.canWrite ? (
+                  <button
+                    type="button"
+                    disabled={busy}
+                    className="admin-button-secondary min-h-11 px-4 py-2 text-sm"
+                    onClick={() => setComposing(true)}
+                  >
+                    Add a note
+                  </button>
+                ) : null}
               </div>
               {report ? (
                 <div className="mt-5 space-y-3">
@@ -272,6 +286,7 @@ export function AssistantWorkspace({
                       className="admin-button-secondary min-h-11 px-4 py-2 justify-start text-left"
                       onClick={() => {
                         setLead(l);
+                        setComposing(true);
                         noteRequestId.current = null;
                       }}
                     >
@@ -285,8 +300,8 @@ export function AssistantWorkspace({
                   ))}
                 </div>
               ) : null}
-              {data.canWrite ? (
-                <div className="mt-5 rounded-2xl border border-white/10 p-4">
+              {data.canWrite && composing ? (
+                <div className="mt-6 border-t border-white/10 pt-5">
                   <h3 className="font-semibold">Add a contact note</h3>
                   <form
                     className="mt-3 flex flex-col gap-2 sm:flex-row"
@@ -357,6 +372,7 @@ export function AssistantWorkspace({
                         noteRequestId.current = null;
                         setNote("");
                         setLead(null);
+                        setComposing(false);
                         reviewAfterRefresh.current = true;
                         await refresh();
                         setNotice("Your note is ready for approval below.");
@@ -441,12 +457,32 @@ export function AssistantWorkspace({
           setNotice={setNotice}
         />
       ) : null}
-      <AssistantConnectionCard
-        data={data}
-        busy={busy}
-        run={run}
-        refresh={refresh}
-      />
+      {!settingsOnly && data.enabled ? (
+        <div className="flex flex-wrap items-center justify-between gap-3 text-sm text-white/60">
+          <Link
+            href="/settings/assistant#connect-ai"
+            className="underline underline-offset-4"
+          >
+            Connect ChatGPT or Claude
+          </Link>
+          <button
+            type="button"
+            disabled={busy}
+            onClick={() => void run(refresh)}
+            className="min-h-11 underline underline-offset-4"
+          >
+            Refresh proposals
+          </button>
+        </div>
+      ) : null}
+      {settingsOnly ? (
+        <AssistantConnectionCard
+          data={data}
+          busy={busy}
+          run={run}
+          refresh={refresh}
+        />
+      ) : null}
     </div>
   );
 }

@@ -10,7 +10,7 @@ async function main() {
   const journal = JSON.parse(
     readFileSync("drizzle/meta/_journal.json", "utf8"),
   );
-  const entry = journal.entries.find((e: { idx: number }) => e.idx === 28);
+  const entry = journal.entries.find((e: { idx: number }) => e.idx === (process.argv.includes("--controls") ? 29 : 28));
   if (!entry) throw new Error("Assistant migration not found.");
   const ddl = readFileSync(`drizzle/${entry.tag}.sql`, "utf8");
   const client = createPostgresClient(url, { maxConnections: 1 });

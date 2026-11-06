@@ -204,6 +204,13 @@
       "when": 1793950875910,
       "tag": "0028_premium_otto_octavius",
       "breakpoints": true
+    },
+    {
+      "idx": 29,
+      "version": "7",
+      "when": 1793968601086,
+      "tag": "0029_faithful_sheva_callister",
+      "breakpoints": true
     }
   ]
 }

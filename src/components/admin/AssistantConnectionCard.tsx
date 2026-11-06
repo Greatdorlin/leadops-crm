@@ -1,4 +1,5 @@
 "use client";
+import { useEffect, useRef } from "react";
 import { CopyButton } from "./CopyButton";
 import { send, type State } from "./assistant-client";
 export function AssistantConnectionCard({
@@ -12,12 +13,17 @@ export function AssistantConnectionCard({
   run: (action: () => Promise<void>) => Promise<void>;
   refresh: () => Promise<void>;
 }) {
+  const disclosure = useRef<HTMLDetailsElement>(null);
+  useEffect(() => { if (window.location.hash === "#connect-ai" && disclosure.current) disclosure.current.open = true; }, []);
   return (
-    <section
+    <details
+      ref={disclosure}
       className="admin-surface scroll-mt-24 rounded-3xl p-5"
       id="connect-ai"
     >
-      <h2 className="text-xl font-semibold">Connect your AI tool</h2>
+      <summary className="cursor-pointer text-lg font-semibold">
+        Connect ChatGPT, Claude or another AI tool
+      </summary>
       <p className="mt-2 text-sm text-white/65">
         Add this MCP URL in your tool’s connector settings and choose OAuth.
         Sign in to Leads Desk as yourself. Your AI tool’s own plan and limits
@@ -72,6 +78,6 @@ export function AssistantConnectionCard({
           </button>
         </div>
       ))}
-    </section>
+    </details>
   );
 }

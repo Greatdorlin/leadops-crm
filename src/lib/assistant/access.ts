@@ -1,12 +1,7 @@
+import { activeCrmActor, CrmAccessError } from "@/lib/crm/active-actor";
 import { eq } from "drizzle-orm";
 import { type DatabaseExecutor, getDb } from "@/lib/db/client";
-import {
-  assistantMembers,
-  assistantSettings,
-  crmUsers,
-  rolePermissions,
-  userPermissionOverrides,
-} from "@/lib/db/schema";
+import { assistantMembers, assistantSettings } from "@/lib/db/schema";
 import { leadStore } from "@/lib/storage";
 import { resolveLeadsDeskRole } from "@/lib/crm/roles";
 import { getAdminRequestContext } from "@/lib/admin";
@@ -16,12 +11,6 @@ import {
   canManageLeadRecord,
   canViewLeadRecord,
 } from "@/lib/admin-permissions";
-import { mapCrmUserRecord } from "@/lib/storage/mappers";
-import {
-  DEFAULT_ROLE_PERMISSIONS,
-  PERMISSION_DEFINITIONS,
-  applyPermissionOverrides,
-} from "@/lib/crm/role-permissions-contract";
 import { AssistantError, effectiveName } from "./contracts";
 export type Actor = Awaited<ReturnType<typeof actorForUser>>;
 export function isAssistantOwner(user: {
@@ -39,14 +28,12 @@ export async function actorForUser(
   userId: string,
   db: DatabaseExecutor = getDb(),
 ) {
-  const [user] = await db
-    .select()
-    .from(crmUsers)
-    .where(eq(crmUsers.id, userId));
-  if (!user?.isActive)
-    throw new AssistantError("Access is no longer available.", 403);
-  const crmUser = mapCrmUserRecord(user);
-  if (!crmUser) throw new AssistantError("Access is no longer available.", 403);
+  const base = await activeCrmActor(userId, db).catch((error) => {
+    if (error instanceof CrmAccessError)
+      throw new AssistantError(error.message, 403);
+    throw error;
+  });
+  const crmUser = base.user;
   const [member] = await db
     .select()
     .from(assistantMembers)
@@ -59,35 +46,14 @@ export async function actorForUser(
     .from(assistantSettings)
     .where(eq(assistantSettings.id, "workspace"));
   const workspaceEnabled = workspace?.enabled ?? true;
-  const roleRows = await db
-    .select()
-    .from(rolePermissions)
-    .where(eq(rolePermissions.role, user.role));
-  const overrides = await db
-    .select()
-    .from(userPermissionOverrides)
-    .where(eq(userPermissionOverrides.userId, user.id));
-  const saved = new Map(roleRows.map((r) => [r.permission, r.enabled]));
-  const permissions = applyPermissionOverrides(
-    PERMISSION_DEFINITIONS.filter(
-      (p) =>
-        saved.get(p.key) ?? DEFAULT_ROLE_PERMISSIONS[user.role].includes(p.key),
-    ).map((p) => p.key),
-    overrides,
-  );
   return {
-    user: crmUser,
+    ...base,
     owner,
     member,
     workspaceEnabled,
     enabled: workspaceEnabled && (owner || Boolean(member?.enabled)),
     canWrite: workspaceEnabled && (owner || Boolean(member?.canWrite)),
     generation: member?.generation ?? 0,
-    permissions,
-    accessLevel: resolveAdminAccessLevel({
-      email: user.email,
-      role: user.role,
-    }),
   };
 }
 export async function sessionActor(requireGrant = true) {

@@ -27,6 +27,7 @@ type AdminNavKey =
   | "tasks"
   | "team"
   | "reports"
+  | "inbox"
   | "notifications"
   | "integrations"
   | "settings";
@@ -504,7 +505,7 @@ export function getVisibleAdminNavKeys(
     keys.push("forms");
   }
 
-  keys.push("notifications");
+  keys.push("notifications", "inbox");
 
   if (canViewSalesTeam(accessLevel)) {
     keys.push("team");

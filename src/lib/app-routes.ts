@@ -6,6 +6,7 @@ export const appRoutes = {
   leads: "/leads",
   lead: (leadId: string) => `/leads/${leadId}`,
   leadsTrash: "/leads/trash",
+  inbox: "/inbox",
   tasks: "/tasks",
   team: "/team",
   reports: "/reports",

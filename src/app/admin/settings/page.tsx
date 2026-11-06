@@ -260,7 +260,7 @@ export default async function AdminSettingsPage() {
       userEmail={currentUser?.email || session.user?.email}
       userAvatarUrl={currentUser?.avatarUrl}
     >
-      <div className="space-y-6">
+      <div className="space-y-6"><Link href="/settings/guide" className="admin-button-secondary inline-flex min-h-11 items-center px-4">Workspace guide</Link>
         {pageData ? (
           <>
             <nav aria-label="Settings sections" className="flex flex-wrap gap-2">

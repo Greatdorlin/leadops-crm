@@ -13,3 +13,6 @@ export * from './schema/forms';
 export * from './schema/imports';
 
 export * from "./schema/assistant";
+export * from "./schema/inbox";
+
+export * from "./schema/guides";

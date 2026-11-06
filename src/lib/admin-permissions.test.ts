@@ -228,6 +228,7 @@ test("sales rep navigation stays scoped to personal workspaces", () => {
     "leads",
     "tasks",
     "notifications",
+    "inbox",
     "reports",
   ]);
 });
@@ -238,6 +239,7 @@ test("affiliate navigation stays scoped to owned lead work", () => {
     "leads",
     "tasks",
     "notifications",
+    "inbox",
   ]);
 });
 
@@ -247,6 +249,7 @@ test("finance navigation excludes broad reports and settings by default", () => 
     "leads",
     "tasks",
     "notifications",
+    "inbox",
   ]);
 });
 

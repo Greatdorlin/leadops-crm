@@ -1796,3 +1796,21 @@ select {
     padding-inline: 0;
   }
 }
+
+/* Native text controls need their own box model: textarea.admin-input must
+   never inherit the zero block padding used by composite select triggers. */
+textarea.admin-input,
+textarea.admin-textarea,
+[data-admin-overlay] textarea.admin-input {
+  display: block;
+  min-block-size: 6rem;
+  padding: 0.75rem 1rem;
+  line-height: 1.5;
+  resize: vertical;
+}
+input.admin-input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]),
+select.admin-input,
+select.admin-select {
+  padding-block: 0.625rem;
+  line-height: 1.5;
+}

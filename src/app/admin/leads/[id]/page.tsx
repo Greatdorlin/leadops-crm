@@ -72,7 +72,7 @@ import { getCrmPageErrorCopy, logCrmPageError } from "@/lib/crm/runtime";
 import type { CrmStatus } from "@/lib/crm/types";
 import { buildAdminLeadDetailView } from "@/lib/crm/view-models";
 import { buildDemoLeadDetail } from "@/lib/crm/demo-data";
-import { getBranchCurrency, getCompanySettings } from "@/lib/crm/workspace-settings-server";
+import { getCompanySettings } from "@/lib/crm/workspace-settings-server";
 import { leadStore } from "@/lib/storage";
 import { formatCurrencyValue } from "@/lib/currency";
 
@@ -239,7 +239,6 @@ export default async function AdminLeadDetailPage({
   const { lead, users, notes, tasks, events, duplicateCandidates } = pageData;
   const workspaceSettings = await getCompanySettings();
   const currency = workspaceSettings.globalCurrency;
-  const branchCurrency = (await getBranchCurrency(lead.branchId)) ?? currency;
   const canTrashLead = canSoftDeleteLead(accessLevel, permissions) && !lead.deletedAt;
   const canRestoreDeletedLead = canOpenLeadTrash && Boolean(lead.deletedAt);
   const showTechnicalLeadContext = canViewTechnicalLeadContext(
@@ -839,17 +838,17 @@ export default async function AdminLeadDetailPage({
                   />
                 ) : (
                   <LeadOpportunityManager
-                    key={`${lead.id}:${opportunityRows.map(offer=>`${offer.id}:${offer.updatedAt}:${offer.status}`).join("|")}:${leadClosed}`}
+                    key={`${lead.id}:${opportunityRows.map(offer=>`${offer.id}:${offer.updatedAt}:${offer.status}`).join("|")}:${leadClosed}:${currency}`}
                     leadId={lead.id}
                     initialOpportunities={opportunityRows}
                     leadClosed={leadClosed}
-                    defaultCurrency={branchCurrency}
+                    defaultCurrency={currency}
                   />
                 )}
                 {!lead.deletedAt && canManageThisLead ? (
                   <PaymentClaimForm
                     leadId={lead.id}
-                    defaultCurrency={branchCurrency}
+                    defaultCurrency={currency}
                     recipientOptions={visibleUsers.map((user) => ({
                       value: user.id,
                       label: user.fullName || user.email,

@@ -1,11 +1,18 @@
 "use client";
 
+import {
+  partitionPipelineStageOptions,
+  PRODUCT_QUALIFICATION_ACTION,
+} from "@/lib/crm/pipeline-stage-options";
 import { isUnqualifiedStage } from "@/lib/crm/qualification-stage";
 import { useRouter } from "next/navigation";
-import { useState,useRef } from "react";
+import { useState, useRef } from "react";
 import { CelebrationPanel } from "@/components/admin/CelebrationPanel";
 import { useAdminWorkspaceSettings } from "@/components/admin/AdminWorkspaceSettingsProvider";
-import { buildLeadStageCelebration, type CelebrationMoment } from "@/lib/crm/celebrations";
+import {
+  buildLeadStageCelebration,
+  type CelebrationMoment,
+} from "@/lib/crm/celebrations";
 import { crmLabelize } from "@/lib/crm/formatters";
 import type { LeadPriority } from "@/lib/crm/types";
 import { LeadQualificationDialog } from "./LeadQualificationDialog";
@@ -76,18 +83,36 @@ export function LeadStatusForm({
   }>;
 }) {
   const router = useRouter();
-  const qualificationAnchor=useRef<HTMLButtonElement>(null);
-  const [qualificationOpen,setQualificationOpen]=useState(false);
+  const [showMoreStages, setShowMoreStages] = useState(false);
+  const qualificationAnchor = useRef<HTMLButtonElement>(null);
+  const [qualificationOpen, setQualificationOpen] = useState(false);
   const workspaceSettings = useAdminWorkspaceSettings();
   const [stage, setStage] = useState<string>(initialStage);
   const [priority, setPriority] = useState<LeadPriority>(initialPriority);
   const [assignedTo, setAssignedTo] = useState(initialAssignedTo ?? "");
-  const [assignedToList, setAssignedToList] = useState<string[]>(initialAssignedToList);
-  const [nextFollowUpAt, setNextFollowUpAt] = useState(formatDateTimeLocalValue(initialNextFollowUpAt));
+  const [assignedToList, setAssignedToList] = useState<string[]>(
+    initialAssignedToList,
+  );
+  const [nextFollowUpAt, setNextFollowUpAt] = useState(
+    formatDateTimeLocalValue(initialNextFollowUpAt),
+  );
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState("");
-  const [celebration, setCelebration] = useState<CelebrationMoment | null>(null);
+  const [celebration, setCelebration] = useState<CelebrationMoment | null>(
+    null,
+  );
   const [savedStageValue, setSavedStageValue] = useState(initialStage);
+
+  const choices: typeof stageOptions = [
+    ...stageOptions.filter((o) => !isUnqualifiedStage(o.key, o.label)),
+    {
+      value: PRODUCT_QUALIFICATION_ACTION,
+      key: "unqualified",
+      label: "Unqualified",
+    },
+  ];
+  const { primary, additional } = partitionPipelineStageOptions(choices, stage);
+  const visibleStages = showMoreStages ? choices : primary;
 
   function toggleAdditionalOwner(email: string) {
     setAssignedToList((current) => {
@@ -111,7 +136,9 @@ export function LeadStatusForm({
     setMessage("");
 
     try {
-      const selectedStage = stageOptions.find((option) => option.value === stage);
+      const selectedStage = stageOptions.find(
+        (option) => option.value === stage,
+      );
       const response = await fetch(`/api/admin/leads/${leadId}/workflow`, {
         method: "PATCH",
         headers: {
@@ -134,7 +161,9 @@ export function LeadStatusForm({
         }),
       });
 
-      const payload = (await response.json().catch(() => null)) as { error?: string } | null;
+      const payload = (await response.json().catch(() => null)) as {
+        error?: string;
+      } | null;
 
       if (!response.ok) {
         setMessage(payload?.error ?? "We couldn't update this lead right now.");
@@ -142,15 +171,24 @@ export function LeadStatusForm({
         return;
       }
 
-      if (workspaceSettings.celebrationsEnabled && workspaceSettings.stageCelebrationsEnabled) {
-        const activeStage = stageOptions.find((option) => option.value === stage);
-        const savedStageOption = stageOptions.find((option) => option.value === savedStageValue);
+      if (
+        workspaceSettings.celebrationsEnabled &&
+        workspaceSettings.stageCelebrationsEnabled
+      ) {
+        const activeStage = stageOptions.find(
+          (option) => option.value === stage,
+        );
+        const savedStageOption = stageOptions.find(
+          (option) => option.value === savedStageValue,
+        );
         const savedStageKey = savedStageOption?.isWon
           ? "converted"
           : savedStageOption?.isLost
             ? "lost"
-            : savedStageOption?.key ?? initialStageKey ?? initialStage;
-        const previousStatus = stageKeys.includes(savedStageKey as (typeof stageKeys)[number])
+            : (savedStageOption?.key ?? initialStageKey ?? initialStage);
+        const previousStatus = stageKeys.includes(
+          savedStageKey as (typeof stageKeys)[number],
+        )
           ? (savedStageKey as (typeof stageKeys)[number])
           : null;
         const nextStatus = activeStage?.isWon
@@ -186,7 +224,12 @@ export function LeadStatusForm({
 
   return (
     <div className="min-w-0">
-      <CelebrationPanel celebration={celebration} onClose={() => setCelebration(null)} className="mb-4" styleMode={workspaceSettings.celebrationStyle} />
+      <CelebrationPanel
+        celebration={celebration}
+        onClose={() => setCelebration(null)}
+        className="mb-4"
+        styleMode={workspaceSettings.celebrationStyle}
+      />
       <div className="mb-4 flex items-center justify-between gap-3 border-b border-white/10 pb-4">
         <div>
           <p className="text-sm font-semibold text-white">Lead routing</p>
@@ -198,29 +241,51 @@ export function LeadStatusForm({
       </div>
       <div className="grid gap-4">
         <label className="min-w-0 space-y-2">
-          <span className="text-xs font-semibold uppercase tracking-[0.16em] text-white/70">Stage</span>
+          <span className="text-xs font-semibold uppercase tracking-[0.16em] text-white/70">
+            Stage
+          </span>
           <AdminSelect
             value={stage}
             onChange={(event) => {
-              const option=stageOptions.find(o=>o.value===event.target.value);
-              if(isUnqualifiedStage(option?.key??"",option?.label)){setQualificationOpen(true);return;}
+              const option = choices.find(
+                (o) => o.value === event.target.value,
+              );
+              if (isUnqualifiedStage(option?.key ?? "", option?.label)) {
+                setQualificationOpen(true);
+                return;
+              }
               setStage(event.target.value);
             }}
             className="h-12"
           >
-            {stageOptions.map((status) => (
+            {visibleStages.map((status) => (
               <option key={status.value} value={status.value}>
                 {status.label}
               </option>
             ))}
           </AdminSelect>
+          {additional.length ? (
+            <button
+              type="button"
+              className="min-h-11 text-left text-xs text-white/60 underline"
+              onClick={() => setShowMoreStages((v) => !v)}
+            >
+              {showMoreStages
+                ? "Show major stages"
+                : `More configured stages (${additional.length})`}
+            </button>
+          ) : null}
         </label>
 
         <label className="min-w-0 space-y-2">
-          <span className="text-xs font-semibold uppercase tracking-[0.16em] text-white/70">Priority</span>
+          <span className="text-xs font-semibold uppercase tracking-[0.16em] text-white/70">
+            Priority
+          </span>
           <AdminSelect
             value={priority}
-            onChange={(event) => setPriority(event.target.value as LeadPriority)}
+            onChange={(event) =>
+              setPriority(event.target.value as LeadPriority)
+            }
             className="h-12"
           >
             {priorityOptions.map((option) => (
@@ -232,7 +297,9 @@ export function LeadStatusForm({
         </label>
 
         <label className="min-w-0 space-y-2">
-          <span className="text-xs font-semibold uppercase tracking-[0.16em] text-white/70">Assigned owner</span>
+          <span className="text-xs font-semibold uppercase tracking-[0.16em] text-white/70">
+            Assigned owner
+          </span>
           <AdminSelect
             value={assignedTo}
             disabled={!canReassignOwner}
@@ -240,9 +307,14 @@ export function LeadStatusForm({
               const nextPrimary = event.target.value;
               setAssignedTo(nextPrimary);
               setAssignedToList((current) => {
-                const next = current.filter(Boolean).filter((email) => email !== assignedTo);
+                const next = current
+                  .filter(Boolean)
+                  .filter((email) => email !== assignedTo);
                 if (nextPrimary) {
-                  return [nextPrimary, ...next.filter((email) => email !== nextPrimary)];
+                  return [
+                    nextPrimary,
+                    ...next.filter((email) => email !== nextPrimary),
+                  ];
                 }
 
                 return [];
@@ -260,7 +332,9 @@ export function LeadStatusForm({
         </label>
 
         <label className="min-w-0 space-y-2">
-          <span className="text-xs font-semibold uppercase tracking-[0.16em] text-white/70">Next follow-up</span>
+          <span className="text-xs font-semibold uppercase tracking-[0.16em] text-white/70">
+            Next follow-up
+          </span>
           <AdminDateTimeInput
             value={nextFollowUpAt}
             onChange={(event) => setNextFollowUpAt(event.target.value)}
@@ -309,8 +383,22 @@ export function LeadStatusForm({
           </SmoothButton>
         </div>
       </div>
-      <button ref={qualificationAnchor} type="button" className="admin-button-secondary mt-3" onClick={()=>setQualificationOpen(true)}>Product qualification</button>
-      {qualificationOpen ? <LeadQualificationDialog leadId={leadId} anchorRef={qualificationAnchor} open onClose={()=>setQualificationOpen(false)} /> : null}
+      <button
+        ref={qualificationAnchor}
+        type="button"
+        className="admin-button-secondary mt-3"
+        onClick={() => setQualificationOpen(true)}
+      >
+        Product qualification
+      </button>
+      {qualificationOpen ? (
+        <LeadQualificationDialog
+          leadId={leadId}
+          anchorRef={qualificationAnchor}
+          open
+          onClose={() => setQualificationOpen(false)}
+        />
+      ) : null}
       {message ? <p className="mt-3 text-sm text-white/70">{message}</p> : null}
     </div>
   );

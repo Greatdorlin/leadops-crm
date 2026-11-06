@@ -1,6 +1,7 @@
 "use client";
 
 import { startTransition, useState } from "react";
+import { useAdminWorkspaceSettings } from "./AdminWorkspaceSettingsProvider";
 import { useRouter } from "next/navigation";
 import { AdminSelect } from "@/components/admin/AdminSelect";
 import { CurrencySelect } from "@/components/admin/CurrencySelect";
@@ -17,7 +18,9 @@ export function PaymentClaimForm({
 }) {
   const router = useRouter();
   const [amount, setAmount] = useState("");
-  const [currency, setCurrency] = useState(defaultCurrency);
+  const workspace = useAdminWorkspaceSettings();
+  const [selectedCurrency, setCurrency] = useState<string | null>(null);
+  const currency = selectedCurrency ?? workspace.globalCurrency ?? defaultCurrency;
   const [commissionAmount, setCommissionAmount] = useState("");
   const [commissionRecipientUserId, setCommissionRecipientUserId] = useState("");
   const [busy, setBusy] = useState(false);

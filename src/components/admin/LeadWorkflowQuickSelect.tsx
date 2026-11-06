@@ -2,6 +2,10 @@
 
 import { useId, useRef, useState } from "react";
 import { Check, ChevronDown, LoaderCircle } from "lucide-react";
+import {
+  partitionPipelineStageOptions,
+  PRODUCT_QUALIFICATION_ACTION,
+} from "@/lib/crm/pipeline-stage-options";
 import { isUnqualifiedStage } from "@/lib/crm/qualification-stage";
 import { useRouter } from "next/navigation";
 import { LeadQualificationDialog } from "./LeadQualificationDialog";
@@ -40,6 +44,19 @@ export function LeadWorkflowQuickSelect({
   previewMode?: boolean;
 }) {
   const router = useRouter();
+  const [showMoreStages, setShowMoreStages] = useState(false);
+  const choices =
+    field === "stageId"
+      ? [
+          ...options.filter((o) => !isUnqualifiedStage(o.key ?? "", o.label)),
+          {
+            value: PRODUCT_QUALIFICATION_ACTION,
+            key: "unqualified",
+            label: "Unqualified",
+            color: "#94a3b8",
+          },
+        ]
+      : options;
   const [qualificationOpen, setQualificationOpen] = useState(false);
   const listboxId = useId();
   const buttonRef = useRef<HTMLButtonElement>(null);
@@ -49,14 +66,22 @@ export function LeadWorkflowQuickSelect({
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState("");
   const [hasError, setHasError] = useState(false);
-  const selectedOption = options.find((option) => option.value === value);
+  const { primary, additional } = partitionPipelineStageOptions(choices, value);
+  const visibleOptions =
+    field === "stageId" && !showMoreStages ? primary : choices;
+  const selectedOption = choices.find((option) => option.value === value);
   const currentLabel = selectedOption?.label ?? initialLabel;
   const currentColor = selectedOption?.color ?? initialColor ?? "#94a3b8";
 
   async function saveValue(nextValue: string) {
-    const nextOption = options.find(option => option.value === nextValue);
-    if (field === "stageId" && isUnqualifiedStage(nextOption?.key??"",nextOption?.label)) {
-      setIsOpen(false); setQualificationOpen(true); return;
+    const nextOption = choices.find((option) => option.value === nextValue);
+    if (
+      field === "stageId" &&
+      isUnqualifiedStage(nextOption?.key ?? "", nextOption?.label)
+    ) {
+      setIsOpen(false);
+      setQualificationOpen(true);
+      return;
     }
     if (nextValue === savedValue) {
       setIsOpen(false);
@@ -84,7 +109,9 @@ export function LeadWorkflowQuickSelect({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ [field]: nextValue }),
       });
-      const payload = (await response.json().catch(() => null)) as { error?: string } | null;
+      const payload = (await response.json().catch(() => null)) as {
+        error?: string;
+      } | null;
 
       if (!response.ok) {
         setValue(previousValue);
@@ -132,11 +159,18 @@ export function LeadWorkflowQuickSelect({
           className="h-2 w-2 shrink-0 rounded-full shadow-[0_0_10px_currentColor]"
           style={{ backgroundColor: currentColor, color: currentColor }}
         />
-        <span className="min-w-0 truncate" title={currentLabel}>{currentLabel}</span>
+        <span className="min-w-0 truncate" title={currentLabel}>
+          {currentLabel}
+        </span>
         {isSaving ? (
           <LoaderCircle className="h-3 w-3 shrink-0 animate-spin text-white/64" />
         ) : (
-          <ChevronDown className={cn("h-3 w-3 shrink-0 text-white/60 transition", isOpen && "rotate-180")} />
+          <ChevronDown
+            className={cn(
+              "h-3 w-3 shrink-0 text-white/60 transition",
+              isOpen && "rotate-180",
+            )}
+          />
         )}
       </button>
 
@@ -148,9 +182,13 @@ export function LeadWorkflowQuickSelect({
         open={isOpen}
       >
         <div id={listboxId} className="flex min-h-0 flex-1 flex-col">
-          <AdminPickerHeader title={pickerTitle} description={pickerDescription} onClose={() => setIsOpen(false)} />
+          <AdminPickerHeader
+            title={pickerTitle}
+            description={pickerDescription}
+            onClose={() => setIsOpen(false)}
+          />
           <AdminPickerScrollArea className="pr-1" role="listbox">
-            {options.map((option, index) => {
+            {visibleOptions.map((option, index) => {
               const isCurrent = option.value === value;
               const optionColor = option.color ?? "#94a3b8";
               return (
@@ -171,32 +209,68 @@ export function LeadWorkflowQuickSelect({
                       void saveValue(option.value);
                       return;
                     }
-                    if (!["ArrowDown", "ArrowUp", "Home", "End"].includes(event.key)) return;
+                    if (
+                      !["ArrowDown", "ArrowUp", "Home", "End"].includes(
+                        event.key,
+                      )
+                    )
+                      return;
                     event.preventDefault();
                     const optionButtons = event.currentTarget
                       .closest('[role="listbox"]')
                       ?.querySelectorAll<HTMLButtonElement>('[role="option"]');
                     const nextIndex =
-                      event.key === "Home" ? 0
-                        : event.key === "End" ? options.length - 1
-                          : event.key === "ArrowDown" ? Math.min(index + 1, options.length - 1)
+                      event.key === "Home"
+                        ? 0
+                        : event.key === "End"
+                          ? visibleOptions.length - 1
+                          : event.key === "ArrowDown"
+                            ? Math.min(index + 1, visibleOptions.length - 1)
                             : Math.max(index - 1, 0);
                     optionButtons?.[nextIndex]?.focus({ preventScroll: true });
                   }}
                 >
-                  <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: optionColor }} />
-                  <span className="min-w-0 flex-1 font-semibold">{option.label}</span>
-                  {isCurrent ? <Check className="h-4 w-4 text-[var(--ld-color-accent)]" /> : null}
+                  <span
+                    className="h-2.5 w-2.5 shrink-0 rounded-full"
+                    style={{ backgroundColor: optionColor }}
+                  />
+                  <span className="min-w-0 flex-1 font-semibold">
+                    {option.label}
+                  </span>
+                  {isCurrent ? (
+                    <Check className="h-4 w-4 text-[var(--ld-color-accent)]" />
+                  ) : null}
                 </button>
               );
             })}
+            {field === "stageId" && additional.length ? (
+              <button
+                type="button"
+                className="min-h-11 w-full border-t border-white/10 px-3 py-3 text-left text-sm text-white/60"
+                onClick={() => setShowMoreStages((v) => !v)}
+              >
+                {showMoreStages
+                  ? "Show major stages"
+                  : `More configured stages (${additional.length})`}
+              </button>
+            ) : null}
           </AdminPickerScrollArea>
         </div>
       </ResponsivePopover>
 
-      {qualificationOpen ? <LeadQualificationDialog leadId={leadId} open anchorRef={buttonRef} onClose={() => setQualificationOpen(false)} /> : null}
+      {qualificationOpen ? (
+        <LeadQualificationDialog
+          leadId={leadId}
+          open
+          anchorRef={buttonRef}
+          onClose={() => setQualificationOpen(false)}
+        />
+      ) : null}
       <p
-        className={cn("sr-only", hasError && "not-sr-only mt-1 max-w-52 text-xs text-rose-200")}
+        className={cn(
+          "sr-only",
+          hasError && "not-sr-only mt-1 max-w-52 text-xs text-rose-200",
+        )}
         role={hasError ? "alert" : "status"}
         aria-live="polite"
       >

@@ -28,6 +28,12 @@ export function AssistantWorkspace({
     [lead, setLead] = useState<Lead | null>(null),
     [composing, setComposing] = useState(false);
   const questionInput = useRef<HTMLTextAreaElement>(null);
+  const noteComposer = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!composing) return;
+    noteComposer.current?.scrollIntoView({block:"start",behavior:window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth"});
+    noteComposer.current?.querySelector<HTMLInputElement|HTMLTextAreaElement>(lead ? "textarea" : "input")?.focus({preventScroll:true});
+  },[composing,lead]);
   const guard = useRef(false);
   const reviewAfterRefresh = useRef(false);
   const noteRequestId = useRef<string | null>(null);
@@ -204,7 +210,7 @@ export function AssistantWorkspace({
                 </div>
               </form>
               {busy ? <p role="status" className="mt-3 text-sm text-white/60">Working on your request…</p> : null}
-              <div className="ld-assistant-shortcuts" aria-label="Suggested actions">
+              <div className="ld-assistant-shortcuts" aria-label="Suggested actions" style={{gridTemplateColumns:`repeat(${1 + Number(data.canReport) + Number(data.canWrite)}, minmax(0,1fr))`}}>
                 {data.canReport ? <button disabled={busy} onClick={() => void run(async () => {setComposing(false);setLeads([]);setReport((await send({op:"performance"})).data);})}><ChartNoAxesColumnIncreasing /><span>Team performance</span><ArrowUpRight /></button> : null}
                 <button type="button" disabled={busy} onClick={() => {setQuestion("Find ");questionInput.current?.focus();}}><Search /><span>Find a lead</span><ArrowUpRight /></button>
                 {data.canWrite ? <button type="button" disabled={busy} onClick={() => {setComposing(true);setReport(null);}}><PenLine /><span>Add a note</span><ArrowUpRight /></button> : null}
@@ -248,30 +254,16 @@ export function AssistantWorkspace({
                   )}
                 </div>
               ) : null}
-              {leads.length ? (
-                <div className="mt-5 grid gap-2 sm:grid-cols-2">
-                  {leads.map((l) => (
-                    <button
-                      key={l.id}
-                      className="admin-button-secondary min-h-11 px-4 py-2 justify-start text-left"
-                      onClick={() => {
-                        setLead(l);
-                        setComposing(data.canWrite);
-                        noteRequestId.current = null;
-                      }}
-                    >
-                      {l.name}
-                      {l.company ? (
-                        <span className="ml-2 truncate text-xs text-white/60">
-                          {l.company}
-                        </span>
-                      ) : null}
-                    </button>
-                  ))}
+              {leads.length && !composing ? (
+                <div className="mt-6 divide-y divide-white/10">
+                  {leads.map(l=><div key={l.id} className="flex items-center justify-between gap-3 py-3">
+                    <Link className="ld-focus-ring min-w-0 flex-1 rounded-md py-2" href={`/leads/${l.id}`}><span className="block text-sm font-medium">{l.name}</span>{l.company ? <span className="block truncate text-xs text-white/55">{l.company}</span> : null}</Link>
+                    {data.canWrite ? <button className="admin-button-secondary min-h-11 shrink-0 px-3 text-xs" onClick={()=>{setLead(l);setComposing(true);noteRequestId.current=null;}}>Add note</button> : <ArrowUpRight aria-hidden="true" className="size-4 text-white/40" />}
+                  </div>)}
                 </div>
               ) : null}
               {data.canWrite && composing ? (
-                <div className="mt-6 border-t border-white/10 pt-5">
+                <div ref={noteComposer} className="mt-6 scroll-mt-24 border-t border-white/10 pt-5">
                   <h3 className="font-semibold">Add a contact note</h3>
                   <form
                     className="mt-3 flex flex-col gap-2 sm:flex-row"
@@ -306,6 +298,7 @@ export function AssistantWorkspace({
                       Find lead
                     </button>
                   </form>
+                  {leads.length && !lead ? <div className="mt-3 divide-y divide-white/10">{leads.map(l=><button key={l.id} className="ld-focus-ring flex min-h-12 w-full items-center justify-between gap-3 rounded-md py-3 text-left text-sm" onClick={()=>{setLead(l);noteRequestId.current=null;}}><span>{l.name}{l.company ? <span className="ml-2 text-xs text-white/55">{l.company}</span> : null}</span><span className="shrink-0 text-xs text-white/55">Use for note</span></button>)}</div> : null}
                   {lead ? (
                     <p className="mt-3 text-sm">
                       Note for{" "}

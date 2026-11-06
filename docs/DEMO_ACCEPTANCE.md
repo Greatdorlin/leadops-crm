@@ -22,6 +22,7 @@ This records checks on the actual Leads Desk workspace, not an isolated mock das
 - Lead profile updates send only changed custom fields. Existing missing fields from another industry no longer block an unrelated contact edit; clearing an existing required field is still rejected.
 - Saved public-form answers are read back by their configured labels on the authorized lead detail page. Unknown metadata is not exposed.
 - Empty, private or inactive forms do not count as accepting submissions or show a broken public View link.
+- Full-name lead search spans first and last name, tolerates repeated spaces and retains owner filtering.
 - Opportunity metrics use the actual card width rather than forcing five cramped columns on desktop.
 - Closed lead list pipeline values are zero while historical estimated amounts are retained. Closed leads receive accurate lifecycle labels, location falls back to city/country, and the obsolete final-report placeholder is replaced with actionable sales context.
 - The Website integration card opens Forms rather than looping back to the same integration page.
@@ -53,7 +54,7 @@ The production-target build for commit b0b3bd8cb2fab52f00641e6ca45cfb1727e99da0 
 
 ## Local verification for the final follow-up
 
-- 314 tests passed with zero failures or skips.
-- Repository line coverage: 26.99%; business-contract aggregate line coverage: 87.44%. Both configured gates pass. The 80% figure applies to the named business contracts, not the entire repository.
+- 315 tests passed with zero failures or skips.
+- Repository line coverage: 27.01%; business-contract aggregate line coverage: 87.44%. Both configured gates pass. The 80% figure applies to the named business contracts, not the entire repository.
 - Explicit typecheck and lint pass. Dependency audit reports zero vulnerabilities.
 - The profile-save, answer-display, form-readiness and closed-list-value regressions have dedicated checks. The full production build is required before source promotion.

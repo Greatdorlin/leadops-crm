@@ -16,11 +16,12 @@ import { leadStages, leadTasks, leads } from "@/lib/db/schema";
 import type { LeadListFilters, LeadTaskListFilters } from "./types";
 
 export function buildSearchConditions(search: string) {
-  const query = `%${search.trim()}%`;
+  const query = `%${search.trim().replace(/\s+/g, " ")}%`;
 
   return or(
     ilike(leads.firstName, query),
     ilike(leads.lastName, query),
+    sql`concat_ws(' ', ${leads.firstName}, ${leads.lastName}) ilike ${query}`,
     ilike(leads.email, query),
     ilike(leads.whatsappNumber, query),
     ilike(leads.state, query),

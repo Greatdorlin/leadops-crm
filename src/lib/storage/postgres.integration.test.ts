@@ -48,6 +48,15 @@ async function lead(email: string) {
   });
 }
 
+test("full-name search matches across name fields and retains scoped filters", async () => {
+  const item = await store.createExternalLead({ source: "manual_entry",
+    firstName: "Nina", lastName: "Costa", email: "full-name@example.invalid" });
+  for (const search of ["Nina Costa", "  nina   costa  ", "Nina", "Costa", item.email]) {
+    assert.ok((await store.list({ search })).some(row => row.id === item.id));
+  }
+  assert.equal((await store.list({ search: "Nina Costa", assignedTo: "other@example.invalid" })).length, 0);
+});
+
 test("migrations create a working data model and reject invalid money and orphan notes", async () => {
   const item = await lead("constraints@example.invalid");
   await assert.rejects(

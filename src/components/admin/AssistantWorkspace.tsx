@@ -1,5 +1,6 @@
 "use client";
 import Link from "next/link";
+import { ArrowUp, ArrowUpRight, ChartNoAxesColumnIncreasing, Search, PenLine, Settings2, LoaderCircle, ShieldCheck, MessageCircle } from "lucide-react";
 import { AssistantPreferences } from "./AssistantPreferences";
 import { useEffect, useState, useRef } from "react";
 import { AssistantConnectionCard } from "./AssistantConnectionCard";
@@ -26,7 +27,7 @@ export function AssistantWorkspace({
     [note, setNote] = useState(""),
     [lead, setLead] = useState<Lead | null>(null),
     [composing, setComposing] = useState(false);
-  const questionInput = useRef<HTMLInputElement>(null);
+  const questionInput = useRef<HTMLTextAreaElement>(null);
   const guard = useRef(false);
   const reviewAfterRefresh = useRef(false);
   const noteRequestId = useRef<string | null>(null);
@@ -142,7 +143,7 @@ export function AssistantWorkspace({
       </div>
     );
   return (
-    <div className="mx-auto max-w-3xl space-y-6 pb-16">
+    <div className={`mx-auto space-y-6 pb-16 ${settingsOnly ? "max-w-3xl" : "ld-assistant max-w-4xl"}`}>
       {error ? (
         <p
           role="alert"
@@ -157,23 +158,15 @@ export function AssistantWorkspace({
         </p>
       ) : null}
       {!settingsOnly ? (
-        <section className="admin-surface rounded-3xl p-5 sm:p-7">
-          <div className="flex flex-wrap items-start justify-between gap-3">
-            <div>
-              <h2 className="break-words text-2xl font-semibold">
-                {data.name}
-              </h2>
-              <p className="mt-2 max-w-xl text-sm text-white/65">
-                Find a lead, check sales performance or prepare a follow-up
-                note.
-              </p>
-            </div>
-            <Link
-              className="admin-button-secondary min-h-11 px-4 py-2"
-              href="/settings/assistant"
-            >
-              Settings
-            </Link>
+        <section className="ld-assistant-workspace">
+          <div className="ld-assistant-heading">
+            <div className="ld-assistant-identity"><span className="ld-assistant-mark" aria-hidden="true"><MessageCircle className="size-5" /></span><span>{data.name}</span></div>
+            <Link className="ld-focus-ring ld-assistant-settings" href="/settings/assistant" aria-label="Assistant settings"><Settings2 className="size-4" /><span>Settings</span></Link>
+          </div>
+          <div className="ld-assistant-intro">
+            <p className="ld-assistant-eyebrow">YOUR WORKSPACE ASSISTANT</p>
+            <h2>What’s the next move?</h2>
+            <p>Find the right lead. See what’s moving. Keep the next step clear.</p>
           </div>
           {!data.enabled ? (
             <p className="mt-5 rounded-2xl bg-white/5 p-4 text-sm">
@@ -188,58 +181,35 @@ export function AssistantWorkspace({
                   e.preventDefault();
                   void run(ask);
                 }}
-                className="mt-6 flex flex-col gap-3 sm:flex-row"
+                className="ld-assistant-composer"
+                aria-busy={busy}
               >
-                <input
+                <label className="sr-only" htmlFor="assistant-question">Ask {data.name}</label>
+                <textarea
+                  id="assistant-question"
                   ref={questionInput}
                   aria-label={`Ask ${data.name}`}
                   value={question}
-                  onChange={(e) => setQuestion(e.target.value)}
+                  onChange={e => setQuestion(e.target.value)}
+                  onKeyDown={e => {if(e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) {e.preventDefault(); if(!busy && question.trim()) void run(ask);}}}
                   maxLength={2000}
-                  className="admin-input min-h-11 px-3 py-2 min-w-0 flex-1"
-                  placeholder="Who is performing best? Or find Mathew…"
+                  rows={2}
+                  placeholder="Ask about a lead or your team…"
                 />
-                <button
-                  className="admin-button-primary min-h-11 px-4 py-2"
-                  disabled={busy || !question.trim()}
-                >
-                  Ask {data.name}
-                </button>
-              </form>
-              <div className="mt-3 flex flex-wrap gap-2">
-                <button
-                  className="admin-button-secondary min-h-11 px-4 py-2 text-sm"
-                  disabled={busy}
-                  onClick={() =>
-                    void run(async () =>
-                      setReport((await send({ op: "performance" })).data),
-                    )
-                  }
-                >
-                  Who is performing best?
-                </button>
-                <button
-                  type="button"
-                  disabled={busy}
-                  className="admin-button-secondary min-h-11 px-4 py-2 text-sm"
-                  onClick={() => {
-                    setQuestion("Find ");
-                    questionInput.current?.focus();
-                  }}
-                >
-                  Find a lead
-                </button>
-                {data.canWrite ? (
-                  <button
-                    type="button"
-                    disabled={busy}
-                    className="admin-button-secondary min-h-11 px-4 py-2 text-sm"
-                    onClick={() => setComposing(true)}
-                  >
-                    Add a note
+                <div className="ld-assistant-composer-footer">
+                  <span><span className="ld-assistant-status-dot" />Connected to your workspace</span>
+                  <button className="ld-focus-ring ld-assistant-send" disabled={busy || !question.trim()} aria-label={`Ask ${data.name}`}>
+                    {busy ? <LoaderCircle className="size-5 animate-spin" /> : <ArrowUp className="size-5" />}
                   </button>
-                ) : null}
+                </div>
+              </form>
+              {busy ? <p role="status" className="mt-3 text-sm text-white/60">Working on your request…</p> : null}
+              <div className="ld-assistant-shortcuts" aria-label="Suggested actions">
+                {data.canReport ? <button disabled={busy} onClick={() => void run(async () => {setComposing(false);setLeads([]);setReport((await send({op:"performance"})).data);})}><ChartNoAxesColumnIncreasing /><span>Team performance</span><ArrowUpRight /></button> : null}
+                <button type="button" disabled={busy} onClick={() => {setQuestion("Find ");questionInput.current?.focus();}}><Search /><span>Find a lead</span><ArrowUpRight /></button>
+                {data.canWrite ? <button type="button" disabled={busy} onClick={() => {setComposing(true);setReport(null);}}><PenLine /><span>Add a note</span><ArrowUpRight /></button> : null}
               </div>
+              <p className="ld-assistant-assurance"><ShieldCheck className="size-3.5" />Changes wait for your approval.</p>
               {report ? (
                 <div className="mt-5 space-y-3">
                   <h3 className="font-semibold">
@@ -253,7 +223,7 @@ export function AssistantWorkspace({
                     report.staff.map((r, i) => (
                       <div
                         key={r.id}
-                        className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-white/10 p-4"
+                        className="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 py-4"
                       >
                         <p>
                           {i + 1}. {r.label}
@@ -286,7 +256,7 @@ export function AssistantWorkspace({
                       className="admin-button-secondary min-h-11 px-4 py-2 justify-start text-left"
                       onClick={() => {
                         setLead(l);
-                        setComposing(true);
+                        setComposing(data.canWrite);
                         noteRequestId.current = null;
                       }}
                     >

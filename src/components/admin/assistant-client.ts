@@ -16,6 +16,7 @@ export type State = {
   showLauncher: boolean;
   enabled: boolean;
   canWrite: boolean;
+  canReport: boolean;
   owner: boolean;
   currentUserId: string;
   mcpUrl: string;

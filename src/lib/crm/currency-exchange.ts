@@ -1,3 +1,4 @@
+import { fetchLiveExchangeRate, MAX_RATE_AGE_MS } from "./live-exchange-rate";
 import { and, asc, eq, isNotNull, isNull, or, sql } from "drizzle-orm";
 import { z } from "zod";
 import { isSupportedCurrency } from "@/lib/currency";
@@ -150,7 +151,7 @@ export async function changeWorkspaceCurrency(input: {
         isNotNull(leadOpportunities.exchangeRateToGlobal),
       )).limit(1);
       if (valuedLead || valuedOffer) {
-        throw new Error(`Add a ${previousCurrency} to ${nextCurrency} rate to convert existing values, or keep the current currency.`);
+        throw new Error(`We could not load the latest ${previousCurrency} to ${nextCurrency} rate. Try again or add your own rate. Your current currency and values are unchanged.`);
       }
       await tx.update(companySettings).set({ globalCurrency: nextCurrency, updatedAt: new Date() })
         .where(eq(companySettings.id, settings.id));
@@ -217,32 +218,52 @@ export async function changeWorkspaceCurrency(input: {
   });
 }
 
+export interface ExchangeRateQuote {
+  baseCurrency: string;
+  quoteCurrency: string;
+  rate: number;
+  source: "manual" | "automatic";
+  asOf: string;
+  cached: boolean;
+}
+
+export async function getExchangeRateQuote(
+  baseCurrency: string, quoteCurrency: string,
+  db: DatabaseExecutor = getDb(), forceAutomatic = false,
+): Promise<ExchangeRateQuote | null> {
+  const base = supportedCurrencySchema.parse(baseCurrency);
+  const quote = supportedCurrencySchema.parse(quoteCurrency);
+  if (base === quote) return { baseCurrency: base, quoteCurrency: quote, rate: 1, source: "automatic", asOf: new Date().toISOString(), cached: false };
+  const rows = await db.select().from(currencyExchangeRates).where(or(
+    and(eq(currencyExchangeRates.baseCurrency, base), eq(currencyExchangeRates.quoteCurrency, quote)),
+    and(eq(currencyExchangeRates.baseCurrency, quote), eq(currencyExchangeRates.quoteCurrency, base)),
+  ));
+  const saved = rows.find(r => r.baseCurrency === base) ?? rows[0];
+  const savedQuote = saved ? {
+    baseCurrency: base, quoteCurrency: quote,
+    rate: saved.baseCurrency === base ? Number(saved.rate) : 1 / Number(saved.rate),
+    source: saved.source as "manual" | "automatic",
+    asOf: (saved.fetchedAt ?? saved.updatedAt).toISOString(), cached: true,
+  } : null;
+  if (!forceAutomatic && savedQuote?.source === "manual") return savedQuote;
+  const validCache = savedQuote?.source === "automatic" && Date.now() - new Date(savedQuote.asOf).getTime() <= MAX_RATE_AGE_MS;
+  if (!forceAutomatic && validCache && Date.now() - saved!.updatedAt.getTime() < 6 * 60 * 60 * 1000) return savedQuote;
+  try {
+    const live = await fetchLiveExchangeRate(base, quote);
+    const now = new Date();
+    const values = { baseCurrency: base, quoteCurrency: quote, rate: live.rate.toFixed(8), source: "automatic", fetchedAt: live.asOf, updatedBy: null, updatedAt: now };
+    await db.insert(currencyExchangeRates).values(values).onConflictDoUpdate({
+      target: [currencyExchangeRates.baseCurrency, currencyExchangeRates.quoteCurrency],
+      set: values,
+      ...(forceAutomatic ? {} : { setWhere: sql`${currencyExchangeRates.source} != 'manual'` }),
+    });
+    return { baseCurrency: base, quoteCurrency: quote, rate: live.rate, source: "automatic", asOf: live.asOf.toISOString(), cached: false };
+  } catch {
+    if (!forceAutomatic && validCache) return savedQuote;
+    return null;
+  }
+}
+
 export async function resolveExchangeRate(baseCurrency: string, quoteCurrency: string, db: DatabaseExecutor = getDb()) {
-  const base = baseCurrency.trim().toUpperCase();
-  const quote = quoteCurrency.trim().toUpperCase();
-  if (base === quote) return 1;
-
-  const [direct] = await db
-    .select({ rate: currencyExchangeRates.rate })
-    .from(currencyExchangeRates)
-    .where(
-      and(
-        eq(currencyExchangeRates.baseCurrency, base),
-        eq(currencyExchangeRates.quoteCurrency, quote),
-      ),
-    )
-    .limit(1);
-  if (direct) return Number.parseFloat(direct.rate);
-
-  const [inverse] = await db
-    .select({ rate: currencyExchangeRates.rate })
-    .from(currencyExchangeRates)
-    .where(
-      and(
-        eq(currencyExchangeRates.baseCurrency, quote),
-        eq(currencyExchangeRates.quoteCurrency, base),
-      ),
-    )
-    .limit(1);
-  return inverse ? 1 / Number.parseFloat(inverse.rate) : null;
+  return (await getExchangeRateQuote(baseCurrency, quoteCurrency, db))?.rate ?? null;
 }

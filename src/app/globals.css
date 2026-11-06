@@ -1814,3 +1814,42 @@ select.admin-select {
   padding-block: 0.625rem;
   line-height: 1.5;
 }
+
+/* Assistant: one composed workspace, with a single clear input and quiet actions. */
+.ld-assistant { padding-top: clamp(.5rem, 3vh, 2rem); }
+.ld-assistant-workspace { padding: clamp(.25rem, 2vw, 1.5rem); }
+.ld-assistant-heading { display:flex; align-items:center; justify-content:space-between; gap:1rem; }
+.ld-assistant-identity { display:flex;align-items:center;gap:.65rem;font-size:.95rem;font-weight:600;letter-spacing:-.02em; }
+.ld-assistant-mark { display:grid;place-items:center;width:2.25rem;height:2.25rem;border-radius:.75rem;background:color-mix(in srgb,var(--ld-color-primary) 14%,var(--ld-color-background));border:1px solid color-mix(in srgb,var(--ld-color-primary) 24%,transparent);color:var(--ld-color-text); }
+.ld-assistant-settings { display:flex;align-items:center;gap:.5rem;min-height:44px;padding:.5rem;color:color-mix(in srgb,var(--ld-color-text) 65%,transparent);font-size:.8rem;border-radius:.5rem; }
+.ld-assistant-settings:hover {color:var(--ld-color-text);background:rgb(255 255 255 / .04);}
+.ld-assistant-intro { padding:clamp(2rem,7vh,4.5rem) 0 1.75rem; }
+.ld-assistant-eyebrow {font-size:.65rem!important;letter-spacing:.16em;font-weight:600;color:color-mix(in srgb,var(--ld-color-text) 52%,transparent)!important;}
+.ld-assistant-intro h2 {margin:.85rem 0 .8rem;font-size:clamp(1.85rem,4vw,3rem);font-weight:550;letter-spacing:-.055em;line-height:1.12;}
+.ld-assistant-intro p:last-child {max-width:34rem;font-size:.95rem;line-height:1.65;color:color-mix(in srgb,var(--ld-color-text) 64%,transparent);}
+.ld-assistant-composer {overflow:hidden;border:1px solid color-mix(in srgb,var(--ld-color-text) 17%,transparent);border-radius:1.25rem;background:color-mix(in srgb,var(--ld-color-background) 94%,var(--ld-color-card));box-shadow:0 8px 36px rgb(0 0 0 / .1);transition:border-color .15s;}
+.ld-assistant-composer:focus-within {border-color:color-mix(in srgb,var(--ld-color-primary) 65%,var(--ld-color-text));outline:2px solid color-mix(in srgb,var(--ld-color-primary) 12%,transparent);outline-offset:3px;}
+.ld-assistant-composer textarea {display:block;box-sizing:border-box;width:100%;min-height:6rem;resize:vertical;border:0;outline:0;background:transparent;padding:1.25rem 1.25rem .5rem;font-size:1rem;line-height:1.6;color:var(--ld-color-text);box-shadow:none;}
+.ld-assistant-composer textarea::placeholder {color:color-mix(in srgb,var(--ld-color-text) 42%,transparent);}
+.ld-assistant-composer-footer {display:flex;align-items:center;justify-content:space-between;gap:.75rem;padding:.5rem .85rem .85rem 1.25rem;}
+.ld-assistant-composer-footer>span {display:flex;align-items:center;gap:.4rem;font-size:.68rem;color:color-mix(in srgb,var(--ld-color-text) 48%,transparent);}
+.ld-assistant-status-dot {width:5px;height:5px;border-radius:50%;background:var(--ld-color-success);}
+.ld-assistant-send {display:grid;place-items:center;width:44px;height:44px;flex-shrink:0;border-radius:.8rem;background:var(--ld-color-primary);color:white;transition:opacity .15s,transform .15s;}
+.ld-assistant-send:disabled {opacity:.35;cursor:not-allowed;}
+.ld-assistant-send:not(:disabled):hover {transform:translateY(-1px);}
+.ld-assistant-shortcuts {display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1rem;margin-top:1.25rem;}
+.ld-assistant-shortcuts button {display:flex;align-items:center;gap:.6rem;min-width:0;min-height:48px;text-align:left;font-size:.8rem;color:color-mix(in srgb,var(--ld-color-text) 68%,transparent);border-bottom:1px solid rgb(255 255 255 / .1);padding:.5rem 0 .75rem;}
+.ld-assistant-shortcuts button:hover {color:var(--ld-color-text);border-color:color-mix(in srgb,var(--ld-color-primary) 65%,transparent);}
+.ld-assistant-shortcuts button:focus-visible {outline:2px solid var(--ld-color-primary);outline-offset:4px;}
+.ld-assistant-shortcuts svg {width:16px;height:16px;flex-shrink:0;}
+.ld-assistant-shortcuts svg:last-child {margin-left:auto;width:13px;height:13px;opacity:.45;}
+.ld-assistant-assurance {display:flex;align-items:center;justify-content:center;gap:.4rem;margin-top:1.5rem;font-size:.7rem;color:color-mix(in srgb,var(--ld-color-text) 45%,transparent);}
+@media(max-width:40rem) {
+ .ld-assistant-intro {padding-top:2.25rem;}
+ .ld-assistant-settings span {display:none;}
+ .ld-assistant-shortcuts {gap:.75rem;}
+ .ld-assistant-shortcuts button {align-items:flex-start;flex-direction:column;gap:.5rem;font-size:.73rem;line-height:1.45;}
+ .ld-assistant-shortcuts svg:last-child {display:none;}
+ .ld-assistant-composer textarea {padding:1rem 1rem .5rem;}
+ .ld-assistant-composer-footer {padding-left:1rem;}
+}

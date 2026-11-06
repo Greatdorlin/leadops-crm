@@ -1,3 +1,9 @@
+import { Client } from "@modelcontextprotocol/sdk/client/index.js";
+import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
+import { POST as mcpPost, GET as mcpGet } from "@/app/api/mcp/route";
+import { approveChange } from "./tools";
+import { actorForUser } from "./access";
+import { leadStore } from "@/lib/storage";
 import test, { before, after } from "node:test";
 import assert from "node:assert/strict";
 import { PGlite } from "@electric-sql/pglite";
@@ -106,6 +112,7 @@ for (const method of [
         return authMetadata();
       if (path === "/api/assistant/oauth/register") return register(req);
       if (path === "/api/assistant/oauth/token") return token(req);
+      if (path === "/api/mcp") return req.method === "POST" ? mcpPost(req) : mcpGet(req);
       return new Response(null, { status: 404 });
     };
     const options = {
@@ -132,6 +139,27 @@ for (const method of [
       headers: { Authorization: `Bearer ${tokens!.access_token}` },
     });
     assert.equal((await bearerActor(request)).actor.user.id, u.id);
+    const ownLead = await leadStore.createExternalLead({firstName:"SDK owned",source:"manual_entry",email:`owned-${method}@example.test`,assignedTo:u.email});
+    const outsideLead = await leadStore.createExternalLead({firstName:"SDK outside",source:"manual_entry",email:`outside-${method}@example.test`,assignedTo:"other@example.test"});
+    const mcp = new Client({name:"Leads Desk acceptance client",version:"1.0.0"});
+    await mcp.connect(new StreamableHTTPClientTransport(new URL("https://crm.example.test/api/mcp"),{authProvider:provider,fetch:fetchFn}));
+    const available=await mcp.listTools();
+    assert.ok(available.tools.some(t=>t.name === "search_leads"));
+    assert.ok(!available.tools.some(t=>t.name === "staff_performance"));
+    const found=await mcp.callTool({name:"search_leads",arguments:{query:`owned-${method}@example.test`}});
+    assert.equal(found.isError,false);assert.ok(JSON.stringify(found).includes(ownLead.id));
+    const denied=await mcp.callTool({name:"get_lead",arguments:{leadId:outsideLead.id}});
+    assert.equal(denied.isError,true);assert.ok(!JSON.stringify(denied).includes(outsideLead.email!));
+    const requestId=crypto.randomUUID();
+    const proposed=await mcp.callTool({name:"propose_lead_change",arguments:{requestId,action:{kind:"note",leadId:ownLead.id,note:"SDK verified the follow-up request."}}});
+    assert.equal(proposed.isError,false);
+    assert.equal((await leadStore.listLeadNotes(ownLead.id)).length,0);
+    const proposal=JSON.parse((proposed.content as {type:string;text:string}[])[0].text);
+    await approveChange(await actorForUser(u.id),proposal.id,true);
+    assert.equal((await leadStore.listLeadNotes(ownLead.id)).length,1);
+    const status=await mcp.callTool({name:"get_change_status",arguments:{id:proposal.id}});
+    assert.ok(JSON.stringify(status).includes("applied"));
+    await mcp.close();
     const params = new URLSearchParams({
       token: tokens!.refresh_token!,
       client_id: info!.client_id,
@@ -158,4 +186,5 @@ for (const method of [
       200,
     );
     await assert.rejects(() => bearerActor(request));
+    assert.equal((await mcpPost(new Request("https://crm.example.test/api/mcp",{method:"POST",headers:{Authorization:`Bearer ${tokens!.access_token}`,"Content-Type":"application/json",Accept:"application/json, text/event-stream"},body:JSON.stringify({jsonrpc:"2.0",id:99,method:"tools/list"})}))).status,401);
   });

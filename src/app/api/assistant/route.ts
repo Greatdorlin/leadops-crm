@@ -1,3 +1,4 @@
+import { objections } from "@/lib/assistant/objections";
 import { NextResponse } from "next/server";
 import { and, desc, eq, isNull, sql } from "drizzle-orm";
 import { z } from "zod";
@@ -221,6 +222,7 @@ export async function POST(request: Request) {
           "Ask the owner to grant assistant access.",
           403,
         );
+      if (raw.op === "objections") return NextResponse.json({kind:"objections",data:await objections(actor)});
       if (raw.op === "performance")
         return NextResponse.json({
           kind: "performance",

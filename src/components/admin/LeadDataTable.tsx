@@ -142,7 +142,7 @@ function resolvePreviewFieldValue(
     case "stage":
       return interactiveWorkflow ? (
         <LeadStatusQuickChange
-          key={`${lead.id}-${lead.lastActivityAt}-stage`}
+          key={`${lead.id}-${lead.stageDisplay.id}-stage`}
           leadId={lead.id}
           initialStageId={lead.stageDisplay.id}
           initialStageLabel={lead.stageLabel}
@@ -160,7 +160,7 @@ function resolvePreviewFieldValue(
     case "owner":
       return interactiveWorkflow ? (
         <LeadOwnerQuickAssign
-          key={`${lead.id}-${lead.lastActivityAt}-owner`}
+          key={`${lead.id}-${lead.assignedTo}-owner`}
           leadId={lead.id}
           initialAssignedTo={lead.assignedTo}
           assigneeOptions={assigneeOptions}
@@ -173,7 +173,7 @@ function resolvePreviewFieldValue(
     case "priority":
       return interactiveWorkflow ? (
         <LeadPriorityQuickChange
-          key={`${lead.id}-${lead.lastActivityAt}-priority`}
+          key={`${lead.id}-${lead.priority}-priority`}
           leadId={lead.id}
           initialPriority={lead.priority}
           previewMode={previewMode}
@@ -184,7 +184,7 @@ function resolvePreviewFieldValue(
     case "next_follow_up":
       return interactiveWorkflow ? (
         <LeadFollowUpQuickChange
-          key={`${lead.id}-${lead.lastActivityAt}-follow-up`}
+          key={`${lead.id}-${lead.nextFollowUpAt}-follow-up`}
           leadId={lead.id}
           initialFollowUpAt={lead.nextFollowUpAt ?? null}
           initialLabel={followUpLabel(lead)}
@@ -290,11 +290,11 @@ export function LeadDataTable({
           <article
             key={lead.id}
             className={cn(
-              "px-4 py-5 ld-animate-fade-in-up transition-colors duration-200 hover:bg-white/[0.04]",
+              "px-4 py-5  transition-colors duration-200 hover:bg-white/[0.04]",
               priorityBorderMap[lead.priority],
               index < leads.length - 1 ? "border-b border-white/10" : "",
             )}
-            style={{ animationDelay: `${Math.min(index * 50, 400)}ms` }}
+
           >
             <div className="flex flex-col items-stretch gap-3 sm:flex-row sm:items-start sm:justify-between">
               <div className="flex min-w-0 items-start gap-3">
@@ -317,7 +317,7 @@ export function LeadDataTable({
               <div className="min-w-0 self-start">
                 {interactiveWorkflow ? (
                   <LeadStatusQuickChange
-                    key={`${lead.id}-${lead.lastActivityAt}-mobile-stage`}
+                    key={`${lead.id}-${lead.stageDisplay.id}-mobile-stage`}
                     leadId={lead.id}
                     initialStageId={lead.stageDisplay.id}
                     initialStageLabel={lead.stageLabel}
@@ -339,7 +339,7 @@ export function LeadDataTable({
               <SourceBadge source={lead.source} label={lead.sourceLabel} />
               {interactiveWorkflow ? (
                 <LeadPriorityQuickChange
-                  key={`${lead.id}-${lead.lastActivityAt}-mobile-priority`}
+                  key={`${lead.id}-${lead.priority}-mobile-priority`}
                   leadId={lead.id}
                   initialPriority={lead.priority}
                   previewMode={previewMode}
@@ -380,7 +380,7 @@ export function LeadDataTable({
                   {interactiveWorkflow ? (
                     <div className="mt-1">
                       <LeadOwnerQuickAssign
-                        key={`${lead.id}-${lead.lastActivityAt}-mobile-owner`}
+                        key={`${lead.id}-${lead.assignedTo}-mobile-owner`}
                         leadId={lead.id}
                         initialAssignedTo={lead.assignedTo}
                         assigneeOptions={assigneeOptions}
@@ -401,7 +401,7 @@ export function LeadDataTable({
                   <div className="mt-1 normal-case tracking-normal">
                     {interactiveWorkflow ? (
                       <LeadFollowUpQuickChange
-                        key={`${lead.id}-${lead.lastActivityAt}-mobile-follow-up`}
+                        key={`${lead.id}-${lead.nextFollowUpAt}-mobile-follow-up`}
                         leadId={lead.id}
                         initialFollowUpAt={lead.nextFollowUpAt ?? null}
                         initialLabel={followUpLabel(lead)}
@@ -512,11 +512,11 @@ export function LeadDataTable({
                 <tr
                   key={lead.id}
                   className={cn(
-                    "group align-middle transition-all duration-200 hover:bg-white/[0.06] ld-animate-fade-in-up",
+                    "group align-middle transition-all duration-200 hover:bg-white/[0.06] ",
                     priorityBorderMap[lead.priority],
                     index < leads.length - 1 ? "border-b border-white/10" : "",
                   )}
-                  style={{ animationDelay: `${Math.min(index * 50, 400)}ms` }}
+
                 >
                   <td className="ld-table-sticky-lead sticky left-0 z-20 px-4 py-3.5 transition-colors group-hover:bg-[color:color-mix(in_srgb,var(--ld-color-card-strong)_97%,white_3%)]">
                     <div className="flex min-w-0 items-start gap-3">

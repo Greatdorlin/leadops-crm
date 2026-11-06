@@ -1,6 +1,18 @@
 "use client";
 import Link from "next/link";
-import { ArrowUp, ArrowUpRight, ChartNoAxesColumnIncreasing, Search, PenLine, Settings2, LoaderCircle, ShieldCheck, MessageCircle } from "lucide-react";
+import { questionIntent } from "@/lib/assistant/question-intent";
+import type { objections } from "@/lib/assistant/objections";
+import {
+  ArrowUp,
+  ArrowUpRight,
+  ChartNoAxesColumnIncreasing,
+  Search,
+  PenLine,
+  Settings2,
+  LoaderCircle,
+  ShieldCheck,
+  MessageCircle,
+} from "lucide-react";
 import { AssistantPreferences } from "./AssistantPreferences";
 import { useEffect, useState, useRef } from "react";
 import { AssistantConnectionCard } from "./AssistantConnectionCard";
@@ -24,6 +36,9 @@ export function AssistantWorkspace({
     [question, setQuestion] = useState(""),
     [leads, setLeads] = useState<Lead[]>([]),
     [report, setReport] = useState<Performance | null>(null),
+    [objectionReport, setObjectionReport] = useState<Awaited<
+      ReturnType<typeof objections>
+    > | null>(null),
     [note, setNote] = useState(""),
     [lead, setLead] = useState<Lead | null>(null),
     [composing, setComposing] = useState(false);
@@ -31,9 +46,18 @@ export function AssistantWorkspace({
   const noteComposer = useRef<HTMLDivElement>(null);
   useEffect(() => {
     if (!composing) return;
-    noteComposer.current?.scrollIntoView({block:"start",behavior:window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth"});
-    noteComposer.current?.querySelector<HTMLInputElement|HTMLTextAreaElement>(lead ? "textarea" : "input")?.focus({preventScroll:true});
-  },[composing,lead]);
+    noteComposer.current?.scrollIntoView({
+      block: "start",
+      behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches
+        ? "auto"
+        : "smooth",
+    });
+    noteComposer.current
+      ?.querySelector<
+        HTMLInputElement | HTMLTextAreaElement
+      >(lead ? "textarea" : "input")
+      ?.focus({ preventScroll: true });
+  }, [composing, lead]);
   const guard = useRef(false);
   const reviewAfterRefresh = useRef(false);
   const noteRequestId = useRef<string | null>(null);
@@ -92,16 +116,19 @@ export function AssistantWorkspace({
     setReport(null);
     setLeads([]);
     setLead(null);
-    if (
-      /^(?:(?:who|which|what).*(?:perform|staff|team|best)|(?:staff|team|sales) (?:performance|ranking)|show (?:staff|team) performance)/i.test(
-        question,
-      )
-    ) {
+    setObjectionReport(null);
+    setComposing(false);
+    const intent = questionIntent(question);
+    if (intent === "objections") {
+      setObjectionReport((await send({ op: "objections" })).data);
+      return;
+    }
+    if (intent === "performance") {
       const r = await send({ op: "performance" });
       setReport(r.data);
       return;
     }
-    if (/contacted|called|note|payment/i.test(question)) {
+    if (intent === "note") {
       setComposing(true);
       setNote(
         question.replace(
@@ -120,6 +147,12 @@ export function AssistantWorkspace({
       );
       return;
     }
+    if (intent === "unsupported") {
+      setNotice(
+        "I can rank sales performance, find leads, review common objections from notes, and prepare a note. Try: What objections do customers mention most? For other questions, connect your AI tool below.",
+      );
+      return;
+    }
     const query = question
       .replace(/^(find|search(?: for)?|show)\s+(?:leads?\s+)?/i, "")
       .trim();
@@ -128,7 +161,7 @@ export function AssistantWorkspace({
     setLeads(results);
     setNotice(
       results.length
-        ? "Select a lead to prepare a note."
+        ? "Choose a lead to open its record."
         : "No matching leads found. Try a name or email.",
     );
   }
@@ -136,8 +169,19 @@ export function AssistantWorkspace({
     return (
       <div className="admin-surface rounded-3xl p-6">
         <p role={error ? "alert" : "status"}>
-          {error || "Loading your assistant…"}
+          {error || "Connecting to your workspace"}
         </p>
+        {!error ? (
+          <div aria-hidden="true" className="mt-6 space-y-4">
+            <div className="h-8 w-2/3 rounded-lg bg-white/8" />
+            <div className="h-36 rounded-2xl border border-white/10 bg-white/5" />
+            <div className="grid grid-cols-3 gap-4">
+              {[1, 2, 3].map((n) => (
+                <div key={n} className="h-16 rounded-lg bg-white/5" />
+              ))}
+            </div>
+          </div>
+        ) : null}
         {error ? (
           <button
             className="admin-button-secondary min-h-11 px-4 py-2 mt-3"
@@ -149,7 +193,9 @@ export function AssistantWorkspace({
       </div>
     );
   return (
-    <div className={`mx-auto space-y-6 pb-16 ${settingsOnly ? "max-w-3xl" : "ld-assistant max-w-4xl"}`}>
+    <div
+      className={`mx-auto space-y-6 pb-16 ${settingsOnly ? "max-w-3xl" : "ld-assistant max-w-4xl"}`}
+    >
       {error ? (
         <p
           role="alert"
@@ -166,13 +212,27 @@ export function AssistantWorkspace({
       {!settingsOnly ? (
         <section className="ld-assistant-workspace">
           <div className="ld-assistant-heading">
-            <div className="ld-assistant-identity"><span className="ld-assistant-mark" aria-hidden="true"><MessageCircle className="size-5" /></span><span>{data.name}</span></div>
-            <Link className="ld-focus-ring ld-assistant-settings" href="/settings/assistant" aria-label="Assistant settings"><Settings2 className="size-4" /><span>Settings</span></Link>
+            <div className="ld-assistant-identity">
+              <span className="ld-assistant-mark" aria-hidden="true">
+                <MessageCircle className="size-5" />
+              </span>
+              <span>{data.name}</span>
+            </div>
+            <Link
+              className="ld-focus-ring ld-assistant-settings"
+              href="/settings/assistant"
+              aria-label="Assistant settings"
+            >
+              <Settings2 className="size-4" />
+              <span>Settings</span>
+            </Link>
           </div>
           <div className="ld-assistant-intro">
             <p className="ld-assistant-eyebrow">YOUR WORKSPACE ASSISTANT</p>
             <h2>What’s the next move?</h2>
-            <p>Find the right lead. See what’s moving. Keep the next step clear.</p>
+            <p>
+              Find the right lead. See what’s moving. Keep the next step clear.
+            </p>
           </div>
           {!data.enabled ? (
             <p className="mt-5 rounded-2xl bg-white/5 p-4 text-sm">
@@ -190,32 +250,157 @@ export function AssistantWorkspace({
                 className="ld-assistant-composer"
                 aria-busy={busy}
               >
-                <label className="sr-only" htmlFor="assistant-question">Ask {data.name}</label>
+                <label className="sr-only" htmlFor="assistant-question">
+                  Ask {data.name}
+                </label>
                 <textarea
                   id="assistant-question"
                   ref={questionInput}
                   aria-label={`Ask ${data.name}`}
                   value={question}
-                  onChange={e => setQuestion(e.target.value)}
-                  onKeyDown={e => {if(e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) {e.preventDefault(); if(!busy && question.trim()) void run(ask);}}}
+                  onChange={(e) => setQuestion(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (
+                      e.key === "Enter" &&
+                      !e.shiftKey &&
+                      !e.nativeEvent.isComposing
+                    ) {
+                      e.preventDefault();
+                      if (!busy && question.trim()) void run(ask);
+                    }
+                  }}
                   maxLength={2000}
                   rows={2}
                   placeholder="Ask about a lead or your team…"
                 />
                 <div className="ld-assistant-composer-footer">
-                  <span><span className="ld-assistant-status-dot" />Connected to your workspace</span>
-                  <button className="ld-focus-ring ld-assistant-send" disabled={busy || !question.trim()} aria-label={`Ask ${data.name}`}>
-                    {busy ? <LoaderCircle className="size-5 animate-spin" /> : <ArrowUp className="size-5" />}
+                  <span>
+                    <span className="ld-assistant-status-dot" />
+                    Connected to your workspace
+                  </span>
+                  <button
+                    className="ld-focus-ring ld-assistant-send"
+                    disabled={busy || !question.trim()}
+                    aria-label={`Ask ${data.name}`}
+                  >
+                    {busy ? (
+                      <LoaderCircle className="size-5 animate-spin" />
+                    ) : (
+                      <ArrowUp className="size-5" />
+                    )}
                   </button>
                 </div>
               </form>
-              {busy ? <p role="status" className="mt-3 text-sm text-white/60">Working on your request…</p> : null}
-              <div className="ld-assistant-shortcuts" aria-label="Suggested actions" style={{gridTemplateColumns:`repeat(${1 + Number(data.canReport) + Number(data.canWrite)}, minmax(0,1fr))`}}>
-                {data.canReport ? <button disabled={busy} onClick={() => void run(async () => {setComposing(false);setLeads([]);setReport((await send({op:"performance"})).data);})}><ChartNoAxesColumnIncreasing /><span>Team performance</span><ArrowUpRight /></button> : null}
-                <button type="button" disabled={busy} onClick={() => {setQuestion("Find ");questionInput.current?.focus();}}><Search /><span>Find a lead</span><ArrowUpRight /></button>
-                {data.canWrite ? <button type="button" disabled={busy} onClick={() => {setComposing(true);setReport(null);}}><PenLine /><span>Add a note</span><ArrowUpRight /></button> : null}
+              {busy ? (
+                <p role="status" className="mt-3 text-sm text-white/60">
+                  Working on your request…
+                </p>
+              ) : null}
+              <div
+                className="ld-assistant-shortcuts"
+                aria-label="Suggested actions"
+                style={{
+                  gridTemplateColumns: `repeat(${1 + Number(data.canReport) + Number(data.canWrite)}, minmax(0,1fr))`,
+                }}
+              >
+                {data.canReport ? (
+                  <button
+                    disabled={busy}
+                    onClick={() =>
+                      void run(async () => {
+                        setComposing(false);
+                        setObjectionReport(null);
+                        setLeads([]);
+                        setReport((await send({ op: "performance" })).data);
+                      })
+                    }
+                  >
+                    <ChartNoAxesColumnIncreasing />
+                    <span>Team performance</span>
+                    <ArrowUpRight />
+                  </button>
+                ) : null}
+                <button
+                  type="button"
+                  disabled={busy}
+                  onClick={() => {
+                    setQuestion("Find ");
+                    questionInput.current?.focus();
+                  }}
+                >
+                  <Search />
+                  <span>Find a lead</span>
+                  <ArrowUpRight />
+                </button>
+                {data.canWrite ? (
+                  <button
+                    type="button"
+                    disabled={busy}
+                    onClick={() => {
+                      setComposing(true);
+                      setReport(null);
+                    }}
+                  >
+                    <PenLine />
+                    <span>Add a note</span>
+                    <ArrowUpRight />
+                  </button>
+                ) : null}
               </div>
-              <p className="ld-assistant-assurance"><ShieldCheck className="size-3.5" />Changes wait for your approval.</p>
+              <p className="ld-assistant-assurance">
+                <ShieldCheck className="size-3.5" />
+                Changes wait for your approval.
+              </p>
+              {objectionReport ? (
+                <section
+                  className="mt-6 space-y-4"
+                  aria-label="Sales objections"
+                >
+                  <h3 className="font-semibold">
+                    What customers are pushing back on
+                  </h3>
+                  <p className="text-sm text-white/65">
+                    {objectionReport.scannedNotes} notes reviewed ·{" "}
+                    {objectionReport.scope}. {objectionReport.method}
+                  </p>
+                  {objectionReport.themes.length ? (
+                    objectionReport.themes.map((theme) => (
+                      <div
+                        key={theme.key}
+                        className="border-t border-white/10 pt-4"
+                      >
+                        <h4 className="font-medium">
+                          {theme.label}{" "}
+                          <span className="text-sm text-white/60">
+                            · {theme.leadCount} leads · {theme.noteCount} notes
+                          </span>
+                        </h4>
+                        <ul className="mt-2 space-y-3">
+                          {theme.evidence.map((note) => (
+                            <li key={note.id} className="text-sm">
+                              <p className="whitespace-pre-wrap break-words text-white/75">
+                                “{note.excerpt}”
+                              </p>
+                              <Link
+                                className="inline-flex min-h-11 items-center underline underline-offset-4"
+                                href={`/leads/${note.leadId}`}
+                              >
+                                {note.name} · View notes
+                              </Link>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    ))
+                  ) : (
+                    <p>
+                      No recognizable objection phrases were found in these
+                      notes. This does not mean customers have no objections;
+                      the notes may use different wording.
+                    </p>
+                  )}
+                </section>
+              ) : null}
               {report ? (
                 <div className="mt-5 space-y-3">
                   <h3 className="font-semibold">
@@ -256,14 +441,50 @@ export function AssistantWorkspace({
               ) : null}
               {leads.length && !composing ? (
                 <div className="mt-6 divide-y divide-white/10">
-                  {leads.map(l=><div key={l.id} className="flex items-center justify-between gap-3 py-3">
-                    <Link className="ld-focus-ring min-w-0 flex-1 rounded-md py-2" href={`/leads/${l.id}`}><span className="block text-sm font-medium">{l.name}</span>{l.company ? <span className="block truncate text-xs text-white/55">{l.company}</span> : null}</Link>
-                    {data.canWrite ? <button className="admin-button-secondary min-h-11 shrink-0 px-3 text-xs" onClick={()=>{setLead(l);setComposing(true);noteRequestId.current=null;}}>Add note</button> : <ArrowUpRight aria-hidden="true" className="size-4 text-white/40" />}
-                  </div>)}
+                  {leads.map((l) => (
+                    <div
+                      key={l.id}
+                      className="flex items-center justify-between gap-3 py-3"
+                    >
+                      <Link
+                        className="ld-focus-ring min-w-0 flex-1 rounded-md py-2"
+                        href={`/leads/${l.id}`}
+                      >
+                        <span className="block text-sm font-medium">
+                          {l.name}
+                        </span>
+                        {l.company ? (
+                          <span className="block truncate text-xs text-white/55">
+                            {l.company}
+                          </span>
+                        ) : null}
+                      </Link>
+                      {data.canWrite ? (
+                        <button
+                          className="admin-button-secondary min-h-11 shrink-0 px-3 text-xs"
+                          onClick={() => {
+                            setLead(l);
+                            setComposing(true);
+                            noteRequestId.current = null;
+                          }}
+                        >
+                          Add note
+                        </button>
+                      ) : (
+                        <ArrowUpRight
+                          aria-hidden="true"
+                          className="size-4 text-white/40"
+                        />
+                      )}
+                    </div>
+                  ))}
                 </div>
               ) : null}
               {data.canWrite && composing ? (
-                <div ref={noteComposer} className="mt-6 scroll-mt-24 border-t border-white/10 pt-5">
+                <div
+                  ref={noteComposer}
+                  className="mt-6 scroll-mt-24 border-t border-white/10 pt-5"
+                >
                   <h3 className="font-semibold">Add a contact note</h3>
                   <form
                     className="mt-3 flex flex-col gap-2 sm:flex-row"
@@ -298,7 +519,32 @@ export function AssistantWorkspace({
                       Find lead
                     </button>
                   </form>
-                  {leads.length && !lead ? <div className="mt-3 divide-y divide-white/10">{leads.map(l=><button key={l.id} className="ld-focus-ring flex min-h-12 w-full items-center justify-between gap-3 rounded-md py-3 text-left text-sm" onClick={()=>{setLead(l);noteRequestId.current=null;}}><span>{l.name}{l.company ? <span className="ml-2 text-xs text-white/55">{l.company}</span> : null}</span><span className="shrink-0 text-xs text-white/55">Use for note</span></button>)}</div> : null}
+                  {leads.length && !lead ? (
+                    <div className="mt-3 divide-y divide-white/10">
+                      {leads.map((l) => (
+                        <button
+                          key={l.id}
+                          className="ld-focus-ring flex min-h-12 w-full items-center justify-between gap-3 rounded-md py-3 text-left text-sm"
+                          onClick={() => {
+                            setLead(l);
+                            noteRequestId.current = null;
+                          }}
+                        >
+                          <span>
+                            {l.name}
+                            {l.company ? (
+                              <span className="ml-2 text-xs text-white/55">
+                                {l.company}
+                              </span>
+                            ) : null}
+                          </span>
+                          <span className="shrink-0 text-xs text-white/55">
+                            Use for note
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  ) : null}
                   {lead ? (
                     <p className="mt-3 text-sm">
                       Note for{" "}
@@ -434,7 +680,7 @@ export function AssistantWorkspace({
             onClick={() => void run(refresh)}
             className="min-h-11 underline underline-offset-4"
           >
-            Refresh proposals
+            Check pending changes
           </button>
         </div>
       ) : null}

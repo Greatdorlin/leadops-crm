@@ -1,7 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { useEffect, useEffectEvent, useRef } from "react";
+import { useEffect, useLayoutEffect, useEffectEvent, useRef } from "react";
 import { createPortal } from "react-dom";
 
 type PreservedBodyStyles = {
@@ -57,7 +57,7 @@ function unlockBodyScroll() {
 }
 
 export function usePreservedBodyScrollLock(active: boolean) {
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!active) {
       return;
     }

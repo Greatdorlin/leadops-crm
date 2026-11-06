@@ -365,12 +365,12 @@ test("form creation, publication, duplication and submission retries preserve on
   const submission = await forms.createFormSubmission({
     id,
     formId: built.form.id,
-    data: { email: "submitted@example.invalid" },
+    data: { [built.fields[0].id]: "submitted@example.invalid" },
   });
   const retry = await forms.createFormSubmission({
     id,
     formId: built.form.id,
-    data: { email: "submitted@example.invalid" },
+    data: { [built.fields[0].id]: "submitted@example.invalid" },
   });
   assert.equal(retry.id, submission.id);
   const input = {
@@ -382,6 +382,9 @@ test("form creation, publication, duplication and submission retries preserve on
   const second = await forms.createLeadFromFormSubmission(id, input);
   assert.equal(first?.created, true);
   assert.equal(second?.created, false);
+  const { getLeadCapturedFormAnswers } = await import("@/lib/crm/form-captured-answers");
+  assert.deepEqual(await getLeadCapturedFormAnswers(first!.leadId!), [{label:"Email", value:"submitted@example.invalid"}]);
+  assert.equal((await forms.getFormResourceCounts([built.form.id])).get(built.form.id)?.publicFieldCount, 1);
   assert.equal(first?.leadId, second?.leadId);
   assert.equal(
     (await store.listLeadTasks({ leadId: first!.leadId! })).length,

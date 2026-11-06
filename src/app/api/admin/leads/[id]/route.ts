@@ -89,6 +89,7 @@ export async function PATCH(
   const customFieldValidation = validateCustomFieldValues(
     customFieldDefinitions,
     normalizedProfile.data.customFieldValues,
+    { partial: true },
   );
   if (!customFieldValidation.success) {
     return NextResponse.json(

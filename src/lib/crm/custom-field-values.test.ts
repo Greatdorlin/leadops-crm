@@ -8,6 +8,7 @@ import {
   getTableVisibleCustomFields,
   serializeCustomFieldValue,
   validateCustomFieldValues,
+  getChangedCustomFieldValues,
 } from "@/lib/crm/custom-field-values";
 
 const fieldDefinitions: CustomFieldDefinitionWithOptions[] = [
@@ -190,4 +191,16 @@ test("showInTable fields stay visible for table usage and archived fields stay h
       label: "Budget",
     },
   ]);
+});
+
+
+test("profile patches skip untouched missing required values but reject clearing an existing required value", () => {
+  const partial = validateCustomFieldValues(fieldDefinitions, {}, {partial:true});
+  assert.equal(partial.success, true);
+  assert.deepEqual(partial.values, []);
+  const cleared = validateCustomFieldValues(fieldDefinitions, {"field-budget":""}, {partial:true});
+  assert.equal(cleared.success, false);
+  assert.ok(cleared.fieldErrors["field-budget"]);
+  assert.deepEqual(getChangedCustomFieldValues(fieldDefinitions, {"field-budget":null}, {"field-budget":""}), {});
+  assert.deepEqual(getChangedCustomFieldValues(fieldDefinitions, {"field-budget":500}, {"field-budget":""}), {"field-budget":""});
 });

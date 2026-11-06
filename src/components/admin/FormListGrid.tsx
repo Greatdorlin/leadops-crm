@@ -1,5 +1,6 @@
 "use client";
 
+import { canOpenPublicForm } from "@/lib/crm/public-form";
 import { useState } from "react";
 import Link from "next/link";
 import {
@@ -28,6 +29,7 @@ import { WorkspaceImpactConfirmation } from "@/components/admin/WorkspaceImpactC
 
 interface FormWithCounts extends FormRow {
   fieldCount: number;
+  publicFieldCount?: number;
   submissionCount: number;
 }
 
@@ -184,9 +186,9 @@ function FormCard({
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
             <h3 className="truncate text-base font-semibold tracking-[-0.02em] text-white">{form.name}</h3>
-            <FormStatusBadge status={form.status} />
+            <FormStatusBadge status={form.status === "archived" ? "archived" : canOpenPublicForm(form, form.publicFieldCount ?? form.fieldCount) ? "active" : "draft"} />
           </div>
-          <p className="mt-1 text-xs font-mono text-white/40">{form.slug}</p>
+          <p className="mt-1 break-all text-xs font-mono text-white/40">{form.slug}</p>
         </div>
         <div className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-[14px] border border-white/10 bg-white/[0.06] text-white/70">
           <FileText className="h-4 w-4" />
@@ -229,7 +231,7 @@ function FormCard({
             Edit
           </Link>
         )}
-        {form.isPublic && form.status === "active" && !demoMode ? (
+        {canOpenPublicForm(form, form.publicFieldCount ?? form.fieldCount) && !demoMode ? (
           <Link
             href={`/forms/${form.slug}`}
             target="_blank"
@@ -326,15 +328,15 @@ export function FormListGrid({
   }
 
   function handleDuplicate(source: FormWithCounts, duplicate: FormRow) {
-    setForms((current) => [{ ...duplicate, fieldCount: source.fieldCount, submissionCount: 0 }, ...current]);
+    setForms((current) => [{ ...duplicate, fieldCount: source.fieldCount, publicFieldCount: source.publicFieldCount, submissionCount: 0 }, ...current]);
   }
 
   function handleDelete(id: string) {
     setForms((current) => current.filter((form) => form.id !== id));
   }
 
-  const activeForms = forms.filter((f) => f.status === "active");
-  const draftForms = forms.filter((f) => f.status === "draft");
+  const activeForms = forms.filter((f) => canOpenPublicForm(f, f.publicFieldCount ?? f.fieldCount));
+  const draftForms = forms.filter((f) => f.status !== "archived" && !canOpenPublicForm(f, f.publicFieldCount ?? f.fieldCount));
   const archivedForms = forms.filter((f) => f.status === "archived");
 
   return (

@@ -1,5 +1,7 @@
 "use client";
 
+import { getChangedCustomFieldValues } from "@/lib/crm/custom-field-values";
+
 import { IconInput } from "./IconInput";
 import { startTransition, useState, type ComponentType } from "react";
 import { useRouter } from "next/navigation";
@@ -186,7 +188,7 @@ export function LeadProfileForm({
           utmContent: utmContent.trim() || null,
           utmTerm: utmTerm.trim() || null,
           landingPage: landingPage.trim() || null,
-          customFieldValues,
+          customFieldValues: getChangedCustomFieldValues(customFieldDefinitions, Object.fromEntries(customFieldInputModel.map(field => [field.fieldId, field.value])), customFieldValues),
         }),
       });
       const payload = (await response.json().catch(() => null)) as { error?: string } | null;

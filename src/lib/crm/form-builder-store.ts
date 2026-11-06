@@ -1,4 +1,4 @@
-import { hasPublicFormFields } from "@/lib/crm/public-form";
+import { PUBLIC_FORM_FIELD_TYPES, hasPublicFormFields } from "@/lib/crm/public-form";
 import { isFormUuid } from "@/lib/crm/form-routing-identifiers";
 import { and, asc, desc, eq, gt, inArray, lt, or, sql } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
@@ -248,6 +248,7 @@ export async function duplicateForm(
 }
 
 export interface FormResourceCounts {
+  publicFieldCount: number;
   fieldCount: number;
   ruleCount: number;
   submissionCount: number;
@@ -257,7 +258,7 @@ export async function getFormResourceCounts(formIds: string[]) {
   const counts = new Map<string, FormResourceCounts>(
     formIds.map((formId) => [
       formId,
-      { fieldCount: 0, ruleCount: 0, submissionCount: 0 },
+      { publicFieldCount: 0, fieldCount: 0, ruleCount: 0, submissionCount: 0 },
     ]),
   );
   if (formIds.length === 0) {
@@ -267,7 +268,7 @@ export async function getFormResourceCounts(formIds: string[]) {
   const db = getDb();
   const [fieldRows, ruleRows, submissionRows] = await Promise.all([
     db
-      .select({ formId: formFields.formId, count: sql<number>`count(*)` })
+      .select({ formId: formFields.formId, count: sql<number>`count(*)`, publicCount: sql<number>`count(*) filter (where ${formFields.isVisible} = true and ${inArray(formFields.fieldType, [...PUBLIC_FORM_FIELD_TYPES])})` })
       .from(formFields)
       .where(inArray(formFields.formId, formIds))
       .groupBy(formFields.formId),
@@ -285,7 +286,7 @@ export async function getFormResourceCounts(formIds: string[]) {
 
   for (const row of fieldRows) {
     const current = counts.get(row.formId);
-    if (current) current.fieldCount = Number(row.count);
+    if (current) { current.fieldCount = Number(row.count); current.publicFieldCount = Number(row.publicCount); }
   }
   for (const row of ruleRows) {
     const current = counts.get(row.formId);

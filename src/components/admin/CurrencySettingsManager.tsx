@@ -30,7 +30,9 @@ export function CurrencySettingsManager({
   const [rateBaseCurrency, setRateBaseCurrency] = useState(
     initialGlobalCurrency,
   );
-  const [rateQuoteCurrency, setRateQuoteCurrency] = useState("USD");
+  const [rateQuoteCurrency, setRateQuoteCurrency] = useState(
+    initialGlobalCurrency === "USD" ? "EUR" : "USD",
+  );
   const [manualRate, setManualRate] = useState("");
   const [rates, setRates] = useState(initialExchangeRates);
 
@@ -69,7 +71,7 @@ export function CurrencySettingsManager({
 
       setSavedCurrency(currency);
       setRateBaseCurrency(currency);
-      setRateQuoteCurrency(savedCurrency);
+      if (currency !== savedCurrency) setRateQuoteCurrency(savedCurrency);
       setChangeRate("");
       window.dispatchEvent(new Event("workspace:settings-saved"));
       const channel =

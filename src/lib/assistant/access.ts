@@ -8,7 +8,7 @@ import {
   userPermissionOverrides,
 } from "@/lib/db/schema";
 import { leadStore } from "@/lib/storage";
-import { isMasterAdminEmail } from "@/lib/admin-access";
+import { resolveLeadsDeskRole } from "@/lib/crm/roles";
 import { getAdminRequestContext } from "@/lib/admin";
 import {
   resolveAdminAccessLevel,
@@ -40,7 +40,12 @@ export async function actorForUser(
     .select()
     .from(assistantMembers)
     .where(eq(assistantMembers.userId, userId));
-  const owner = isMasterAdminEmail(user.email);
+  // Use the same stored role resolution as the rest of the CRM. The legacy
+  // database role `admin` is the product Owner; manager is not an Owner.
+  const owner = resolveLeadsDeskRole({
+    accessLevel: resolveAdminAccessLevel({ email: user.email, role: user.role }),
+    role: user.role,
+  }) === "owner";
   const roleRows = await db
     .select()
     .from(rolePermissions)

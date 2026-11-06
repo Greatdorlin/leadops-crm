@@ -165,7 +165,7 @@ export function AdminShell({
             userAvatarUrl={userAvatarUrl}
           />
           <div className="mx-auto w-full min-w-0 max-w-[100rem]">
-            <div className="sticky top-0 z-40 mb-2 flex min-w-0 items-center gap-1 rounded-xl border border-white/10 bg-[color:var(--ld-color-background)] p-1.5 lg:hidden">
+            <div className="ld-mobile-toolbar sticky top-0 z-40 mb-2 flex min-w-0 items-center gap-1 rounded-xl border border-white/10 bg-[color:var(--ld-color-background)] p-1.5 lg:hidden">
               <SmoothButton
                 variant="ghost"
                 size="sm"

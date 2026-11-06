@@ -64,7 +64,7 @@ after(async () => {
 });
 async function user(
   email: string,
-  role: "sales_agent" | "admin" = "sales_agent",
+  role: "sales_agent" | "admin" | "manager" = "sales_agent",
 ) {
   return (
     await db
@@ -102,6 +102,25 @@ test("assistant access is opt-in and independent of CRM permissions and stored s
   assert.equal((await searchLeads(actor, "Outside")).length, 0);
   await assert.rejects(() => accessibleLead(actor, outside.id, true));
   await assert.rejects(() => performance(actor));
+});
+test("stored CRM owners can use and administer Yapper without an environment email match", async () => {
+  const owner = await user("stored-owner@example.test", "admin");
+  assert.notEqual(owner.email, process.env.INITIAL_ADMIN_EMAIL);
+  const actor = await actorForUser(owner.id);
+  assert.equal(actor.owner, true);
+  assert.equal(actor.enabled, true);
+  assert.equal(actor.canWrite, true);
+  const lead = await leadStore.createExternalLead({ firstName: "Owner demo", source: "manual_entry", email: "owner-demo@example.test" });
+  assert.equal((await accessibleLead(actor, lead.id, true)).id, lead.id);
+  const change = await proposeChange(actor, { requestId: crypto.randomUUID(), action: { kind: "note", leadId: lead.id, note: "Owner reviewed this inquiry." } });
+  await approveChange(actor, change.id, true);
+  assert.equal((await leadStore.listLeadNotes(lead.id)).length, 1);
+  const manager = await user("manager-needs-grant@example.test", "manager");
+  const managerActor = await actorForUser(manager.id);
+  assert.equal(managerActor.owner, false);
+  assert.equal(managerActor.enabled, false);
+  await db.update(schema.crmUsers).set({ isActive: false }).where(eq(schema.crmUsers.id, owner.id));
+  await assert.rejects(() => actorForUser(owner.id));
 });
 test("reviewed notes are atomic, idempotent and never mark promised payments as received", async () => {
   const rep = await user("notes@example.test");

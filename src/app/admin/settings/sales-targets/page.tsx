@@ -5,7 +5,6 @@ import { AdminSignOutButton } from "@/components/admin/AdminSignOutButton";
 import { ErrorState } from "@/components/admin/ErrorState";
 import { MetricCard } from "@/components/admin/MetricCard";
 import { SalesTargetManager } from "@/components/admin/SalesTargetManager";
-import { SectionHeader } from "@/components/admin/SectionHeader";
 import { getAdminAccessContext } from "@/lib/admin";
 import { isLocalAdminPreviewEmail } from "@/lib/admin-access";
 import { appRoutes } from "@/lib/app-routes";
@@ -112,21 +111,12 @@ export default async function AdminSalesTargetsPage() {
             />
           </section>
 
-          <section className="admin-surface rounded-[24px] p-5">
-            <SectionHeader
-              eyebrow="Sales targets"
-              title="Target control"
-              description="Set the goal behind live pipeline reporting."
-            />
-            <div className="mt-5">
               <SalesTargetManager
                 initialTargets={targets}
                 referenceData={referenceData}
                 defaultCurrency={defaultCurrency}
                 demoMode={isLocalAdminPreviewEmail(session.user?.email)}
               />
-            </div>
-          </section>
         </div>
       ) : (
         <ErrorState

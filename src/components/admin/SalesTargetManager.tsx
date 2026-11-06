@@ -113,15 +113,6 @@ function getScopeOptions(
   }
 }
 
-function formatTargetValue(value: string, currency: string) {
-  const amount = Number(value || 0);
-  if (!Number.isFinite(amount) || amount <= 0) {
-    return `${currency} 0`;
-  }
-
-  return `${currency} ${amount.toLocaleString()}`;
-}
-
 function TargetEditor({
   panelId,
   title,
@@ -196,29 +187,6 @@ function TargetEditor({
             Reset
           </button>
           {extraAction}
-        </div>
-      </div>
-
-      <div className="grid gap-3 md:grid-cols-3">
-        <div className="rounded-[20px] border border-white/10 bg-white/[0.04] px-4 py-3">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/55">
-            Target value
-          </p>
-          <p className="mt-2 text-lg font-semibold text-white">
-            {formatTargetValue(draft.targetValue, draft.currency || defaultCurrency)}
-          </p>
-        </div>
-        <div className="rounded-[20px] border border-white/10 bg-white/[0.04] px-4 py-3">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/55">
-            Scope
-          </p>
-          <p className="mt-2 text-lg font-semibold text-white">{crmLabelize(draft.scope)}</p>
-        </div>
-        <div className="rounded-[20px] border border-white/10 bg-white/[0.04] px-4 py-3">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/55">
-            Period
-          </p>
-          <p className="mt-2 text-lg font-semibold text-white">{crmLabelize(draft.period)}</p>
         </div>
       </div>
 

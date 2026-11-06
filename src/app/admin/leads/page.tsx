@@ -1,3 +1,4 @@
+import { isUnqualifiedStage } from "@/lib/crm/qualification-stage";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { ArrowLeft, ArrowRight, Building2, Rows3, UserRound } from "lucide-react";
@@ -731,7 +732,7 @@ export default async function AdminLeadsPage({
           {canBulkEdit ? (
             <LeadBulkActions
               assigneeOptions={assigneeOptions.map(({ label, value }) => ({ label, value }))}
-              stageOptions={stages.filter((stage) => !stage.archived).map((stage) => ({ label: stage.name, value: stage.id }))}
+              stageOptions={stages.filter((stage) => !stage.archived && !isUnqualifiedStage(stage.key,stage.name)).map((stage) => ({ label: stage.name, value: stage.id }))}
               allowAssignment={canReassignOwner}
               previewMode={usingDevelopmentDemoData}
             />

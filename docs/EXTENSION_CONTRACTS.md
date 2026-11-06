@@ -29,7 +29,7 @@ Current boundary:
 
 ## AI Extensions
 
-`src/lib/ai/index.ts` is a server-only adapter contract and capability registry. It does not implement an AI feature or depend on an AI provider.
+`src/lib/ai/index.ts` is a server-only adapter contract and capability registry. It does not run a model or depend on an AI provider. The separate assistant/MCP implementation in `src/lib/assistant` connects a user’s own AI client to permission-checked CRM tools; its bounded dashboard shortcuts do not invoke an LLM.
 
 Current status:
 

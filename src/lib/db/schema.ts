@@ -11,3 +11,5 @@ export * from './schema/activity';
 export * from './schema/integrations';
 export * from './schema/forms';
 export * from './schema/imports';
+
+export * from "./schema/assistant";

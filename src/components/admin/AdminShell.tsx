@@ -1,4 +1,5 @@
 "use client";
+import { AssistantLauncher } from "./AssistantLauncher";
 
 import type { CSSProperties, PropsWithChildren, ReactNode } from "react";
 import { useEffect, useState, useSyncExternalStore } from "react";
@@ -207,9 +208,10 @@ export function AdminShell({
               actions={actions}
               searchSlot={searchSlot}
             />
-            <main id="workspace-content" tabIndex={-1} className="min-w-0 max-w-full [overflow-wrap:anywhere] px-0 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-4 sm:pb-6 sm:pt-5">
+            <main id="workspace-content" tabIndex={-1} className="min-w-0 max-w-full [overflow-wrap:anywhere] px-0 pb-[max(6rem,env(safe-area-inset-bottom))] pt-4 sm:pb-24 sm:pt-5">
               <AdminSectionNavigation />
               {children}
+              <AssistantLauncher />
             </main>
           </div>
         </div>

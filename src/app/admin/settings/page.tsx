@@ -201,6 +201,8 @@ export default async function AdminSettingsPage() {
       eyebrow: "Pipeline",
       title: "Lead operations",
       items: [
+        { label: "Assistant", href: "/settings/assistant", enabled: true, copy: "Personal AI connections and assistant access.", icon: WandSparkles },
+        { label: "Products and offers", href: "/settings/products", enabled: canOpenAutomations, copy: "Reusable products and potential values.", icon: CircleDollarSign },
         { label: "Lead fields", href: appRoutes.settingsFields, enabled: canOpenCustomFields, copy: "Business-specific lead data.", icon: ListChecks },
         { label: "Lead stages", href: appRoutes.settingsStages, enabled: canOpenLeadStages, copy: "Pipeline stages and outcome states.", icon: Rows3 },
         { label: "Lead sources", href: appRoutes.settingsSources, enabled: canOpenLeadSources, copy: "Source labels for filtering and reports.", icon: RadioTower },

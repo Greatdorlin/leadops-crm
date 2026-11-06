@@ -1,12 +1,14 @@
 "use client";
 
+import { isUnqualifiedStage } from "@/lib/crm/qualification-stage";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useState,useRef } from "react";
 import { CelebrationPanel } from "@/components/admin/CelebrationPanel";
 import { useAdminWorkspaceSettings } from "@/components/admin/AdminWorkspaceSettingsProvider";
 import { buildLeadStageCelebration, type CelebrationMoment } from "@/lib/crm/celebrations";
 import { crmLabelize } from "@/lib/crm/formatters";
 import type { LeadPriority } from "@/lib/crm/types";
+import { LeadQualificationDialog } from "./LeadQualificationDialog";
 import { AdminSelect } from "./AdminSelect";
 import { InfoTip } from "./ui/InfoTip";
 import { SmoothButton } from "./ui/SmoothButton";
@@ -74,6 +76,8 @@ export function LeadStatusForm({
   }>;
 }) {
   const router = useRouter();
+  const qualificationAnchor=useRef<HTMLButtonElement>(null);
+  const [qualificationOpen,setQualificationOpen]=useState(false);
   const workspaceSettings = useAdminWorkspaceSettings();
   const [stage, setStage] = useState<string>(initialStage);
   const [priority, setPriority] = useState<LeadPriority>(initialPriority);
@@ -197,7 +201,11 @@ export function LeadStatusForm({
           <span className="text-xs font-semibold uppercase tracking-[0.16em] text-white/70">Stage</span>
           <AdminSelect
             value={stage}
-            onChange={(event) => setStage(event.target.value)}
+            onChange={(event) => {
+              const option=stageOptions.find(o=>o.value===event.target.value);
+              if(isUnqualifiedStage(option?.key??"",option?.label)){setQualificationOpen(true);return;}
+              setStage(event.target.value);
+            }}
             className="h-12"
           >
             {stageOptions.map((status) => (
@@ -301,6 +309,8 @@ export function LeadStatusForm({
           </SmoothButton>
         </div>
       </div>
+      <button ref={qualificationAnchor} type="button" className="admin-button-secondary mt-3" onClick={()=>setQualificationOpen(true)}>Product qualification</button>
+      {qualificationOpen ? <LeadQualificationDialog leadId={leadId} anchorRef={qualificationAnchor} open onClose={()=>setQualificationOpen(false)} /> : null}
       {message ? <p className="mt-3 text-sm text-white/70">{message}</p> : null}
     </div>
   );

@@ -1,6 +1,7 @@
 "use client";
 
 import { startTransition, useMemo, useState } from "react";
+import { ProductPresetPicker } from "./ProductPresetPicker";
 import { useRouter } from "next/navigation";
 import { ChevronDown, ChevronUp, Plus, RotateCcw, Trash2 } from "lucide-react";
 import { crmLabelize } from "@/lib/crm/formatters";
@@ -559,6 +560,18 @@ export function LeadOpportunityManager({
         })}
       </div>
 
+      <ProductPresetPicker onSelect={(product) => {
+        if (opportunities.some(o => o.offerLabel.toLowerCase() === product.name.toLowerCase())) {
+          setMessage("This product is already on this lead."); return;
+        }
+        setOpportunities(current => {
+          const existing = current.filter(o => o.id || o.offerLabel.trim());
+          return [...existing, {...createDraft(undefined, product.currency), offerLabel: product.name,
+            estimatedValue: product.value ?? "", closeProbability: String(product.probability),
+            isPrimary: existing.length === 0}];
+        });
+        setMessage("Preset added. Save offer tracking to apply it to this lead.");
+      }} />
       <div className="flex flex-col gap-3 border-t border-white/10 pt-4 sm:flex-row sm:items-center sm:justify-between">
         <button
           type="button"

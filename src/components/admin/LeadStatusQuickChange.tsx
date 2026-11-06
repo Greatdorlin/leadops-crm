@@ -31,6 +31,7 @@ export function LeadStatusQuickChange({
       initialColor={initialStageColor}
       options={stageOptions.map((stage) => ({
         value: stage.id,
+        key: stage.key,
         label: stage.label,
         color: stage.color,
       }))}

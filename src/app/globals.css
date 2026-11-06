@@ -1741,3 +1741,58 @@ select {
   backdrop-filter: blur(2px);
   -webkit-backdrop-filter: blur(2px);
 }
+
+/* Workspace hierarchy: one surface per section; nested content uses space and
+   dividers instead of more glass. Scoped away from portalled dialogs/menus. */
+.admin-shell #workspace-content :is(.admin-surface, .admin-surface-soft, .admin-surface-muted, .ld-glass-card, .ld-surface-elevated) {
+  border-color: color-mix(in srgb, var(--ld-color-text) 10%, transparent);
+  border-radius: min(var(--radius-ui), 20px);
+  background: color-mix(in srgb, var(--ld-color-background) 94%, var(--ld-color-text) 6%);
+  box-shadow: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  transform: none;
+}
+
+.admin-shell #workspace-content :is(.admin-surface, .admin-surface-soft, .admin-surface-muted, .ld-glass-card, .ld-surface-elevated)
+  :is(.admin-surface, .admin-surface-soft, .admin-surface-muted, .ld-glass-card, .ld-surface-elevated) {
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  padding-inline: 0;
+}
+
+/* Animation wrappers must not add a second shell around a complete card. */
+.admin-shell #workspace-content :is(.ld-glass-card, .ld-surface-elevated):has(> .ld-glass-card) {
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  padding: 0;
+}
+
+.admin-shell #workspace-content :is(.admin-input, .admin-select) {
+  box-shadow: none;
+  border-radius: 12px;
+}
+
+.admin-shell .ld-mobile-toolbar {
+  border: 0;
+  border-bottom: 1px solid color-mix(in srgb, var(--ld-color-text) 10%, transparent);
+  border-radius: 0;
+  background: var(--ld-color-background);
+  box-shadow: none;
+}
+
+@media (max-width: 639px) {
+  .admin-shell #workspace-content :is(.admin-surface, .admin-surface-soft, .admin-surface-muted, .ld-glass-card, .ld-surface-elevated) {
+    border-radius: 16px;
+    padding-inline: 1rem;
+  }
+  .admin-shell #workspace-content :is(.admin-surface, .admin-surface-soft, .admin-surface-muted, .ld-glass-card, .ld-surface-elevated)
+    :is(.admin-surface, .admin-surface-soft, .admin-surface-muted, .ld-glass-card, .ld-surface-elevated),
+  .admin-shell #workspace-content :is(.ld-glass-card, .ld-surface-elevated):has(> .ld-glass-card) {
+    border-radius: 0;
+    padding-inline: 0;
+  }
+}

@@ -10,7 +10,7 @@ Open **Talk to Yapper** from any workspace page, or `/assistant`. Personal namin
 
 ## Grant access
 
-Assistant access is separate from normal CRM access. It is off for every member until the workspace owner grants it. The configured initial workspace owner retains owner access; other admin roles do not silently receive an assistant grant.
+Assistant access is separate from normal CRM access. It is off for every member until the workspace owner grants it. Owners are resolved through the same stored CRM role policy as the rest of the product, including the legacy database `admin` role displayed as Owner. Owner access does not depend solely on an environment bootstrap email. Managers, team leads, sales reps, finance and affiliates still require an explicit grant. Inactive accounts and preview sessions remain denied.
 
 The owner uses **Settings → Assistant → Who can use the assistant?** to choose:
 

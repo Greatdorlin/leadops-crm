@@ -2,6 +2,7 @@ import type { LucideIcon } from "lucide-react";
 import {
   BarChart3,
   Bell,
+  Inbox,
   BriefcaseBusiness,
   FormInput,
   LayoutDashboard,
@@ -43,6 +44,7 @@ const adminNavigation: AdminNavigationItem[] = [
     icon: BriefcaseBusiness,
     description: "Lead queue, ownership, and follow-up context.",
   },
+  { key: "inbox", label: "Inbox", href: appRoutes.inbox, icon: Inbox, description: "Private team conversations and customer email follow-ups." },
   {
     key: "forms",
     label: "Forms",
@@ -140,6 +142,7 @@ export function getAdminNavigation(
       ? new Set<string>([
         "dashboard",
         "notifications",
+        "inbox",
         ...(configuredPermissions.has("canViewLeads") ? ["leads", "tasks"] : []),
         ...(configuredPermissions.has("canManageForms") ? ["forms"] : []),
         ...(configuredPermissions.has("canManageUsers") || configuredPermissions.has("canViewReports") ? ["team"] : []),

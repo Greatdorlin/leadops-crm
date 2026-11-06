@@ -43,6 +43,7 @@ export function AssistantWorkspace({
     [lead, setLead] = useState<Lead | null>(null),
     [composing, setComposing] = useState(false);
   const questionInput = useRef<HTMLTextAreaElement>(null);
+  const answerRef = useRef<HTMLDivElement>(null);
   const noteComposer = useRef<HTMLDivElement>(null);
   useEffect(() => {
     if (!composing) return;
@@ -58,6 +59,11 @@ export function AssistantWorkspace({
       >(lead ? "textarea" : "input")
       ?.focus({ preventScroll: true });
   }, [composing, lead]);
+  useEffect(() => {
+    if (!report && !objectionReport) return;
+    answerRef.current?.scrollIntoView({ block: "start", behavior: "instant" });
+    answerRef.current?.focus({ preventScroll: true });
+  }, [report, objectionReport]);
   const guard = useRef(false);
   const reviewAfterRefresh = useRef(false);
   const noteRequestId = useRef<string | null>(null);
@@ -351,94 +357,101 @@ export function AssistantWorkspace({
                 <ShieldCheck className="size-3.5" />
                 Changes wait for your approval.
               </p>
-              {objectionReport ? (
-                <section
-                  className="mt-6 space-y-4"
-                  aria-label="Sales objections"
-                >
-                  <h3 className="font-semibold">
-                    What customers are pushing back on
-                  </h3>
-                  <p className="text-sm text-white/65">
-                    {objectionReport.scannedNotes} notes reviewed ·{" "}
-                    {objectionReport.scope}. {objectionReport.method}
-                  </p>
-                  {objectionReport.themes.length ? (
-                    objectionReport.themes.map((theme) => (
-                      <div
-                        key={theme.key}
-                        className="border-t border-white/10 pt-4"
-                      >
-                        <h4 className="font-medium">
-                          {theme.label}{" "}
-                          <span className="text-sm text-white/60">
-                            · {theme.leadCount} leads · {theme.noteCount} notes
-                          </span>
-                        </h4>
-                        <ul className="mt-2 space-y-3">
-                          {theme.evidence.map((note) => (
-                            <li key={note.id} className="text-sm">
-                              <p className="whitespace-pre-wrap break-words text-white/75">
-                                “{note.excerpt}”
-                              </p>
-                              <Link
-                                className="inline-flex min-h-11 items-center underline underline-offset-4"
-                                href={`/leads/${note.leadId}`}
-                              >
-                                {note.name} · View notes
-                              </Link>
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    ))
-                  ) : (
-                    <p>
-                      No recognizable objection phrases were found in these
-                      notes. This does not mean customers have no objections;
-                      the notes may use different wording.
+              <div
+                ref={answerRef}
+                tabIndex={-1}
+                className="scroll-mt-24 outline-none"
+              >
+                {objectionReport ? (
+                  <section
+                    className="mt-6 space-y-4"
+                    aria-label="Sales objections"
+                  >
+                    <h3 className="font-semibold">
+                      What customers are pushing back on
+                    </h3>
+                    <p className="text-sm text-white/65">
+                      {objectionReport.scannedNotes} notes reviewed ·{" "}
+                      {objectionReport.scope}. {objectionReport.method}
                     </p>
-                  )}
-                </section>
-              ) : null}
-              {report ? (
-                <div className="mt-5 space-y-3">
-                  <h3 className="font-semibold">
-                    Staff performance · won revenue
-                  </h3>
-                  <p className="text-xs text-white/60">
-                    All time · {report.scope}. This ranks sales outcomes, not
-                    individual potential.
-                  </p>
-                  {report.staff.length ? (
-                    report.staff.map((r, i) => (
-                      <div
-                        key={r.id}
-                        className="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 py-4"
-                      >
-                        <p>
-                          {i + 1}. {r.label}
-                        </p>
-                        <div className="text-right">
-                          <p className="font-semibold">
-                            {formatCurrencyValue(
-                              r.wonValue,
-                              settings.globalCurrency,
-                            )}
-                          </p>
-                          <p className="text-xs text-white/60">
-                            {r.wonLeads} won · {r.assignedLeads} assigned
-                          </p>
+                    {objectionReport.themes.length ? (
+                      objectionReport.themes.map((theme) => (
+                        <div
+                          key={theme.key}
+                          className="border-t border-white/10 pt-4"
+                        >
+                          <h4 className="font-medium">
+                            {theme.label}{" "}
+                            <span className="text-sm text-white/60">
+                              · {theme.leadCount} leads · {theme.noteCount}{" "}
+                              notes
+                            </span>
+                          </h4>
+                          <ul className="mt-2 space-y-3">
+                            {theme.evidence.map((note) => (
+                              <li key={note.id} className="text-sm">
+                                <p className="whitespace-pre-wrap break-words text-white/75">
+                                  “{note.excerpt}”
+                                </p>
+                                <Link
+                                  className="inline-flex min-h-11 items-center underline underline-offset-4"
+                                  href={`/leads/${note.leadId}`}
+                                >
+                                  {note.name} · View notes
+                                </Link>
+                              </li>
+                            ))}
+                          </ul>
                         </div>
-                      </div>
-                    ))
-                  ) : (
-                    <p className="text-sm text-white/60">
-                      No assigned sales outcomes in your reporting scope yet.
+                      ))
+                    ) : (
+                      <p>
+                        No recognizable objection phrases were found in these
+                        notes. This does not mean customers have no objections;
+                        the notes may use different wording.
+                      </p>
+                    )}
+                  </section>
+                ) : null}
+                {report ? (
+                  <div className="mt-5 space-y-3">
+                    <h3 className="font-semibold">
+                      Staff performance · won revenue
+                    </h3>
+                    <p className="text-xs text-white/60">
+                      All time · {report.scope}. This ranks sales outcomes, not
+                      individual potential.
                     </p>
-                  )}
-                </div>
-              ) : null}
+                    {report.staff.length ? (
+                      report.staff.map((r, i) => (
+                        <div
+                          key={r.id}
+                          className="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 py-4"
+                        >
+                          <p>
+                            {i + 1}. {r.label}
+                          </p>
+                          <div className="text-right">
+                            <p className="font-semibold">
+                              {formatCurrencyValue(
+                                r.wonValue,
+                                settings.globalCurrency,
+                              )}
+                            </p>
+                            <p className="text-xs text-white/60">
+                              {r.wonLeads} won · {r.assignedLeads} assigned
+                            </p>
+                          </div>
+                        </div>
+                      ))
+                    ) : (
+                      <p className="text-sm text-white/60">
+                        No assigned sales outcomes in your reporting scope yet.
+                      </p>
+                    )}
+                  </div>
+                ) : null}
+              </div>
               {leads.length && !composing ? (
                 <div className="mt-6 divide-y divide-white/10">
                   {leads.map((l) => (

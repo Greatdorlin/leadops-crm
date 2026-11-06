@@ -79,6 +79,7 @@ export const NAVIGATION_ITEM_KEYS = [
   "team",
   "reports",
   "notifications",
+  "inbox",
   "integrations",
   "settings",
 ] as const;

@@ -61,3 +61,5 @@ The runtime is provider-neutral: it requires PostgreSQL through `DATABASE_URL` a
 Docker buyers can choose bundled Postgres with `docker-compose.yml` or an external managed database with `docker-compose.external.yml`.
 
 See [buyer readiness evidence](./docs/BUYER_READINESS.md) for verification scope, operational requirements, and remaining limits.
+
+Inbox, mailbox security, scheduling and the role guide: [operating guide](docs/INBOX_AND_WORKSPACE_GUIDE.md).

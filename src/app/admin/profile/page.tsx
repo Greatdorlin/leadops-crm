@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { AdminShell } from "@/components/admin/AdminShell";
 import { AdminSignOutButton } from "@/components/admin/AdminSignOutButton";
 import { ErrorState } from "@/components/admin/ErrorState";
@@ -39,7 +40,7 @@ export default async function AdminProfilePage() {
       userEmail={profile?.email || session.user?.email}
       userAvatarUrl={profile?.avatarUrl}
     >
-      <div className="mx-auto max-w-4xl space-y-5">
+      <div className="mx-auto max-w-4xl space-y-5"><Link href="/settings/guide" className="admin-button-secondary inline-flex min-h-11 items-center px-4">Workspace guide</Link>
         {profile ? (
           <AnimatedCard animation="fadeInUp" variant="elevated" className="ld-animate-fade-in-up">
             <GlassCard glassStyle="vibrant" className="p-5 sm:p-6">

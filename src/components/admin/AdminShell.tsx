@@ -141,11 +141,11 @@ export function AdminShell({
       data-glass-style={glassStyle}
     >
       <div className="ld-bg-overlay" aria-hidden="true" />
-      <div className="relative z-10 min-h-[100dvh] px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-[max(0.75rem,env(safe-area-inset-top))] sm:p-4">
+      <div className="relative z-10 min-h-[100svh] px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-[max(0.75rem,env(safe-area-inset-top))] sm:p-4">
         <a href="#workspace-content" className="sr-only focus:not-sr-only focus:absolute focus:z-50 focus:rounded-lg focus:bg-zinc-900 focus:p-3">Skip to content</a>
         <div
           className={[
-            "grid grid-cols-[minmax(0,1fr)] min-h-[calc(100vh-1.5rem)] gap-4 lg:gap-6",
+            "grid grid-cols-[minmax(0,1fr)] min-h-[calc(100svh-1.5rem)] gap-4 lg:gap-6",
             isSidebarCollapsed
               ? "lg:grid-cols-[76px_minmax(0,1fr)]"
               : "lg:grid-cols-[min(220px,var(--ld-sidebar-width))_minmax(0,1fr)] xl:grid-cols-[var(--ld-sidebar-width)_minmax(0,1fr)]",

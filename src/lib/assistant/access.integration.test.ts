@@ -1,3 +1,4 @@
+import { objections } from "./objections";
 import test, { before, after } from "node:test";
 import assert from "node:assert/strict";
 import { PGlite } from "@electric-sql/pglite";
@@ -551,4 +552,19 @@ test("turning Yapper off blocks owners and members, revokes connections and keep
   const sql = readFileSync("drizzle/0029_faithful_sheva_callister.sql", "utf8");
   await client.exec(sql);
   await client.exec(sql);
+});
+
+test("objection analysis reads only active accessible leads and MCP uses the same scope", async () => {
+ const rep=await user("objection-rep@example.test"); await grant(rep.id);
+ const own=await leadStore.createExternalLead({firstName:"Own objection",source:"manual_entry",assignedTo:rep.email,email:"own-objection@example.test"});
+ const outside=await leadStore.createExternalLead({firstName:"Hidden objection",source:"manual_entry",assignedTo:"outside@example.test",email:"hidden-objection@example.test"});
+ await db.insert(schema.leadNotes).values([{leadId:own.id,note:"Too expensive for this customer",createdBy:rep.email},{leadId:outside.id,note:"No budget; confidential outside note",createdBy:rep.email}]);
+ const actor=await actorForUser(rep.id);
+ const result=await objections(actor);
+ assert.equal(result.scannedNotes,1);assert.equal(result.themes[0].leadCount,1);assert.equal(result.themes[0].evidence[0].leadId,own.id);
+ assert.ok(!JSON.stringify(result).includes("confidential"));
+ assert.deepEqual(await callTool(actor,"sales_objections",{},"test-client",false),result);
+ await db.update(schema.leads).set({deletedAt:new Date()}).where(eq(schema.leads.id,own.id));
+ assert.equal((await objections(actor)).scannedNotes,0);
+ await assert.rejects(()=>objections({...actor,enabled:false}));
 });

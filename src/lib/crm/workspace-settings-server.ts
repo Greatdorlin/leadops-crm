@@ -1,9 +1,16 @@
+import { cache } from "react";
 import { STARTER_INDUSTRY_STAGES } from "./industry-starter-stages";
 import "server-only";
 
 import { asc, eq, sql } from "drizzle-orm";
-import { createCustomField, listCustomFields } from "@/lib/crm/custom-fields-admin";
-import { createLeadSource, listLeadSources } from "@/lib/crm/lead-sources-admin";
+import {
+  createCustomField,
+  listCustomFields,
+} from "@/lib/crm/custom-fields-admin";
+import {
+  createLeadSource,
+  listLeadSources,
+} from "@/lib/crm/lead-sources-admin";
 import { createLeadStage, listLeadStages } from "@/lib/crm/lead-stages-admin";
 import {
   buildVerticalPresetSettingsPatch,
@@ -17,7 +24,12 @@ import {
   type WorkspaceAppearanceSettings,
 } from "@/lib/crm/workspace-settings";
 import { getDb } from "@/lib/db/client";
-import { branches, companySettings, leadOpportunities, leads } from "@/lib/db/schema";
+import {
+  branches,
+  companySettings,
+  leadOpportunities,
+  leads,
+} from "@/lib/db/schema";
 
 export async function getBranchCurrency(branchId?: string | null) {
   if (!branchId) {
@@ -37,14 +49,14 @@ export async function getBranchCurrency(branchId?: string | null) {
   }
 }
 
-export async function getCompanySettings() {
+export const getCompanySettings = cache(async function getCompanySettings() {
   try {
     const row = await ensureCompanySettingsRow();
     return resolveStoredWorkspaceSettings(row);
   } catch {
     return resolveStoredWorkspaceSettings(null);
   }
-}
+});
 
 async function ensureCompanySettingsRow() {
   const db = getDb();
@@ -84,34 +96,68 @@ export async function updateCompanySettings(
   await db
     .update(companySettings)
     .set({
-      ...(patch.companyName !== undefined ? { companyName: patch.companyName } : {}),
+      ...(patch.companyName !== undefined
+        ? { companyName: patch.companyName }
+        : {}),
       ...(patch.logoUrl !== undefined ? { logoUrl: patch.logoUrl } : {}),
-      ...(patch.logoUrlLightMode !== undefined ? { logoUrlLightMode: patch.logoUrlLightMode } : {}),
-      ...(patch.logoUrlDarkMode !== undefined ? { logoUrlDarkMode: patch.logoUrlDarkMode } : {}),
-      ...(patch.faviconUrl !== undefined ? { faviconUrl: patch.faviconUrl } : {}),
-      ...(patch.loginLogoUrl !== undefined ? { loginLogoUrl: patch.loginLogoUrl } : {}),
+      ...(patch.logoUrlLightMode !== undefined
+        ? { logoUrlLightMode: patch.logoUrlLightMode }
+        : {}),
+      ...(patch.logoUrlDarkMode !== undefined
+        ? { logoUrlDarkMode: patch.logoUrlDarkMode }
+        : {}),
+      ...(patch.faviconUrl !== undefined
+        ? { faviconUrl: patch.faviconUrl }
+        : {}),
+      ...(patch.loginLogoUrl !== undefined
+        ? { loginLogoUrl: patch.loginLogoUrl }
+        : {}),
       ...(patch.loginLogoUrlLightMode !== undefined
         ? { loginLogoUrlLightMode: patch.loginLogoUrlLightMode }
         : {}),
       ...(patch.loginLogoUrlDarkMode !== undefined
         ? { loginLogoUrlDarkMode: patch.loginLogoUrlDarkMode }
         : {}),
-      ...(patch.primaryColor !== undefined ? { primaryColor: patch.primaryColor } : {}),
-      ...(patch.accentColor !== undefined ? { accentColor: patch.accentColor } : {}),
-      ...(patch.backgroundColor !== undefined ? { backgroundColor: patch.backgroundColor } : {}),
-      ...(patch.surfaceColor !== undefined ? { surfaceColor: patch.surfaceColor } : {}),
+      ...(patch.primaryColor !== undefined
+        ? { primaryColor: patch.primaryColor }
+        : {}),
+      ...(patch.accentColor !== undefined
+        ? { accentColor: patch.accentColor }
+        : {}),
+      ...(patch.backgroundColor !== undefined
+        ? { backgroundColor: patch.backgroundColor }
+        : {}),
+      ...(patch.surfaceColor !== undefined
+        ? { surfaceColor: patch.surfaceColor }
+        : {}),
       ...(patch.cardColor !== undefined ? { cardColor: patch.cardColor } : {}),
-      ...(patch.sidebarColor !== undefined ? { sidebarColor: patch.sidebarColor } : {}),
+      ...(patch.sidebarColor !== undefined
+        ? { sidebarColor: patch.sidebarColor }
+        : {}),
       ...(patch.textColor !== undefined ? { textColor: patch.textColor } : {}),
-      ...(patch.borderColor !== undefined ? { borderColor: patch.borderColor } : {}),
-      ...(patch.borderRadius !== undefined ? { borderRadius: patch.borderRadius } : {}),
-      ...(patch.fontScale !== undefined ? { fontScale: patch.fontScale.toFixed(2) } : {}),
-      ...(patch.fontPreset !== undefined ? { fontPreset: patch.fontPreset } : {}),
+      ...(patch.borderColor !== undefined
+        ? { borderColor: patch.borderColor }
+        : {}),
+      ...(patch.borderRadius !== undefined
+        ? { borderRadius: patch.borderRadius }
+        : {}),
+      ...(patch.fontScale !== undefined
+        ? { fontScale: patch.fontScale.toFixed(2) }
+        : {}),
+      ...(patch.fontPreset !== undefined
+        ? { fontPreset: patch.fontPreset }
+        : {}),
       ...(patch.density !== undefined ? { density: patch.density } : {}),
       ...(patch.themeMode !== undefined ? { themeMode: patch.themeMode } : {}),
-      ...(patch.designStyle !== undefined ? { designStyle: patch.designStyle } : {}),
-      ...(patch.glassEnabled !== undefined ? { glassEnabled: patch.glassEnabled } : {}),
-      ...(patch.glassOpacity !== undefined ? { glassOpacity: patch.glassOpacity } : {}),
+      ...(patch.designStyle !== undefined
+        ? { designStyle: patch.designStyle }
+        : {}),
+      ...(patch.glassEnabled !== undefined
+        ? { glassEnabled: patch.glassEnabled }
+        : {}),
+      ...(patch.glassOpacity !== undefined
+        ? { glassOpacity: patch.glassOpacity }
+        : {}),
       ...(patch.glassBlur !== undefined ? { glassBlur: patch.glassBlur } : {}),
       ...(patch.celebrationsEnabled !== undefined
         ? { celebrationsEnabled: patch.celebrationsEnabled }
@@ -128,18 +174,39 @@ export async function updateCompanySettings(
       ...(patch.loginBackgroundUrl !== undefined
         ? { loginBackgroundUrl: patch.loginBackgroundUrl }
         : {}),
-      ...(patch.loginHeadline !== undefined ? { loginHeadline: patch.loginHeadline } : {}),
-      ...(patch.loginSubheadline !== undefined ? { loginSubheadline: patch.loginSubheadline } : {}),
+      ...(patch.loginHeadline !== undefined
+        ? { loginHeadline: patch.loginHeadline }
+        : {}),
+      ...(patch.loginSubheadline !== undefined
+        ? { loginSubheadline: patch.loginSubheadline }
+        : {}),
       ...(patch.navigationConfig !== undefined
-        ? { navigationConfig: patch.navigationConfig as unknown as Record<string, unknown> }
+        ? {
+            navigationConfig: patch.navigationConfig as unknown as Record<
+              string,
+              unknown
+            >,
+          }
         : {}),
       ...(patch.dashboardConfig !== undefined
-        ? { dashboardConfig: patch.dashboardConfig as unknown as Record<string, unknown> }
+        ? {
+            dashboardConfig: patch.dashboardConfig as unknown as Record<
+              string,
+              unknown
+            >,
+          }
         : {}),
       ...(patch.leadPreviewConfig !== undefined
-        ? { leadPreviewConfig: patch.leadPreviewConfig as unknown as Record<string, unknown> }
+        ? {
+            leadPreviewConfig: patch.leadPreviewConfig as unknown as Record<
+              string,
+              unknown
+            >,
+          }
         : {}),
-      ...(patch.industryPreset !== undefined ? { industryPreset: patch.industryPreset } : {}),
+      ...(patch.industryPreset !== undefined
+        ? { industryPreset: patch.industryPreset }
+        : {}),
       ...(patch.onboardingCompletedAt !== undefined
         ? { onboardingCompletedAt: patch.onboardingCompletedAt }
         : {}),
@@ -155,9 +222,15 @@ export async function updateCompanySettings(
         ? { globalCurrency: patch.globalCurrency.toUpperCase() }
         : {}),
       ...(patch.timeZone !== undefined ? { timeZone: patch.timeZone } : {}),
-      ...(patch.defaultCountry !== undefined ? { defaultCountry: patch.defaultCountry } : {}),
-      ...(patch.defaultRegion !== undefined ? { defaultRegion: patch.defaultRegion } : {}),
-      ...(patch.defaultCity !== undefined ? { defaultCity: patch.defaultCity } : {}),
+      ...(patch.defaultCountry !== undefined
+        ? { defaultCountry: patch.defaultCountry }
+        : {}),
+      ...(patch.defaultRegion !== undefined
+        ? { defaultRegion: patch.defaultRegion }
+        : {}),
+      ...(patch.defaultCity !== undefined
+        ? { defaultCity: patch.defaultCity }
+        : {}),
       ...(patch.locale !== undefined ? { locale: patch.locale } : {}),
       updatedAt: new Date(),
     })
@@ -178,14 +251,21 @@ export async function applyVerticalPreset(
   }
 
   const preset = getVerticalPreset(key);
-  const [existingStages, existingSources, existingCustomFields] = await Promise.all([
-    listLeadStages({ includeArchived: true }),
-    listLeadSources(),
-    listCustomFields(),
-  ]);
+  const [existingStages, existingSources, existingCustomFields] =
+    await Promise.all([
+      listLeadStages({ includeArchived: true }),
+      listLeadSources(),
+      listCustomFields(),
+    ]);
 
   for (const [index, starter] of STARTER_INDUSTRY_STAGES.entries()) {
-    if (existingStages.some((stage) => stage.key === starter.value || stage.name.toLowerCase() === starter.label.toLowerCase())) {
+    if (
+      existingStages.some(
+        (stage) =>
+          stage.key === starter.value ||
+          stage.name.toLowerCase() === starter.label.toLowerCase(),
+      )
+    ) {
       continue;
     }
 
@@ -200,7 +280,11 @@ export async function applyVerticalPreset(
   }
 
   for (const sourceName of preset.sourceNames) {
-    if (existingSources.some((source) => source.name.toLowerCase() === sourceName.toLowerCase())) {
+    if (
+      existingSources.some(
+        (source) => source.name.toLowerCase() === sourceName.toLowerCase(),
+      )
+    ) {
       continue;
     }
 
@@ -210,7 +294,9 @@ export async function applyVerticalPreset(
   for (const field of preset.recommendedCustomFields) {
     if (
       existingCustomFields.some(
-        (current) => current.key === field.key || current.label.toLowerCase() === field.label.toLowerCase(),
+        (current) =>
+          current.key === field.key ||
+          current.label.toLowerCase() === field.label.toLowerCase(),
       )
     ) {
       continue;
@@ -222,7 +308,12 @@ export async function applyVerticalPreset(
       type: field.type as never,
       showInForm: true,
       showInDetails: true,
-      showInTable: ["budget", "interest", "property_type", "service_type"].includes(field.key),
+      showInTable: [
+        "budget",
+        "interest",
+        "property_type",
+        "service_type",
+      ].includes(field.key),
     });
   }
 
@@ -269,11 +360,12 @@ export async function completeWorkspaceOnboarding(input: {
     hiddenWidgets.delete("team_performance");
   }
 
-  const scopeFields = input.profile.salesMotion === "multi_branch"
-    ? (["branch", "owner"] as const)
-    : input.profile.salesMotion === "team"
-      ? (["team", "owner"] as const)
-      : (["owner"] as const);
+  const scopeFields =
+    input.profile.salesMotion === "multi_branch"
+      ? (["branch", "owner"] as const)
+      : input.profile.salesMotion === "team"
+        ? (["team", "owner"] as const)
+        : (["owner"] as const);
 
   return updateCompanySettings({
     dashboardConfig: {
@@ -298,7 +390,9 @@ export async function completeWorkspaceOnboarding(input: {
     },
     onboardingCompletedAt: new Date(),
     onboardingProfile: input.profile,
-    ...(canInitializeCurrency ? { globalCurrency: input.profile.currency } : {}),
+    ...(canInitializeCurrency
+      ? { globalCurrency: input.profile.currency }
+      : {}),
     timeZone: input.profile.timeZone,
     locale: input.profile.locale,
     defaultCountry: input.profile.country,

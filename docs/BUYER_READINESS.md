@@ -98,7 +98,7 @@ The code snapshot at GitHub commit `532af6010ae537118e5ca5f936cdb4769b48386d` wa
 | Migration drift probe | Untracked SQL file rejected, then removed |
 | Schema journal | No uncommitted generation changes after migration 0027 |
 | Preview deployment | Code snapshot built to READY; login and denied API boundaries checked |
-| Production | Existing release retained; health endpoint returned 200 |
+| Production | Buyer-hardening plus demo fixes promoted on 6 November; see DEMO_ACCEPTANCE.md for live evidence |
 
 Migration 0027 corrects two historical default mismatches: forms.is_active was false in historical SQL but true in the typed schema; crm_users.is_active was false in the typed schema but true in historical SQL. Both now agree on false. This changes defaults only; existing records and explicit activation choices are preserved. A regression test compares every literal boolean default with the freshly migrated database.
 
@@ -110,6 +110,6 @@ GitHub Actions run 41976298643 could not start its jobs. Its annotation states: 
 
 The preview health endpoint returns 503 because auth/owner bootstrap variables target production only. Login renders and the anonymous forms API returns 401. No production credentials were copied into preview. Existing provider-managed database variables target multiple environments, so authenticated staging writes must wait for a separately isolated test database. The preview is build/access-boundary evidence, not a fully provisioned staging acceptance result.
 
-This candidate is available in pull request #1 and has not been merged into master or promoted over the live deployment. Migration 0027 has not been applied to the live client database by this work. After resolving CI and staging acceptance, rehearse the migration on a restored database, apply it through the normal release process, promote the exact tested commit, and verify health/login/core workflows before issuing a release tag or requesting a new independent score.
+The buyer hardening code and schema-free demo fixes were promoted to the live application on 6 November after local verification and production-target build/health checks. DEMO_ACCEPTANCE.md records observed owner-session workflows and remaining presentation boundaries. This is demo acceptance, not completed client-production certification. Migration 0027 has not been applied to the live client database by this work. Rehearse that default-only migration on a restored database before applying it through the normal release process. Resolve hosted CI, PostgreSQL service smoke and staging isolation before issuing a commercial readiness release tag or requesting a new independent score.
 
 See DATA_LINEAGE.md for source-to-record transformations, identity/retry behavior, reporting boundaries and operator ownership. Remaining evidence gaps include broad UI/route coverage, provider-account acceptance tests, client backup restoration, native Cloudflare Workers compatibility, branch-rule enforcement and commercial/IP review. These gaps must remain visible in a buyer handover.

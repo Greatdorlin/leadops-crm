@@ -353,6 +353,12 @@ export function buildAdminLeadListItem(
     : buildAssignedUserName(lead);
   const leadCustomerType = lead.leadCustomerType === "business" ? "business" : "direct";
 
+  const closed = Boolean(
+    lead.archivedAt || lead.wonAt || lead.lostAt ||
+    ["converted", "lost", "closed"].includes(lead.crmStatus) ||
+    ["won", "lost"].includes(readModel.stage.key ?? ""),
+  );
+
   return {
     id: lead.id,
     displayName: buildLeadDisplayName(lead),
@@ -394,7 +400,7 @@ export function buildAdminLeadListItem(
     }),
     companyName: lead.companyName ?? null,
     estimatedValue: lead.estimatedValue ?? null,
-    expectedValue: lead.expectedValue ?? null,
+    expectedValue: closed ? 0 : lead.expectedValue ?? null,
     wonValue: lead.wonValue ?? null,
     closeProbability: lead.closeProbability ?? null,
     expectedCloseDate: lead.expectedCloseDate ?? null,

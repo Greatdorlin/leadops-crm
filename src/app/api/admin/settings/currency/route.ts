@@ -1,3 +1,4 @@
+import { revalidatePath } from "next/cache";
 import { NextResponse } from "next/server";
 import { getAdminRequestContext } from "@/lib/admin";
 import { canManageCurrencySettings } from "@/lib/crm/authz";
@@ -51,6 +52,7 @@ export async function PATCH(request: Request) {
       exchangeRate: parsed.data.exchangeRate,
       actorEmail: context.session.user?.email ?? null,
     });
+    revalidatePath("/", "layout");
     return NextResponse.json({ settings: { globalCurrency: result.globalCurrency }, result });
   } catch (error) {
     return NextResponse.json(

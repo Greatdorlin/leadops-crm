@@ -6,7 +6,7 @@ export default async function Page() {
   const c = await getAdminAccessContext("/assistant");
   return (
     <AdminShell
-      activeNav="dashboard"
+      activeNav="assistant"
       title="Assistant"
       accessLevel={c.accessLevel}
       permissions={c.permissions}

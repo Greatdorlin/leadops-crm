@@ -17,17 +17,18 @@ export function ProductCatalogManager({ initial }: { initial: ProductRow[] }) {
   const [name, setName] = useState(""),
     [description, setDescription] = useState(""),
     [value, setValue] = useState(""),
-    [currency, setCurrency] = useState(settings.globalCurrency),
+    [selectedCurrency, setCurrency] = useState<string | null>(null),
     [probability, setProbability] = useState("50"),
     [error, setError] = useState(""),
     [busy, setBusy] = useState(false);
+  const currency = selectedCurrency ?? settings.globalCurrency;
   const guard = useRef(false);
   function edit(p: ProductRow | null) {
     setEditing(p);
     setName(p?.name ?? "");
     setDescription(p?.description ?? "");
     setValue(p?.value ?? "");
-    setCurrency(p?.currency ?? settings.globalCurrency);
+    setCurrency(p?.currency ?? null);
     setProbability(String(p?.probability ?? 50));
   }
   async function save(payload: unknown) {

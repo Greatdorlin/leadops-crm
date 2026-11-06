@@ -20,12 +20,16 @@ export function CurrencySettingsManager({
 }) {
   const router = useRouter();
   const [currency, setCurrency] = useState<string>(
-    isSupportedCurrency(initialGlobalCurrency) ? initialGlobalCurrency : "USD"
+    isSupportedCurrency(initialGlobalCurrency) ? initialGlobalCurrency : "USD",
   );
+  const [changeRate, setChangeRate] = useState("");
+  const [hasError, setHasError] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState("");
   const [savedCurrency, setSavedCurrency] = useState(initialGlobalCurrency);
-  const [rateBaseCurrency, setRateBaseCurrency] = useState(initialGlobalCurrency);
+  const [rateBaseCurrency, setRateBaseCurrency] = useState(
+    initialGlobalCurrency,
+  );
   const [rateQuoteCurrency, setRateQuoteCurrency] = useState("USD");
   const [manualRate, setManualRate] = useState("");
   const [rates, setRates] = useState(initialExchangeRates);
@@ -33,6 +37,7 @@ export function CurrencySettingsManager({
   async function saveSettings() {
     setIsSaving(true);
     setMessage("");
+    setHasError(false);
 
     if (demoMode) {
       setMessage("Currency updated for this preview.");
@@ -46,23 +51,43 @@ export function CurrencySettingsManager({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           globalCurrency: currency,
+          ...(changeRate.trim() ? { exchangeRate: Number(changeRate) } : {}),
         }),
       });
-      const payload = (await response.json().catch(() => null)) as { error?: string; result?: { previousCurrency: string; converted: boolean } } | null;
+      const payload = (await response.json().catch(() => null)) as {
+        error?: string;
+        result?: { previousCurrency: string; converted: boolean };
+      } | null;
       if (!response.ok) {
-        setMessage(payload?.error ?? "We couldn't save currency settings right now.");
+        setHasError(true);
+        setMessage(
+          payload?.error ?? "We couldn't save currency settings right now.",
+        );
         setIsSaving(false);
         return;
       }
 
       setSavedCurrency(currency);
-      setMessage(payload?.result?.converted
-        ? `Values converted from ${payload.result.previousCurrency} to ${currency}.`
-        : `Workspace currency saved as ${currency}.`);
+      setRateBaseCurrency(currency);
+      setRateQuoteCurrency(savedCurrency);
+      setChangeRate("");
+      window.dispatchEvent(new Event("workspace:settings-saved"));
+      const channel =
+        typeof BroadcastChannel !== "undefined"
+          ? new BroadcastChannel("leads-desk-settings")
+          : null;
+      channel?.postMessage("changed");
+      channel?.close();
+      setMessage(
+        payload?.result?.converted
+          ? `Values converted from ${payload.result.previousCurrency} to ${currency}.`
+          : `Workspace currency saved as ${currency}.`,
+      );
 
       setIsSaving(false);
       startTransition(() => router.refresh());
     } catch {
+      setHasError(true);
       setMessage("We couldn't save currency settings right now.");
       setIsSaving(false);
     }
@@ -71,6 +96,7 @@ export function CurrencySettingsManager({
   async function saveManualRate() {
     setIsSaving(true);
     setMessage("");
+    setHasError(false);
     if (demoMode) {
       setMessage("Exchange rate saved for this preview.");
       setIsSaving(false);
@@ -92,6 +118,7 @@ export function CurrencySettingsManager({
         exchangeRate?: CurrencyExchangeRateRecord;
       } | null;
       if (!response.ok || !payload?.exchangeRate) {
+        setHasError(true);
         setMessage(payload?.error ?? "We couldn't save this exchange rate.");
       } else {
         setRates((current) => [
@@ -106,6 +133,7 @@ export function CurrencySettingsManager({
         setMessage("Manual exchange rate saved.");
       }
     } catch {
+      setHasError(true);
       setMessage("We couldn't save this exchange rate.");
     } finally {
       setIsSaving(false);
@@ -119,7 +147,12 @@ export function CurrencySettingsManager({
         title="Default workspace currency"
         description="Choose the currency used for sales targets, lead values, and reporting across your workspace."
         actions={
-          <SmoothButton variant="primary" size="md" loading={isSaving} onClick={() => void saveSettings()}>
+          <SmoothButton
+            variant="primary"
+            size="md"
+            loading={isSaving}
+            onClick={() => void saveSettings()}
+          >
             {isSaving ? "Saving..." : "Save currency"}
           </SmoothButton>
         }
@@ -127,14 +160,19 @@ export function CurrencySettingsManager({
 
       {message ? (
         <p
-          className={`text-sm font-medium ${message.includes("couldn't") ? "text-rose-200" : "text-emerald-200"}`}
+          role={hasError ? "alert" : "status"}
+          className={`text-sm font-medium ${hasError ? "text-rose-200" : "text-emerald-200"}`}
         >
           {message}
         </p>
       ) : null}
 
       <div className="grid gap-4 sm:grid-cols-[minmax(0,420px)_auto] sm:items-end">
-        <CurrencySelect value={currency} onChange={setCurrency} label="Workspace currency" />
+        <CurrencySelect
+          value={currency}
+          onChange={setCurrency}
+          label="Workspace currency"
+        />
         <div className="pb-2">
           <InfoTip
             label="This currency formats lead values, pipeline reports, and new targets. An individual target may still use a different currency."
@@ -143,10 +181,33 @@ export function CurrencySettingsManager({
         </div>
       </div>
 
+      <p className="text-sm text-white/65">
+        Saved reporting currency: <strong>{savedCurrency}</strong>. Existing
+        offers, targets and payments keep their explicitly selected currency.
+      </p>
       {currency !== savedCurrency ? (
-        <p className="text-sm text-white/65">
-          If you have existing values to convert, Leads Desk uses the saved rate between {savedCurrency} and {currency}.
-        </p>
+        <label className="block max-w-md text-sm">
+          Conversion rate (optional if a saved rate exists)
+          <span className="mt-2 flex items-center gap-3">
+            <span className="shrink-0">1 {savedCurrency} =</span>
+            <input
+              className="admin-input min-h-11"
+              aria-label={`Conversion rate from ${savedCurrency} to ${currency}`}
+              type="number"
+              inputMode="decimal"
+              min="0.00000001"
+              step="any"
+              value={changeRate}
+              onChange={(e) => setChangeRate(e.target.value)}
+              placeholder="Saved rate"
+            />
+            <span>{currency}</span>
+          </span>
+          <span className="mt-2 block text-xs text-white/60">
+            A successful change converts reporting amounts. If no rate is
+            available, the change is rejected and {savedCurrency} remains saved.
+          </span>
+        </label>
       ) : null}
 
       <div className="border-t border-white/10 pt-5">
@@ -156,8 +217,16 @@ export function CurrencySettingsManager({
           description="Add rates for currencies you use in reports."
         />
         <div className="mt-4 grid gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(160px,0.7fr)_auto] sm:items-end">
-          <CurrencySelect value={rateBaseCurrency} onChange={setRateBaseCurrency} label="From" />
-          <CurrencySelect value={rateQuoteCurrency} onChange={setRateQuoteCurrency} label="To" />
+          <CurrencySelect
+            value={rateBaseCurrency}
+            onChange={setRateBaseCurrency}
+            label="From"
+          />
+          <CurrencySelect
+            value={rateQuoteCurrency}
+            onChange={setRateQuoteCurrency}
+            label="To"
+          />
           <label className="block text-sm font-semibold text-white/80">
             Rate
             <input
@@ -171,15 +240,27 @@ export function CurrencySettingsManager({
               placeholder="0.00065"
             />
           </label>
-          <SmoothButton variant="secondary" size="md" loading={isSaving} onClick={() => void saveManualRate()}>
+          <SmoothButton
+            variant="secondary"
+            size="md"
+            loading={isSaving}
+            onClick={() => void saveManualRate()}
+          >
             Save rate
           </SmoothButton>
         </div>
         {rates.length > 0 ? (
           <div className="mt-4 flex flex-wrap gap-2">
             {rates.map((rate) => (
-              <span key={rate.id} className="rounded-full border border-white/10 bg-white/[0.05] px-3 py-2 text-xs font-medium text-white/75">
-                1 {rate.baseCurrency} = {rate.rate.toLocaleString(undefined, { maximumFractionDigits: 8 })} {rate.quoteCurrency} · {rate.source}
+              <span
+                key={rate.id}
+                className="rounded-full border border-white/10 bg-white/[0.05] px-3 py-2 text-xs font-medium text-white/75"
+              >
+                1 {rate.baseCurrency} ={" "}
+                {rate.rate.toLocaleString(undefined, {
+                  maximumFractionDigits: 8,
+                })}{" "}
+                {rate.quoteCurrency} · {rate.source}
               </span>
             ))}
           </div>

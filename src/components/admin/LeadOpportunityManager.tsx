@@ -95,7 +95,7 @@ export function LeadOpportunityManager({
   const router = useRouter();
   const workspaceSettings = useAdminWorkspaceSettings();
   const currency = workspaceSettings.globalCurrency;
-  const offerDefaultCurrency = defaultCurrency || currency;
+  const offerDefaultCurrency = currency || defaultCurrency || "USD";
   const [opportunities, setOpportunities] = useState<OpportunityDraft[]>(
     initialOpportunities.length > 0
       ? initialOpportunities.map((item) => createDraft(item, offerDefaultCurrency))

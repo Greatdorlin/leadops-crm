@@ -1,4 +1,5 @@
 "use client";
+import { AdminSelect } from "./AdminSelect";
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ResponsivePopover } from "./ResponsivePopover";
@@ -162,8 +163,9 @@ export function LeadQualificationDialog({
           <fieldset className="space-y-3">
             <legend className="sr-only">Qualification scope</legend>
             {(["one", "all"] as const).map((v) => (
-              <label key={v} className="flex items-center gap-3 text-sm">
+              <label key={v} className="flex min-h-11 items-center gap-3 text-sm">
                 <input
+                  className="size-4 shrink-0 accent-[var(--ld-color-primary)]"
                   type="radio"
                   checked={scope === v}
                   onChange={() => setScope(v)}
@@ -176,7 +178,7 @@ export function LeadQualificationDialog({
           {scope === "one" ? (
             <label className="block text-sm">
               Product
-              <select
+              <AdminSelect
                 aria-label="Product"
                 value={selected}
                 onChange={(e) => setSelected(e.target.value)}
@@ -190,7 +192,7 @@ export function LeadQualificationDialog({
                     {c.label}
                   </option>
                 ))}
-              </select>
+              </AdminSelect>
             </label>
           ) : (
             <p className="text-sm text-white/60">
@@ -203,11 +205,12 @@ export function LeadQualificationDialog({
               className="admin-input min-h-11 px-3 py-2 mt-2 w-full"
               value={reason}
               onChange={(e) => setReason(e.target.value)}
+              rows={3}
               maxLength={1000}
               placeholder="e.g. Budget is below this product’s price."
             />
           </label>
-          <a className="text-sm underline" href="/settings/products">
+          <a className="block min-h-11 py-2 text-sm underline underline-offset-4" href="/settings/products">
             Manage products and preset values
           </a>
           {error ? (

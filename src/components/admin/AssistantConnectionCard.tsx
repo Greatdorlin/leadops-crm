@@ -14,7 +14,19 @@ export function AssistantConnectionCard({
   refresh: () => Promise<void>;
 }) {
   const disclosure = useRef<HTMLDetailsElement>(null);
-  useEffect(() => { if (window.location.hash === "#connect-ai" && disclosure.current) disclosure.current.open = true; }, []);
+  useEffect(() => {
+    function revealConnection() {
+      if (window.location.hash !== "#connect-ai" || !disclosure.current) return;
+      disclosure.current.open = true;
+      disclosure.current.scrollIntoView({ block: "start", behavior: "auto" });
+    }
+    const frame = requestAnimationFrame(revealConnection);
+    window.addEventListener("hashchange", revealConnection);
+    return () => {
+      cancelAnimationFrame(frame);
+      window.removeEventListener("hashchange", revealConnection);
+    };
+  }, []);
   return (
     <details
       ref={disclosure}

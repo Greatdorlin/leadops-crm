@@ -513,7 +513,7 @@ export function LeadOpportunityManager({
                   <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/70">
                     Expected value
                   </p>
-                  <p className="mt-2 text-lg font-semibold text-white">{formatMoney(expectedValue, opportunity.currency)}</p>
+                  <p className="mt-2 text-lg font-semibold text-white">{formatMoney(countsTowardPipeline ? expectedValue : 0, opportunity.currency)}</p>
                 </div>
                 <label className="space-y-2 md:col-span-2 xl:col-span-3">
                   <span className="text-xs font-semibold uppercase tracking-[0.16em] text-white/70">

@@ -10,6 +10,12 @@ export default async function Page() {
       title="Workspace assistant"
       accessLevel={c.accessLevel}
       permissions={c.permissions}
+      role={c.role}
+      actualAccessLevel={c.actualAccessLevel}
+      canSwitchAccessViews={c.canSwitchAccessViews}
+      userName={c.crmUser?.fullName || c.session.user?.name}
+      userEmail={c.session.user?.email}
+      userAvatarUrl={c.crmUser?.avatarUrl}
     >
       <AssistantWorkspace />
     </AdminShell>

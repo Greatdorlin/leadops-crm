@@ -11,6 +11,12 @@ export default async function Page() {
       description="Your assistant name, personal connections and owner-managed access."
       accessLevel={c.accessLevel}
       permissions={c.permissions}
+      role={c.role}
+      actualAccessLevel={c.actualAccessLevel}
+      canSwitchAccessViews={c.canSwitchAccessViews}
+      userName={c.crmUser?.fullName || c.session.user?.name}
+      userEmail={c.session.user?.email}
+      userAvatarUrl={c.crmUser?.avatarUrl}
     >
       <AssistantWorkspace settingsOnly />
     </AdminShell>

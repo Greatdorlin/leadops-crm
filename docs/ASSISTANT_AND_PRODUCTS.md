@@ -80,3 +80,12 @@ Configure the public HTTPS base URL using the existing `CRM_PUBLIC_BASE_URL`, `N
 The test suite includes a real in-process PostgreSQL database for opt-in grants, own-lead scope, read-only restrictions, permission changes, note approval idempotency, reassignment, OAuth redirect/resource/PKCE binding, code reuse, refresh rotation/replay, revoked generations, product-specific arithmetic and repeat-safe schema preparation. The official MCP TypeScript SDK is used as a development-only interoperability client to initialize, discover tools, search and propose a change against the actual route handler.
 
 Release evidence should record lint, explicit typecheck, full tests/coverage, audit, drift and build separately from live browser acceptance. A successful SDK test does not certify all third-party client versions or account policies.
+
+
+## Availability and calmer assistant workspace — 6 November update
+
+The assistant home focuses on an ask field, three task shortcuts, relevant results and explicit change review. The note composer opens only when requested or a lead is selected. Connection setup and team access live in collapsed settings disclosures. A direct Connect ChatGPT or Claude link opens the connection disclosure. The launcher is absent from assistant pages and compact on mobile.
+
+Owners can use **Settings → Assistant → Turn off assistant**. This disables native assistant requests and MCP access for everyone, including owners, while retaining owner settings access to turn it back on. Turning it off revokes issued AI tokens, discards unredeemed authorization codes and rejects pending proposals; turning it back on does not revive those connections or proposals. Saved CRM notes and other business records remain intact. Other roles cannot change availability. Each user can independently hide their shortcut without changing their assistant permissions.
+
+Migration **0029** adds the workspace enabled flag and personal shortcut preference, both defaulting true to preserve the existing installation. For the prepared existing deployment, `npm run db:prepare:assistant-controls` applies only these repeat-safe additive columns before code promotion. Fresh installations use the normal migration runner. The availability regression exercises a real OAuth token, owner/member denial while off, non-owner toggle denial, rejected approval, no note write, re-enabling and permanent token revocation.

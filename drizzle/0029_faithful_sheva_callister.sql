@@ -1,0 +1,2 @@
+ALTER TABLE "assistant_members" ADD COLUMN IF NOT EXISTS "show_launcher" boolean DEFAULT true NOT NULL;--> statement-breakpoint
+ALTER TABLE "assistant_settings" ADD COLUMN IF NOT EXISTS "enabled" boolean DEFAULT true NOT NULL;

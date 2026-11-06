@@ -8,6 +8,7 @@ import { readFileSync } from "node:fs";
 import * as schema from "@/lib/db/schema";
 import { applyMigrations, type MigrationSession } from "@/lib/db/migrations";
 import { actorForUser, accessibleLead } from "./access";
+import { setWorkspaceAssistantEnabled } from "./management";
 import {
   authorizationRequest,
   authorize,
@@ -516,4 +517,38 @@ test("performance answers name the metric and currency and obey an own-scope rep
   });
   await approveChange(actor, rejected.id, false);
   assert.equal((await leadStore.listLeadNotes(own.id)).length, 0);
+});
+
+
+test("turning Yapper off blocks owners and members, revokes connections and keeps notes safe", async () => {
+  const owner = await user("availability-owner@example.test", "admin");
+  const rep = await user("availability-rep@example.test");
+  await grant(rep.id);
+  const lead = await leadStore.createExternalLead({ firstName: "Availability", source: "manual_entry", assignedTo: rep.email, email: "availability@example.test" });
+  const repActor = await actorForUser(rep.id);
+  const proposal = await proposeChange(repActor, { requestId: crypto.randomUUID(), action: { kind: "note", leadId: lead.id, note: "This must not be saved after shutdown." } });
+  const c = await registerClient({ client_name: "Availability test", redirect_uris: ["https://ai.example.test/availability"], token_endpoint_auth_method: "none" }, "127.0.0.3");
+  const verifier = "a".repeat(43);
+  const p = new URLSearchParams({ client_id: c.client_id, redirect_uri: c.redirect_uris[0], response_type: "code", resource: "https://crm.example.test/api/mcp", scope: "crm:read crm:write offline_access", code_challenge_method: "S256", code_challenge: createHash("sha256").update(verifier).digest("base64url") });
+  const redirect = new URL(await authorize(rep.id, p, true));
+  const token = await exchangeToken(new URLSearchParams({ grant_type: "authorization_code", client_id: c.client_id, redirect_uri: c.redirect_uris[0], resource: p.get("resource")!, code: redirect.searchParams.get("code")!, code_verifier: verifier }));
+  const request = () => new Request("https://crm.example.test/api/mcp", { headers: { Authorization: `Bearer ${token.access_token}` } });
+  await bearerActor(request());
+  await assert.rejects(() => setWorkspaceAssistantEnabled(rep.id, false));
+  await setWorkspaceAssistantEnabled(owner.id, false);
+  try {
+    assert.equal((await actorForUser(owner.id)).enabled, false);
+    assert.equal((await actorForUser(owner.id)).owner, true);
+    assert.equal((await actorForUser(rep.id)).enabled, false);
+    await assert.rejects(() => bearerActor(request()));
+    await assert.rejects(() => approveChange(repActor, proposal.id, true));
+    assert.equal((await leadStore.listLeadNotes(lead.id)).length, 0);
+    assert.equal((await db.select().from(schema.assistantChanges).where(eq(schema.assistantChanges.id, proposal.id)))[0].status, "rejected");
+  } finally { await setWorkspaceAssistantEnabled(owner.id, true); }
+  assert.equal((await actorForUser(owner.id)).enabled, true);
+  assert.equal((await actorForUser(rep.id)).enabled, true);
+  await assert.rejects(() => bearerActor(request()));
+  const sql = readFileSync("drizzle/0029_faithful_sheva_callister.sql", "utf8");
+  await client.exec(sql);
+  await client.exec(sql);
 });

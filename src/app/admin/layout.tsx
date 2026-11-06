@@ -14,7 +14,7 @@ export default async function AdminLayout({ children }: { children: ReactNode })
 
   return (
     <AdminWorkspaceSettingsProvider initialSettings={settings}>
-      <AdminAuthorizationProvider permissions={authorization?.permissions ?? null}>
+      <AdminAuthorizationProvider permissions={authorization?.permissions ?? null} identity={{ name: authorization?.crmUser?.fullName || authorization?.session.user?.name, email: authorization?.session.user?.email, avatarUrl: authorization?.crmUser?.avatarUrl }}>
         {children}
       </AdminAuthorizationProvider>
     </AdminWorkspaceSettingsProvider>

@@ -13,12 +13,13 @@ type Pending = {
 export type State = {
   name: string;
   personalName: string;
+  showLauncher: boolean;
   enabled: boolean;
   canWrite: boolean;
   owner: boolean;
   currentUserId: string;
   mcpUrl: string;
-  workspace: { name: string; nameLocked: boolean };
+  workspace: { name: string; nameLocked: boolean; enabled: boolean };
   pending: Pending[];
   connections: {
     clientName: string;

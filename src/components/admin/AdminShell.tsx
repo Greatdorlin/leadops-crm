@@ -26,7 +26,7 @@ import { AdminSectionNavigation } from "./AdminSectionNavigation";
 import { AdminSidebar, SidebarNavigation } from "./AdminSidebar";
 import { AdminSignOutButton } from "./AdminSignOutButton";
 import { AdminTopbar } from "./AdminTopbar";
-import { useAdminPermissions } from "./AdminAuthorizationProvider";
+import { useAdminPermissions, useAdminIdentity } from "./AdminAuthorizationProvider";
 import { useAdminWorkspaceSettings } from "./AdminWorkspaceSettingsProvider";
 import { MobileSidebarDrawer } from "./ui/MobileSidebarDrawer";
 import { SmoothButton } from "./ui/SmoothButton";
@@ -97,6 +97,7 @@ export function AdminShell({
   children,
 }: AdminShellProps) {
   const workspaceSettings = useAdminWorkspaceSettings();
+  const identity = useAdminIdentity();
   const router = useRouter();
   const contextPermissions = useAdminPermissions();
   const fallbackRole = getStoredRoleForAccessLevel(accessLevel);
@@ -160,9 +161,9 @@ export function AdminShell({
             onToggleCollapse={toggleSidebar}
             companyName={workspaceSettings.companyName}
             logoUrl={workspaceSettings.logoUrl}
-            userName={userName}
-            userEmail={userEmail}
-            userAvatarUrl={userAvatarUrl}
+            userName={userName ?? identity?.name}
+            userEmail={userEmail ?? identity?.email}
+            userAvatarUrl={userAvatarUrl ?? identity?.avatarUrl}
           />
           <div className="mx-auto w-full min-w-0 max-w-[100rem]">
             <div className="ld-mobile-toolbar sticky top-0 z-40 mb-2 flex min-w-0 items-center gap-1 rounded-xl border border-white/10 bg-[color:var(--ld-color-background)] p-1.5 lg:hidden">

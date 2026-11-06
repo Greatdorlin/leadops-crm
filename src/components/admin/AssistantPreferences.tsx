@@ -24,6 +24,56 @@ export function AssistantPreferences({
       {settingsOnly ? (
         <>
           <section className="admin-surface rounded-3xl p-5">
+            {data.owner ? (
+              <div className="mb-5 flex flex-wrap items-center justify-between gap-4 border-b border-white/10 pb-5">
+                <div>
+                  <h2 className="font-semibold">Workspace assistant</h2>
+                  <p className="mt-1 text-sm text-white/60">
+                    {data.workspace.enabled
+                      ? "On for owners and approved members."
+                      : "Off for everyone. AI connections are disconnected."}
+                  </p>
+                </div>
+                <button
+                  disabled={busy}
+                  type="button"
+                  className="admin-button-secondary min-h-11 px-4 py-2"
+                  onClick={() =>
+                    void run(async () => {
+                      await send({
+                        op: "workspace_enabled",
+                        enabled: !data.workspace.enabled,
+                      });
+                      await refresh();
+                      setNotice(
+                        data.workspace.enabled
+                          ? "Assistant turned off. Connections and pending changes were revoked."
+                          : "Assistant turned on.",
+                      );
+                    })
+                  }
+                >
+                  {data.workspace.enabled
+                    ? "Turn off assistant"
+                    : "Turn on assistant"}
+                </button>
+              </div>
+            ) : null}
+            <label className="mb-5 flex items-center justify-between gap-4 text-sm">
+              <span>Show the assistant shortcut on my pages</span>
+              <input
+                type="checkbox"
+                checked={data.showLauncher}
+                disabled={busy}
+                onChange={(e) => {
+                  const showLauncher = e.target.checked;
+                  void run(async () => {
+                    await send({ op: "launcher", showLauncher });
+                    await refresh();
+                  });
+                }}
+              />
+            </label>
             <h2 className="text-xl font-semibold">Assistant name</h2>
             <label className="mt-4 block text-sm">
               My name for the assistant
@@ -94,14 +144,14 @@ export function AssistantPreferences({
             ) : null}
           </section>
           {data.owner ? (
-            <section className="admin-surface rounded-3xl p-5">
-              <h2 className="text-xl font-semibold">
-                Who can use the assistant?
-              </h2>
+            <details className="admin-surface rounded-3xl p-5">
+              <summary className="cursor-pointer text-lg font-semibold">
+                Team access
+              </summary>
               <p className="mt-2 text-sm text-white/60">
-                Read-only by default. Grant proposed changes separately. Saving
-                access disconnects existing sessions so the member must
-                reconnect.
+                Owners retain owner access. Other members need a grant; grant
+                proposed changes separately. Saving access disconnects existing
+                sessions so the member must reconnect.
               </p>
               <div className="mt-4 space-y-3">
                 {data.members
@@ -124,7 +174,7 @@ export function AssistantPreferences({
                     />
                   ))}
               </div>
-            </section>
+            </details>
           ) : null}
         </>
       ) : null}

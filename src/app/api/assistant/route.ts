@@ -14,10 +14,12 @@ import {
 import { leadStore } from "@/lib/storage";
 import {
   actorLabel,
+  isAssistantOwner,
   sessionActor,
   workspaceAssistant,
 } from "@/lib/assistant/access";
 import { AssistantError, nameSchema } from "@/lib/assistant/contracts";
+import { setWorkspaceAssistantEnabled } from "@/lib/assistant/management";
 import { body, failure, sameOrigin, origin } from "@/lib/assistant/http";
 import {
   approveChange,
@@ -56,6 +58,7 @@ export async function GET() {
         name: await actorLabel(actor),
         workspace: await workspaceAssistant(),
         personalName: actor.member?.personalName ?? "",
+        showLauncher: actor.member?.showLauncher ?? true,
         enabled: actor.enabled,
         canWrite: actor.canWrite,
         owner: actor.owner,
@@ -65,11 +68,13 @@ export async function GET() {
         connections,
         ...(actor.owner
           ? {
-              members: (await leadStore.listCrmUsers()).map((u) => ({
-                id: u.id,
-                name: u.fullName ? `${u.fullName} · ${u.email}` : u.email,
-                isActive: u.isActive,
-              })),
+              members: (await leadStore.listCrmUsers())
+                .filter((u) => !isAssistantOwner(u))
+                .map((u) => ({
+                  id: u.id,
+                  name: u.fullName ? `${u.fullName} · ${u.email}` : u.email,
+                  isActive: u.isActive,
+                })),
               grants: await db.select().from(assistantMembers),
             }
           : {}),
@@ -86,7 +91,21 @@ export async function POST(request: Request) {
     const raw = await body(request);
     const actor = await sessionActor(false);
     const db = getDb();
-    if (raw.op === "personal_name") {
+    if (raw.op === "workspace_enabled") {
+      await setWorkspaceAssistantEnabled(
+        actor.user.id,
+        z.boolean().parse(raw.enabled),
+      );
+    } else if (raw.op === "launcher") {
+      const showLauncher = z.boolean().parse(raw.showLauncher);
+      await db
+        .insert(assistantMembers)
+        .values({ userId: actor.user.id, showLauncher })
+        .onConflictDoUpdate({
+          target: assistantMembers.userId,
+          set: { showLauncher, updatedAt: new Date() },
+        });
+    } else if (raw.op === "personal_name") {
       const workspace = await workspaceAssistant();
       if (workspace.nameLocked)
         throw new AssistantError(
@@ -137,6 +156,11 @@ export async function POST(request: Request) {
       const target = await leadStore.getCrmUserById(value.userId);
       if (!target?.isActive)
         throw new AssistantError("Choose an active workspace member.");
+      if (isAssistantOwner(target))
+        throw new AssistantError(
+          "Owners retain owner access. Manage their CRM role to change ownership.",
+          409,
+        );
       await db.transaction(async (tx) => {
         await tx
           .insert(assistantMembers)

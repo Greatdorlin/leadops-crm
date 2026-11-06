@@ -4,7 +4,7 @@ export async function GET() {
   try {
     const actor = await sessionActor(false);
     return NextResponse.json(
-      { name: await actorLabel(actor) },
+      { name: await actorLabel(actor), showLauncher: actor.enabled && (actor.member?.showLauncher ?? true) },
       { headers: { "Cache-Control": "no-store" } },
     );
   } catch {

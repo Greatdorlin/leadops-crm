@@ -26,7 +26,8 @@
     "check:env": "node scripts/check-env-example.mjs",
     "smoke:deployment": "node scripts/smoke-deployment.mjs",
     "db:check": "node scripts/check-migration-drift.mjs",
-    "db:prepare:assistant": "node --import tsx src/scripts/prepare-assistant.ts"
+    "db:prepare:assistant": "node --import tsx src/scripts/prepare-assistant.ts",
+    "db:prepare:assistant-controls": "node --import tsx src/scripts/prepare-assistant.ts --controls"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.4.0",

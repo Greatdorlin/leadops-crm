@@ -123,7 +123,6 @@ function TargetEditor({
   message,
   saveLabel,
   referenceData,
-  defaultCurrency,
   onApplyCurrentMonth,
   onApplyNextMonth,
   onReset,

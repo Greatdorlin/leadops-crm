@@ -6,13 +6,17 @@ import { MessageCircle } from "lucide-react";
 export function AssistantLauncher() {
   const pathname = usePathname();
   const [name, setName] = useState("Yapper");
+  const [visible, setVisible] = useState(false);
   useEffect(() => {
     let active = true;
     function update() {
       fetch("/api/assistant/name", { cache: "no-store" })
         .then((r) => r.json())
         .then((d) => {
-          if (active && typeof d.name === "string") setName(d.name);
+          if (active) {
+            if (typeof d.name === "string") setName(d.name);
+            setVisible(d.showLauncher === true);
+          }
         })
         .catch(() => {});
     }
@@ -23,7 +27,7 @@ export function AssistantLauncher() {
       window.removeEventListener("assistant:name", update);
     };
   }, []);
-  if (pathname === "/assistant" || pathname?.startsWith("/assistant/") || pathname === "/settings/assistant") return null;
+  if (!visible || pathname === "/assistant" || pathname?.startsWith("/assistant/") || pathname === "/settings/assistant") return null;
   return (
     <Link
       href="/assistant"

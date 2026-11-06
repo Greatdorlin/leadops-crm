@@ -7,7 +7,7 @@ export default async function Page() {
   return (
     <AdminShell
       activeNav="dashboard"
-      title="Workspace assistant"
+      title="Assistant"
       accessLevel={c.accessLevel}
       permissions={c.permissions}
       role={c.role}

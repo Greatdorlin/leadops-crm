@@ -1,3 +1,4 @@
+import { isUnqualifiedStage } from '@/lib/crm/qualification-stage';
 import { after, NextResponse } from "next/server";
 import { getAdminRequestContext } from "@/lib/admin";
 import { normalizeAdminEmail } from "@/lib/admin-access";
@@ -186,6 +187,9 @@ export async function PATCH(
         );
       }
 
+      if (isUnqualifiedStage(selectedStage.key,selectedStage.name)) {
+        return NextResponse.json({ error: "Choose one product or all products before marking unqualified.", qualificationRequired: true }, { status: 409 });
+      }
       stageId = selectedStage.id;
       lifecycle = resolveLeadLifecycleTransition({
         stage: selectedStage.key,

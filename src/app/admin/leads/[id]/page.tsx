@@ -839,6 +839,7 @@ export default async function AdminLeadDetailPage({
                   />
                 ) : (
                   <LeadOpportunityManager
+                    key={`${lead.id}:${opportunityRows.map(offer=>`${offer.id}:${offer.updatedAt}:${offer.status}`).join("|")}:${leadClosed}`}
                     leadId={lead.id}
                     initialOpportunities={opportunityRows}
                     leadClosed={leadClosed}

@@ -29,7 +29,7 @@ Lead value is offer-aware. One lead can be qualified for one product and unquali
 - exports: bounded server-side batches with spreadsheet-formula neutralization
 - integrations: available, mapped-import, adapter-ready, and planned states are kept distinct
 
-Optional email-marketing and AI implementations must stay behind the server-only, provider-neutral contracts in [`EXTENSION_CONTRACTS.md`](./EXTENSION_CONTRACTS.md). The current AI capability registry is fully disabled and does not represent a product feature.
+Optional email-marketing and AI implementations must stay behind the server-only, provider-neutral contracts in [`EXTENSION_CONTRACTS.md`](./EXTENSION_CONTRACTS.md). Built-in model-generation adapters remain disabled. The separate Yapper assistant provides bounded CRM shortcuts and an OAuth-protected MCP server for a user’s own AI client, without purchasing model credits in Leads Desk. See ASSISTANT_AND_PRODUCTS.md.
 
 Always-visible navigation disables speculative route prefetch so one screen does not fan out into unrelated database reads. Raw source payload JSON is retained for traceability but excluded from queue, dashboard, task, and report list reads.
 

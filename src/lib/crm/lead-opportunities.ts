@@ -252,7 +252,7 @@ export async function listLeadOpportunitySummariesByLeadIds(leadIds: string[], c
 
 export async function replaceLeadOpportunities(
   leadId: string,
-  input: AdminLeadOpportunityInput[],
+  input: AdminLeadOpportunityInput[] | ((rows: LeadOpportunityRecord[]) => AdminLeadOpportunityInput[]),
   options: {
     createCallTasksForNewlyQualified?: boolean;
     callTaskDueAt?: string | null;
@@ -276,7 +276,8 @@ export async function replaceLeadOpportunities(
     const newlyQualifiedOfferLabels: string[] = [];
 
     let primaryAssigned = false;
-    const normalizedInput = input.map((item, index) => {
+    const resolvedInput = typeof input === "function" ? input(existingRows.map(mapLeadOpportunityRecord)) : input;
+    const normalizedInput = resolvedInput.map((item, index) => {
       const isPrimary = item.isPrimary && !primaryAssigned;
       if (isPrimary) {
         primaryAssigned = true;
@@ -489,7 +490,7 @@ export async function replaceLeadOpportunities(
       .update(leads)
       .set({
         estimatedValue: rollup.estimatedValue?.toFixed(2) ?? null,
-        expectedValue: rollup.expectedValue?.toFixed(2) ?? null,
+        expectedValue: rollup.activeCount === 0 && opportunities.length > 0 ? "0.00" : rollup.expectedValue?.toFixed(2) ?? null,
         closeProbability: rollup.closeProbability,
         expectedCloseDate: rollup.expectedCloseDate ? new Date(rollup.expectedCloseDate) : null,
         wonValue: rollup.wonValue?.toFixed(2) ?? null,

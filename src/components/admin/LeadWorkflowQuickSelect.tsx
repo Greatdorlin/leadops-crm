@@ -2,6 +2,9 @@
 
 import { useId, useRef, useState } from "react";
 import { Check, ChevronDown, LoaderCircle } from "lucide-react";
+import { isUnqualifiedStage } from "@/lib/crm/qualification-stage";
+import { useRouter } from "next/navigation";
+import { LeadQualificationDialog } from "./LeadQualificationDialog";
 import { cn } from "@/lib/cn";
 import { AdminPickerHeader, AdminPickerScrollArea } from "./AdminPickerPanel";
 import { ResponsivePopover } from "./ResponsivePopover";
@@ -10,6 +13,7 @@ export interface LeadWorkflowQuickOption {
   value: string;
   label: string;
   color?: string | null;
+  key?: string;
 }
 
 export function LeadWorkflowQuickSelect({
@@ -35,6 +39,8 @@ export function LeadWorkflowQuickSelect({
   testId: string;
   previewMode?: boolean;
 }) {
+  const router = useRouter();
+  const [qualificationOpen, setQualificationOpen] = useState(false);
   const listboxId = useId();
   const buttonRef = useRef<HTMLButtonElement>(null);
   const [value, setValue] = useState(initialValue);
@@ -48,6 +54,10 @@ export function LeadWorkflowQuickSelect({
   const currentColor = selectedOption?.color ?? initialColor ?? "#94a3b8";
 
   async function saveValue(nextValue: string) {
+    const nextOption = options.find(option => option.value === nextValue);
+    if (field === "stageId" && isUnqualifiedStage(nextOption?.key??"",nextOption?.label)) {
+      setIsOpen(false); setQualificationOpen(true); return;
+    }
     if (nextValue === savedValue) {
       setIsOpen(false);
       return;
@@ -62,6 +72,7 @@ export function LeadWorkflowQuickSelect({
 
     if (previewMode) {
       setSavedValue(nextValue);
+      router.refresh();
       setMessage(`${field === "stageId" ? "Stage" : "Priority"} updated.`);
       setIsSaving(false);
       return;
@@ -84,6 +95,7 @@ export function LeadWorkflowQuickSelect({
       }
 
       setSavedValue(nextValue);
+      router.refresh();
       setMessage(`${field === "stageId" ? "Stage" : "Priority"} updated.`);
       setIsSaving(false);
     } catch {
@@ -182,6 +194,7 @@ export function LeadWorkflowQuickSelect({
         </div>
       </ResponsivePopover>
 
+      {qualificationOpen ? <LeadQualificationDialog leadId={leadId} open anchorRef={buttonRef} onClose={() => setQualificationOpen(false)} /> : null}
       <p
         className={cn("sr-only", hasError && "not-sr-only mt-1 max-w-52 text-xs text-rose-200")}
         role={hasError ? "alert" : "status"}

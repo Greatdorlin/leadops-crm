@@ -1,3 +1,4 @@
+import { isUnqualifiedStage } from "./qualification-stage";
 import { randomUUID } from "node:crypto";
 import { and, eq, inArray, isNull, sql } from "drizzle-orm";
 import { z } from "zod";
@@ -124,6 +125,7 @@ export async function applyBulkLeadWorkflow(
         .where(and(eq(leadStages.id, parsed.stageId ?? ""), eq(leadStages.archived, false)))
         .limit(1);
       if (!selectedStage) throw new Error("Choose an active lead stage.");
+      if (isUnqualifiedStage(selectedStage.key,selectedStage.name)) throw new Error("Choose product qualification on each lead instead of a whole-lead unqualified stage.");
       stage = selectedStage;
     }
 

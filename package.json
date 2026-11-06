@@ -25,7 +25,8 @@
     "audit": "npm audit --audit-level=high",
     "check:env": "node scripts/check-env-example.mjs",
     "smoke:deployment": "node scripts/smoke-deployment.mjs",
-    "db:check": "node scripts/check-migration-drift.mjs"
+    "db:check": "node scripts/check-migration-drift.mjs",
+    "db:prepare:assistant": "node --import tsx src/scripts/prepare-assistant.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.4.0",
@@ -61,6 +62,7 @@
   },
   "devDependencies": {
     "@electric-sql/pglite": "^0.5.15",
+    "@modelcontextprotocol/sdk": "^1.32.2",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",

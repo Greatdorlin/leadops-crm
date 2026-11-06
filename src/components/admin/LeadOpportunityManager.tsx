@@ -223,7 +223,7 @@ export function LeadOpportunityManager({
         Each offer has its own qualification and outcome. Closing one offer keeps the others in play.{" "}
         {leadClosed ? "This lead is closed, so its offers are excluded from the open pipeline." : "Mark the whole lead Lost only when you want to close its entire pipeline."}
       </p>
-      <div className="grid grid-cols-2 gap-x-4 gap-y-3 sm:grid-cols-3 xl:grid-cols-5">
+      <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,8rem),1fr))] gap-x-4 gap-y-3">
         {[
           ["Pipeline value", formatMoney(leadClosed ? 0 : rollup.expectedValue ?? rollup.estimatedValue, currency)],
           ["Open offers", String(rollup.activeCount)],

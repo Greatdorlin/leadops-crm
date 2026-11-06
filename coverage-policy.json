@@ -1,0 +1,30 @@
+{
+  "description": "Full source report and regression floor; separately enforce critical business contract coverage. This is not 80% full-application coverage.",
+  "repository": {
+    "lines": 26,
+    "statements": 26,
+    "functions": 62,
+    "branches": 66
+  },
+  "businessContracts": {
+    "minimum": {
+      "lines": 80,
+      "statements": 80,
+      "functions": 70,
+      "branches": 70
+    },
+    "files": [
+      "src/lib/auth-policy.ts",
+      "src/lib/crm/lead-workflow.ts",
+      "src/lib/crm/sales-metrics.ts",
+      "src/lib/crm/workspace-settings.ts",
+      "src/lib/crm/lead-opportunity-contract.ts",
+      "src/lib/crm/form-contracts.ts",
+      "src/lib/crm/form-field-contract.ts",
+      "src/lib/crm/form-settings-contract.ts",
+      "src/lib/crm/form-submission-validation.ts",
+      "src/lib/crm/form-field-visibility.ts",
+      "src/lib/crm/public-form.ts"
+    ]
+  }
+}

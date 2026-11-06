@@ -1,3 +1,4 @@
+import { getLeadCapturedFormAnswers } from "@/lib/crm/form-captured-answers";
 import Link from "next/link";
 import {
   BadgeCheck,
@@ -341,6 +342,11 @@ export default async function AdminLeadDetailPage({
     customFieldDefinitions: readContext.customFieldDefinitionsByLeadId.get(lead.id) ?? [],
     customFieldValues: readContext.customFieldValuesByLeadId.get(lead.id) ?? [],
   });
+  if (!isDevelopmentDemoLead) {
+    const capturedAnswers = await getLeadCapturedFormAnswers(lead.id);
+    const labels = new Set(capturedAnswers.map(answer => answer.label));
+    leadView.intakeAnswers = [...capturedAnswers, ...leadView.intakeAnswers.filter(answer => !labels.has(answer.label))];
+  }
   const leadClosed = isLeadClosed(lead) || Boolean(configuredLeadStage?.isLost || configuredLeadStage?.isWon);
   leadView.keyFacts = leadView.keyFacts.map((fact) => {
     if (fact.label === "Pipeline value") {
@@ -1083,8 +1089,8 @@ export default async function AdminLeadDetailPage({
               ) : (
                 <div className="mt-4">
                   <EmptyState
-                    title="No final report yet"
-                    description="This lead is still incomplete, so the summary will appear after more intake details are captured."
+                    title="Build the next step"
+                    description="Review captured answers above, add a note, and track qualification for each offer. Your next task keeps the follow-up clear."
                   />
                 </div>
               )}

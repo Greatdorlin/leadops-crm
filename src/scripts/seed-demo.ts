@@ -1,4 +1,5 @@
 import "dotenv/config";
+import { closeDb } from "@/lib/db/client";
 import { seedLeadsDeskDemoData } from "@/lib/db/seed-demo";
 
 async function main() {
@@ -16,7 +17,7 @@ async function main() {
   );
 }
 
-main().catch((error) => {
+main().finally(closeDb).catch((error) => {
   console.error(
     JSON.stringify(
       {

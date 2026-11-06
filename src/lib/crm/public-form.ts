@@ -60,3 +60,10 @@ export function buildPublicFormFields(fields: FormFieldRow[]) {
     }];
   });
 }
+
+export function canOpenPublicForm(
+  form: Pick<FormRow, "status" | "isActive" | "isPublic">,
+  publicFieldCount: number,
+) {
+  return form.status === "active" && form.isActive && form.isPublic && publicFieldCount > 0;
+}

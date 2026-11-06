@@ -4,8 +4,7 @@ on:
   workflow_dispatch:
   pull_request:
   push:
-    branches:
-      - main
+    branches: [main, master, development, test, 'codex/**']
 
 permissions:
   contents: read
@@ -15,35 +14,166 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  verify:
+  lint:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     env:
       NEXT_TELEMETRY_DISABLED: "1"
-
     steps:
-      - name: Check out repository
-        uses: actions/checkout@v4
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: 24
           cache: npm
-
-      - name: Install dependencies
-        run: npm ci
-
+      - run: npm ci
       - name: Lint
-        run: npm run lint
-
-      - name: Test
-        run: npm run test
-
-      - name: Verify schema migration state
         run: |
-          npm run db:generate
-          git diff --exit-code -- drizzle
-
+          npm run lint
+          npm run check:env
+  typecheck:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      NEXT_TELEMETRY_DISABLED: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: Typecheck
+        run: |
+          npm run typecheck
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      NEXT_TELEMETRY_DISABLED: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: Test
+        run: |
+          npm run test:coverage
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-coverage
+          path: coverage/
+          retention-days: 14
+  migrations:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      NEXT_TELEMETRY_DISABLED: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: Migrations
+        run: |
+          npm run db:check
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      NEXT_TELEMETRY_DISABLED: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
       - name: Build
-        run: npm run build
+        run: |
+          npm run build
+  security:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      NEXT_TELEMETRY_DISABLED: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: Security
+        run: |
+          npm run audit
+  fresh-install:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: leads_desk_test
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      DATABASE_URL: postgres://postgres:postgres@localhost:5432/leads_desk_test
+      NEXTAUTH_URL: http://127.0.0.1:3000
+      INITIAL_ADMIN_EMAIL: owner@example.invalid
+      INITIAL_ADMIN_NAME: CI Owner
+      NEXT_TELEMETRY_DISABLED: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: Generate ephemeral test secret
+        run: echo "AUTH_SECRET=$(openssl rand -base64 32)" >> "$GITHUB_ENV"
+      - name: Migrate empty database
+        timeout-minutes: 3
+        run: npm run db:migrate
+      - name: Seed default configuration
+        timeout-minutes: 3
+        run: npm run db:seed:defaults:full
+      - name: Verify migrations are repeatable
+        timeout-minutes: 3
+        run: npm run db:migrate
+      - name: Verify seed is repeatable
+        timeout-minutes: 3
+        run: npm run db:seed:defaults:full
+      - run: npm run build
+      - name: Boot production server and check protected boundaries
+        run: |
+          npm start > /tmp/leads-desk-server.log 2>&1 &
+          server_pid=$!
+          trap 'kill "$server_pid" 2>/dev/null || true' EXIT
+          npm run smoke:deployment
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: fresh-install-server-log
+          path: /tmp/leads-desk-server.log
+          retention-days: 7
+  release-gate:
+    if: always()
+    needs: [lint, typecheck, test, migrations, build, security, fresh-install]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require every release check to pass
+        env:
+          RESULTS: ${{ toJSON(needs) }}
+        run: |
+          node -e 'const jobs=JSON.parse(process.env.RESULTS); if (Object.values(jobs).some(j=>j.result!=="success")) process.exit(1)'

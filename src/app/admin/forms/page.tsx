@@ -31,7 +31,7 @@ export default async function AdminFormsPage() {
     redirect(appRoutes.dashboard);
   }
 
-  let formsWithCounts: (Awaited<ReturnType<typeof listForms>>[number] & { fieldCount: number; submissionCount: number })[] = [];
+  let formsWithCounts: (Awaited<ReturnType<typeof listForms>>[number] & { fieldCount: number; publicFieldCount: number; submissionCount: number })[] = [];
   let pageError: unknown = null;
   let usingDemoForms = false;
 
@@ -41,17 +41,18 @@ export default async function AdminFormsPage() {
     formsWithCounts = forms.map((form) => ({
       ...form,
       fieldCount: counts.get(form.id)?.fieldCount ?? 0,
+      publicFieldCount: counts.get(form.id)?.publicFieldCount ?? 0,
       submissionCount: counts.get(form.id)?.submissionCount ?? 0,
     }));
     if (formsWithCounts.length === 0 && isLocalAdminPreviewEmail(session.user?.email)) {
-      formsWithCounts = buildDemoForms();
+      formsWithCounts = buildDemoForms().map(form => ({...form, publicFieldCount: form.fieldCount}));
       usingDemoForms = true;
     }
   } catch (error) {
     pageError = error;
     logCrmPageError("forms", error);
     if (isLocalAdminPreviewEmail(session.user?.email)) {
-      formsWithCounts = buildDemoForms();
+      formsWithCounts = buildDemoForms().map(form => ({...form, publicFieldCount: form.fieldCount}));
       usingDemoForms = true;
     }
   }

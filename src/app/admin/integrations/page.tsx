@@ -35,7 +35,7 @@ const providers: Array<{
 }> = [
   {
     provider: "website",
-    href: appRoutes.integrations,
+    href: appRoutes.forms,
   },
   {
     provider: "facebook",

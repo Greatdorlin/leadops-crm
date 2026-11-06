@@ -213,11 +213,13 @@ export function buildCustomFieldInputModel(
 export function validateCustomFieldValues(
   definitions: CustomFieldDefinitionWithOptions[],
   submittedValues: Record<string, unknown>,
+  options: { partial?: boolean } = {},
 ): CustomFieldValueValidationResult {
   const fieldErrors: Record<string, string> = {};
   const values: LeadCustomFieldValueInputRecord[] = [];
 
   for (const field of definitions.filter((definition) => !definition.archived)) {
+    if (options.partial && !Object.hasOwn(submittedValues, field.id)) continue;
     const rawValue = submittedValues[field.id];
     const serializedValue = serializeCustomFieldValue(field.type, rawValue);
     const activeOptionValues = getActiveOptionValues(field);
@@ -337,4 +339,19 @@ export function buildLeadTableCustomFieldColumns(
   }
 
   return columns;
+}
+
+
+/** Profile patches validate changed fields without erasing untouched historical values. */
+export function getChangedCustomFieldValues(
+  definitions: ReadonlyArray<{ id: string; type: CustomFieldDefinitionWithOptions["type"] }>,
+  initial: Record<string, unknown>,
+  current: Record<string, unknown>,
+) {
+  return Object.fromEntries(definitions.flatMap(field => {
+    if (!Object.hasOwn(current, field.id)) return [];
+    const before = serializeCustomFieldValue(field.type, initial[field.id]);
+    const after = serializeCustomFieldValue(field.type, current[field.id]);
+    return JSON.stringify(before) === JSON.stringify(after) ? [] : [[field.id, current[field.id]]];
+  }));
 }

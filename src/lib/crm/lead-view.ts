@@ -353,6 +353,12 @@ export function buildAdminLeadListItem(
     : buildAssignedUserName(lead);
   const leadCustomerType = lead.leadCustomerType === "business" ? "business" : "direct";
 
+  const closed = Boolean(
+    lead.archivedAt || lead.wonAt || lead.lostAt ||
+    ["converted", "lost", "closed"].includes(lead.crmStatus) ||
+    ["won", "lost"].includes(readModel.stage.key ?? ""),
+  );
+
   return {
     id: lead.id,
     displayName: buildLeadDisplayName(lead),
@@ -368,7 +374,7 @@ export function buildAdminLeadListItem(
     priority: lead.priority,
     priorityLabel: crmLabelize(lead.priority),
     completionStatus: "active",
-    completionLabel: lead.archivedAt ? "Archived" : "Active lead",
+    completionLabel: lead.archivedAt ? "Archived" : lead.wonAt ? "Won" : lead.lostAt ? "Lost" : "Active lead",
     categoryLabel: buildCategoryLabel(readModel.customFields),
     fitSignalLabel: buildFitSignalLabel(lead, readModel.customFields),
     interestLabel: buildInterestLabel(lead, readModel.customFields),
@@ -382,7 +388,7 @@ export function buildAdminLeadListItem(
       label: assignedUserName,
     },
     customFieldDisplayValues: readModel.customFields,
-    stateLabel: lead.region || lead.state ? formatLeadStateLabel(lead.region ?? lead.state) : "Location not captured yet",
+    stateLabel: lead.region || lead.state ? formatLeadStateLabel(lead.region ?? lead.state) : lead.city || lead.country || "Location not captured yet",
     stateRaw: lead.region ?? lead.state,
     createdAt: lead.createdAt,
     lastActivityAt: lead.lastActivityAt,
@@ -394,7 +400,7 @@ export function buildAdminLeadListItem(
     }),
     companyName: lead.companyName ?? null,
     estimatedValue: lead.estimatedValue ?? null,
-    expectedValue: lead.expectedValue ?? null,
+    expectedValue: closed ? 0 : lead.expectedValue ?? null,
     wonValue: lead.wonValue ?? null,
     closeProbability: lead.closeProbability ?? null,
     expectedCloseDate: lead.expectedCloseDate ?? null,

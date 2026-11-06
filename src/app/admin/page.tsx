@@ -681,7 +681,7 @@ export default async function AdminPage({
         ) : affiliateDashboardSummary ? (
           <AffiliateDashboardPanel
             summary={affiliateDashboardSummary}
-            currency={salesDashboardSummary.target?.currency ?? workspaceSettings.globalCurrency}
+            currency={workspaceSettings.globalCurrency}
           />
         ) : accessLevel === "sales_rep" ? (
           <section className="space-y-4 ld-animate-fade-in-up">

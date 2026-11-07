@@ -90,6 +90,8 @@ export async function listThreads(userId: string, before?: string) {
     .select({
       thread: inboxThreads,
       member: inboxParticipants,
+      latestId: sql<string>`(select m.id from inbox_messages m where m.thread_id=${inboxThreads.id} order by m.created_at desc, m.id desc limit 1)`,
+      latestCipher: sql<string>`(select m.content_cipher from inbox_messages m where m.thread_id=${inboxThreads.id} order by m.created_at desc, m.id desc limit 1)`,
       memberCount: sql<number>`(select count(*) from inbox_participants p where p.thread_id=${inboxThreads.id})`,
       unread: sql<number>`(select count(*) from inbox_messages m where m.thread_id=${inboxThreads.id} and (m.sender_user_id is null or m.sender_user_id != ${userId}::uuid) and m.created_at > coalesce(${inboxParticipants.lastReadAt}, '1970-01-01'::timestamptz))`,
     })
@@ -135,6 +137,13 @@ export async function listThreads(userId: string, before?: string) {
       ),
       channel: row.thread.channel,
       leadId: row.thread.leadId,
+      preview:
+        row.latestId && row.latestCipher
+          ? decryptMessage<MessageContent>(
+              row.latestCipher,
+              `message:${row.thread.id}:${row.latestId}`,
+            ).text.slice(0, 180)
+          : "",
       memberCount: Number(row.memberCount),
       unread: Number(row.unread),
       updatedAt: row.thread.updatedAt.toISOString(),

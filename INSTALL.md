@@ -2,6 +2,16 @@
 
 Each company gets a separate installation and database. The steps below start with an empty database. For an existing installation, use the update steps at the end.
 
+## The short version
+
+1. Create a PostgreSQL database and copy the project files.
+2. Fill in the settings below, then run the three database commands in step 3.
+3. Activate your owner account and deploy the app.
+4. Sign in, add a test lead, refresh, and check that it is still there.
+5. Invite one teammate and test Inbox before inviting the rest of the team.
+
+**Using Cloudflare?** To connect a domain to the current app, follow [the Cloudflare guide](./DEPLOY_CLOUDFLARE.md). Hosting the app inside Workers is a separate migration and is not yet certified: the compatibility check flags the current sign-in library. Do not move customer traffic to an untested Worker.
+
 ## Before you begin
 
 You need access to the source repository, Node.js 24, and a PostgreSQL database. Keep the database password and your app secrets in your password manager.

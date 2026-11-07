@@ -63,7 +63,9 @@ export function InboxWorkspace() {
       d = await inboxRequest<Conversation>(`?threadId=${id}`);
     } catch (error) {
       if (
-        [401, 403, 404, 410].includes((error as { status?: number }).status ?? 0) &&
+        [401, 403, 404, 410].includes(
+          (error as { status?: number }).status ?? 0,
+        ) &&
         activeThread.current === id
       ) {
         activeThread.current = null;
@@ -394,6 +396,9 @@ export function InboxWorkspace() {
                       className={`block truncate text-sm ${t.unread ? "font-semibold" : "font-medium"}`}
                     >
                       {t.subject}
+                    </span>
+                    <span className="mt-1 block truncate text-xs leading-5 text-white/55">
+                      {t.preview || "No messages yet"}
                     </span>
                     <span className="mt-1 block text-xs text-white/45">
                       {t.memberCount > 2

@@ -197,7 +197,7 @@ export function AdminWorkspaceComposer({
   return (
     <section
       className={cn(
-        "ld-glass-panel relative overflow-hidden p-4 shadow-[0_28px_70px_rgba(0,0,0,0.2)] sm:p-6",
+        "ld-glass-panel relative overflow-clip p-4 shadow-[0_28px_70px_rgba(0,0,0,0.2)] sm:p-6",
         isCompact ? "rounded-[28px] sm:rounded-[32px]" : "rounded-[30px] sm:rounded-[36px]",
       )}
     >

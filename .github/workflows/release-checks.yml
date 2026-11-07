@@ -155,7 +155,12 @@ jobs:
           cache: npm
       - run: npm ci
       - name: Generate ephemeral test secret
-        run: echo "AUTH_SECRET=$(openssl rand -base64 32)" >> "$GITHUB_ENV"
+        run: |
+          for key in AUTH_SECRET CRM_INBOX_DATA_KEY; do
+            generated_secret=$(openssl rand -base64 32)
+            echo "::add-mask::$generated_secret"
+            printf '%s=%s\n' "$key" "$generated_secret" >> "$GITHUB_ENV"
+          done
       - name: Migrate empty database
         timeout-minutes: 3
         run: npm run db:migrate
@@ -181,6 +186,7 @@ jobs:
           server_pid=$!
           trap 'kill "$server_pid" 2>/dev/null || true' EXIT
           npm run smoke:deployment
+          npm run verify:auth
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         if: failure()
         with:

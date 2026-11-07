@@ -1,3 +1,4 @@
+import {isSameWorkspaceOrigin} from "@/lib/http/same-origin";
 import { desc, eq } from "drizzle-orm";
 import { z } from "zod";
 import { NextResponse } from "next/server";
@@ -26,7 +27,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Forbidden." }, { status: 403 });
   }
 
-  if (request.headers.get("origin") !== new URL(request.url).origin) return NextResponse.json({error:"Open this action from your workspace."},{status:403});
+  if (!isSameWorkspaceOrigin(request)) return NextResponse.json({error:"Open this action from your workspace."},{status:403});
   const payload = (await request.json().catch(() => null)) as Record<string, unknown> | null;
   const presetId = typeof payload?.presetId === "string" ? payload.presetId : "";
   const preset = getIndustryPreset(presetId);

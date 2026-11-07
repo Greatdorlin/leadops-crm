@@ -10,6 +10,7 @@ function isolated(value:string|undefined){
   if(!["127.0.0.1","localhost","[::1]"].includes(u.hostname)||!/^\/leads_(review|restore|test)[a-z0-9_]*$/.test(u.pathname))throw new Error("Recovery verification accepts only explicitly named local test databases.");
   return u;
 }
+async function main(){
 const source=isolated(process.env.DATABASE_URL),target=isolated(process.env.RESTORE_DATABASE_URL);
 assert.notEqual(source.pathname,target.pathname,"Source and restore databases must differ.");
 const db=postgres(source.toString(),{max:1,prepare:false}),restored=postgres(target.toString(),{max:1,prepare:false});
@@ -23,7 +24,7 @@ try{
  const [empty]=await restored`select count(*)::int as n from pg_class c join pg_namespace n on n.oid=c.relnamespace where n.nspname='public' and c.relkind='r'`;assert.equal(empty.n,0,"Restore target must be empty.");
  const u=randomUUID(),lead=randomUUID(),thread=randomUUID(),message=randomUUID();
  await db.begin(async tx=>{
-  await tx`insert into crm_users(id,email,full_name,role,is_active) values(${u},${`recovery-${u}@example.invalid`},'Isolated recovery fixture','sales_rep',true)`;
+  await tx`insert into crm_users(id,email,full_name,role,is_active) values(${u},${`recovery-${u}@example.invalid`},'Isolated recovery fixture','sales_agent',true)`;
   await tx`insert into user_credentials(user_id,password_hash) values(${u},'isolated-non-login-fixture')`;
   await tx`insert into leads(id,first_name,email,assigned_user_id,estimated_value) values(${lead},'Isolated restore',${`lead-${lead}@example.invalid`},${u},12500)`;
   await tx`insert into lead_notes(lead_id,note,created_by) values(${lead},'Recovery note','isolated-review')`;
@@ -47,3 +48,6 @@ try{
  assert.deepEqual(decryptMessage(row.content_cipher,`message:${message}`),{text:"Encrypted restore fixture"});
  console.log(JSON.stringify({passed:true,node:process.version,postgres:(await db`show server_version`)[0].server_version,pgDump:command("pg_dump",["--version"],source),tables:before,encryptedMessageAccessible:true,wrongKeyRejected:true,productionAccessed:false},null,2));
 }finally{if(keyBefore===undefined)delete process.env.CRM_INBOX_DATA_KEY;else process.env.CRM_INBOX_DATA_KEY=keyBefore;await db.end();await restored.end()}
+
+}
+main().catch(error=>{console.error(error instanceof Error?error.message:"Isolated recovery verification failed.");process.exitCode=1});

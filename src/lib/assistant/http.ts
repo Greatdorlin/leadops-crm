@@ -1,3 +1,4 @@
+import {isSameWorkspaceOrigin} from "@/lib/http/same-origin";
 import { ZodError } from "zod";
 import { NextResponse } from "next/server";
 import { resolvePublicAppOrigin } from "@/lib/public-app-origin";
@@ -13,7 +14,7 @@ export function origin() {
   return value;
 }
 export function sameOrigin(request: Request) {
-  if (request.headers.get("origin") !== new URL(request.url).origin)
+  if (!isSameWorkspaceOrigin(request))
     throw new AssistantError("Open this action from the workspace.", 403);
 }
 export async function body(request: Request) {

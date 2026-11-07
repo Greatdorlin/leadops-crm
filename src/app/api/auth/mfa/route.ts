@@ -1,3 +1,4 @@
+import {isSameWorkspaceOrigin} from "@/lib/http/same-origin";
 import { NextResponse } from 'next/server';
 import { getAdminRequestContext } from '@/lib/admin';
 import { verifyUserPassword } from '@/lib/auth-credentials';
@@ -7,7 +8,7 @@ const headers = { 'Cache-Control': 'private, no-store', 'X-Content-Type-Options'
 export async function GET() { const c = await getAdminRequestContext(); if (!c?.crmUser || c.requestedAccessLevel)
     return NextResponse.json({ error: 'Sign in as yourself.' }, { status: 401, headers }); return NextResponse.json(await mfaStatus(c.crmUser.id), { headers }); }
 export async function POST(request: Request) {
-    if (request.headers.get('origin') !== new URL(request.url).origin)
+    if (!isSameWorkspaceOrigin(request))
         return NextResponse.json({ error: 'Open this action from your workspace.' }, { status: 403, headers });
     const c = await getAdminRequestContext();
     if (!c?.crmUser || c.requestedAccessLevel)

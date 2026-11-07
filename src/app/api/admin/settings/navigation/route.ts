@@ -1,3 +1,4 @@
+import {isSameWorkspaceOrigin} from "@/lib/http/same-origin";
 import { readBoundedJsonObject } from "@/lib/http/bounded-body";
 import { NextResponse } from "next/server";
 import { getAdminRequestContext } from "@/lib/admin";
@@ -22,7 +23,7 @@ export async function GET() {
 }
 
 export async function PATCH(request: Request) {
-  if (request.headers.get("origin") !== new URL(request.url).origin)
+  if (!isSameWorkspaceOrigin(request))
     return NextResponse.json({error:"Open this action from your workspace."},{status:403});
   const context = await getAdminRequestContext();
   if (!context) {

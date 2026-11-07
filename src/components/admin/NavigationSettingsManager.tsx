@@ -14,7 +14,7 @@ type NavigationDraftItem = {
   order: number;
 };
 
-const lockedKeys = new Set<NavigationItemKey>(["dashboard", "leads", "settings"]);
+const lockedKeys = new Set<NavigationItemKey>(["settings"]);
 
 function normalizeItems(settings: ResolvedWorkspaceSettings): NavigationDraftItem[] {
   return NAVIGATION_ITEM_KEYS.map((key, index) => {
@@ -100,10 +100,10 @@ export function NavigationSettingsManager({
     <GlassSurface intensity="medium" className="space-y-5 p-5 ld-animate-fade-in-up">
       <SectionHeader
         eyebrow="Workspace menu"
-        title="Shape the sidebar without breaking access"
+        title="Navigation"
         actions={
           <span className="rounded-full border border-white/10 bg-white/[0.055] px-3 py-1.5 text-xs font-semibold text-white/70">
-            Core items locked
+            Settings stays available
           </span>
         }
       />

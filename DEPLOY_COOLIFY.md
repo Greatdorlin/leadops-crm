@@ -87,3 +87,8 @@ See [BACKUP_AND_RESTORE.md](./BACKUP_AND_RESTORE.md).
 ## 9. Capacity Verification
 
 Start with one app container, calculate the aggregate database pool across all replicas, and complete the acceptance gate in [docs/SCALING_AND_CAPACITY.md](./docs/SCALING_AND_CAPACITY.md) before promising a client capacity tier.
+
+
+## Cloudflare
+
+For a Cloudflare domain or the tested adapter build, read [DEPLOY_CLOUDFLARE.md](./DEPLOY_CLOUDFLARE.md). The Workers bundle builds; production sign-in and database checks remain open.

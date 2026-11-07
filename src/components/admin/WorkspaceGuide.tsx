@@ -6,9 +6,6 @@ import Link from "next/link";
 import {
   ArrowRight,
   Check,
-  Compass,
-  MapPin,
-  Play,
   X,
   ChevronLeft,
   ChevronRight,
@@ -52,25 +49,15 @@ export function WorkspaceGuide() {
   }, []);
   return (
     <div className="space-y-8">
-      <section className="relative overflow-hidden rounded-3xl border border-white/15 bg-gradient-to-br from-white/[.075] via-white/[.025] to-transparent p-6 sm:p-9">
+      <section className="relative overflow-hidden rounded-3xl border border-white/15 bg-white/[.025] p-6 sm:p-9">
         <div className="max-w-2xl">
-          <span className="mb-5 inline-flex items-center gap-2 rounded-full border border-white/15 px-3 py-1.5 text-xs text-white/60">
-            <Compass className="size-3.5" />A guided look around your workspace
-          </span>
-          <h2 className="text-3xl font-semibold leading-tight tracking-tight sm:text-4xl">
-            See how your team’s day fits together.
-          </h2>
-          <p className="mt-4 max-w-xl text-sm leading-7 text-white/60">
-            From the first enquiry to the next follow-up, walk through the
-            actual screens your team uses. Open the pages, see the controls, and
-            explore at your own pace.
-          </p>
+          <h2 className="text-xl font-semibold">Workspace tour</h2>
+          <p className="mt-3 text-sm text-white/60">Choose a page below or start with the dashboard.</p>
           <button
             className="admin-button-primary mt-6 inline-flex min-h-12 items-center gap-3 rounded-xl px-5 text-sm"
             disabled={!data}
             onClick={() => launch(0)}
           >
-            <Play className="size-4" />
             {data ? "Start guided tour" : "Loading tour…"}
             <ArrowRight className="size-4" />
           </button>
@@ -156,7 +143,9 @@ export function WorkspaceTour() {
   const heading = useRef<HTMLHeadingElement>(null);
   useEffect(() => {
     let active = true;
-    loadGuide()
+    let hasProgress = false;
+    try { hasProgress = !!sessionStorage.getItem(key); } catch {}
+    if (hasProgress) loadGuide()
       .then((d) => {
         if (!active) return;
         setData(d);
@@ -325,7 +314,6 @@ export function WorkspaceTour() {
         className="pointer-events-auto absolute bottom-3 left-3 right-3 max-h-[min(calc(100svh-90px),380px)] overflow-y-auto rounded-2xl border border-white/20 bg-[#101720]/95 p-4 shadow-2xl backdrop-blur-xl sm:bottom-5 sm:left-auto sm:right-5 sm:w-[400px] sm:p-5"
       >
         <div className="flex items-center gap-2">
-          <Compass className="size-4 text-sky-200" />
           <p className="flex-1 text-[11px] font-medium uppercase tracking-wider text-white/50">
             Workspace tour · {step + 1} / {data.steps.length}
           </p>
@@ -365,7 +353,6 @@ export function WorkspaceTour() {
               {current.description}
             </p>
             <p className="mt-3 flex gap-2 text-xs leading-5 text-sky-100/75">
-              <MapPin className="mt-0.5 size-3.5 shrink-0" />
               {pathname !== current.href ? (
                 <>
                   Open this stop to continue.{" "}

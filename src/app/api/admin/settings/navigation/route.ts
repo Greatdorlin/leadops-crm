@@ -1,3 +1,4 @@
+import { readBoundedJsonObject } from "@/lib/http/bounded-body";
 import { NextResponse } from "next/server";
 import { getAdminRequestContext } from "@/lib/admin";
 import { canManageNavigationSettings } from "@/lib/crm/authz";
@@ -21,6 +22,8 @@ export async function GET() {
 }
 
 export async function PATCH(request: Request) {
+  if (request.headers.get("origin") !== new URL(request.url).origin)
+    return NextResponse.json({error:"Open this action from your workspace."},{status:403});
   const context = await getAdminRequestContext();
   if (!context) {
     return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
@@ -30,7 +33,9 @@ export async function PATCH(request: Request) {
     return NextResponse.json({ error: "Forbidden." }, { status: 403 });
   }
 
-  const payload = await request.json().catch(() => null);
+  const body = await readBoundedJsonObject(request, 32 * 1024);
+  if (!body.ok) return NextResponse.json({error:body.error},{status:body.status});
+  const payload = body.value;
   const parsed = navigationSettingsSchema.safeParse(payload);
   if (!parsed.success) {
     return NextResponse.json(

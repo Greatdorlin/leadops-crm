@@ -15,7 +15,7 @@ export function workspaceGuide(
 ): GuideStep[] {
   const steps: GuideStep[] = [
     {
-      title: "Your workspace, at a glance",
+      title: "Dashboard",
       description:
         role === "affiliate"
           ? "See the enquiries you referred and their current progress. Your access stays limited to your own records."
@@ -26,7 +26,7 @@ export function workspaceGuide(
   ];
   if (permissions.includes("canViewLeads"))
     steps.push({
-      title: "Every conversation has a next step",
+      title: "Leads",
       description:
         "Open a lead to review notes and tasks. Lost removes open pipeline value. Unqualified asks whether one product or all current products are affected.",
       href: "/leads",
@@ -34,7 +34,7 @@ export function workspaceGuide(
     });
   if (permissions.includes("canEditLeads"))
     steps.push({
-      title: "Keep follow-ups moving",
+      title: "Tasks",
       description:
         "Use tasks to record the next action and due date. A promised payment belongs in a note until money is actually received.",
       href: "/tasks",
@@ -50,14 +50,14 @@ export function workspaceGuide(
     });
   if (permissions.includes("canViewReports"))
     steps.push({
-      title: "Understand what is working",
+      title: "Reports",
       description:
         "Reports show sales outcomes in your access scope. Use the report sections to review pipeline, team performance and source quality.",
       href: "/reports",
       label: "Open reports",
     });
   steps.push({
-    title: "A private place for conversations",
+    title: "Inbox",
     description:
       "Inbox keeps team conversations limited to their participants. Linking a lead also requires current access to that lead. Choose one teammate for a direct message or several for a private group.",
     href: "/inbox",
@@ -65,7 +65,7 @@ export function workspaceGuide(
   });
   if (role === "owner" || role === "admin")
     steps.push({
-      title: "Make the workspace yours",
+      title: "Settings",
       description:
         "Set your currency, products, essential stages and appearance in Settings. Automatic exchange rates are available, with optional manual overrides.",
       href: "/settings",
@@ -73,7 +73,7 @@ export function workspaceGuide(
     });
   if (permissions.includes("canViewLeads"))
     steps.push({
-      title: "Ask a question about your leads",
+      title: "Assistant",
       description:
         "Try “Find a lead named Mathew” or “What are our main objections?” The assistant searches records and saved notes within your access. If no lead matches, it says so.",
       href: "/assistant",
@@ -82,7 +82,7 @@ export function workspaceGuide(
         "Try a question in the message box. No changes are made without review.",
     });
   steps.push({
-    title: "You can revisit this guide",
+    title: "Profile",
     description:
       "Open Settings → Workspace guide, or find Workspace guide in My profile. You can repeat it whenever you need a refresher.",
     href: "/profile",

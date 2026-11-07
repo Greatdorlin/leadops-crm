@@ -617,7 +617,7 @@ export function AssistantWorkspace({
           className="admin-surface scroll-mt-24 rounded-3xl p-5"
           id="review-changes"
         >
-          <h2 className="text-xl font-semibold">Review proposed changes</h2>
+          <h2 className="text-xl font-semibold">Review proposed edits</h2>
           <p className="mt-2 text-sm text-white/60">
             Only you can approve your proposals. Each request expires after 15
             minutes.
@@ -696,8 +696,9 @@ export function AssistantWorkspace({
             onClick={() => void run(refresh)}
             className="min-h-11 underline underline-offset-4"
           >
-            Check pending changes
+            Refresh proposed edits
           </button>
+          <p role="status" className="w-full text-xs text-white/50">{data.pending.length ? `${data.pending.length} proposed edits need your approval.` : "No edits awaiting approval."}</p>
         </div>
       ) : null}
       {settingsOnly ? (

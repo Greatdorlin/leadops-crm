@@ -46,3 +46,8 @@ Every concurrent runtime instance can create its own pool, so size the aggregate
 Do not run `db:push` against production. Do not run migrations as part of the Netlify build.
 
 Official platform reference: [Next.js on Netlify](https://docs.netlify.com/build/frameworks/framework-setup-guides/nextjs/overview/).
+
+
+## Cloudflare
+
+For a Cloudflare domain or the tested adapter build, read [DEPLOY_CLOUDFLARE.md](./DEPLOY_CLOUDFLARE.md). The Workers bundle builds; production sign-in and database checks remain open.

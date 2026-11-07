@@ -29,7 +29,8 @@
     "db:prepare:assistant": "node --import tsx src/scripts/prepare-assistant.ts",
     "db:prepare:assistant-controls": "node --import tsx src/scripts/prepare-assistant.ts --controls",
     "db:prepare:inbox": "node --import tsx src/scripts/prepare-inbox.ts",
-    "inbox:sync": "node --import tsx src/scripts/inbox-sync.ts"
+    "inbox:sync": "node --import tsx src/scripts/inbox-sync.ts",
+    "build:cloudflare": "npm run build && opennextjs-cloudflare build --skipBuild --skipWranglerConfigCheck"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.4.0",
@@ -72,6 +73,7 @@
   "devDependencies": {
     "@electric-sql/pglite": "^0.5.15",
     "@modelcontextprotocol/sdk": "^1.32.2",
+    "@opennextjs/cloudflare": "1.20.16",
     "@tailwindcss/postcss": "^4",
     "@types/mailparser": "^3.9.0",
     "@types/node": "^20",

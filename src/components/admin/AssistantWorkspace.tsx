@@ -71,7 +71,7 @@ export function AssistantWorkspace({
   const noteRequestId = useRef<string | null>(null);
   const settings = useAdminWorkspaceSettings();
   async function refresh() {
-    const r = await fetch("/api/assistant", { cache: "no-store" });
+    const r = await fetch("/api/assistant", { cache: "no-store", signal: AbortSignal.timeout(20000) });
     const d = await r.json();
     if (!r.ok) throw new Error(d.error || "Assistant is not available yet.");
     setData(d);
@@ -79,7 +79,7 @@ export function AssistantWorkspace({
   }
   useEffect(() => {
     let active = true;
-    fetch("/api/assistant", { cache: "no-store" })
+    fetch("/api/assistant", { cache: "no-store", signal: AbortSignal.timeout(20000) })
       .then(async (r) => {
         const d = await r.json();
         if (!r.ok)
@@ -391,8 +391,8 @@ export function AssistantWorkspace({
                           <h4 className="font-medium">
                             {theme.label}{" "}
                             <span className="text-sm text-white/60">
-                              · {theme.leadCount} leads · {theme.noteCount}{" "}
-                              notes
+                              · {theme.leadCount} {theme.leadCount === 1 ? "lead" : "leads"} · {theme.noteCount}{" "}
+                              {theme.noteCount === 1 ? "note" : "notes"}
                             </span>
                           </h4>
                           <ul className="mt-2 space-y-3">

@@ -1,3 +1,4 @@
+import { PhoneActions } from "@/components/admin/PhoneActions";
 import { getLeadCapturedFormAnswers } from "@/lib/crm/form-captured-answers";
 import Link from "next/link";
 import {
@@ -495,11 +496,11 @@ export default async function AdminLeadDetailPage({
                   <div className="min-w-0">
                     <p className="text-sm font-medium text-white/60">WhatsApp number</p>
                     <p className="mt-1 text-[1.05rem] leading-8 text-white [overflow-wrap:anywhere]">
-                      {lead.whatsappNumber || "No WhatsApp number yet"}
+                      {lead.whatsappNumber ? <PhoneActions number={lead.whatsappNumber}/> : "No WhatsApp number yet"}
                     </p>
                     <p className="mt-3 text-sm font-medium text-white/60">Call number</p>
                     <p className="mt-1 text-[1.05rem] leading-8 text-white [overflow-wrap:anywhere]">
-                      {lead.callNumber || "No call number yet"}
+                      {lead.callNumber ? <PhoneActions number={lead.callNumber}/> : "No call number yet"}
                     </p>
                   </div>
                 </div>

@@ -1,3 +1,4 @@
+import { mfaVersion } from "@/lib/security/mfa";
 import { getServerSession } from "next-auth";
 import type { Session } from "next-auth";
 import { cache } from "react";
@@ -58,7 +59,8 @@ const loadEffectivePermissions = cache(async function loadEffectivePermissions(
   } catch (error) {
     const logger = isCrmConfigurationError(error) ? console.warn : console.error;
     logger("[admin:role-permissions]", error);
-    return [...DEFAULT_ROLE_PERMISSIONS[role]];
+    // An unavailable permission store must not restore revoked privileges.
+    return process.env.NODE_ENV === "production" ? [] : [...DEFAULT_ROLE_PERMISSIONS[role]];
   }
 });
 
@@ -83,6 +85,7 @@ export async function getAdminSession() {
     return null;
   }
 
+  if (session?.user?.email && (session as typeof session & {mfaVersion?:string}).mfaVersion !== await mfaVersion(session.user.email)) return null;
   return session;
 }
 
@@ -111,6 +114,7 @@ export async function requireAdminSession(callbackPath = "/dashboard") {
     redirect(`/login?callbackUrl=${encodeURIComponent(callbackPath)}&error=AccessDenied`);
   }
 
+  if ((session as typeof session & {mfaVersion?:string}).mfaVersion !== await mfaVersion(session.user.email)) redirect(`/login?callbackUrl=${encodeURIComponent(callbackPath)}`);
   return session;
 }
 

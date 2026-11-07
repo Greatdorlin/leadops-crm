@@ -52,6 +52,15 @@ export const userCredentials = pgTable(
       .primaryKey()
       .references(() => crmUsers.id, { onDelete: "cascade" }),
     passwordHash: text("password_hash").notNull(),
+    mfaSecretCipher: text("mfa_secret_cipher"),
+    mfaPendingCipher: text("mfa_pending_cipher"),
+    mfaPendingExpiresAt: timestamp("mfa_pending_expires_at", {withTimezone:true}),
+    mfaChangedAt: timestamp("mfa_changed_at", {withTimezone:true}),
+    mfaEnabledAt: timestamp("mfa_enabled_at", {withTimezone:true}),
+    mfaLastStep: integer("mfa_last_step").notNull().default(-1),
+    mfaFailedCount: integer("mfa_failed_count").notNull().default(0),
+    mfaLockedUntil: timestamp("mfa_locked_until", {withTimezone:true}),
+    mfaRecoveryHashes: jsonb("mfa_recovery_hashes").$type<string[]>().notNull().default([]),
     failedLoginCount: integer("failed_login_count").notNull().default(0),
     lockedUntil: timestamp("locked_until", { withTimezone: true }),
     passwordSetAt: timestamp("password_set_at", { withTimezone: true })

@@ -1,3 +1,4 @@
+import { checkMfa } from "@/lib/security/mfa";
 import type { NextAuthOptions } from "next-auth";
 import GoogleProvider from "next-auth/providers/google";
 import CredentialsProvider from "next-auth/providers/credentials";
@@ -24,13 +25,28 @@ providers.push(
     credentials: {
       email: { label: "Email", type: "email" },
       password: { label: "Password", type: "password" },
+      code: {label:"Authenticator or recovery code",type:"text"},
     },
     async authorize(credentials) {
-      return verifyUserPassword(credentials?.email, credentials?.password);
+      if ((credentials?.code?.length ?? 0) > 32 || (credentials?.password?.length ?? 0) > 128) return null;
+      const user=await verifyUserPassword(credentials?.email, credentials?.password);
+      if(!user)return null;
+      const factor=await checkMfa(user.id,credentials?.code?.trim()??"");
+      return factor.ok ? {...user,mfaVersion:factor.version}:null;
     },
   }),
 );
 
+async function googleFactorVersion(email?: string | null) {
+  if (!email) return null;
+  const {getDb} = await import("@/lib/db/client");
+  const {crmUsers, userCredentials} = await import("@/lib/db/schema");
+  const {eq} = await import("drizzle-orm");
+  const [row] = await getDb().select({enabledAt:userCredentials.mfaEnabledAt, changedAt:userCredentials.mfaChangedAt})
+    .from(crmUsers).leftJoin(userCredentials,eq(userCredentials.userId,crmUsers.id))
+    .where(eq(crmUsers.email,email.toLowerCase().trim())).limit(1);
+  return !row || row.enabledAt ? null : row.changedAt?.toISOString() ?? "none";
+}
 export const authOptions: NextAuthOptions = {
   secret: process.env.AUTH_SECRET ?? process.env.NEXTAUTH_SECRET,
   session: {
@@ -42,9 +58,21 @@ export const authOptions: NextAuthOptions = {
   },
   providers,
   callbacks: {
+    async jwt({token,user,account}) {
+      if (account && user?.email) {
+        const version = (user as typeof user & {mfaVersion?:string}).mfaVersion;
+        if (!version) throw new Error("Authentication verification is required.");
+        token.mfaVersion = version;
+      }
+      return token;
+    },
     async signIn({ user, account, profile }) {
       if (account?.provider === "google") {
-        return isVerifiedGoogleProfile(profile) && hasAdminWorkspaceAccess(user.email);
+        if (!isVerifiedGoogleProfile(profile) || !user.id || !(await hasAdminWorkspaceAccess(user.email))) return false;
+        const version = await googleFactorVersion(user.email);
+        if (version === null) return false;
+        (user as typeof user & {mfaVersion?:string}).mfaVersion = version;
+        return true;
       }
 
       if (account?.provider !== "credentials") {
@@ -58,6 +86,7 @@ export const authOptions: NextAuthOptions = {
         session.user.email = token.email;
       }
 
+      (session as typeof session & {mfaVersion?:string}).mfaVersion=typeof token.mfaVersion==="string"?token.mfaVersion:undefined;
       return session;
     },
   },

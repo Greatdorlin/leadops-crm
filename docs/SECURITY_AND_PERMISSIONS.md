@@ -237,3 +237,9 @@ Before approving security-sensitive work, verify:
 - Legacy environment allowlists remain compatibility-only and must not become product defaults.
 - Compatibility access-level names are mapped to neutral Leads Desk roles at authorization boundaries.
 - Local preview access is guarded by `NODE_ENV !== "production"` and must never become a production bypass.
+
+## Two-factor authentication and database checks
+
+See [Account security](ACCOUNT_SECURITY.md) for authenticator setup, recovery, migration order and release gates. Authenticator seeds are encrypted; recovery codes are hashed and single-use. Codes are protected against replay and repeated failures. Google sign-in cannot bypass an enrolled factor. Production permission-store failures deny access rather than restoring role defaults.
+
+Server scopes and database RLS are separate controls. Run `npm run security:database` using the runtime connection, then verify direct cross-user reads and writes. Do not claim database enforcement until the role, policies and negative tests pass.

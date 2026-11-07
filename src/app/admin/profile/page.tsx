@@ -1,3 +1,4 @@
+import { TwoFactorSettings } from "@/components/admin/TwoFactorSettings";
 import Link from "next/link";
 import { AdminShell } from "@/components/admin/AdminShell";
 import { AdminSignOutButton } from "@/components/admin/AdminSignOutButton";
@@ -68,6 +69,7 @@ export default async function AdminProfilePage() {
             </GlassCard>
           </AnimatedCard>
         ) : null}
+        {profile && !demoMode ? <TwoFactorSettings/> : null}
       </div>
     </AdminShell>
   );

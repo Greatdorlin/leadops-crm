@@ -225,6 +225,20 @@
       "when": 1793989917874,
       "tag": "0031_huge_rage",
       "breakpoints": true
+    },
+    {
+      "idx": 32,
+      "version": "7",
+      "when": 1794054774177,
+      "tag": "0032_living_manta",
+      "breakpoints": true
+    },
+    {
+      "idx": 33,
+      "version": "7",
+      "when": 1794054824795,
+      "tag": "0033_regular_angel",
+      "breakpoints": true
     }
   ]
 }

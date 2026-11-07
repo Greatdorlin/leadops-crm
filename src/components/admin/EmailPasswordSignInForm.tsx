@@ -9,6 +9,7 @@ export function EmailPasswordSignInForm({ callbackUrl }: { callbackUrl: string }
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [code,setCode]=useState("");
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -22,6 +23,7 @@ export function EmailPasswordSignInForm({ callbackUrl }: { callbackUrl: string }
         callbackUrl,
         email: email.trim(),
         password,
+        code,
         redirect: false,
       });
       if (!result?.ok || result.error) {
@@ -50,6 +52,7 @@ export function EmailPasswordSignInForm({ callbackUrl }: { callbackUrl: string }
         <label className="text-sm font-medium text-white/85" htmlFor="sign-in-password">Password</label>
         <input id="sign-in-password" name="password" autoComplete="current-password" className={inputClass} onChange={(event) => setPassword(event.target.value)} required type="password" value={password} />
       </div>
+      <div><label className="text-sm font-medium text-white/85" htmlFor="sign-in-code">Authenticator or recovery code</label><input id="sign-in-code" className={inputClass} autoComplete="one-time-code" maxLength={32} value={code} onChange={e=>setCode(e.target.value)} /><p className="mt-1 text-xs text-white/50">Enter this if two-factor authentication is enabled.</p></div>
       {error ? <p role="alert" className="text-sm text-rose-200">{error}</p> : null}
       <Button className="w-full" disabled={isSubmitting} aria-busy={isSubmitting} type="submit">
         {isSubmitting ? "Signing in…" : "Sign in"}

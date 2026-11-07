@@ -30,7 +30,8 @@
     "db:prepare:assistant-controls": "node --import tsx src/scripts/prepare-assistant.ts --controls",
     "db:prepare:inbox": "node --import tsx src/scripts/prepare-inbox.ts",
     "inbox:sync": "node --import tsx src/scripts/inbox-sync.ts",
-    "build:cloudflare": "npm run build && opennextjs-cloudflare build --skipBuild --skipWranglerConfigCheck"
+    "build:cloudflare": "npm run build && opennextjs-cloudflare build --skipBuild --skipWranglerConfigCheck",
+    "security:database": "node scripts/security-database-audit.mjs"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.4.0",

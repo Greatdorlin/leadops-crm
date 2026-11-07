@@ -98,7 +98,8 @@ function buildDevelopmentSettingsData() {
   };
 }
 
-export default async function AdminSettingsPage() {
+export default async function AdminSettingsPage({searchParams}:{searchParams:Promise<{q?:string}>}) {
+  const query = ((await searchParams).q ?? "").slice(0,150).trim().toLowerCase();
   const {
     session,
     role,
@@ -238,7 +239,7 @@ export default async function AdminSettingsPage() {
   ] as const;
   const visibleSettingsGroups = settingsGroups.map((group) => ({
     ...group,
-    items: group.items.filter((item) => item.enabled),
+    items: group.items.filter((item) => item.enabled && (!query || `${item.label} ${item.copy} ${group.title}`.toLowerCase().includes(query))),
   })).filter((group) => group.items.length > 0);
   const savedConnections = canOpenIntegrations ? pageData?.integrations ?? [] : [];
 
@@ -260,7 +261,7 @@ export default async function AdminSettingsPage() {
       userEmail={currentUser?.email || session.user?.email}
       userAvatarUrl={currentUser?.avatarUrl}
     >
-      <div className="space-y-6"><div className="flex flex-wrap gap-3"><Link href="/settings/guide" className="admin-button-secondary inline-flex min-h-11 items-center px-4">Workspace guide</Link>{canOpenSystemStatus ? <Link href="/settings/install" className="admin-button-secondary inline-flex min-h-11 items-center px-4">Installation guide</Link> : null}</div>
+      <div className="space-y-6"><form action="/settings" role="search" className="flex min-w-0 gap-2"><input name="q" aria-label="Search settings" defaultValue={query} placeholder="Search settings…" maxLength={150} className="admin-input min-h-12 min-w-0 flex-1 rounded-xl px-4 text-sm"/><button className="admin-button-primary min-h-12 rounded-xl px-4 text-sm">Search</button>{query ? <Link href="/settings" className="inline-flex min-h-12 items-center px-2 text-sm underline">Clear</Link>:null}</form>{query && !visibleSettingsGroups.length ? <p role="status" className="text-sm text-white/60">No settings match “{query}”. Try currency, appearance, stages or notifications.</p>:null}<div className="flex flex-wrap gap-3"><Link href="/settings/guide" className="admin-button-secondary inline-flex min-h-11 items-center px-4">Workspace guide</Link>{canOpenSystemStatus ? <Link href="/settings/install" className="admin-button-secondary inline-flex min-h-11 items-center px-4">Installation guide</Link> : null}</div>
         {pageData ? (
           <>
             <nav aria-label="Settings sections" className="flex flex-wrap gap-2">

@@ -1,6 +1,6 @@
 "use client";
 
-import { startTransition, useState } from "react";
+import { startTransition, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { NotificationEventRecord } from "@/lib/crm/notification-events";
@@ -29,6 +29,33 @@ export function NotificationInbox({
   const router = useRouter();
   const [notifications, setNotifications] = useState(initialNotifications);
   const [pendingId, setPendingId] = useState<string | null>(null);
+
+  const [liveUnread, setLiveUnread] = useState(unreadCount);
+  const [refreshError, setRefreshError] = useState("");
+  useEffect(() => {
+    if (demoMode) return;
+    let active = true, pending = false;
+    const controller = new AbortController();
+    async function update() {
+      if (pending || document.visibilityState !== "visible") return;
+      pending = true;
+      try {
+        const params = new URLSearchParams(window.location.search);
+        params.set("includeRead", "true"); params.set("category", activeCategory);
+        const response = await fetch(`/api/admin/notifications?${params}`, {cache:"no-store",signal:controller.signal});
+        if (!response.ok) {
+          if ([401,403].includes(response.status) && active) setNotifications([]);
+          throw new Error("Notifications could not refresh. Reopen this page to try again.");
+        }
+        const data = await response.json();
+        if (active) {setNotifications(data.notifications);setLiveUnread(data.unreadCount);setRefreshError("");}
+      } catch(error) {if(active && !controller.signal.aborted)setRefreshError(error instanceof Error?error.message:"Could not refresh notifications.");}
+      finally {pending=false;}
+    }
+    void update(); const timer=setInterval(()=>void update(),5000);
+    window.addEventListener("focus",update); document.addEventListener("visibilitychange",update);
+    return()=>{active=false;controller.abort();clearInterval(timer);window.removeEventListener("focus",update);document.removeEventListener("visibilitychange",update);};
+  }, [activeCategory,demoMode,nextCursor]);
 
   async function markRead(notificationId: string) {
     setPendingId(notificationId);
@@ -64,11 +91,12 @@ export function NotificationInbox({
 
   return (
     <div className="space-y-4">
+      {refreshError ? <p role="status" className="text-sm text-amber-200">{refreshError}</p>:null}
       <div className="ld-glass-card ld-glass-soft flex flex-col gap-3 rounded-[24px] p-3 sm:p-4">
         <div className="flex items-center justify-between gap-3 px-1">
           <h2 className="text-base font-semibold tracking-[-0.02em] text-white">Recent activity</h2>
           <span className="inline-flex w-fit shrink-0 rounded-full border border-white/12 bg-white/[0.07] px-3 py-1.5 text-xs font-semibold text-white/76">
-            {unreadCount} unread
+            {liveUnread} unread
           </span>
         </div>
         <nav className="flex min-w-0 gap-1 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" aria-label="Notification categories">

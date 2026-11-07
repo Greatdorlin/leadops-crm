@@ -80,14 +80,14 @@ function FieldChoice({
       type="button"
       onClick={onToggle}
       className={cn(
-        "group flex min-h-14 items-center justify-between gap-3 rounded-[20px] border px-4 py-3 text-left transition duration-200",
+        "group flex w-full min-w-0 max-w-full min-h-12 items-center justify-between gap-3 rounded-xl border px-3 py-2 text-left transition duration-200",
         checked
           ? "border-white/20 bg-[linear-gradient(135deg,color-mix(in_srgb,var(--ld-color-primary)_24%,transparent),color-mix(in_srgb,var(--ld-color-accent)_18%,transparent))] text-white shadow-[0_16px_30px_color-mix(in_srgb,var(--ld-color-primary)_16%,transparent),inset_0_1px_0_rgba(255,255,255,0.14)]"
           : "border-white/10 bg-white/[0.045] text-white/70 hover:border-white/18 hover:bg-white/[0.075] hover:text-white",
       )}
       aria-pressed={checked}
     >
-      <span className="min-w-0">
+      <span className="min-w-0 flex-1">
         <span className="block truncate text-sm font-semibold">{label}</span>
         {hint ? <span className="mt-0.5 block truncate text-xs text-white/70">{hint}</span> : null}
       </span>
@@ -226,7 +226,7 @@ export function LeadPreviewSettingsManager({
         </div>
       </div>
 
-      <div className="admin-surface-soft space-y-4 rounded-[26px] p-4 md:p-5">
+      <div className="admin-surface-soft min-w-0 space-y-4 rounded-[26px] p-4 md:p-5">
         <SectionHeader
           eyebrow="Live preview"
           title="Your actual lead queue"
@@ -243,8 +243,8 @@ export function LeadPreviewSettingsManager({
         />
       </div>
 
-      <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
-        <div className="admin-surface-soft space-y-4 rounded-[26px] p-4 md:p-5 ld-animate-fade-in-up" style={{ animationDelay: "280ms" }}>
+      <div className="grid min-w-0 gap-5 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+        <div className="admin-surface-soft min-w-0 space-y-4 rounded-[26px] p-4 md:p-5 ld-animate-fade-in-up" style={{ animationDelay: "280ms" }}>
           <div className="flex items-start gap-3">
             <span className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl border border-white/15 bg-white/[0.06] text-white/80">
               <Monitor className="h-5 w-5" />
@@ -254,7 +254,7 @@ export function LeadPreviewSettingsManager({
               <p className="mt-1 text-sm text-white/70">Choose what appears in the main lead table.</p>
             </div>
           </div>
-          <div className="grid gap-3 sm:grid-cols-2">
+          <div className="grid min-w-0 grid-cols-1 gap-2 sm:grid-cols-2">
             {allFieldOptions.map((field) => (
               <FieldChoice
                 key={field.key}
@@ -267,7 +267,7 @@ export function LeadPreviewSettingsManager({
           </div>
         </div>
 
-        <div className="admin-surface-soft space-y-4 rounded-[26px] p-4 md:p-5 ld-animate-fade-in-up" style={{ animationDelay: "320ms" }}>
+        <div className="admin-surface-soft min-w-0 space-y-4 rounded-[26px] p-4 md:p-5 ld-animate-fade-in-up" style={{ animationDelay: "320ms" }}>
           <div className="flex items-start gap-3">
             <span className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl border border-violet-200/18 bg-violet-300/10 text-violet-100">
               <Smartphone className="h-5 w-5" />
@@ -277,7 +277,7 @@ export function LeadPreviewSettingsManager({
               <p className="mt-1 text-sm text-white/70">Keep the compact view useful at a glance.</p>
             </div>
           </div>
-          <div className="grid gap-3 sm:grid-cols-2">
+          <div className="grid min-w-0 grid-cols-1 gap-2 sm:grid-cols-2">
             {allFieldOptions.map((field) => (
               <FieldChoice
                 key={`mobile-${field.key}`}
@@ -316,7 +316,7 @@ export function LeadPreviewSettingsManager({
         </label>
       </div>
 
-      <div className="admin-surface-soft space-y-4 rounded-[26px] p-4 md:p-5 ld-animate-fade-in-up">
+      <div className="admin-surface-soft min-w-0 space-y-4 rounded-[26px] p-4 md:p-5 ld-animate-fade-in-up">
         <div className="flex items-start gap-3">
           <span className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl border border-white/15 bg-white/[0.06] text-white/80">
             <MessageCircle className="h-5 w-5" />
@@ -326,7 +326,7 @@ export function LeadPreviewSettingsManager({
             <p className="mt-1 text-sm text-white/70">Choose which phone actions appear on lead details.</p>
           </div>
         </div>
-        <div className="grid gap-3 sm:grid-cols-2">
+        <div className="grid min-w-0 grid-cols-1 gap-2 sm:grid-cols-2">
           <FieldChoice
             label="Message"
             hint="Open the device SMS app"

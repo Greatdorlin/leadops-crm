@@ -4,7 +4,7 @@ export function questionIntent(input: string) {
     .trim()
     .replace(/^(?:(?:hi|hello|hey|yapper)[,!\s]+)+/i, "");
   if (
-    /\b(objections?|pushbacks?|hesitations?|reasons? (?:for|why).*(?:lost|declin|reject)|why.*(?:not buying|not converting))\b/i.test(
+    /\b(objections?|pushbacks?|hesitations?|concerns?|complaints?|push.?back|reasons? (?:for|why).*(?:lost|declin|reject)|why.*(?:not buying|not converting))\b/i.test(
       text,
     )
   )
@@ -22,8 +22,9 @@ export function questionIntent(input: string) {
     /\b(?:I contacted|I called|I spoke (?:with|to))\b/i.test(text)
   )
     return "note";
+  if (/\b(?:notes?|say|said|saying|feedback|mentioned|mentions|conversation|spoke|discussed)\b/i.test(text)) return "notes";
   if (
-    /^(?:find|search|look up|show (?:me )?(?:the )?lead)\b/i.test(text) ||
+    /^(?:(?:(?:can|could|would) you|please)\s+)?(?:is there|do we have|find|search|look (?:up|for)|show (?:me )?(?:the |a )?lead)\b/i.test(text) ||
     (!/[?]/.test(text) && text.split(/\s+/).length <= 4)
   )
     return "search";

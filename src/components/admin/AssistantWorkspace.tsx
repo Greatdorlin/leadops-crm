@@ -1,5 +1,6 @@
 "use client";
 import Link from "next/link";
+import { leadSearchQuery } from "@/lib/assistant/search-query";
 import { questionIntent } from "@/lib/assistant/question-intent";
 import type { objections } from "@/lib/assistant/objections";
 import {
@@ -42,6 +43,7 @@ export function AssistantWorkspace({
     [note, setNote] = useState(""),
     [lead, setLead] = useState<Lead | null>(null),
     [composing, setComposing] = useState(false);
+  const [noteSearchStatus, setNoteSearchStatus] = useState("");
   const questionInput = useRef<HTMLTextAreaElement>(null);
   const answerRef = useRef<HTMLDivElement>(null);
   const noteComposer = useRef<HTMLDivElement>(null);
@@ -60,10 +62,10 @@ export function AssistantWorkspace({
       ?.focus({ preventScroll: true });
   }, [composing, lead]);
   useEffect(() => {
-    if (!report && !objectionReport) return;
+    if (composing || (!report && !objectionReport && !notice)) return;
     answerRef.current?.scrollIntoView({ block: "start", behavior: "instant" });
     answerRef.current?.focus({ preventScroll: true });
-  }, [report, objectionReport]);
+  }, [report, objectionReport, notice, composing]);
   const guard = useRef(false);
   const reviewAfterRefresh = useRef(false);
   const noteRequestId = useRef<string | null>(null);
@@ -125,8 +127,8 @@ export function AssistantWorkspace({
     setObjectionReport(null);
     setComposing(false);
     const intent = questionIntent(question);
-    if (intent === "objections") {
-      setObjectionReport((await send({ op: "objections" })).data);
+    if (intent === "objections" || intent === "notes") {
+      setObjectionReport((await send({ op: "objections", question })).data);
       return;
     }
     if (intent === "performance") {
@@ -146,7 +148,9 @@ export function AssistantWorkspace({
         /(?:contacted|called|spoke (?:with|to))\s+([\p{L}'-]+(?:\s+[\p{L}'-]+)?)(?=\s+and|[,.;]|$)/iu,
       );
       if (match) {
-        setLeads((await send({ op: "search", query: match[1] })).leads);
+        const found = (await send({ op: "search", query: match[1] })).leads;
+        setLeads(found);
+        setNoteSearchStatus(found.length ? "Choose the lead for this note." : `No lead matching “${match[1]}” was found. Search again below.`);
       }
       setNotice(
         "Choose the lead below, then review your note. A promise to pay is not a recorded payment.",
@@ -155,20 +159,21 @@ export function AssistantWorkspace({
     }
     if (intent === "unsupported") {
       setNotice(
-        "I can rank sales performance, find leads, review common objections from notes, and prepare a note. Try: What objections do customers mention most? For other questions, connect your AI tool below.",
+        "Try a lead’s name, ask what customers are saying, or ask about price objections this month. You can also prepare a note for approval. Open-ended AI questions use your connected ChatGPT or Claude account.",
       );
       return;
     }
-    const query = question
-      .replace(/^(find|search(?: for)?|show)\s+(?:leads?\s+)?/i, "")
-      .trim();
-    if (!query) return;
+    const query = leadSearchQuery(question);
+    if (query.length < 2) {
+      setNotice("Enter the lead’s name, email address, or company. For example: Find Jordan Ellis.");
+      return;
+    }
     const results = (await send({ op: "search", query })).leads;
     setLeads(results);
     setNotice(
       results.length
         ? "Choose a lead to open its record."
-        : "No matching leads found. Try a name or email.",
+        : `No lead matching “${query}” was found in your access scope.`,
     );
   }
   if (!data)
@@ -208,11 +213,6 @@ export function AssistantWorkspace({
           className="rounded-2xl border border-rose-400/30 p-4 text-sm text-rose-200"
         >
           {error}
-        </p>
-      ) : null}
-      {notice ? (
-        <p role="status" className="rounded-2xl bg-white/5 p-4 text-sm">
-          {notice}
         </p>
       ) : null}
       {!settingsOnly ? (
@@ -330,6 +330,12 @@ export function AssistantWorkspace({
                   type="button"
                   disabled={busy}
                   onClick={() => {
+                    setComposing(false);
+                    setLead(null);
+                    setLeads([]);
+                    setNotice("");
+                    setReport(null);
+                    setObjectionReport(null);
                     setQuestion("Find ");
                     questionInput.current?.focus();
                   }}
@@ -362,16 +368,18 @@ export function AssistantWorkspace({
                 tabIndex={-1}
                 className="scroll-mt-24 outline-none"
               >
+                {notice ? <p role="status" className="rounded-xl bg-white/5 p-4 text-sm leading-6">{notice}</p> : null}
                 {objectionReport ? (
                   <section
                     className="mt-6 space-y-4"
                     aria-label="Sales objections"
                   >
                     <h3 className="font-semibold">
-                      What customers are pushing back on
+                      Sales notes and objections
                     </h3>
-                    <p className="text-sm text-white/65">
-                      {objectionReport.scannedNotes} notes reviewed ·{" "}
+                    <p role="status" className="mt-3 text-base leading-7">{objectionReport.answer}</p>
+                    <p className="mt-2 text-sm text-white/65">
+                      {objectionReport.period} · {objectionReport.scannedNotes} notes reviewed ·{" "}
                       {objectionReport.scope}. {objectionReport.method}
                     </p>
                     {objectionReport.themes.length ? (
@@ -404,13 +412,11 @@ export function AssistantWorkspace({
                           </ul>
                         </div>
                       ))
-                    ) : (
-                      <p>
-                        No recognizable objection phrases were found in these
-                        notes. This does not mean customers have no objections;
-                        the notes may use different wording.
-                      </p>
-                    )}
+                    ) : null}
+                    <details className="mt-4 border-t border-white/10 pt-4" open={!objectionReport.themes.length}>
+                      <summary className="cursor-pointer text-sm font-medium">Matching notes ({objectionReport.evidence.length})</summary>
+                      <ul className="mt-3 space-y-4">{objectionReport.evidence.map(n=><li key={n.id} className="border-b border-white/10 pb-3"><Link href={`/leads/${n.leadId}`} className="inline-flex min-h-11 items-center underline">{n.name} · View lead</Link><p className="whitespace-pre-wrap break-words text-sm leading-6 text-white/75">{n.excerpt}</p><time className="mt-2 block text-xs text-white/50">{new Date(n.createdAt).toLocaleDateString()}</time></li>)}</ul>
+                    </details>
                   </section>
                 ) : null}
                 {report ? (
@@ -505,15 +511,11 @@ export function AssistantWorkspace({
                       e.preventDefault();
                       const form = new FormData(e.currentTarget);
                       void run(async () => {
-                        setLeads(
-                          (
-                            await send({
-                              op: "search",
-                              query: String(form.get("leadSearch")),
-                            })
-                          ).leads,
-                        );
+                        const query = leadSearchQuery(String(form.get("leadSearch")));
+                        const found = (await send({op:"search",query})).leads;
+                        setLeads(found);
                         setLead(null);
+                        setNoteSearchStatus(found.length ? "Choose the lead for this note." : `No lead matching “${query}” was found. Try another name or email.`);
                       });
                     }}
                   >
@@ -532,6 +534,7 @@ export function AssistantWorkspace({
                       Find lead
                     </button>
                   </form>
+                  {noteSearchStatus ? <p role="status" className="mt-3 text-sm leading-6">{noteSearchStatus}</p> : null}
                   {leads.length && !lead ? (
                     <div className="mt-3 divide-y divide-white/10">
                       {leads.map((l) => (

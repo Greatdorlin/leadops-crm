@@ -568,3 +568,26 @@ test("objection analysis reads only active accessible leads and MCP uses the sam
  assert.equal((await objections(actor)).scannedNotes,0);
  await assert.rejects(()=>objections({...actor,enabled:false}));
 });
+
+test("native note questions filter named leads and dates, and missing searches return no records", async () => {
+  const rep=await user('specific-notes@example.test'); await grant(rep.id);
+  const a=await leadStore.createExternalLead({firstName:'Mathew',lastName:'Ade',email:'specific-mathew@example.test',source:'manual_entry',assignedTo:rep.email});
+  const b=await leadStore.createExternalLead({firstName:'Jordan',lastName:'East',email:'specific-jordan@example.test',source:'manual_entry',assignedTo:rep.email});
+  await db.insert(schema.leadNotes).values([
+    {leadId:a.id,note:'Budget is tight. Asked about a payment plan.',createdAt:new Date()},
+    {leadId:a.id,note:'Needs more time.',createdAt:new Date('2020-01-01')},
+    {leadId:b.id,note:'Too expensive.',createdAt:new Date()},
+  ]);
+  const actor=await actorForUser(rep.id);
+  assert.deepEqual(await searchLeads(actor,'search for a lead named MissingPersonZX'),[]);
+  assert.deepEqual((await searchLeads(actor,'Can you find a lead called Mathew?')).map(l=>l.id),[a.id]);
+  const answer=await objections(actor,'What objections from Mathew about pricing this month?');
+  assert.equal(answer.scannedNotes,1);
+  assert.equal(answer.themes[0].key,'price');
+  assert.deepEqual(answer.evidence.map(n=>n.leadId),[a.id]);
+  const missing=await objections(actor,'What did MissingPersonZX say?');
+  assert.equal(missing.scannedNotes,0);assert.match(missing.answer,/No lead matching/);
+  const mcp=await callTool(actor,'sales_objections',{question:'What did Mathew say?'},'test-client',false);
+  assert.ok(JSON.stringify(mcp).includes('Budget is tight'));
+  assert.ok(!JSON.stringify(mcp).includes('specific-jordan'));
+});

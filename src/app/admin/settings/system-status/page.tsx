@@ -56,7 +56,7 @@ export default async function SystemStatusPage() {
       <div className="space-y-6">
         <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
           <MetricCard label="Database URL" value={yesNo(hasDatabaseUrl())} supporting="Configured at deployment level." tone={hasDatabaseUrl() ? "positive" : "warning"} />
-          <MetricCard label="Auth setup" value={yesNo(isAdminAuthConfigured())} supporting="Google auth vars and initial admin." tone={isAdminAuthConfigured() ? "positive" : "warning"} />
+          <MetricCard label="Auth setup" value={yesNo(isAdminAuthConfigured())} supporting="Password login and owner account configuration." tone={isAdminAuthConfigured() ? "positive" : "warning"} />
           <MetricCard label="Environment" value={process.env.NODE_ENV || "development"} supporting="Development preview stays out of production." />
           <MetricCard label="App version" value={packageJson.version} supporting={`Brand: ${settings.companyName}`} tone="accent" />
         </section>
@@ -88,14 +88,14 @@ export default async function SystemStatusPage() {
             <SectionHeader
               eyebrow="Operations"
               title="Go-live links"
-              description="Jump straight to the operator docs your team needs before launch."
+              description="Follow the setup steps or check how to back up and hand over this workspace."
             />
             <div className="mt-4 grid gap-3">
               {[
-                ["Production checklist", "/PRODUCTION_CHECKLIST.md"],
-                ["Install guide", "/INSTALL.md"],
-                ["Backup guide", "/BACKUP_AND_RESTORE.md"],
-                ["Client handover", "/CLIENT_HANDOVER.md"],
+                ["Before going live", "/settings/install"],
+                ["Installation guide", "/settings/install"],
+                ["Backups and recovery", "/settings/install#backups"],
+                ["Team handover", "/settings/install#handover"],
               ].map(([label, href]) => (
                 <a
                   key={label}

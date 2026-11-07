@@ -452,6 +452,7 @@ function ThemeSection({
   const active = useContext(AppearanceSection);
   const group = ["Quick Presets", "Colors", "Background"].includes(title) ? "Style" : title;
   if (active !== group) return null;
+  if (title === "Colors") return <details className="admin-surface rounded-2xl p-5"><summary className="cursor-pointer text-sm font-semibold">Fine-tune individual colors</summary><div className="mt-5 grid gap-4">{children}</div></details>;
   return (
     <AnimatedCard variant="default" animation="fadeInUp" delay={delay} className="p-5">
       <div className="mb-4 flex items-center gap-2.5">
@@ -939,24 +940,7 @@ export function AppearanceSettingsManager({
             })}
           </div>
         </ThemeSection>
-        <AnimatedCard variant="default" animation="fadeInUp" delay={640} className="p-5">
-          <div className="flex flex-wrap items-start justify-between gap-4">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[color:var(--ld-color-accent)]">
-                Live on this page
-              </p>
-              <h2 className="mt-1 text-xl font-semibold tracking-[-0.04em] text-white">Review the real interface</h2>
-              <p className="mt-2 text-sm leading-6 text-white/70">Every control above updates this settings page immediately. Save before opening another page.</p>
-            </div>
-            <Link
-              href={appRoutes.dashboard}
-              className="admin-button-secondary ld-focus-ring inline-flex h-10 items-center justify-center gap-2 rounded-xl px-4 text-sm font-semibold"
-            >
-              <ArrowUpRight className="h-4 w-4" />
-              Open saved dashboard
-            </Link>
-          </div>
-        </AnimatedCard>
+
           {dirty ? <div className="admin-surface sticky bottom-3 z-20 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-white/15 p-3 shadow-xl lg:hidden"><span className="text-xs">Unsaved changes</span><button className="admin-button-primary min-h-11 px-4 text-sm" disabled={isSaving||contrastIssues.length>0} onClick={()=>void saveSettings()}>{isSaving?"Saving…":"Save theme"}</button></div> : null}
     </div></AppearanceSection.Provider>
   );

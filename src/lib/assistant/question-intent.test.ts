@@ -75,3 +75,7 @@ test("note questions retain a named lead, topic and date window", async () => {
   assert.equal(parseNoteQuestion('What are our main objections?').leadQuery,undefined);
   assert.equal(questionIntent('What did Mathew say?'),'notes');
 });
+
+ test("resolved concerns do not become current objection counts",()=>{
+  assert.deepEqual(analyzeObjectionNotes([{id:"resolved",leadId:"a",name:"Demo",note:"The earlier trust concern is resolved.",createdAt:new Date()}]),[]);
+ });

@@ -50,7 +50,7 @@ export function analyzeObjectionNotes(notes: NoteEvidence[]) {
       const matched = notes.filter((row) =>
         row.note.split(/(?<=[.!?;\n])\s*/).some((sentence) => {
           if (
-            /\b(?:no (?:longer )?(?:a |any )?(?:price |budget |timing |trust )?(?:objection|concern|issue)|objection (?:resolved|overcome)|not an? (?:issue|objection|concern))\b/i.test(
+            /\b(?:no (?:longer )?(?:a |any )?(?:price |budget |timing |trust )?(?:objection|concern|issue)|(?:objection|concern|issue)(?: is| was| has been)? (?:resolved|overcome|cleared|addressed)|not an? (?:issue|objection|concern))\b/i.test(
               sentence,
             )
           )

@@ -37,7 +37,8 @@ export async function objections(actor: Actor, question = "") {
   const evidence = sample.filter(n=> (!filter.phrase || n.note.toLowerCase().includes(filter.phrase.toLowerCase())) && (!topicPattern || topicPattern.test(n.note) || (filter.topic === "price" && /\b(?:budget|price|pricing|cost|payment|afford)\b/i.test(n.note))));
   const themes = analyzeObjectionNotes(evidence).filter(t=>!filter.topic || t.key === filter.topic);
   const top = themes[0];
-  const answer = top ? `${top.label} appears on ${top.leadCount} lead${top.leadCount === 1 ? "" : "s"} in these notes.`
+  const tied = top ? themes.filter(t => t.leadCount === top.leadCount) : [];
+  const answer = top ? tied.length > 1 ? `${tied.map(t=>t.label).join(", ")} are tied at ${top.leadCount} lead${top.leadCount === 1 ? "" : "s"} each.` : `${top.label} appears on ${top.leadCount} lead${top.leadCount === 1 ? "" : "s"} in these notes.`
     : evidence.length ? "These are the matching sales notes. No common objection theme was identified in their wording."
     : "No sales notes match this question in your access scope and selected period.";
   return {

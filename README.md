@@ -36,6 +36,7 @@ Inspect the read-only capacity harness with `npm run load:smoke -- --help`. Live
 ## Deployment
 
 - [Client deployment and service model](./docs/CLIENT_DEPLOYMENT_AND_SERVICE.md)
+- [Cloudflare domain setup and Workers readiness](./DEPLOY_CLOUDFLARE.md)
 - [Vercel with managed Postgres](./DEPLOY_VERCEL.md)
 - [Netlify with managed Postgres](./DEPLOY_NETLIFY.md)
 - [VPS with Docker Compose](./DEPLOY_VPS.md)

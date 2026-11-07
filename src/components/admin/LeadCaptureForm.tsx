@@ -1,5 +1,6 @@
 "use client";
 
+import { Check, LoaderCircle } from "lucide-react";
 import { startTransition, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { CRM_STATUSES, LEAD_PRIORITIES } from "@/lib/crm/constants";
@@ -16,7 +17,6 @@ import {
 } from "@/lib/crm/types";
 import { CustomFieldValueInputs } from "./CustomFieldValueInputs";
 import { AdminSelect } from "./AdminSelect";
-import { SmoothButton } from "./ui/SmoothButton";
 import {
   CitySearchInput,
   CountrySearchInput,
@@ -24,10 +24,14 @@ import {
 } from "./CountrySearchInput";
 import { AdminDateTimeInput } from "./AdminDateTimeInput";
 import { getWorkspaceLocaleSuggestion } from "@/lib/workspace-locale";
-import { getPhoneCountryProfile, isValidInternationalPhone } from "@/lib/crm/phone-country";
+import {
+  getPhoneCountryProfile,
+  isValidInternationalPhone,
+} from "@/lib/crm/phone-country";
 
 const manualSourceOptions: LeadSource[] = ["manual_entry", "agent", "referral"];
-const labelClass = "text-xs font-semibold uppercase tracking-[0.16em] text-white/70";
+const labelClass =
+  "text-xs font-semibold uppercase tracking-[0.16em] text-white/70";
 const panelClass =
   "min-w-0 space-y-3 rounded-[24px] border border-white/10 bg-white/[0.045] p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] sm:p-4";
 
@@ -36,7 +40,11 @@ export function LeadCaptureForm({
   assigneeOptions,
   defaultAssignedTo = "",
   customFieldDefinitions = [],
-  stageOptions = CRM_STATUSES.map((status) => ({ value: status, key: status, label: crmLabelize(status) })),
+  stageOptions = CRM_STATUSES.map((status) => ({
+    value: status,
+    key: status,
+    label: crmLabelize(status),
+  })),
   defaultCountry = "",
   defaultRegion = "",
   defaultCity = "",
@@ -45,7 +53,12 @@ export function LeadCaptureForm({
   assigneeOptions: Array<{ label: string; value: string }>;
   defaultAssignedTo?: string;
   customFieldDefinitions?: CustomFieldDefinitionWithOptions[];
-  stageOptions?: Array<{ value: string; key: string; label: string; stageId?: string }>;
+  stageOptions?: Array<{
+    value: string;
+    key: string;
+    label: string;
+    stageId?: string;
+  }>;
   defaultCountry?: string;
   defaultRegion?: string;
   defaultCity?: string;
@@ -65,10 +78,13 @@ export function LeadCaptureForm({
   const [address, setAddress] = useState("");
   const [postalCode, setPostalCode] = useState("");
   const [companyName, setCompanyName] = useState("");
-  const [leadCustomerType, setLeadCustomerType] = useState<LeadCustomerType>("direct");
+  const [leadCustomerType, setLeadCustomerType] =
+    useState<LeadCustomerType>("direct");
   const [source, setSource] = useState<LeadSource>("manual_entry");
   const defaultStageValue =
-    stageOptions.find((option) => option.key === "new")?.value ?? stageOptions[0]?.value ?? "new";
+    stageOptions.find((option) => option.key === "new")?.value ??
+    stageOptions[0]?.value ??
+    "new";
   const [stage, setStage] = useState(defaultStageValue);
   const [priority, setPriority] = useState<LeadPriority>("medium");
   const [assignedTo, setAssignedTo] = useState(defaultAssignedTo);
@@ -77,51 +93,75 @@ export function LeadCaptureForm({
   const [closeProbability, setCloseProbability] = useState("");
   const [expectedCloseDate, setExpectedCloseDate] = useState("");
   const [nextFollowUpAt, setNextFollowUpAt] = useState("");
-  const [customFieldValues, setCustomFieldValues] = useState<Record<string, unknown>>(() =>
-    Object.fromEntries(customFieldInputModel.map((field) => [field.fieldId, field.value])),
+  const [customFieldValues, setCustomFieldValues] = useState<
+    Record<string, unknown>
+  >(() =>
+    Object.fromEntries(
+      customFieldInputModel.map((field) => [field.fieldId, field.value]),
+    ),
   );
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState("");
-  const initialLocationRef = useRef({ country: defaultCountry, region: defaultRegion, city: defaultCity });
+  const initialLocationRef = useRef({
+    country: defaultCountry,
+    region: defaultRegion,
+    city: defaultCity,
+  });
   const locationExamples = getLocationFieldExamples(country || defaultCountry);
   const phoneProfile = getPhoneCountryProfile(country || defaultCountry);
 
   function chooseCountry(nextCountry: string) {
     const suggestion = getWorkspaceLocaleSuggestion(nextCountry);
-    const previousSuggestion = getWorkspaceLocaleSuggestion(country || initialLocationRef.current.country);
+    const previousSuggestion = getWorkspaceLocaleSuggestion(
+      country || initialLocationRef.current.country,
+    );
     setCountry(nextCountry);
     setRegion((current) =>
-      !current || current === initialLocationRef.current.region || current === previousSuggestion.region
+      !current ||
+      current === initialLocationRef.current.region ||
+      current === previousSuggestion.region
         ? suggestion.region
         : current,
     );
     setCity((current) =>
-      !current || current === initialLocationRef.current.city || current === previousSuggestion.city
+      !current ||
+      current === initialLocationRef.current.city ||
+      current === previousSuggestion.city
         ? suggestion.city
         : current,
     );
   }
 
+  const savingRef = useRef(false);
   async function saveLead() {
+    if (savingRef.current) return;
     if (!firstName.trim()) {
       setMessage("Add the lead's first name before saving.");
       return;
     }
 
     if (!email.trim() && !whatsappNumber.trim() && !callNumber.trim()) {
-      setMessage("Add an email, WhatsApp number, or call number before saving.");
+      setMessage(
+        "Add an email, WhatsApp number, or call number before saving.",
+      );
       return;
     }
-    if (!isValidInternationalPhone(whatsappNumber) || !isValidInternationalPhone(callNumber)) {
+    if (
+      !isValidInternationalPhone(whatsappNumber) ||
+      !isValidInternationalPhone(callNumber)
+    ) {
       setMessage("Check the phone number and include a valid country code.");
       return;
     }
 
+    savingRef.current = true;
     setIsSaving(true);
     setMessage("");
 
     try {
-      const selectedStage = stageOptions.find((option) => option.value === stage);
+      const selectedStage = stageOptions.find(
+        (option) => option.value === stage,
+      );
       const response = await fetch("/api/admin/leads", {
         method: "POST",
         headers: {
@@ -144,7 +184,10 @@ export function LeadCaptureForm({
             ? { stageId: selectedStage.stageId }
             : { stage: selectedStage?.key ?? "new" }),
           priority,
-          assignedTo: accessLevel === "sales_rep" ? defaultAssignedTo || null : assignedTo || null,
+          assignedTo:
+            accessLevel === "sales_rep"
+              ? defaultAssignedTo || null
+              : assignedTo || null,
           source,
           sourceDetail: sourceDetail.trim() || null,
           estimatedValue: estimatedValue ? Number(estimatedValue) : null,
@@ -155,13 +198,13 @@ export function LeadCaptureForm({
         }),
       });
 
-      const payload = (await response.json().catch(() => null)) as
-        | { error?: string; created?: boolean }
-        | null;
+      const payload = (await response.json().catch(() => null)) as {
+        error?: string;
+        created?: boolean;
+      } | null;
 
       if (!response.ok) {
         setMessage(payload?.error ?? "We couldn't save this lead right now.");
-        setIsSaving(false);
         return;
       }
 
@@ -187,18 +230,55 @@ export function LeadCaptureForm({
       setExpectedCloseDate("");
       setNextFollowUpAt("");
       setCustomFieldValues(
-        Object.fromEntries(customFieldInputModel.map((field) => [field.fieldId, field.value])),
+        Object.fromEntries(
+          customFieldInputModel.map((field) => [field.fieldId, field.value]),
+        ),
       );
-      setMessage(payload?.created === false ? "Existing lead updated instead of creating a duplicate." : "Lead saved.");
-      setIsSaving(false);
+      setMessage(
+        payload?.created === false
+          ? "Existing lead updated instead of creating a duplicate."
+          : "Lead saved.",
+      );
       startTransition(() => router.refresh());
     } catch {
       setMessage("We couldn't save this lead right now.");
+    } finally {
+      savingRef.current = false;
       setIsSaving(false);
     }
   }
   return (
-    <div className="space-y-5">
+    <div className="relative space-y-5">
+      <div className="sticky top-20 z-20 rounded-2xl border border-white/15 bg-[var(--ld-color-background)] p-3 shadow-lg">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <h3 className="text-sm font-semibold">Contact details</h3>
+            <p className="mt-1 text-xs text-white/50">
+              Name and one way to reach them.
+            </p>
+          </div>
+          <button
+            type="button"
+            aria-label="Save lead"
+            title="Save lead"
+            disabled={isSaving}
+            onClick={() => void saveLead()}
+            className="admin-button-primary flex min-h-11 shrink-0 items-center gap-2 rounded-xl px-3 text-sm"
+          >
+            {isSaving ? (
+              <LoaderCircle className="size-4 animate-spin" />
+            ) : (
+              <Check className="size-5" />
+            )}
+            <span>{isSaving ? "Saving…" : "Save"}</span>
+          </button>
+        </div>
+        {message ? (
+          <p role="status" className="mt-2 text-sm leading-5">
+            {message}
+          </p>
+        ) : null}
+      </div>
       <div className="grid gap-3 sm:grid-cols-2">
         <label className="space-y-2">
           <span className={labelClass}>First name</span>
@@ -223,34 +303,6 @@ export function LeadCaptureForm({
       </div>
 
       <div className="grid gap-3 sm:grid-cols-2">
-        <section className="space-y-3 sm:col-span-2">
-          <p className={labelClass}>Lead type</p>
-          <div className="grid gap-2 sm:grid-cols-2">
-            {[
-              { value: "direct", label: "Individual lead", hint: "Individual buyer or household." },
-              { value: "business", label: "Company lead", hint: "Company, partner, or B2B account." },
-            ].map((option) => {
-              const selected = leadCustomerType === option.value;
-              return (
-                <button
-                  key={option.value}
-                  type="button"
-                  onClick={() => setLeadCustomerType(option.value as LeadCustomerType)}
-                  className={[
-                    "rounded-[22px] border px-4 py-3 text-left transition",
-                    selected
-                      ? "border-white/20 bg-[linear-gradient(135deg,color-mix(in_srgb,var(--ld-color-primary)_30%,transparent),color-mix(in_srgb,var(--ld-color-accent)_22%,transparent))] text-white shadow-[0_12px_28px_color-mix(in_srgb,var(--ld-color-primary)_18%,transparent)]"
-                      : "border-white/10 bg-white/[0.045] text-white/72 hover:border-white/20 hover:bg-white/[0.07]",
-                  ].join(" ")}
-                  aria-pressed={selected}
-                >
-                  <span className="block text-sm font-semibold">{option.label}</span>
-                  <span className="mt-1 block text-xs leading-5 text-white/70">{option.hint}</span>
-                </button>
-              );
-            })}
-          </div>
-        </section>
         <label className="space-y-2">
           <span className={labelClass}>Email</span>
           <input
@@ -272,7 +324,10 @@ export function LeadCaptureForm({
             aria-describedby="capture-whatsapp-hint"
             className="admin-input ld-focus-ring h-11 w-full rounded-2xl px-4 text-sm outline-none"
           />
-          <span id="capture-whatsapp-hint" className="block text-xs text-white/45">
+          <span
+            id="capture-whatsapp-hint"
+            className="block text-xs text-white/45"
+          >
             Use {phoneProfile.dialCode} for this country.
           </span>
         </label>
@@ -303,183 +358,242 @@ export function LeadCaptureForm({
         </label>
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-2">
-        <CountrySearchInput
-          value={country}
-          onChange={chooseCountry}
-          placeholder={locationExamples.country}
-        />
-        <label className="space-y-2">
-          <span className={labelClass}>Region</span>
-          <input
-            type="text"
-            value={region}
-            onChange={(event) => setRegion(event.target.value)}
-            placeholder={locationExamples.region}
-            className="admin-input ld-focus-ring h-11 w-full rounded-2xl px-4 text-sm outline-none"
-          />
-        </label>
-        <CitySearchInput value={city} onChange={setCity} placeholder={defaultCity || "Select or search city"} />
-        <label className="space-y-2">
-          <span className={labelClass}>Postal Code</span>
-          <input
-            type="text"
-            value={postalCode}
-            onChange={(event) => setPostalCode(event.target.value)}
-            placeholder={locationExamples.postalCode}
-            className="admin-input ld-focus-ring h-11 w-full rounded-2xl px-4 text-sm outline-none"
-          />
-        </label>
-        <label className="space-y-2 sm:col-span-2">
-          <span className={labelClass}>Address</span>
-          <input
-            type="text"
-            value={address}
-            onChange={(event) => setAddress(event.target.value)}
-            placeholder="Street address"
-            className="admin-input ld-focus-ring h-11 w-full rounded-2xl px-4 text-sm outline-none"
-          />
-        </label>
-      </div>
+      <details className="rounded-2xl border border-white/10 p-4">
+        <summary className="cursor-pointer text-sm font-medium">
+          More details{" "}
+          <span className="ml-1 text-xs font-normal text-white/45">
+            Company, location and follow-up
+          </span>
+        </summary>
+        <div className="mt-5 space-y-5">
+          <section className="space-y-3 sm:col-span-2">
+            <p className={labelClass}>Lead type</p>
+            <div className="grid gap-2 sm:grid-cols-2">
+              {[
+                {
+                  value: "direct",
+                  label: "Individual lead",
+                  hint: "Individual buyer or household.",
+                },
+                {
+                  value: "business",
+                  label: "Company lead",
+                  hint: "Company, partner, or B2B account.",
+                },
+              ].map((option) => {
+                const selected = leadCustomerType === option.value;
+                return (
+                  <button
+                    key={option.value}
+                    type="button"
+                    onClick={() =>
+                      setLeadCustomerType(option.value as LeadCustomerType)
+                    }
+                    className={[
+                      "rounded-[22px] border px-4 py-3 text-left transition",
+                      selected
+                        ? "border-white/20 bg-[linear-gradient(135deg,color-mix(in_srgb,var(--ld-color-primary)_30%,transparent),color-mix(in_srgb,var(--ld-color-accent)_22%,transparent))] text-white shadow-[0_12px_28px_color-mix(in_srgb,var(--ld-color-primary)_18%,transparent)]"
+                        : "border-white/10 bg-white/[0.045] text-white/72 hover:border-white/20 hover:bg-white/[0.07]",
+                    ].join(" ")}
+                    aria-pressed={selected}
+                  >
+                    <span className="block text-sm font-semibold">
+                      {option.label}
+                    </span>
+                    <span className="mt-1 block text-xs leading-5 text-white/70">
+                      {option.hint}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </section>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <CountrySearchInput
+              value={country}
+              onChange={chooseCountry}
+              placeholder={locationExamples.country}
+            />
+            <label className="space-y-2">
+              <span className={labelClass}>Region</span>
+              <input
+                type="text"
+                value={region}
+                onChange={(event) => setRegion(event.target.value)}
+                placeholder={locationExamples.region}
+                className="admin-input ld-focus-ring h-11 w-full rounded-2xl px-4 text-sm outline-none"
+              />
+            </label>
+            <CitySearchInput
+              value={city}
+              onChange={setCity}
+              placeholder={defaultCity || "Select or search city"}
+            />
+            <label className="space-y-2">
+              <span className={labelClass}>Postal Code</span>
+              <input
+                type="text"
+                value={postalCode}
+                onChange={(event) => setPostalCode(event.target.value)}
+                placeholder={locationExamples.postalCode}
+                className="admin-input ld-focus-ring h-11 w-full rounded-2xl px-4 text-sm outline-none"
+              />
+            </label>
+            <label className="space-y-2 sm:col-span-2">
+              <span className={labelClass}>Address</span>
+              <input
+                type="text"
+                value={address}
+                onChange={(event) => setAddress(event.target.value)}
+                placeholder="Street address"
+                className="admin-input ld-focus-ring h-11 w-full rounded-2xl px-4 text-sm outline-none"
+              />
+            </label>
+          </div>
 
-      <div className="grid gap-3">
-        <label className="relative space-y-2">
-          <span className={labelClass}>Lead source</span>
-          <AdminSelect
-            value={source}
-            onChange={(event) => setSource(event.target.value as LeadSource)}
-            className="h-11"
-          >
-            {manualSourceOptions.map((option) => (
-              <option key={option} value={option}>
-                {crmLabelize(option)}
-              </option>
-            ))}
-          </AdminSelect>
-        </label>
-        <label className="relative space-y-2">
-          <span className={labelClass}>Stage</span>
-          <AdminSelect
-            value={stage}
-            onChange={(event) => setStage(event.target.value)}
-            className="h-11"
-          >
-            {stageOptions.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </AdminSelect>
-        </label>
-        <label className="relative space-y-2">
-          <span className={labelClass}>Priority</span>
-          <AdminSelect
-            value={priority}
-            onChange={(event) => setPriority(event.target.value as LeadPriority)}
-            className="h-11"
-          >
-            {LEAD_PRIORITIES.map((option) => (
-              <option key={option} value={option}>
-                {crmLabelize(option)}
-              </option>
-            ))}
-          </AdminSelect>
-        </label>
-        {accessLevel === "sales_rep" ? null : (
-          <label className="relative space-y-2">
-            <span className={labelClass}>Owner</span>
-            <AdminSelect
-              value={assignedTo}
-              onChange={(event) => setAssignedTo(event.target.value)}
-              className="h-11"
-            >
-              <option value="">Assign later</option>
-              {assigneeOptions.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </AdminSelect>
+          <div className="grid gap-3">
+            <label className="relative space-y-2">
+              <span className={labelClass}>Lead source</span>
+              <AdminSelect
+                value={source}
+                onChange={(event) =>
+                  setSource(event.target.value as LeadSource)
+                }
+                className="h-11"
+              >
+                {manualSourceOptions.map((option) => (
+                  <option key={option} value={option}>
+                    {crmLabelize(option)}
+                  </option>
+                ))}
+              </AdminSelect>
+            </label>
+            <label className="relative space-y-2">
+              <span className={labelClass}>Stage</span>
+              <AdminSelect
+                value={stage}
+                onChange={(event) => setStage(event.target.value)}
+                className="h-11"
+              >
+                {stageOptions.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </AdminSelect>
+            </label>
+            <label className="relative space-y-2">
+              <span className={labelClass}>Priority</span>
+              <AdminSelect
+                value={priority}
+                onChange={(event) =>
+                  setPriority(event.target.value as LeadPriority)
+                }
+                className="h-11"
+              >
+                {LEAD_PRIORITIES.map((option) => (
+                  <option key={option} value={option}>
+                    {crmLabelize(option)}
+                  </option>
+                ))}
+              </AdminSelect>
+            </label>
+            {accessLevel === "sales_rep" ? null : (
+              <label className="relative space-y-2">
+                <span className={labelClass}>Owner</span>
+                <AdminSelect
+                  value={assignedTo}
+                  onChange={(event) => setAssignedTo(event.target.value)}
+                  className="h-11"
+                >
+                  <option value="">Assign later</option>
+                  {assigneeOptions.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </AdminSelect>
+              </label>
+            )}
+          </div>
+
+          <label className="space-y-2">
+            <span className={labelClass}>Source note</span>
+            <textarea
+              value={sourceDetail}
+              onChange={(event) => setSourceDetail(event.target.value)}
+              rows={3}
+              placeholder={
+                source === "agent"
+                  ? "Example: Agent partner from Abuja office."
+                  : source === "referral"
+                    ? "Example: Referred by a former client in Ibadan."
+                    : "Example: Walk-in lead after an office visit."
+              }
+              className="admin-textarea ld-focus-ring min-h-[104px] w-full rounded-2xl px-4 py-3 text-sm outline-none"
+            />
           </label>
-        )}
-      </div>
 
-      <label className="space-y-2">
-        <span className={labelClass}>Source note</span>
-        <textarea
-          value={sourceDetail}
-          onChange={(event) => setSourceDetail(event.target.value)}
-          rows={3}
-          placeholder={
-            source === "agent"
-              ? "Example: Agent partner from Abuja office."
-              : source === "referral"
-                ? "Example: Referred by a former client in Ibadan."
-                : "Example: Walk-in lead after an office visit."
-          }
-          className="admin-textarea ld-focus-ring min-h-[104px] w-full rounded-2xl px-4 py-3 text-sm outline-none"
-        />
-      </label>
-
-      <section className={panelClass}>
-        <div>
-          <p className={labelClass}>
-            Sales details
-          </p>
-          <p className="mt-1 text-sm text-white/70">Capture the next follow-up and potential value.</p>
+          <section className={panelClass}>
+            <div>
+              <p className={labelClass}>Sales details</p>
+              <p className="mt-1 text-sm text-white/70">
+                Capture the next follow-up and potential value.
+              </p>
+            </div>
+            <div className="grid min-w-0 gap-3 sm:grid-cols-2">
+              <label className="min-w-0 space-y-2">
+                <span className={labelClass}>Next follow-up</span>
+                <AdminDateTimeInput
+                  value={nextFollowUpAt}
+                  onChange={(event) => setNextFollowUpAt(event.target.value)}
+                  className="h-11 rounded-2xl"
+                />
+              </label>
+              <label className="min-w-0 space-y-2">
+                <span className={labelClass}>Estimated value</span>
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={estimatedValue}
+                  onChange={(event) => setEstimatedValue(event.target.value)}
+                  placeholder="250000"
+                  className="admin-input ld-focus-ring h-11 w-full rounded-2xl px-4 text-sm outline-none"
+                />
+              </label>
+              <label className="min-w-0 space-y-2">
+                <span className={labelClass}>Close probability</span>
+                <input
+                  type="number"
+                  min="0"
+                  max="100"
+                  step="1"
+                  value={closeProbability}
+                  onChange={(event) => setCloseProbability(event.target.value)}
+                  placeholder="60"
+                  className="admin-input ld-focus-ring h-11 w-full rounded-2xl px-4 text-sm outline-none"
+                />
+              </label>
+              <label className="min-w-0 space-y-2">
+                <span className={labelClass}>Expected close date</span>
+                <AdminDateTimeInput
+                  value={expectedCloseDate}
+                  onChange={(event) => setExpectedCloseDate(event.target.value)}
+                  className="h-11 rounded-2xl"
+                />
+              </label>
+            </div>
+          </section>
         </div>
-        <div className="grid min-w-0 gap-3 sm:grid-cols-2">
-          <label className="min-w-0 space-y-2">
-            <span className={labelClass}>Next follow-up</span>
-            <AdminDateTimeInput
-              value={nextFollowUpAt}
-              onChange={(event) => setNextFollowUpAt(event.target.value)}
-              className="h-11 rounded-2xl"
-            />
-          </label>
-          <label className="min-w-0 space-y-2">
-            <span className={labelClass}>Estimated value</span>
-            <input
-              type="number"
-              min="0"
-              step="0.01"
-              value={estimatedValue}
-              onChange={(event) => setEstimatedValue(event.target.value)}
-              placeholder="250000"
-              className="admin-input ld-focus-ring h-11 w-full rounded-2xl px-4 text-sm outline-none"
-            />
-          </label>
-          <label className="min-w-0 space-y-2">
-            <span className={labelClass}>Close probability</span>
-            <input
-              type="number"
-              min="0"
-              max="100"
-              step="1"
-              value={closeProbability}
-              onChange={(event) => setCloseProbability(event.target.value)}
-              placeholder="60"
-              className="admin-input ld-focus-ring h-11 w-full rounded-2xl px-4 text-sm outline-none"
-            />
-          </label>
-          <label className="min-w-0 space-y-2">
-            <span className={labelClass}>Expected close date</span>
-            <AdminDateTimeInput
-              value={expectedCloseDate}
-              onChange={(event) => setExpectedCloseDate(event.target.value)}
-              className="h-11 rounded-2xl"
-            />
-          </label>
-        </div>
-      </section>
-
+      </details>
       {customFieldInputModel.length > 0 ? (
         <section className={panelClass}>
           <div>
-            <p className={labelClass}>
-              Extra lead details
+            <p className={labelClass}>Extra lead details</p>
+            <p className="mt-1 text-sm text-white/70">
+              Capture business-specific details.
             </p>
-            <p className="mt-1 text-sm text-white/70">Capture business-specific details.</p>
           </div>
           <CustomFieldValueInputs
             fields={customFieldInputModel}
@@ -493,21 +607,6 @@ export function LeadCaptureForm({
           />
         </section>
       ) : null}
-
-      <div className="flex flex-col gap-3 border-t border-white/10 pt-4 sm:flex-row sm:items-end sm:justify-between">
-        <p className="max-w-[18rem] text-sm leading-6 text-white/70">
-          Saved into your sales pipeline.
-        </p>
-        <SmoothButton
-          variant="primary"
-          size="md"
-          onClick={() => void saveLead()}
-          loading={isSaving}
-        >
-          Save lead
-        </SmoothButton>
-      </div>
-      {message ? <p className="text-sm text-white/70">{message}</p> : null}
     </div>
   );
 }

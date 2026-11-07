@@ -89,6 +89,7 @@ test("private conversations are encrypted, participant-only and idempotent even 
   await assert.rejects(() => sendMessage(b.id, { ...reply, text: "changed" }));
   const visible = await listThreads(a.id);
   assert.equal(visible.threads[0].memberCount, 2);
+  assert.equal(visible.threads[0].preview, "A private reply");
   assert.equal(visible.threads[0].unread, 1);
   const view = await readThread(a.id, thread.threadId);
   assert.equal(view.messages.length, 2);

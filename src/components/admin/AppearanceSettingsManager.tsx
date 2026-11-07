@@ -1,7 +1,14 @@
 "use client";
 
 import type { CSSProperties } from "react";
-import { createContext, useContext, startTransition, useEffect, useMemo, useState } from "react";
+import {
+  createContext,
+  useContext,
+  startTransition,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowUpRight, Check, ImagePlus, RotateCcw, X } from "lucide-react";
@@ -16,7 +23,12 @@ import {
   getWorkspaceAppearanceContrastIssues,
   type ResolvedWorkspaceSettings,
 } from "@/lib/crm/workspace-settings";
-import { AnimatedCard, SectionHeader, SmoothButton, StatusRing } from "@/components/admin/ui";
+import {
+  AnimatedCard,
+  SectionHeader,
+  SmoothButton,
+  StatusRing,
+} from "@/components/admin/ui";
 import { InfoTip } from "@/components/admin/ui/InfoTip";
 import { AdminSelect } from "@/components/admin/AdminSelect";
 
@@ -60,7 +72,10 @@ const BACKGROUND_PRESETS = [
   { label: "Dark Luxury", value: "/backgrounds/bg-dark-luxury.png" },
   { label: "Butterfly Glass", value: "/backgrounds/bg-butterfly-glass.png" },
   { label: "Botanical Bloom", value: "/backgrounds/bg-botanical-bloom.png" },
-  { label: "Cyberpunk Minimal", value: "/backgrounds/bg-cyberpunk-minimal.png" },
+  {
+    label: "Cyberpunk Minimal",
+    value: "/backgrounds/bg-cyberpunk-minimal.png",
+  },
   { label: "Midnight Horizon", value: "/backgrounds/bg-midnight-horizon.png" },
 ] as const;
 
@@ -140,7 +155,9 @@ function toOptionalString(value: string | null | undefined) {
   return normalized.length > 0 ? normalized : null;
 }
 
-function getGlassStyle(draft: AppearanceDraft): "off" | "soft" | "vibrant" | "bold" {
+function getGlassStyle(
+  draft: AppearanceDraft,
+): "off" | "soft" | "vibrant" | "bold" {
   if (!draft.glassEnabled) {
     return "off";
   }
@@ -175,7 +192,11 @@ function applyGlassStyle(style: "off" | "soft" | "vibrant" | "bold") {
 }
 
 function FieldLabel({ children }: { children: string }) {
-  return <span className="text-xs font-semibold uppercase tracking-[0.16em] text-white/70">{children}</span>;
+  return (
+    <span className="text-xs font-semibold uppercase tracking-[0.16em] text-white/70">
+      {children}
+    </span>
+  );
 }
 
 function TextControl({
@@ -226,7 +247,11 @@ function ImageUploadControl({
       return;
     }
 
-    if (!["image/png", "image/jpeg", "image/webp", "image/gif"].includes(file.type)) {
+    if (
+      !["image/png", "image/jpeg", "image/webp", "image/gif"].includes(
+        file.type,
+      )
+    ) {
       setError("Choose a PNG, JPG, WebP, or GIF image.");
       return;
     }
@@ -249,7 +274,12 @@ function ImageUploadControl({
     <div className="space-y-2">
       <FieldLabel>{label}</FieldLabel>
       <div className="rounded-[24px] border border-white/10 bg-white/[0.045] p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
-        <div className={cn("flex gap-3", compact ? "items-center" : "items-stretch")}>
+        <div
+          className={cn(
+            "flex gap-3",
+            compact ? "items-center" : "items-stretch",
+          )}
+        >
           <div
             className={cn(
               "grid shrink-0 place-items-center overflow-hidden rounded-2xl border border-white/12 bg-white/[0.06]",
@@ -258,13 +288,19 @@ function ImageUploadControl({
           >
             {value ? (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={value} alt="" className="h-full w-full object-contain p-1" />
+              <img
+                src={value}
+                alt=""
+                className="h-full w-full object-contain p-1"
+              />
             ) : (
               <ImagePlus className="h-5 w-5 text-white/70" />
             )}
           </div>
           <div className="min-w-0 flex-1">
-            <p className="text-sm font-semibold text-white">{value ? "Image selected" : "Upload image"}</p>
+            <p className="text-sm font-semibold text-white">
+              {value ? "Image selected" : "Upload image"}
+            </p>
             <p className="mt-1 text-xs leading-5 text-white/70">
               {description ?? "PNG, JPG, WebP, or GIF. Max 2MB."}
             </p>
@@ -291,7 +327,9 @@ function ImageUploadControl({
             </div>
           </div>
         </div>
-        {error ? <p className="mt-2 text-xs font-semibold text-rose-200">{error}</p> : null}
+        {error ? (
+          <p className="mt-2 text-xs font-semibold text-rose-200">{error}</p>
+        ) : null}
       </div>
     </div>
   );
@@ -335,7 +373,9 @@ function ColorControl({
           />
           <StatusRing progress={100} size={28} color={value} strokeWidth={4} />
           <div className="min-w-0 flex-1">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/70">{label}</p>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/70">
+              {label}
+            </p>
             <input
               type="text"
               value={value}
@@ -369,7 +409,9 @@ function ColorControl({
         </div>
         {harmonySwatches.length > 0 ? (
           <div className="mt-2">
-            <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-white/70">Harmony</p>
+            <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-white/70">
+              Harmony
+            </p>
             <div className="flex flex-wrap gap-2">
               {harmonySwatches.map((swatch) => {
                 const isActive = value.toLowerCase() === swatch.toLowerCase();
@@ -418,7 +460,9 @@ function RangeControl({
     <label className="space-y-2">
       <span className="flex items-center justify-between gap-3">
         <FieldLabel>{label}</FieldLabel>
-        <span className="text-xs font-semibold text-white/70">{display ?? value}</span>
+        <span className="text-xs font-semibold text-white/70">
+          {display ?? value}
+        </span>
       </span>
       <input
         type="range"
@@ -450,13 +494,30 @@ function ThemeSection({
   delay?: number;
 }) {
   const active = useContext(AppearanceSection);
-  const group = ["Quick Presets", "Colors", "Background"].includes(title) ? "Style" : title;
+  const group = ["Quick Presets", "Colors", "Background"].includes(title)
+    ? "Style"
+    : title;
   if (active !== group) return null;
-  if (title === "Colors") return <details className="admin-surface rounded-2xl p-5"><summary className="cursor-pointer text-sm font-semibold">Fine-tune individual colors</summary><div className="mt-5 grid gap-4">{children}</div></details>;
+  if (title === "Colors")
+    return (
+      <details className="admin-surface rounded-2xl p-5">
+        <summary className="cursor-pointer text-sm font-semibold">
+          Fine-tune individual colors
+        </summary>
+        <div className="mt-5 grid gap-4">{children}</div>
+      </details>
+    );
   return (
-    <AnimatedCard variant="default" animation="fadeInUp" delay={delay} className="p-5">
+    <AnimatedCard
+      variant="default"
+      animation="fadeInUp"
+      delay={delay}
+      className="p-5"
+    >
       <div className="mb-4 flex items-center gap-2.5">
-        <h2 className="text-lg font-semibold tracking-[-0.04em] text-white">{title}</h2>
+        <h2 className="text-lg font-semibold tracking-[-0.04em] text-white">
+          {title}
+        </h2>
         <InfoTip label={description} align="left" />
       </div>
       <div className="grid gap-4">{children}</div>
@@ -502,13 +563,14 @@ export function AppearanceSettingsManager({
     stageCelebrationsEnabled: initialSettings.stageCelebrationsEnabled,
     targetCelebrationsEnabled: initialSettings.targetCelebrationsEnabled,
     celebrationStyle: initialSettings.celebrationStyle,
-    loginBackgroundUrl: initialSettings.loginBackgroundUrl || DEFAULT_BACKGROUND,
+    loginBackgroundUrl:
+      initialSettings.loginBackgroundUrl || DEFAULT_BACKGROUND,
     loginHeadline: initialSettings.loginHeadline,
     loginSubheadline: initialSettings.loginSubheadline,
   });
   const [message, setMessage] = useState("");
-  const [section,setSection] = useState("Style");
-  const [lastSaved,setLastSaved] = useState(()=>JSON.stringify(draft));
+  const [section, setSection] = useState("Style");
+  const [lastSaved, setLastSaved] = useState(() => JSON.stringify(draft));
   const dirty = JSON.stringify(draft) !== lastSaved;
   const [isSaving, setIsSaving] = useState(false);
   const contrastIssues = useMemo(
@@ -577,9 +639,13 @@ export function AppearanceSettingsManager({
           loginBackgroundUrl: toOptionalString(draft.loginBackgroundUrl),
         }),
       });
-      const payload = (await response.json().catch(() => null)) as { error?: string } | null;
+      const payload = (await response.json().catch(() => null)) as {
+        error?: string;
+      } | null;
       if (!response.ok) {
-        setMessage(payload?.error ?? "We couldn't save appearance settings right now.");
+        setMessage(
+          payload?.error ?? "We couldn't save appearance settings right now.",
+        );
         setIsSaving(false);
         return;
       }
@@ -594,7 +660,10 @@ export function AppearanceSettingsManager({
     }
   }
 
-  function update<K extends keyof AppearanceDraft>(key: K, value: AppearanceDraft[K]) {
+  function update<K extends keyof AppearanceDraft>(
+    key: K,
+    value: AppearanceDraft[K],
+  ) {
     setDraft((current) => ({ ...current, [key]: value }));
   }
 
@@ -603,26 +672,38 @@ export function AppearanceSettingsManager({
   }
 
   function resetToDefaults() {
-    setDraft({ ...DEFAULT_WORKSPACE_APPEARANCE, loginBackgroundUrl: DEFAULT_BACKGROUND });
+    setDraft({
+      ...DEFAULT_WORKSPACE_APPEARANCE,
+      loginBackgroundUrl: DEFAULT_BACKGROUND,
+    });
   }
 
   const selectedBackground = draft.loginBackgroundUrl || DEFAULT_BACKGROUND;
   const glassStyle = getGlassStyle(draft);
 
   return (
-    <AppearanceSection.Provider value={section}><div className="space-y-5">
-        <AnimatedCard variant="elevated" animation="none" className="z-20 p-4 shadow-lg sm:p-5 lg:sticky lg:top-24">
+    <AppearanceSection.Provider value={section}>
+      <div className="space-y-5">
+        <AnimatedCard
+          variant="elevated"
+          animation="none"
+          className="z-20 p-4 shadow-lg sm:p-5 lg:sticky lg:top-24"
+        >
           <SectionHeader
             title="Appearance"
-            description={dirty ? "You have unsaved changes. Preview below, then save when you’re ready." : "Choose a style, then adjust your branding and layout."}
+            description={
+              dirty
+                ? "You have unsaved changes. Preview below, then save when you’re ready."
+                : "Choose a style, then adjust your branding and layout."
+            }
             actions={
-              <div className="flex flex-wrap gap-3">
+              <div className="grid w-full grid-cols-2 gap-2 sm:flex sm:w-auto sm:flex-wrap">
                 <Link
                   href={appRoutes.dashboard}
                   className="admin-button-secondary ld-focus-ring inline-flex h-10 items-center justify-center gap-2 rounded-xl px-4 text-sm font-semibold"
                 >
                   <ArrowUpRight className="h-4 w-4" />
-                  View saved dashboard
+                  View dashboard
                 </Link>
                 <SmoothButton
                   variant="primary"
@@ -639,26 +720,137 @@ export function AppearanceSettingsManager({
                   icon={<RotateCcw className="h-4 w-4" />}
                   onClick={resetToDefaults}
                 >
-                  Reset to defaults
+                  Reset theme
                 </SmoothButton>
               </div>
             }
             variant="large"
           />
-          {message ? <p role="status" className="mt-3 text-sm leading-6">{message}</p> : null}
-          {dirty ? <button className="mt-2 min-h-11 text-sm underline" onClick={()=>{setDraft(JSON.parse(lastSaved));setMessage("")}}>Discard unsaved changes</button> : null}
-          {contrastIssues.length ? <p role="alert" className="mt-2 text-sm text-amber-200">{contrastIssues.map(i=>i.message).join(" ")}</p> : null}
+          {message ? (
+            <p role="status" className="mt-3 text-sm leading-6">
+              {message}
+            </p>
+          ) : null}
+          {dirty ? (
+            <button
+              className="mt-2 min-h-11 text-sm underline"
+              onClick={() => {
+                setDraft(JSON.parse(lastSaved));
+                setMessage("");
+              }}
+            >
+              Discard unsaved changes
+            </button>
+          ) : null}
+          {contrastIssues.length ? (
+            <p role="alert" className="mt-2 text-sm text-amber-200">
+              {contrastIssues.map((i) => i.message).join(" ")}
+            </p>
+          ) : null}
         </AnimatedCard>
 
-        <nav aria-label="Appearance sections" className="flex flex-wrap gap-2">{["Style","Brand","Layout","Glass","Login page","Celebrations"].map(name=><button key={name} aria-pressed={section===name} onClick={()=>setSection(name)} className={`ld-focus-ring min-h-11 rounded-xl border px-4 text-sm ${section===name?"border-[var(--ld-color-primary)] bg-white/10":"border-white/10 text-white/60"}`}>{name}</button>)}</nav>
-        <section aria-label="Theme preview" className="overflow-hidden rounded-2xl border" style={{background:draft.backgroundColor,borderColor:draft.borderColor,color:draft.textColor}}>
-          <div className="grid grid-cols-[4rem_minmax(0,1fr)] sm:grid-cols-[9rem_minmax(0,1fr)]">
-            <div className="p-3 sm:p-4" style={{background:draft.sidebarColor}}><p className="truncate text-sm font-semibold">{draft.companyName}</p><p className="mt-7 rounded-lg p-2 text-xs" style={{background:draft.primaryColor}}>Leads</p><p className="mt-4 text-xs opacity-60">Inbox</p></div>
-            <div className="p-4 sm:p-6"><p className="text-xs opacity-60">Preview with sample values</p><h3 className="mt-2 text-lg font-semibold">Your sales workspace</h3><div className="mt-4 grid grid-cols-2 gap-3">{[["Open leads","24"],["Won this month","€18,600"]].map(([label,value])=><div key={label} className="border p-3" style={{background:draft.cardColor,borderColor:draft.borderColor,borderRadius:Math.min(draft.borderRadius,24)}}><p className="text-xs opacity-65">{label}</p><p className="mt-2 font-semibold">{value}</p></div>)}</div><button type="button" className="mt-4 min-h-10 px-4 text-sm font-semibold" style={{background:draft.primaryColor,borderRadius:Math.min(draft.borderRadius,16)}}>Add lead</button></div>
+        <nav
+          aria-label="Appearance sections"
+          className="flex gap-1 overflow-x-auto rounded-xl border border-white/10 bg-white/[.025] p-1 [scrollbar-width:none]"
+        >
+          {[
+            "Style",
+            "Brand",
+            "Layout",
+            "Glass",
+            "Login page",
+            "Celebrations",
+          ].map((name) => (
+            <button
+              key={name}
+              aria-pressed={section === name}
+              onClick={() => setSection(name)}
+              className={`ld-focus-ring min-h-11 shrink-0 rounded-lg border px-3 text-sm ${section === name ? "border-[var(--ld-color-primary)] bg-white/10" : "border-white/10 text-white/60"}`}
+            >
+              {name}
+            </button>
+          ))}
+        </nav>
+        <section
+          aria-label="Theme preview"
+          className="overflow-hidden rounded-2xl border"
+          style={{
+            background: draft.backgroundColor,
+            borderColor: draft.borderColor,
+            color: draft.textColor,
+          }}
+        >
+          <div className="grid min-w-0 sm:grid-cols-[9rem_minmax(0,1fr)]">
+            <div
+              className="hidden min-w-0 p-4 sm:block"
+              style={{ background: draft.sidebarColor }}
+            >
+              <p className="truncate text-sm font-semibold">
+                {draft.companyName}
+              </p>
+              <p
+                className="mt-7 rounded-lg p-2 text-xs"
+                style={{ background: draft.primaryColor }}
+              >
+                Leads
+              </p>
+              <p className="mt-4 text-xs opacity-60">Inbox</p>
+            </div>
+            <div className="min-w-0 p-4 sm:p-6">
+              <div
+                className="mb-4 flex items-center justify-between gap-3 border-b pb-3 sm:hidden"
+                style={{ borderColor: draft.borderColor }}
+              >
+                <span className="truncate text-sm font-semibold">
+                  {draft.companyName || "Your company"}
+                </span>
+                <span className="shrink-0 text-xs opacity-60">Workspace</span>
+              </div>
+              <p className="text-xs opacity-60">Preview with sample values</p>
+              <h3 className="mt-2 text-lg font-semibold">
+                Your sales workspace
+              </h3>
+              <div className="mt-4 grid min-w-0 grid-cols-2 gap-2 sm:gap-3">
+                {[
+                  ["Open leads", "24"],
+                  ["Won this month", "€18,600"],
+                ].map(([label, value]) => (
+                  <div
+                    key={label}
+                    className="min-w-0 border p-3"
+                    style={{
+                      background: draft.cardColor,
+                      borderColor: draft.borderColor,
+                      borderRadius: Math.min(draft.borderRadius, 24),
+                    }}
+                  >
+                    <p className="text-xs opacity-65">{label}</p>
+                    <p className="mt-2 font-semibold">{value}</p>
+                  </div>
+                ))}
+              </div>
+              <span
+                className="mt-4 inline-flex min-h-10 items-center px-4 text-sm font-semibold"
+                style={{
+                  background: draft.primaryColor,
+                  borderRadius: Math.min(draft.borderRadius, 16),
+                }}
+              >
+                Add lead
+              </span>
+            </div>
           </div>
         </section>
-        <ThemeSection title="Brand" description="Set the names and logos clients see." delay={0}>
-          <TextControl label="Company name" value={draft.companyName} onChange={(value) => update("companyName", value)} />
+        <ThemeSection
+          title="Brand"
+          description="Set the names and logos clients see."
+          delay={0}
+        >
+          <TextControl
+            label="Company name"
+            value={draft.companyName}
+            onChange={(value) => update("companyName", value)}
+          />
           <div className="grid gap-4 sm:grid-cols-2">
             <ImageUploadControl
               label="Default logo"
@@ -687,7 +879,11 @@ export function AppearanceSettingsManager({
           </div>
         </ThemeSection>
 
-        <ThemeSection title="Quick Presets" description="Choose a starting palette, then adjust individual colors below." delay={80}>
+        <ThemeSection
+          title="Quick Presets"
+          description="Choose a starting palette, then adjust individual colors below."
+          delay={80}
+        >
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
             {COLOR_PRESETS.map((preset) => (
               <button
@@ -697,25 +893,67 @@ export function AppearanceSettingsManager({
                 className="group rounded-[20px] border border-white/10 bg-white/[0.04] p-3 text-left transition hover:border-white/20 hover:bg-white/[0.08]"
               >
                 <div className="flex h-7 overflow-hidden rounded-lg border border-white/10">
-                  <div className="flex-1" style={{ background: preset.primaryColor }} />
-                  <div className="flex-1" style={{ background: preset.accentColor }} />
-                  <div className="flex-1" style={{ background: preset.backgroundColor }} />
-                  <div className="flex-1" style={{ background: preset.surfaceColor }} />
+                  <div
+                    className="flex-1"
+                    style={{ background: preset.primaryColor }}
+                  />
+                  <div
+                    className="flex-1"
+                    style={{ background: preset.accentColor }}
+                  />
+                  <div
+                    className="flex-1"
+                    style={{ background: preset.backgroundColor }}
+                  />
+                  <div
+                    className="flex-1"
+                    style={{ background: preset.surfaceColor }}
+                  />
                 </div>
-                <p className="mt-2 text-sm font-semibold text-white">{preset.name}</p>
+                <p className="mt-2 text-sm font-semibold text-white">
+                  {preset.name}
+                </p>
               </button>
             ))}
           </div>
         </ThemeSection>
 
-        <ThemeSection title="Colors" description="Tune the workspace without touching CSS." delay={160}>
+        <ThemeSection
+          title="Colors"
+          description="Tune the workspace without touching CSS."
+          delay={160}
+        >
           <div className="grid gap-4 sm:grid-cols-2">
-            <ColorControl label="Primary" value={draft.primaryColor} onChange={(value) => update("primaryColor", value)} />
-            <ColorControl label="Accent" value={draft.accentColor} onChange={(value) => update("accentColor", value)} />
-            <ColorControl label="Sidebar" value={draft.sidebarColor} onChange={(value) => update("sidebarColor", value)} />
-            <ColorControl label="Surface" value={draft.surfaceColor} onChange={(value) => update("surfaceColor", value)} />
-            <ColorControl label="Card" value={draft.cardColor} onChange={(value) => update("cardColor", value)} />
-            <ColorControl label="Text" value={draft.textColor} onChange={(value) => update("textColor", value)} />
+            <ColorControl
+              label="Primary"
+              value={draft.primaryColor}
+              onChange={(value) => update("primaryColor", value)}
+            />
+            <ColorControl
+              label="Accent"
+              value={draft.accentColor}
+              onChange={(value) => update("accentColor", value)}
+            />
+            <ColorControl
+              label="Sidebar"
+              value={draft.sidebarColor}
+              onChange={(value) => update("sidebarColor", value)}
+            />
+            <ColorControl
+              label="Surface"
+              value={draft.surfaceColor}
+              onChange={(value) => update("surfaceColor", value)}
+            />
+            <ColorControl
+              label="Card"
+              value={draft.cardColor}
+              onChange={(value) => update("cardColor", value)}
+            />
+            <ColorControl
+              label="Text"
+              value={draft.textColor}
+              onChange={(value) => update("textColor", value)}
+            />
           </div>
           <div
             className={cn(
@@ -726,7 +964,11 @@ export function AppearanceSettingsManager({
             )}
             role="status"
           >
-            <span>{contrastIssues.length > 0 ? "Adjust contrast before saving" : "Contrast protected"}</span>
+            <span>
+              {contrastIssues.length > 0
+                ? "Adjust contrast before saving"
+                : "Contrast protected"}
+            </span>
             <InfoTip
               label={
                 contrastIssues.length > 0
@@ -738,7 +980,11 @@ export function AppearanceSettingsManager({
           </div>
         </ThemeSection>
 
-        <ThemeSection title="Background" description="Choose the atmosphere for the workspace." delay={240}>
+        <ThemeSection
+          title="Background"
+          description="Choose the atmosphere for the workspace."
+          delay={240}
+        >
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
             {BACKGROUND_PRESETS.map((preset) => {
               const isSelected = selectedBackground === preset.value;
@@ -751,7 +997,9 @@ export function AppearanceSettingsManager({
                   }}
                   className={cn(
                     "group relative h-24 overflow-hidden rounded-2xl border text-left shadow-[0_14px_30px_rgba(0,0,0,0.22)] transition hover:-translate-y-0.5",
-                    isSelected ? "border-[color:var(--ld-color-accent)]" : "border-white/10",
+                    isSelected
+                      ? "border-[color:var(--ld-color-accent)]"
+                      : "border-white/10",
                   )}
                   style={{
                     backgroundImage: `linear-gradient(180deg, rgba(0,0,0,0.05), rgba(0,0,0,0.52)), url(${preset.value})`,
@@ -774,16 +1022,25 @@ export function AppearanceSettingsManager({
           <ImageUploadControl
             label="Upload background"
             value={
-              draft.loginBackgroundUrl && !BACKGROUND_PRESETS.some((preset) => preset.value === draft.loginBackgroundUrl)
+              draft.loginBackgroundUrl &&
+              !BACKGROUND_PRESETS.some(
+                (preset) => preset.value === draft.loginBackgroundUrl,
+              )
                 ? draft.loginBackgroundUrl
                 : null
             }
-            onChange={(value) => update("loginBackgroundUrl", value || DEFAULT_BACKGROUND)}
+            onChange={(value) =>
+              update("loginBackgroundUrl", value || DEFAULT_BACKGROUND)
+            }
             description="Optional client-owned background. Presets stay faster for most teams."
           />
         </ThemeSection>
 
-        <ThemeSection title="Glass" description="Control depth, blur, and shine." delay={320}>
+        <ThemeSection
+          title="Glass"
+          description="Control depth, blur, and shine."
+          delay={320}
+        >
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
             {(["off", "soft", "vibrant", "bold"] as const).map((style) => (
               <button
@@ -821,13 +1078,22 @@ export function AppearanceSettingsManager({
           </div>
         </ThemeSection>
 
-        <ThemeSection title="Layout" description="Adjust density, type, and rhythm." delay={400}>
+        <ThemeSection
+          title="Layout"
+          description="Adjust density, type, and rhythm."
+          delay={400}
+        >
           <div className="grid gap-4 sm:grid-cols-2">
             <label className="space-y-2">
               <FieldLabel>Density</FieldLabel>
               <AdminSelect
                 value={draft.density}
-                onChange={(event) => update("density", event.target.value as AppearanceDraft["density"])}
+                onChange={(event) =>
+                  update(
+                    "density",
+                    event.target.value as AppearanceDraft["density"],
+                  )
+                }
                 className="h-11"
               >
                 <option value="comfortable">Comfortable</option>
@@ -838,7 +1104,12 @@ export function AppearanceSettingsManager({
               <FieldLabel>Font style</FieldLabel>
               <AdminSelect
                 value={draft.fontPreset}
-                onChange={(event) => update("fontPreset", event.target.value as AppearanceDraft["fontPreset"])}
+                onChange={(event) =>
+                  update(
+                    "fontPreset",
+                    event.target.value as AppearanceDraft["fontPreset"],
+                  )
+                }
                 className="h-11"
               >
                 {FONT_PRESETS.map((preset) => (
@@ -874,7 +1145,11 @@ export function AppearanceSettingsManager({
           </div>
         </ThemeSection>
 
-        <ThemeSection title="Login page" description="Make the first screen feel owned." delay={480}>
+        <ThemeSection
+          title="Login page"
+          description="Make the first screen feel owned."
+          delay={480}
+        >
           <div className="grid gap-4 sm:grid-cols-2">
             <ImageUploadControl
               label="Login logo"
@@ -894,7 +1169,11 @@ export function AppearanceSettingsManager({
           </div>
         </ThemeSection>
 
-        <ThemeSection title="Celebrations" description="Choose when the team sees a milestone notification." delay={560}>
+        <ThemeSection
+          title="Celebrations"
+          description="Choose when the team sees a milestone notification."
+          delay={560}
+        >
           <div className="grid gap-3 sm:grid-cols-3">
             {[
               ["celebrationsEnabled", "All celebrations"],
@@ -908,7 +1187,12 @@ export function AppearanceSettingsManager({
                 <input
                   type="checkbox"
                   checked={Boolean(draft[key as keyof AppearanceDraft])}
-                  onChange={(event) => update(key as keyof AppearanceDraft, event.target.checked as never)}
+                  onChange={(event) =>
+                    update(
+                      key as keyof AppearanceDraft,
+                      event.target.checked as never,
+                    )
+                  }
                   className="admin-toggle"
                 />
                 <span>{label}</span>
@@ -931,7 +1215,10 @@ export function AppearanceSettingsManager({
                   )}
                 >
                   {style}
-                  <span className="flex items-center -space-x-1.5" aria-hidden="true">
+                  <span
+                    className="flex items-center -space-x-1.5"
+                    aria-hidden="true"
+                  >
                     <span className="h-4 w-4 rounded-full border border-white/30 bg-[color:var(--ld-color-primary)]" />
                     <span className="h-4 w-4 rounded-full border border-white/30 bg-[color:var(--ld-color-accent)]" />
                   </span>
@@ -941,7 +1228,19 @@ export function AppearanceSettingsManager({
           </div>
         </ThemeSection>
 
-          {dirty ? <div className="admin-surface sticky bottom-3 z-20 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-white/15 p-3 shadow-xl lg:hidden"><span className="text-xs">Unsaved changes</span><button className="admin-button-primary min-h-11 px-4 text-sm" disabled={isSaving||contrastIssues.length>0} onClick={()=>void saveSettings()}>{isSaving?"Saving…":"Save theme"}</button></div> : null}
-    </div></AppearanceSection.Provider>
+        {dirty ? (
+          <div className="admin-surface sticky bottom-3 z-20 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-white/15 p-3 shadow-xl lg:hidden">
+            <span className="text-xs">Unsaved changes</span>
+            <button
+              className="admin-button-primary min-h-11 px-4 text-sm"
+              disabled={isSaving || contrastIssues.length > 0}
+              onClick={() => void saveSettings()}
+            >
+              {isSaving ? "Saving…" : "Save theme"}
+            </button>
+          </div>
+        ) : null}
+      </div>
+    </AppearanceSection.Provider>
   );
 }

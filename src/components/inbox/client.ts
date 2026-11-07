@@ -6,6 +6,7 @@ export type Thread = {
   leadId: string | null;
   unread: number;
   memberCount: number;
+  preview?: string;
   updatedAt: string;
 };
 export type Message = {

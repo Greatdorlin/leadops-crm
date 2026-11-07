@@ -19,13 +19,14 @@ import {
   sendMessage,
   updateParticipants,
 } from "@/lib/inbox/store";
-import {
-  configureMailbox,
-  mailboxSettings,
-  syncMailbox,
-  deliverMessage,
-  retryDelivery,
-} from "@/lib/inbox/mailbox";
+import { threadAccess } from "@/lib/inbox/access";
+import { requireTeamChannel } from "@/lib/inbox/team-policy";
+async function teamThread(userId: string, threadId: unknown) {
+  const id = z.string().uuid().parse(threadId);
+  const { thread } = await threadAccess(userId, id);
+  requireTeamChannel(thread.channel);
+  return id;
+}
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -130,14 +131,10 @@ export async function GET(request: Request) {
     if (q.get("op") === "directory")
       return NextResponse.json(await inboxDirectory(id), { headers });
     if (q.get("op") === "mailbox")
-      return NextResponse.json(await mailboxSettings(id), { headers });
+      throw new InboxError("Email has been removed from Inbox.", 410);
     if (q.get("threadId"))
       return NextResponse.json(
-        await readThread(
-          id,
-          z.string().uuid().parse(q.get("threadId")),
-          before,
-        ),
+        await readThread(id, await teamThread(id, q.get("threadId")), before),
         { headers },
       );
     return NextResponse.json(await listThreads(id, before), { headers });
@@ -154,21 +151,19 @@ export async function POST(request: Request) {
     if (!b.ok) throw new InboxError(b.error, b.status);
     const p = b.value;
     if (p.op === "create") {
-      const result = await createThread(id, p);
-      if (result.message.direction === "outgoing")
-        await deliverMessage(id, result.message.id);
+      requireTeamChannel(p.channel ?? "team");
+      const result = await createThread(id, { ...p, channel: "team" });
       return NextResponse.json(result, { headers });
     }
     if (p.op === "send") {
+      await teamThread(id, p.threadId);
       const message = await sendMessage(id, p);
-      if (message.direction === "outgoing")
-        await deliverMessage(id, message.id);
       return NextResponse.json({ message }, { headers });
     }
     if (p.op === "read") {
       await markRead(
         id,
-        z.string().uuid().parse(p.threadId),
+        await teamThread(id, p.threadId),
         z.iso.datetime().parse(p.through),
       );
       return NextResponse.json({ ok: true }, { headers });
@@ -176,23 +171,13 @@ export async function POST(request: Request) {
     if (p.op === "participants") {
       await updateParticipants(
         id,
-        z.string().uuid().parse(p.threadId),
+        await teamThread(id, p.threadId),
         z.array(z.string().uuid()).max(19).parse(p.participantIds),
       );
       return NextResponse.json({ ok: true }, { headers });
     }
-    if (p.op === "mailbox") {
-      return NextResponse.json(await configureMailbox(id, p), { headers });
-    }
-    if (p.op === "sync") {
-      return NextResponse.json(await syncMailbox(id), { headers });
-    }
-    if (p.op === "retry") {
-      return NextResponse.json(
-        await retryDelivery(id, z.string().uuid().parse(p.messageId)),
-        { headers },
-      );
-    }
+    if (["mailbox", "sync", "retry"].includes(String(p.op)))
+      throw new InboxError("Email has been removed from Inbox.", 410);
     throw new InboxError("Choose a valid inbox action.");
   } catch (e) {
     return failure(e);

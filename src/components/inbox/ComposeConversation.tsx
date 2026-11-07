@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
-import { AdminSelect } from "@/components/admin/AdminSelect";
+
 import { ResponsivePopover } from "@/components/admin/ResponsivePopover";
 import { inboxRequest, type Directory } from "./client";
 type Lead = { id: string; name: string; email: string | null };
@@ -17,8 +17,9 @@ export function ComposeConversation({
   directory: Directory;
   initialLeadId?: string;
 }) {
-  const [channel, setChannel] = useState("team"),
-    [recipient, setRecipient] = useState(""),
+  const [recipients, setRecipients] = useState<string[]>([]),
+    [peopleQuery, setPeopleQuery] = useState(""),
+    [searched, setSearched] = useState(false),
     [subject, setSubject] = useState(""),
     [text, setText] = useState(""),
     [query, setQuery] = useState(""),
@@ -36,7 +37,6 @@ export function ComposeConversation({
         if (active) {
           setLead(d.lead);
           setSubject(`Follow-up: ${d.lead.name}`);
-          if (directory.mailbox.connected) setChannel("email");
         }
       })
       .catch((e) => {
@@ -45,11 +45,12 @@ export function ComposeConversation({
     return () => {
       active = false;
     };
-  }, [initialLeadId, directory.mailbox.connected]);
+  }, [initialLeadId]);
   async function search() {
     setError("");
     setBusy(true);
     try {
+      setSearched(true);
       setMatches(
         (
           await inboxRequest<{ leads: Lead[] }>(
@@ -70,10 +71,16 @@ export function ComposeConversation({
     setError("");
     try {
       const data = {
-        channel,
-        subject,
+        channel: "team",
+        subject:
+          subject.trim() ||
+          directory.users
+            .filter((u) => recipients.includes(u.id))
+            .map((u) => u.name || u.email)
+            .join(", ")
+            .slice(0, 160),
         text,
-        participantIds: recipient ? [recipient] : [],
+        participantIds: recipients,
         leadId: lead?.id ?? null,
       };
       const signature = JSON.stringify(data);
@@ -99,12 +106,13 @@ export function ComposeConversation({
       open
       anchorRef={anchorRef}
       onClose={onClose}
-      ariaLabel="New conversation"
+      ariaLabel="New message"
       desktopWidth={560}
+      desktopMaxHeight={720}
     >
       <div className="flex min-h-0 flex-col">
         <header className="flex items-center justify-between gap-3 border-b border-white/10 p-5">
-          <h2 className="text-lg font-semibold">New conversation</h2>
+          <h2 className="text-lg font-semibold">New message</h2>
           <button
             className="admin-button-secondary min-h-11 px-3"
             onClick={onClose}
@@ -119,58 +127,92 @@ export function ComposeConversation({
             void create();
           }}
         >
-          <label className="block text-sm">
-            Conversation type
-            <AdminSelect
-              className="mt-2 min-h-11"
-              value={channel}
-              onChange={(e) => setChannel(e.target.value)}
-            >
-              <option value="team">Private team conversation</option>
-              <option value="email" disabled={!directory.mailbox.connected}>
-                Customer email
-                {!directory.mailbox.connected ? " — connect mailbox first" : ""}
-              </option>
-            </AdminSelect>
-          </label>
-          {channel === "team" ? (
-            <label className="block text-sm">
-              Teammate
-              <AdminSelect
-                value={recipient}
-                className="mt-2 min-h-11"
-                onChange={(e) => setRecipient(e.target.value)}
-                required
-              >
-                <option value="">Choose a teammate</option>
-                {directory.users.map((u) => (
-                  <option key={u.id} value={u.id}>
-                    {u.name || u.email}
-                  </option>
+          <fieldset className="space-y-3">
+            <legend className="text-sm font-medium">To</legend>
+            <input
+              className="admin-input min-h-11 w-full"
+              aria-label="Find teammates"
+              placeholder="Find a teammate…"
+              value={peopleQuery}
+              onChange={(e) => setPeopleQuery(e.target.value)}
+            />
+            <div className="flex flex-wrap gap-2">
+              {directory.users
+                .filter((u) => recipients.includes(u.id))
+                .map((u) => (
+                  <button
+                    type="button"
+                    key={u.id}
+                    className="rounded-lg border border-white/15 bg-white/5 px-3 py-2 text-xs"
+                    onClick={() =>
+                      setRecipients((ids) => ids.filter((id) => id !== u.id))
+                    }
+                    aria-label={`Remove ${u.name || u.email}`}
+                  >
+                    {u.name || u.email} ×
+                  </button>
                 ))}
-              </AdminSelect>
-            </label>
-          ) : (
-            <p className="text-sm text-white/60">
-              Send from the verified workspace mailbox to the selected lead.
+            </div>
+            <div className="max-h-40 overflow-y-auto rounded-xl border border-white/10">
+              {directory.users
+                .filter((u) =>
+                  `${u.name} ${u.email}`
+                    .toLowerCase()
+                    .includes(peopleQuery.toLowerCase()),
+                )
+                .map((u) => (
+                  <label
+                    key={u.id}
+                    className="flex min-h-12 cursor-pointer items-center gap-3 px-3 py-2 text-sm hover:bg-white/5"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={recipients.includes(u.id)}
+                      disabled={
+                        !recipients.includes(u.id) && recipients.length >= 19
+                      }
+                      onChange={(e) =>
+                        setRecipients((ids) =>
+                          e.target.checked
+                            ? [...ids, u.id]
+                            : ids.filter((id) => id !== u.id),
+                        )
+                      }
+                    />
+                    <span className="min-w-0 break-words">
+                      {u.name || u.email}
+                    </span>
+                  </label>
+                ))}
+              {!directory.users.length ? (
+                <p className="p-4 text-sm text-white/60">
+                  No teammates yet. Ask your workspace owner to invite your
+                  team.
+                </p>
+              ) : null}
+              {directory.users.length > 0 &&
+              !directory.users.some((u) =>
+                `${u.name} ${u.email}`
+                  .toLowerCase()
+                  .includes(peopleQuery.toLowerCase()),
+              ) ? (
+                <p className="p-4 text-sm text-white/60">
+                  No teammates match your search.
+                </p>
+              ) : null}
+            </div>
+            <p className="text-xs text-white/50">
+              Choose one person for a direct message, or several for a private
+              group. {recipients.length}/19 selected.
             </p>
-          )}
+          </fieldset>
           <div>
             <label className="block text-sm" htmlFor="inbox-lead-search">
-              {channel === "email"
-                ? "Lead (required)"
-                : "Link a lead (optional)"}
+              Link a lead (optional)
             </label>
             {lead ? (
               <div className="mt-2 flex items-center justify-between gap-2 rounded-lg border border-white/10 p-3 text-sm">
-                <span>
-                  {lead.name}
-                  {channel === "email" && lead.email ? (
-                    <span className="mt-1 block text-xs text-white/60">
-                      {lead.email}
-                    </span>
-                  ) : null}
-                </span>
+                <span>{lead.name}</span>
                 <button
                   type="button"
                   className="min-h-11 px-2 text-xs underline"
@@ -202,6 +244,11 @@ export function ComposeConversation({
                     Find
                   </button>
                 </div>
+                {searched && !matches.length ? (
+                  <p role="status" className="mt-2 text-xs text-white/60">
+                    No leads found. Try a full name or email.
+                  </p>
+                ) : null}
                 {matches.map((l) => (
                   <button
                     type="button"
@@ -222,14 +269,14 @@ export function ComposeConversation({
             )}
           </div>
           <label className="block text-sm">
-            Subject
+            Group name (optional)
             <input
               className="admin-input mt-2 min-h-11 w-full"
               value={subject}
               onChange={(e) => setSubject(e.target.value)}
               maxLength={160}
-              required
               minLength={2}
+              placeholder="e.g. Sales handoff"
             />
           </label>
           <label className="block text-sm">
@@ -243,7 +290,7 @@ export function ComposeConversation({
               required
             />
           </label>
-          {lead && channel === "team" ? (
+          {lead ? (
             <p className="text-xs text-white/55">
               The teammate must already have access to this lead. Messaging does
               not change lead permissions.
@@ -256,19 +303,13 @@ export function ComposeConversation({
           ) : null}
           <button
             className="admin-button-primary min-h-11 w-full px-4 py-2"
-            disabled={
-              busy ||
-              !subject.trim() ||
-              !text.trim() ||
-              (channel === "team" && !recipient) ||
-              (channel === "email" && (!lead || !lead.email))
-            }
+            disabled={busy || !text.trim() || !recipients.length}
           >
             {busy ? "Sending…" : "Start conversation"}
           </button>
           <p className="text-xs text-white/45">
-            Subjects and messages are encrypted in storage. Email is not
-            end-to-end encrypted.
+            Group name (optional)s and messages are encrypted in storage. Email
+            is not end-to-end encrypted.
           </p>
         </form>
       </div>

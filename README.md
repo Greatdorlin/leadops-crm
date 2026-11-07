@@ -62,4 +62,4 @@ Docker buyers can choose bundled Postgres with `docker-compose.yml` or an extern
 
 See [buyer readiness evidence](./docs/BUYER_READINESS.md) for verification scope, operational requirements, and remaining limits.
 
-Inbox, mailbox security, scheduling and the role guide: [operating guide](docs/INBOX_AND_WORKSPACE_GUIDE.md).
+Private team Inbox, encryption and the workspace tour: [operating guide](docs/INBOX_AND_WORKSPACE_GUIDE.md).

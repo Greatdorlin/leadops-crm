@@ -364,7 +364,7 @@ export default async function AdminTasksPage({
           </GlassSurface>
         </section>
 
-        <section className="grid items-start gap-4 2xl:grid-cols-[minmax(0,1fr)_280px]">
+        <section data-tour="task-queue" className="scroll-mt-24 grid items-start gap-4 2xl:grid-cols-[minmax(0,1fr)_280px]">
           <div className="min-w-0">
             <GlassSurface as="section" className="rounded-[28px] p-5 sm:p-6 ld-animate-fade-in-up">
               <SectionHeader

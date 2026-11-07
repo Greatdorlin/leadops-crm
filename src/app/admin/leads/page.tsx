@@ -729,7 +729,7 @@ export default async function AdminLeadsPage({
           </form>
         </FilterBar>
 
-        <section className="space-y-4">
+        <section data-tour="lead-queue" className="scroll-mt-24 space-y-4">
           {canBulkEdit ? (
             <LeadBulkActions
               assigneeOptions={assigneeOptions.map(({ label, value }) => ({ label, value }))}

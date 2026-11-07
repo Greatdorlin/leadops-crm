@@ -5,6 +5,7 @@ export type Thread = {
   channel: string;
   leadId: string | null;
   unread: number;
+  memberCount: number;
   updatedAt: string;
 };
 export type Message = {
@@ -30,11 +31,6 @@ export type Directory = {
   currentUserId: string;
   secure: boolean;
   canConfigure: boolean;
-  mailbox: {
-    connected: boolean;
-    lastSyncAt: string | null;
-    lastError: string | null;
-  };
 };
 export async function inboxRequest<T>(
   path = "",

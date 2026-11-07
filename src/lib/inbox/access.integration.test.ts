@@ -88,6 +88,7 @@ test("private conversations are encrypted, participant-only and idempotent even 
   assert.equal((await sendMessage(b.id, reply)).id, message.id);
   await assert.rejects(() => sendMessage(b.id, { ...reply, text: "changed" }));
   const visible = await listThreads(a.id);
+  assert.equal(visible.threads[0].memberCount, 2);
   assert.equal(visible.threads[0].unread, 1);
   const view = await readThread(a.id, thread.threadId);
   assert.equal(view.messages.length, 2);
@@ -278,9 +279,15 @@ test("mailbox verification, delivery ambiguity and incoming deduplication preser
     .set({ lastSyncAt: null })
     .where(eq(schema.inboxMailboxes.id, "workspace"));
   assert.equal((await syncMailbox(owner.id, factory)).synced, 0);
-  const external = (await listThreads(owner.id)).threads.find(
-    (t) => t.subject === "Customer question",
+  // Retained historical email is no longer part of the active team Inbox.
+  assert.ok(
+    !(await listThreads(owner.id)).threads.some((t) => t.channel === "email"),
   );
+  const [external] = await db
+    .select()
+    .from(schema.inboxThreads)
+    .where(eq(schema.inboxThreads.channel, "email"))
+    .limit(1);
   assert.ok(external);
   const anotherOwner = await user(
     "mailbox-unrelated-owner@example.test",
@@ -295,4 +302,29 @@ test("additive Inbox and guide preparation can repeat without changing conversat
   await client.exec(readFileSync("drizzle/0030_careless_havok.sql", "utf8"));
   await client.exec(readFileSync("drizzle/0031_huge_rage.sql", "utf8"));
   assert.deepEqual(await db.select().from(schema.inboxMessages), before);
+});
+
+test("private groups report member counts and removed members lose access", async () => {
+  const a = await user("group-a@example.test", "admin"),
+    b = await user("group-b@example.test"),
+    c = await user("group-c@example.test");
+  const group = await createThread(a.id, {
+    requestId: randomUUID(),
+    subject: "Sales handoff",
+    text: "A fictional test handoff",
+    participantIds: [b.id, c.id],
+    channel: "team",
+  });
+  assert.equal(
+    (await listThreads(a.id)).threads.find((t) => t.id === group.threadId)
+      ?.memberCount,
+    3,
+  );
+  assert.equal(
+    (await readThread(c.id, group.threadId)).thread.members.length,
+    3,
+  );
+  await updateParticipants(a.id, group.threadId, [b.id]);
+  await assert.rejects(() => readThread(c.id, group.threadId));
+  assert.equal((await listThreads(c.id)).threads.length, 0);
 });

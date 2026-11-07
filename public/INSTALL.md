@@ -10,7 +10,7 @@ Choose where the app will run:
 
 - **Vercel:** connect the repository and add a managed PostgreSQL database. Use the Node.js runtime.
 - A **VPS with Docker** gives you control of the server. Follow DEPLOY_VPS.md for the reverse proxy and HTTPS setup.
-- **Cloudflare DNS** can point to either host. Running the app itself on Cloudflare needs a tested Next.js adapter; an ordinary Workers upload will not run this Node app. Verify database access and SMTP/IMAP support before enabling email there.
+- **Cloudflare DNS** can point to either host. Running the app itself on Cloudflare needs a tested Next.js adapter; an ordinary Workers upload will not run this Node app. Verify database access and Node compatibility before moving a live workspace there.
 
 ## 1. Download the app
 
@@ -81,11 +81,11 @@ Set your reporting currency under Region & currency. The app fetches a reference
 
 Add your products, then set a target for the right period and currency. Invite staff from Team and check each person's role. Appearance contains your company name, logos and visual settings.
 
-## 7. Connect email and other tools
+## 7. Set up team messaging and other tools
 
-Open Inbox → Connect mailbox. Use the client's mailbox login or app password. The app enables email after both SMTP and IMAP pass verification.
+Inbox is for private direct and group messages between teammates. Invite your team, open Inbox and use **New message** to choose one or more people. You can link a lead when everyone already has permission to view it.
 
-Messaging also needs `CRM_INBOX_DATA_KEY`. Generate a separate 32-byte base64 secret with the command in step 2 and store it with your database backups. Set `CRM_INBOX_SYNC_SECRET` to a different random secret of at least 32 characters. Use the documented scheduler or `npm run inbox:sync` so email can sync while the page is closed.
+Messaging needs `CRM_INBOX_DATA_KEY`. Generate a separate 32-byte base64 secret with the command in step 2 and store it with your database backups. Inbox no longer connects to a mailbox or sends customer email. Remove any old Inbox email sync job from your scheduler.
 
 For an existing database missing Inbox, run `npm run db:prepare:inbox` as described in docs/INBOX_AND_WORKSPACE_GUIDE.md. It adds the Inbox and guide tables without replaying old migrations.
 
@@ -107,7 +107,7 @@ Practise restoring a backup into a separate database. Sign in there and check th
 | Sign-in loops or callback error | NEXTAUTH_URL must match the HTTPS address people actually use. Redeploy after changing it. |
 | Database unavailable | Check the connection string, database status, SSL requirement and network access. |
 | Owner activation expired | Run npm run auth:invite-initial-admin again to create a new link. |
-| Mailbox cannot connect | Check the username, app password, TLS ports and provider restrictions. Both servers must verify. |
+| Team messages are unavailable | Check CRM_INBOX_DATA_KEY, migrations and each participant’s current permissions. |
 | A guide link opens a missing page | Use Settings → System status → Installation guide. The full guide also lives in INSTALL.md in the repository. |
 
 ## Update an existing installation

@@ -1,11 +1,13 @@
 import type { LeadsDeskRole } from "./roles";
 import type { PermissionKey } from "./role-permissions-contract";
-export const GUIDE_VERSION = 1;
+export const GUIDE_VERSION = 2;
 export type GuideStep = {
   title: string;
   description: string;
   href: string;
   label: string;
+  target?: string;
+  action?: string;
 };
 export function workspaceGuide(
   role: LeadsDeskRole,
@@ -57,7 +59,7 @@ export function workspaceGuide(
   steps.push({
     title: "A private place for conversations",
     description:
-      "Inbox keeps team conversations limited to their participants. Linking a lead also requires current access to that lead. Customer email becomes available after the owner verifies a mailbox.",
+      "Inbox keeps team conversations limited to their participants. Linking a lead also requires current access to that lead. Choose one teammate for a direct message or several for a private group.",
     href: "/inbox",
     label: "Open Inbox",
   });
@@ -69,6 +71,16 @@ export function workspaceGuide(
       href: "/settings",
       label: "Open settings",
     });
+  if (permissions.includes("canViewLeads"))
+    steps.push({
+      title: "Ask a question about your leads",
+      description:
+        "Try “Find a lead named Mathew” or “What are our main objections?” The assistant searches records and saved notes within your access. If no lead matches, it says so.",
+      href: "/assistant",
+      label: "Open assistant",
+      action:
+        "Try a question in the message box. No changes are made without review.",
+    });
   steps.push({
     title: "You can revisit this guide",
     description:
@@ -76,5 +88,34 @@ export function workspaceGuide(
     href: "/profile",
     label: "Open my profile",
   });
-  return steps;
+  return steps.map((step) => ({
+    ...step,
+    target:
+      (
+        {
+          "/dashboard":
+            '[data-tour="dashboard-results"], [data-tour-page="dashboard"] > :first-child',
+          "/leads": '[data-tour="lead-queue"]',
+          "/tasks": '[data-tour="task-queue"]',
+          "/inbox": '[data-tour="team-inbox"]',
+        } as Record<string, string>
+      )[step.href] ?? `[data-tour-page="${step.href.slice(1)}"] > :first-child`,
+    action:
+      step.action ??
+      (
+        {
+          "/dashboard":
+            "Check your target period and currency, then explore the figures.",
+          "/leads":
+            "Use search or filters to find a lead. Open a record to see notes and follow-ups.",
+          "/tasks":
+            "Switch between overdue, today and completed work to see what needs attention.",
+          "/reports": "Change the reporting period to compare results.",
+          "/inbox": "Use + to choose teammates and start a private message.",
+          "/settings":
+            "Open a setting to see its controls. The tour does not save any changes.",
+          "/profile": "Your details and personal preferences live here.",
+        } as Record<string, string>
+      )[step.href],
+  }));
 }

@@ -1,5 +1,5 @@
 "use client";
-import { WorkspaceGuide } from "./WorkspaceGuide";
+import { WorkspaceTour } from "./WorkspaceGuide";
 import { AssistantLauncher } from "./AssistantLauncher";
 
 import type { CSSProperties, PropsWithChildren, ReactNode } from "react";
@@ -141,7 +141,7 @@ export function AdminShell({
       data-glass={workspaceSettings.glassEnabled ? "on" : "off"}
       data-glass-style={glassStyle}
     >
-      {activeNav === "dashboard" ? <WorkspaceGuide automatic /> : null}
+      <WorkspaceTour />
       <div className="ld-bg-overlay" aria-hidden="true" />
       <div className="relative z-10 min-h-[100svh] px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-[max(0.75rem,env(safe-area-inset-top))] sm:p-4">
         <a href="#workspace-content" className="sr-only focus:not-sr-only focus:absolute focus:z-50 focus:rounded-lg focus:bg-zinc-900 focus:p-3">Skip to content</a>
@@ -213,7 +213,7 @@ export function AdminShell({
             />
             <main id="workspace-content" tabIndex={-1} className="min-w-0 max-w-full [overflow-wrap:anywhere] px-0 pb-[max(6rem,env(safe-area-inset-bottom))] pt-4 sm:pb-24 sm:pt-5">
               <AdminSectionNavigation />
-              {children}
+              <div data-tour-page={activeNav} className="scroll-mt-24">{children}</div>
               <AssistantLauncher />
             </main>
           </div>

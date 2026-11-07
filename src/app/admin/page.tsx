@@ -717,7 +717,7 @@ export default async function AdminPage({
               title="Sales overview"
               description="Key metrics and pipeline health at a glance."
             />
-            <div className="ld-animate-fade-in-up">
+            <div data-tour="dashboard-results" className="scroll-mt-24 ld-animate-fade-in-up">
               <SalesCommandOverview
                 summary={salesDashboardSummary}
                 stageDefinitions={stages

@@ -11,9 +11,9 @@ import Link from "next/link";
 import {
   ArrowLeft,
   ArrowUp,
-  Inbox,
   LockKeyhole,
-  Mail,
+  Search,
+  Hash,
   MessageCircle,
   Plus,
   RefreshCw,
@@ -21,10 +21,8 @@ import {
 } from "lucide-react";
 import { AdminSelect } from "@/components/admin/AdminSelect";
 import { ComposeConversation } from "./ComposeConversation";
-import { MailboxSettings } from "./MailboxSettings";
 import {
   inboxRequest,
-  deliveryLabel,
   type Conversation,
   type Directory,
   type Thread,
@@ -41,12 +39,12 @@ export function InboxWorkspace() {
     [busy, setBusy] = useState(false),
     [loading, setLoading] = useState(true),
     [compose, setCompose] = useState(false),
-    [settings, setSettings] = useState(false),
+    [query, setQuery] = useState(""),
+    [filter, setFilter] = useState<"all" | "unread" | "groups">("all"),
     [initialLead, setInitialLead] = useState<string | undefined>(),
     [sharing, setSharing] = useState(false),
     [teammate, setTeammate] = useState("");
   const newButton = useRef<HTMLButtonElement>(null),
-    mailButton = useRef<HTMLButtonElement>(null),
     activeThread = useRef<string | null>(null),
     guard = useRef(false),
     requestKey = useRef<{ text: string; threadId: string; id: string } | null>(
@@ -177,28 +175,6 @@ export function InboxWorkspace() {
       document.removeEventListener("visibilitychange", update);
     };
   }, [loadConversation]);
-  const sync = useCallback(async () => {
-    setError("");
-    setBusy(true);
-    try {
-      await inboxRequest("", { op: "sync" });
-      await loadList();
-      const d = await inboxRequest<Directory>("?op=directory");
-      setDirectory(d);
-      if (activeThread.current) await loadConversation(activeThread.current);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Sync failed.");
-    } finally {
-      setBusy(false);
-    }
-  }, [loadList, loadConversation]);
-  useEffect(() => {
-    if (!directory?.canConfigure || !directory.mailbox.connected) return;
-    const timer = setInterval(() => {
-      if (document.visibilityState === "visible") void sync();
-    }, 60000);
-    return () => clearInterval(timer);
-  }, [directory?.canConfigure, directory?.mailbox.connected, sync]);
   function open(id: string) {
     activeThread.current = id;
     setSelected(id);
@@ -265,227 +241,326 @@ export function InboxWorkspace() {
       setBusy(false);
     }
   }
+  const shown = threads.filter(
+    (t) =>
+      t.subject.toLowerCase().includes(query.toLowerCase()) &&
+      (filter === "all" ||
+        (filter === "unread" ? t.unread > 0 : t.memberCount > 2)),
+  );
+  async function moreThreads() {
+    if (!next) return;
+    try {
+      const d = await inboxRequest<{ threads: Thread[]; next: string | null }>(
+        `?before=${next}`,
+      );
+      setThreads((rows) => [
+        ...rows,
+        ...d.threads.filter((t) => !rows.some((r) => r.id === t.id)),
+      ]);
+      setNext(d.next);
+    } catch (e) {
+      setError(
+        e instanceof Error ? e.message : "Could not load conversations.",
+      );
+    }
+  }
+  async function earlier() {
+    if (!conversation?.next || !selected) return;
+    try {
+      const d = await inboxRequest<Conversation>(
+        `?threadId=${selected}&before=${conversation.next}`,
+      );
+      setConversation((c) =>
+        c && c.thread.id === d.thread.id
+          ? {
+              ...c,
+              next: d.next,
+              messages: [
+                ...d.messages,
+                ...c.messages.filter(
+                  (m) => !d.messages.some((n) => n.id === m.id),
+                ),
+              ],
+            }
+          : c,
+      );
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Could not load messages.");
+    }
+  }
   return (
-    <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <p className="flex items-center gap-2 text-xs text-white/55">
-          <LockKeyhole className="size-3.5" />
-          {directory?.secure
-            ? "Encrypted in storage · private to participants"
-            : "Secure messaging"}
-        </p>
-        <div className="flex flex-wrap gap-2">
-          {directory?.canConfigure ? (
-            <button
-              ref={mailButton}
-              className="admin-button-secondary min-h-11 px-3 text-sm"
-              onClick={() => setSettings(true)}
-              disabled={!directory.secure}
-            >
-              {directory.mailbox.connected
-                ? "Mailbox settings"
-                : "Connect mailbox"}
-            </button>
-          ) : null}
-          {directory?.canConfigure && directory.mailbox.connected ? (
-            <button
-              className="admin-button-secondary min-h-11 px-3 text-sm"
-              disabled={busy}
-              onClick={() => void sync()}
-            >
-              <RefreshCw className="mr-2 size-4" />
-              Sync email
-            </button>
-          ) : null}
-          <button
-            ref={newButton}
-            className="admin-button-primary min-h-11 px-4 text-sm"
-            disabled={!directory?.secure}
-            onClick={() => {
-              setInitialLead(undefined);
-              setCompose(true);
-            }}
-          >
-            <Plus className="mr-2 size-4" />
-            New conversation
-          </button>
-        </div>
-      </div>
+    <div className="space-y-3" data-tour="team-inbox">
       {error ? (
         <p
           role="alert"
-          className="rounded-lg border border-rose-400/25 p-3 text-sm text-rose-200"
+          className="rounded-xl border border-rose-400/25 p-3 text-sm text-rose-200"
         >
           {error}
         </p>
       ) : null}
       {directory && !directory.secure ? (
-        <div
+        <p
           role="status"
-          className="rounded-xl border border-white/10 p-5 text-sm text-white/65"
+          className="rounded-xl border border-white/10 p-4 text-sm text-white/65"
         >
-          Secure messaging is not configured. Ask the workspace owner to finish
-          deployment setup. No messages will be stored without encryption.
-        </div>
-      ) : null}
-      {directory?.mailbox.lastError ? (
-        <p className="text-xs text-amber-200">
-          Email sync needs attention. Existing conversations remain available.
+          Secure messaging needs an encryption key. Ask your workspace owner to
+          finish setup.
         </p>
       ) : null}
-      <div className="grid min-w-0 overflow-hidden rounded-2xl border border-white/10 bg-[color:var(--ld-color-background)]/80 md:grid-cols-[minmax(240px,300px)_minmax(0,1fr)]">
+      <div className="grid min-w-0 overflow-hidden rounded-2xl border border-white/15 bg-[var(--ld-color-background)] shadow-xl md:h-[min(740px,calc(100dvh-210px))] md:min-h-[520px] md:grid-cols-[280px_minmax(0,1fr)]">
         <aside
-          className={`${selected ? "hidden md:block" : "block"} min-w-0 border-white/10 md:border-r`}
+          className={`${selected ? "hidden md:flex" : "flex"} min-h-[440px] min-w-0 flex-col border-white/10 bg-white/[.025] md:border-r`}
           aria-label="Conversations"
         >
-          <div className="border-b border-white/10 px-4 py-4 text-sm font-semibold">
-            Conversations
-          </div>
-          <div className="max-h-[65dvh] overflow-y-auto overscroll-contain">
-            {loading ? (
-              <p role="status" className="p-5 text-sm text-white/60">
-                Loading your inbox…
+          <header className="flex items-center justify-between gap-3 px-4 pb-3 pt-5">
+            <div>
+              <h2 className="text-lg font-semibold tracking-tight">Messages</h2>
+              <p className="mt-1 text-xs text-white/45">
+                Your team, one conversation away.
               </p>
-            ) : threads.length ? (
-              threads.map((t) => (
+            </div>
+            <button
+              ref={newButton}
+              aria-label="New message"
+              title="New message"
+              className="admin-button-primary flex size-10 shrink-0 items-center justify-center rounded-xl"
+              disabled={!directory?.secure}
+              onClick={() => {
+                setInitialLead(undefined);
+                setCompose(true);
+              }}
+            >
+              <Plus className="size-5" />
+            </button>
+          </header>
+          <div className="px-3 pb-3">
+            <label className="flex min-h-10 items-center gap-2 rounded-lg border border-white/10 bg-black/10 px-3">
+              <Search className="size-4 shrink-0 text-white/40" />
+              <input
+                className="w-full min-w-0 bg-transparent py-2 text-sm outline-none"
+                aria-label="Search loaded conversations"
+                placeholder="Find a conversation"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+              />
+            </label>
+          </div>
+          <div
+            className="flex gap-1 border-b border-white/10 px-3 pb-3"
+            role="group"
+            aria-label="Filter conversations"
+          >
+            {(
+              [
+                ["all", "All"],
+                ["unread", "Unread"],
+                ["groups", "Groups"],
+              ] as const
+            ).map(([value, label]) => (
+              <button
+                key={value}
+                aria-pressed={filter === value}
+                className={`min-h-9 rounded-lg px-3 text-xs font-medium ${filter === value ? "bg-white/10 text-white" : "text-white/55 hover:bg-white/5"}`}
+                onClick={() => setFilter(value)}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+          <div className="max-h-[62dvh] min-h-0 flex-1 overflow-y-auto overscroll-contain p-2 md:max-h-none">
+            {loading ? (
+              <p role="status" className="p-4 text-sm text-white/55">
+                Loading messages…
+              </p>
+            ) : shown.length ? (
+              shown.map((t) => (
                 <button
                   key={t.id}
-                  className={`ld-focus-ring flex w-full min-w-0 items-start gap-3 border-b border-white/5 p-4 text-left transition hover:bg-white/5 ${selected === t.id ? "bg-white/[.07]" : ""}`}
-                  onClick={() => open(t.id)}
                   aria-current={selected === t.id ? "true" : undefined}
+                  onClick={() => open(t.id)}
+                  className={`ld-focus-ring mb-1 flex min-h-20 w-full min-w-0 gap-3 rounded-xl p-3 text-left transition hover:bg-white/5 ${selected === t.id ? "bg-white/10 ring-1 ring-white/10" : ""}`}
                 >
-                  {t.channel === "email" ? (
-                    <Mail className="mt-1 size-4 shrink-0 text-white/50" />
-                  ) : (
-                    <MessageCircle className="mt-1 size-4 shrink-0 text-white/50" />
-                  )}
+                  <span
+                    className={`grid size-10 shrink-0 place-items-center rounded-xl ${t.memberCount > 2 ? "bg-violet-400/10 text-violet-200" : "bg-sky-400/10 text-sky-200"}`}
+                  >
+                    {t.memberCount > 2 ? (
+                      <Hash className="size-4" />
+                    ) : (
+                      <MessageCircle className="size-4" />
+                    )}
+                  </span>
                   <span className="min-w-0 flex-1">
-                    <span className="block truncate text-sm font-medium">
+                    <span
+                      className={`block truncate text-sm ${t.unread ? "font-semibold" : "font-medium"}`}
+                    >
                       {t.subject}
                     </span>
                     <span className="mt-1 block text-xs text-white/45">
-                      {t.channel === "email"
-                        ? "Customer email"
-                        : "Private team"}{" "}
-                      · {new Date(t.updatedAt).toLocaleDateString()}
+                      {t.memberCount > 2
+                        ? `${t.memberCount} members`
+                        : "Direct message"}{" "}
+                      ·{" "}
+                      {new Date(t.updatedAt).toLocaleDateString(undefined, {
+                        month: "short",
+                        day: "numeric",
+                      })}
                     </span>
                   </span>
                   {t.unread > 0 ? (
-                    <span className="rounded-full bg-[var(--ld-color-primary)] px-2 py-0.5 text-xs text-white">
+                    <span
+                      aria-label={`${t.unread} unread messages`}
+                      className="mt-1 h-fit rounded-md bg-[var(--ld-color-primary)] px-1.5 py-0.5 text-[11px] font-semibold"
+                    >
                       {t.unread > 99 ? "99+" : t.unread}
                     </span>
                   ) : null}
                 </button>
               ))
             ) : (
-              <div className="p-6 text-sm text-white/55">
-                Your conversations will appear here.
+              <div className="p-5 text-center">
+                <MessageCircle className="mx-auto mb-3 size-6 text-white/25" />
+                <p className="text-sm font-medium">
+                  {filter === "unread"
+                    ? "You’re all caught up"
+                    : query
+                      ? "No matching conversations"
+                      : filter === "groups"
+                        ? "No group conversations yet"
+                        : "Start with a message"}
+                </p>
+                <p className="mt-2 text-xs leading-5 text-white/45">
+                  {query
+                    ? "Search covers the conversations loaded here. Load older conversations to find more."
+                    : filter === "unread"
+                      ? "New unread messages will appear here."
+                      : "Use + to bring the right people together."}
+                </p>
               </div>
             )}
             {next ? (
               <button
-                className="min-h-11 w-full p-3 text-sm text-white/65 underline"
-                onClick={() =>
-                  void inboxRequest<{ threads: Thread[]; next: string | null }>(
-                    `?before=${next}`,
-                  )
-                    .then((d) => {
-                      setThreads((rows) => [
-                        ...rows,
-                        ...d.threads.filter(
-                          (t) => !rows.some((r) => r.id === t.id),
-                        ),
-                      ]);
-                      setNext(d.next);
-                    })
-                    .catch((e) => setError(e.message))
-                }
+                className="min-h-11 w-full text-xs text-white/60 underline"
+                onClick={() => void moreThreads()}
               >
                 Load older conversations
               </button>
             ) : null}
           </div>
+          <footer className="flex items-center gap-2 border-t border-white/10 p-4 text-[11px] text-white/40">
+            <LockKeyhole className="size-3.5 shrink-0" />
+            Private team conversations
+            <button
+              aria-label="Refresh conversations"
+              title="Refresh"
+              className="ml-auto grid size-8 place-items-center rounded-md hover:bg-white/5"
+              onClick={() => void loadList().catch((e) => setError(e.message))}
+            >
+              <RefreshCw className="size-3.5" />
+            </button>
+          </footer>
         </aside>
         <section
-          className={`${selected ? "flex" : "hidden md:flex"} min-h-[500px] min-w-0 flex-col`}
+          className={`${selected ? "flex" : "hidden md:flex"} min-h-[520px] min-w-0 flex-col`}
           aria-label="Conversation"
         >
           {!selected ? (
-            <div className="grid flex-1 place-items-center p-8 text-center">
-              <div className="max-w-xs">
-                <Inbox className="mx-auto mb-5 size-8 text-white/35" />
-                <h2 className="text-xl font-semibold tracking-tight">
-                  Every conversation, in context.
-                </h2>
-                <p className="mt-3 text-sm leading-6 text-white/55">
-                  Choose a conversation or start a private handoff with your
-                  team. Connect a mailbox for customer email.
+            <div className="grid flex-1 place-items-center px-8 py-16">
+              <div className="max-w-sm text-center">
+                <div className="mx-auto mb-6 grid size-16 place-items-center rounded-2xl border border-white/10 bg-white/5">
+                  <Users className="size-7 text-white/60" />
+                </div>
+                <p className="text-xs font-medium uppercase tracking-[.15em] text-white/40">
+                  Better together
                 </p>
+                <h2 className="mt-3 text-2xl font-semibold tracking-tight">
+                  Keep the conversation moving.
+                </h2>
+                <p className="mt-3 text-sm leading-7 text-white/55">
+                  Ask a teammate, share a lead handoff, or bring a small group
+                  together. Your conversations stay with the people you choose.
+                </p>
+                <button
+                  className="admin-button-primary mt-6 min-h-11 px-5 text-sm"
+                  disabled={!directory?.secure}
+                  onClick={() => setCompose(true)}
+                >
+                  <Plus className="mr-2 size-4" />
+                  New message
+                </button>
               </div>
             </div>
           ) : !conversation ? (
             <div role="status" className="p-6 text-sm text-white/60">
               Opening conversation…
-              {error ? (
-                <button
-                  className="mt-4 block min-h-11 underline"
-                  onClick={back}
-                >
-                  Back to inbox
-                </button>
-              ) : null}
+              <button className="ml-3 underline" onClick={back}>
+                Back
+              </button>
             </div>
           ) : (
             <>
-              <header className="flex min-w-0 items-start gap-3 border-b border-white/10 p-4">
+              <header className="flex min-w-0 items-center gap-3 border-b border-white/10 px-4 py-4">
                 <button
-                  className="ld-focus-ring grid size-11 shrink-0 place-items-center rounded-lg md:hidden"
                   aria-label="Back to conversations"
+                  className="admin-button-ghost grid size-10 shrink-0 place-items-center md:hidden"
                   onClick={back}
                 >
                   <ArrowLeft className="size-5" />
                 </button>
+                <span className="hidden size-10 shrink-0 place-items-center rounded-xl bg-white/5 sm:grid">
+                  <Hash className="size-5 text-white/60" />
+                </span>
                 <div className="min-w-0 flex-1">
-                  <h2 className="break-words text-base font-semibold">
+                  <h2 className="truncate text-base font-semibold">
                     {conversation.thread.subject}
                   </h2>
-                  <p className="mt-1 break-words text-xs text-white/50">
+                  <p className="mt-1 truncate text-xs text-white/45">
                     {conversation.thread.members
-                      .map((m) => m.name || m.email)
+                      .map((m) =>
+                        m.id === directory?.currentUserId
+                          ? "You"
+                          : m.name || m.email,
+                      )
                       .join(", ")}
                   </p>
-                  {conversation.thread.leadId ? (
-                    <Link
-                      className="mt-2 inline-block py-1 text-xs underline underline-offset-4"
-                      href={`/leads/${conversation.thread.leadId}`}
-                    >
-                      Open linked lead
-                    </Link>
-                  ) : null}
                 </div>
-                {conversation.thread.canManageParticipants ? (
-                  <button
-                    className="ld-focus-ring grid size-11 shrink-0 place-items-center rounded-lg hover:bg-white/5"
-                    aria-label="Manage conversation participants"
-                    onClick={() => setSharing((v) => !v)}
-                  >
-                    <Users className="size-4" />
-                  </button>
-                ) : null}
+                <button
+                  className="admin-button-ghost flex min-h-10 shrink-0 items-center gap-2 px-2 text-xs"
+                  aria-expanded={sharing}
+                  onClick={() => setSharing((v) => !v)}
+                >
+                  <Users className="size-4" />
+                  {conversation.thread.members.length}
+                  <span className="hidden sm:inline">Members</span>
+                </button>
               </header>
+              {conversation.thread.leadId ? (
+                <div className="border-b border-white/10 px-5 py-2">
+                  <Link
+                    className="text-xs text-white/60 underline underline-offset-4"
+                    href={`/leads/${conversation.thread.leadId}`}
+                  >
+                    Open linked lead ↗
+                  </Link>
+                </div>
+              ) : null}
               {sharing && directory ? (
-                <div className="space-y-3 border-b border-white/10 p-4 text-sm">
-                  <p>Only listed participants can read this conversation.</p>
-                  {conversation.thread.members
-                    .filter((m) => m.id !== directory.currentUserId)
-                    .map((m) => (
-                      <div
-                        key={m.id}
-                        className="flex items-center justify-between gap-3"
-                      >
-                        <span>{m.name || m.email}</span>
+                <div className="max-h-60 space-y-2 overflow-y-auto border-b border-white/10 bg-white/[.025] p-4 text-sm">
+                  <p className="mb-2 text-xs text-white/50">
+                    Only these people can read this conversation.
+                  </p>
+                  {conversation.thread.members.map((m) => (
+                    <div
+                      key={m.id}
+                      className="flex items-center justify-between gap-3"
+                    >
+                      <span className="min-w-0 break-words">
+                        {m.name || m.email}
+                        {m.id === directory.currentUserId ? " (you)" : ""}
+                      </span>
+                      {conversation.thread.canManageParticipants &&
+                      m.id !== directory.currentUserId ? (
                         <button
-                          className="min-h-11 text-xs underline"
+                          className="min-h-10 shrink-0 text-xs text-white/60 underline"
                           disabled={busy}
                           onClick={() =>
                             void share(
@@ -495,158 +570,161 @@ export function InboxWorkspace() {
                             )
                           }
                         >
-                          Remove access
+                          Remove
                         </button>
-                      </div>
-                    ))}
-                  <div className="flex min-w-0 gap-2">
-                    <AdminSelect
-                      className="min-h-11 min-w-0 flex-1"
-                      aria-label="Add teammate to conversation"
-                      value={teammate}
-                      onChange={(e) => setTeammate(e.target.value)}
-                    >
-                      <option value="">Choose a teammate</option>
-                      {directory.users
-                        .filter(
-                          (u) =>
-                            !conversation.thread.members.some(
-                              (m) => m.id === u.id,
-                            ),
-                        )
-                        .map((u) => (
-                          <option key={u.id} value={u.id}>
-                            {u.name || u.email}
-                          </option>
-                        ))}
-                    </AdminSelect>
-                    <button
-                      className="admin-button-secondary min-h-11 px-3"
-                      disabled={busy || !teammate}
-                      onClick={() =>
-                        void share([
-                          ...conversation.thread.members.map((m) => m.id),
-                          teammate,
-                        ])
-                      }
-                    >
-                      Add
-                    </button>
-                  </div>
+                      ) : null}
+                    </div>
+                  ))}
+                  {conversation.thread.canManageParticipants ? (
+                    <div className="flex min-w-0 gap-2 pt-2">
+                      <AdminSelect
+                        aria-label="Add teammate to conversation"
+                        className="min-h-11 min-w-0 flex-1"
+                        value={teammate}
+                        onChange={(e) => setTeammate(e.target.value)}
+                      >
+                        <option value="">Choose a teammate</option>
+                        {directory.users
+                          .filter(
+                            (u) =>
+                              !conversation.thread.members.some(
+                                (m) => m.id === u.id,
+                              ),
+                          )
+                          .map((u) => (
+                            <option key={u.id} value={u.id}>
+                              {u.name || u.email}
+                            </option>
+                          ))}
+                      </AdminSelect>
+                      <button
+                        className="admin-button-secondary min-h-11 px-3"
+                        disabled={busy || !teammate}
+                        onClick={() =>
+                          void share([
+                            ...conversation.thread.members.map((m) => m.id),
+                            teammate,
+                          ])
+                        }
+                      >
+                        Add
+                      </button>
+                    </div>
+                  ) : null}
                 </div>
               ) : null}
               <div
-                className="flex max-h-[55dvh] min-h-64 flex-1 flex-col gap-4 overflow-y-auto overscroll-contain p-4"
+                className="max-h-[55dvh] min-h-48 flex-1 overflow-y-auto overscroll-contain py-4 md:max-h-none"
                 aria-label="Messages"
-                aria-live="polite"
               >
                 {conversation.next ? (
                   <button
-                    className="min-h-11 text-xs text-white/60 underline"
-                    onClick={() =>
-                      void inboxRequest<Conversation>(
-                        `?threadId=${selected}&before=${conversation.next}`,
-                      )
-                        .then((d) =>
-                          setConversation((c) =>
-                            c && c.thread.id === d.thread.id
-                              ? {
-                                  ...c,
-                                  next: d.next,
-                                  messages: [...d.messages, ...c.messages],
-                                }
-                              : c,
-                          ),
-                        )
-                        .catch((e) => setError(e.message))
-                    }
+                    className="min-h-11 w-full text-xs text-white/55 underline"
+                    onClick={() => void earlier()}
                   >
                     Load earlier messages
                   </button>
                 ) : null}
-                {conversation.messages.map((m) => (
-                  <article
-                    key={m.id}
-                    className={`max-w-[90%] rounded-2xl px-4 py-3 sm:max-w-[80%] ${m.own ? "self-end bg-[color:var(--ld-color-primary)]/15" : "self-start bg-white/[.055]"}`}
-                  >
-                    <p className="mb-2 text-xs font-medium text-white/55">
-                      {m.author}
-                    </p>
-                    <p className="whitespace-pre-wrap break-words text-sm leading-6 [overflow-wrap:anywhere]">
-                      {m.text}
-                    </p>
-                    {m.attachmentsSkipped ? (
-                      <p className="mt-2 text-xs text-amber-100/70">
-                        {m.attachmentsSkipped} attachment(s) remain in the
-                        original mailbox.
-                      </p>
-                    ) : null}
-                    {m.truncated ? (
-                      <p className="mt-2 text-xs text-amber-100/70">
-                        Open your mailbox for the complete email.
-                      </p>
-                    ) : null}
-                    <p
-                      className={`mt-2 text-[11px] ${m.status === "failed" || m.status === "unknown" ? "text-amber-200" : "text-white/40"}`}
-                    >
-                      {new Date(m.createdAt).toLocaleString()} ·{" "}
-                      {deliveryLabel(m.status, m.direction)}
-                    </p>
-                    {m.own && m.status === "failed" ? (
-                      <button
-                        className="mt-2 min-h-11 text-xs underline"
-                        disabled={busy}
-                        onClick={() => {
-                          setBusy(true);
-                          void inboxRequest("", {
-                            op: "retry",
-                            messageId: m.id,
-                          })
-                            .then(() => loadConversation(m.threadId))
-                            .catch((e) => setError(e.message))
-                            .finally(() => setBusy(false));
-                        }}
-                      >
-                        Retry failed email
-                      </button>
-                    ) : null}
-                  </article>
-                ))}
+                {conversation.messages.map((m, index) => {
+                  const prior = conversation.messages[index - 1];
+                  const day = new Date(m.createdAt).toLocaleDateString(
+                    undefined,
+                    { weekday: "short", month: "short", day: "numeric" },
+                  );
+                  const newDay =
+                    !prior ||
+                    new Date(prior.createdAt).toDateString() !==
+                      new Date(m.createdAt).toDateString();
+                  return (
+                    <div key={m.id}>
+                      {newDay ? (
+                        <div className="my-4 flex items-center gap-3 px-5">
+                          <span className="h-px flex-1 bg-white/10" />
+                          <span className="rounded-full border border-white/10 px-3 py-1 text-[11px] text-white/50">
+                            {day}
+                          </span>
+                          <span className="h-px flex-1 bg-white/10" />
+                        </div>
+                      ) : null}
+                      <article className="flex gap-3 px-4 py-2.5 hover:bg-white/[.025] sm:px-5">
+                        <span
+                          aria-hidden="true"
+                          className={`grid size-9 shrink-0 place-items-center rounded-lg text-xs font-semibold ${m.own ? "bg-violet-400/15 text-violet-200" : "bg-sky-400/15 text-sky-200"}`}
+                        >
+                          {m.author
+                            .split(/\s+/)
+                            .map((w) => w[0])
+                            .slice(0, 2)
+                            .join("")
+                            .toUpperCase()}
+                        </span>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex flex-wrap items-baseline gap-x-2">
+                            <p className="text-sm font-semibold">
+                              {m.author}
+                              {m.own ? (
+                                <span className="ml-1 font-normal text-white/40">
+                                  you
+                                </span>
+                              ) : null}
+                            </p>
+                            <time
+                              dateTime={m.createdAt}
+                              className="text-[11px] text-white/35"
+                            >
+                              {new Date(m.createdAt).toLocaleTimeString(
+                                undefined,
+                                { hour: "2-digit", minute: "2-digit" },
+                              )}
+                            </time>
+                          </div>
+                          <p className="mt-1 whitespace-pre-wrap break-words text-sm leading-6 text-white/80 [overflow-wrap:anywhere]">
+                            {m.text}
+                          </p>
+                        </div>
+                      </article>
+                    </div>
+                  );
+                })}
                 <div ref={bottom} />
               </div>
               <form
-                className="border-t border-white/10 p-4"
+                className="m-3 mt-0 rounded-xl border border-white/20 bg-white/[.025] focus-within:border-white/40 sm:m-4 sm:mt-0"
                 onSubmit={(e) => {
                   e.preventDefault();
                   void send();
                 }}
               >
-                <label className="sr-only" htmlFor="inbox-reply">
-                  Write a reply
-                </label>
                 <textarea
-                  id="inbox-reply"
-                  className="admin-input w-full"
+                  aria-label="Message"
+                  className="block w-full resize-none bg-transparent px-4 pt-4 text-sm leading-6 outline-none"
                   rows={3}
-                  placeholder={
-                    conversation.thread.channel === "email"
-                      ? "Reply to the customer…"
-                      : "Message your team…"
-                  }
+                  maxLength={12000}
+                  placeholder={`Message ${conversation.thread.subject}`}
                   value={text}
                   onChange={(e) => setText(e.target.value)}
-                  maxLength={12000}
-                  required
+                  onKeyDown={(e) => {
+                    if (
+                      e.key === "Enter" &&
+                      !e.shiftKey &&
+                      !e.nativeEvent.isComposing
+                    ) {
+                      e.preventDefault();
+                      void send();
+                    }
+                  }}
                 />
-                <div className="mt-3 flex items-center justify-between gap-3">
-                  <p className="text-xs text-white/40">
-                    {conversation.thread.channel === "email"
-                      ? "Email uses TLS to your mail server. It is not end-to-end encrypted."
-                      : "Private to the participants listed above."}
-                  </p>
+                <div className="flex items-center justify-between gap-3 px-3 pb-3 pt-1">
+                  <span className="text-[11px] text-white/40">
+                    <span className="hidden sm:inline">
+                      Enter to send · Shift + Enter for a new line
+                    </span>
+                    <span className="sm:hidden">Private message</span>
+                  </span>
                   <button
-                    className="admin-button-primary inline-flex min-h-11 shrink-0 items-center gap-2 px-4"
-                    disabled={busy || !text.trim() || !directory?.secure}
+                    aria-label="Send message"
+                    className="admin-button-primary flex min-h-10 items-center gap-2 rounded-lg px-3 text-xs"
+                    disabled={busy || !text.trim()}
                   >
                     {busy ? "Sending…" : "Send"}
                     <ArrowUp className="size-4" />
@@ -657,14 +735,10 @@ export function InboxWorkspace() {
           )}
         </section>
       </div>
-      {directory?.mailbox.connected ? (
-        <p className="text-xs text-white/40">
-          {directory.mailbox.lastSyncAt
-            ? `Email last synced ${new Date(directory.mailbox.lastSyncAt).toLocaleString()}.`
-            : "Mailbox connected. Sync email to import recent messages."}{" "}
-          The owner can sync here or schedule background sync.
-        </p>
-      ) : null}
+      <p className="flex items-center gap-2 text-[11px] text-white/40">
+        <LockKeyhole className="size-3.5" />
+        Encrypted in storage · Visible conversations refresh automatically
+      </p>
       {compose && directory ? (
         <ComposeConversation
           anchorRef={newButton}
@@ -673,20 +747,8 @@ export function InboxWorkspace() {
           onClose={() => setCompose(false)}
           onCreated={(id) => {
             setCompose(false);
-            void loadList();
             open(id);
-          }}
-        />
-      ) : null}
-      {settings ? (
-        <MailboxSettings
-          anchorRef={mailButton}
-          onClose={() => setSettings(false)}
-          onConnected={() => {
-            setSettings(false);
-            void inboxRequest<Directory>("?op=directory")
-              .then(setDirectory)
-              .catch((e) => setError(e.message));
+            void loadList().catch((e) => setError(e.message));
           }}
         />
       ) : null}

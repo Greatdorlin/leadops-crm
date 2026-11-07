@@ -1,5 +1,6 @@
 import { createHash, randomBytes, timingSafeEqual } from "node:crypto";
 import { z } from "zod";
+import { workspaceAutomationPayloadSchema } from "@/lib/crm/workspace-automations";
 export const hashSecret = (value: string) =>
   createHash("sha256").update(value).digest("hex");
 export const secret = () => randomBytes(32).toString("base64url");
@@ -36,6 +37,7 @@ export const clientSchema = z
   })
   .strip();
 export const changeSchema = z.discriminatedUnion("kind", [
+  z.object({kind:z.literal("automation"),rule:workspaceAutomationPayloadSchema}).strict(),
   z
     .object({
       kind: z.literal("note"),

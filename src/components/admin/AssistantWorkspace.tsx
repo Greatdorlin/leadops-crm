@@ -1,5 +1,6 @@
 "use client";
 import Link from "next/link";
+import {AssistantAutomationForm} from "./AssistantAutomationForm";
 import { leadSearchQuery } from "@/lib/assistant/search-query";
 import { questionIntent } from "@/lib/assistant/question-intent";
 import type { objections } from "@/lib/assistant/objections";
@@ -43,6 +44,7 @@ export function AssistantWorkspace({
     [note, setNote] = useState(""),
     [lead, setLead] = useState<Lead | null>(null),
     [composing, setComposing] = useState(false);
+  const [automationOpen,setAutomationOpen]=useState(false);
   const [noteSearchStatus, setNoteSearchStatus] = useState("");
   const questionInput = useRef<HTMLTextAreaElement>(null);
   const answerRef = useRef<HTMLDivElement>(null);
@@ -127,6 +129,12 @@ export function AssistantWorkspace({
     setObjectionReport(null);
     setComposing(false);
     const intent = questionIntent(question);
+    setAutomationOpen(false);
+    if(intent === "automation") {
+      if(!data?.owner || !data.canWrite) {setNotice("Only the workspace owner can create automations here.");return;}
+      setAutomationOpen(true);
+      return;
+    }
     if (intent === "objections" || intent === "notes") {
       setObjectionReport((await send({ op: "objections", question })).data);
       return;
@@ -612,6 +620,7 @@ export function AssistantWorkspace({
           )}
         </section>
       ) : null}
+      {automationOpen && data.owner ? <AssistantAutomationForm onClose={()=>setAutomationOpen(false)} onPrepared={async()=>{reviewAfterRefresh.current=true;await refresh()}}/> : null}
       {data.enabled && data.pending.length ? (
         <section
           className="admin-surface scroll-mt-24 rounded-3xl p-5"
@@ -632,13 +641,12 @@ export function AssistantWorkspace({
                   {p.action.kind} · {p.targetName}
                 </p>
                 <p className="mt-2 whitespace-pre-wrap break-words text-sm">
-                  {p.action.note || p.action.title || p.action.priority}
-                </p>
+                  {p.summary || p.action.note || p.action.title || p.action.priority}</p>
                 <Link
                   className="mt-2 inline-block text-sm underline"
-                  href={`/leads/${p.action.leadId}`}
+                  href={p.action.kind === "automation" ? "/settings/automations" : `/leads/${p.action.leadId}`}
                 >
-                  Review target lead
+                  {p.action.kind === "automation" ? "View automations" : "Review target lead"}
                 </Link>
                 <div className="mt-3 flex flex-wrap gap-2">
                   <button

@@ -68,3 +68,16 @@ test("failed migration rolls back its DDL and history; earlier committed version
     await rm(directory, { recursive: true, force: true });
   }
 });
+
+test("prepared MFA reconciliation requires explicit opt-in and validates the existing schema", async()=>{
+  const client=new PGlite();
+  try{
+    await applyMigrations(session(client));
+    await client.exec("DELETE FROM drizzle.__drizzle_migrations WHERE created_at IN (SELECT created_at FROM drizzle.__drizzle_migrations ORDER BY created_at DESC LIMIT 2)");
+    await assert.rejects(()=>applyMigrations(session(client)));
+    assert.equal((await applyMigrations(session(client),"drizzle",{acceptPreparedMfa:true})).applied,2);
+    assert.equal((await applyMigrations(session(client))).applied,0);
+    await client.exec("DELETE FROM drizzle.__drizzle_migrations WHERE created_at=(SELECT max(created_at) FROM drizzle.__drizzle_migrations); ALTER TABLE user_credentials ALTER COLUMN mfa_changed_at TYPE text");
+    await assert.rejects(()=>applyMigrations(session(client),"drizzle",{acceptPreparedMfa:true}),/differs/);
+  }finally{await client.close()}
+});

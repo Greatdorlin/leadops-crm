@@ -8,6 +8,9 @@ async function main() {
   const url = getDatabaseUrl();
   if (!url) throw new Error("Database URL is not configured.");
   const client = createPostgresClient(url, { maxConnections: 1 });
+  // Open the connection before reserving it. With fetch_types disabled, a cold
+  // Postgres.js reservation can wait indefinitely without sending a query.
+  await client`SELECT 1`;
   const connection = await client.reserve();
   function session(sql: typeof connection): MigrationSession {
     return {
@@ -31,7 +34,7 @@ async function main() {
   }
   try {
     await connection`SELECT pg_advisory_lock(1734452457)`;
-    const result = await applyMigrations(session(connection));
+    const result = await applyMigrations(session(connection), "drizzle", {acceptPreparedMfa:process.argv.includes("--accept-prepared-mfa")});
     logger.info(
       { scope: "db:migrate", ...result },
       "Database migrations complete",

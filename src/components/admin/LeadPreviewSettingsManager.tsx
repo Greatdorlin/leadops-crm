@@ -274,7 +274,7 @@ export function LeadPreviewSettingsManager({
             </span>
             <div>
               <p className="text-base font-semibold text-white">Mobile card</p>
-              <p className="mt-1 text-sm text-white/70">Keep the compact view useful at a glance.</p>
+              <p className="mt-1 text-sm text-white/70">Choose the details shown on lead cards.</p>
             </div>
           </div>
           <div className="grid min-w-0 grid-cols-1 gap-2 sm:grid-cols-2">

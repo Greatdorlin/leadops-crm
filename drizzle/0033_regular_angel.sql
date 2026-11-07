@@ -1,0 +1,1 @@
+ALTER TABLE "user_credentials" ADD COLUMN "mfa_changed_at" timestamp with time zone;

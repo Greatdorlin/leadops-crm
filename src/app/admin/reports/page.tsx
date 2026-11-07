@@ -264,7 +264,7 @@ export default async function AdminReportsPage({
         description={
           showPersonalOnly
             ? "Your personal lead and follow-up results."
-            : "Pipeline, performance, and demand signals for the sales team."
+            : "Sales results and lead activity."
         }
         actions={<AdminSignOutButton />}
       >
@@ -384,9 +384,9 @@ export default async function AdminReportsPage({
                   <div className="mt-4 space-y-3">
                     {statusReport.length > 0 ? (
                       statusReport.map((item) => (
-                        <div key={item.label} className="admin-surface-muted flex items-center justify-between rounded-2xl px-4 py-3">
+                        <div key={item.label} className="admin-surface-muted flex min-w-0 items-center justify-between gap-4 rounded-2xl px-4 py-3">
                           <span className="text-white/80">{item.label}</span>
-                          <span className="font-semibold text-white">{item.value}</span>
+                          <span className="shrink-0 font-semibold text-white">{item.value} {item.value === 1 ? "lead" : "leads"}</span>
                         </div>
                       ))
                     ) : (
@@ -523,9 +523,9 @@ export default async function AdminReportsPage({
                   <div className="mt-4 space-y-3">
                     {statusReport.length > 0 ? (
                       statusReport.map((item) => (
-                        <div key={item.label} className="admin-surface-muted flex items-center justify-between rounded-2xl px-4 py-3">
+                        <div key={item.label} className="admin-surface-muted flex min-w-0 items-center justify-between gap-4 rounded-2xl px-4 py-3">
                           <span className="text-white/80">{item.label}</span>
-                          <span className="font-semibold text-white">{item.value}</span>
+                          <span className="shrink-0 font-semibold text-white">{item.value} {item.value === 1 ? "lead" : "leads"}</span>
                         </div>
                       ))
                     ) : (
@@ -541,40 +541,40 @@ export default async function AdminReportsPage({
                 {activeTab === "pipeline" ? (
                 <GlassSurface as="section" className="rounded-[24px] p-5 ld-animate-fade-in-up">
                   <SectionHeader
-                    eyebrow="Demand"
-                    title="Top interests and locations"
-                    description="What current leads are asking for most often."
+
+                    title="Lead interests and locations"
+
                   />
                   <div className="mt-4 grid gap-4 md:grid-cols-2">
                     <div className="space-y-3">
-                      <p className="text-sm font-semibold text-white">Top interests</p>
+                      <p className="text-sm font-semibold text-white">Recorded interests</p>
                       {reportSummary.interestReport.length > 0 ? (
                         reportSummary.interestReport.slice(0, 5).map((item) => (
-                          <div key={item.label} className="admin-surface-muted flex items-center justify-between rounded-2xl px-4 py-3">
+                          <div key={item.label} className="admin-surface-muted flex min-w-0 items-center justify-between gap-4 rounded-2xl px-4 py-3">
                             <span className="text-sm text-white/80">{item.label}</span>
-                            <span className="font-semibold text-white">{item.value}</span>
+                            <span className="shrink-0 font-semibold text-white">{item.value} {item.value === 1 ? "lead" : "leads"}</span>
                           </div>
                         ))
                       ) : (
                         <EmptyState
-                          title="No demand signals yet"
-                          description="Interest trends appear here once more lead details are captured."
+                          title="No interests recorded"
+                          description="Add an Interest field to record what each lead needs."
                         />
                       )}
                     </div>
                     <div className="space-y-3">
-                      <p className="text-sm font-semibold text-white">Location interest</p>
+                      <p className="text-sm font-semibold text-white">Lead locations</p>
                       {reportSummary.locationReport.length > 0 ? (
                         reportSummary.locationReport.slice(0, 5).map((item) => (
-                          <div key={item.label} className="admin-surface-muted flex items-center justify-between rounded-2xl px-4 py-3">
+                          <div key={item.label} className="admin-surface-muted flex min-w-0 items-center justify-between gap-4 rounded-2xl px-4 py-3">
                             <span className="text-sm text-white/80">{item.label}</span>
-                            <span className="font-semibold text-white">{item.value}</span>
+                            <span className="shrink-0 font-semibold text-white">{item.value} {item.value === 1 ? "lead" : "leads"}</span>
                           </div>
                         ))
                       ) : (
                         <EmptyState
-                          title="No location interest yet"
-                          description="Location trends will appear here once leads share their preferences."
+                          title="No locations recorded"
+                          description="Add a city, state or country to your leads."
                         />
                       )}
                     </div>

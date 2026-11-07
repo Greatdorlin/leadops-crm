@@ -4,7 +4,7 @@ import { getDb } from "@/lib/db/client";
 import type { DatabaseExecutor } from "@/lib/db/client";
 import { dataImportRecords, dataImports } from "@/lib/db/schema";
 import type { CrmMigrationSource } from "@/lib/migrations/sources";
-import { NeonLeadStore } from "@/lib/storage/neon-store";
+import { PostgresLeadStore } from "@/lib/storage/postgres-store";
 
 export type DataImportStatus =
   | "staged"
@@ -258,14 +258,14 @@ export async function summarizeDataImportRecords(importId: string) {
 export async function runDataImportRecordTransaction<T>(
   callback: (context: {
     db: DatabaseExecutor;
-    leadStore: NeonLeadStore;
+    leadStore: PostgresLeadStore;
   }) => Promise<T>,
 ) {
   const db = getDb();
   return db.transaction(async (transaction) =>
     callback({
       db: transaction,
-      leadStore: new NeonLeadStore(() => transaction),
+      leadStore: new PostgresLeadStore(() => transaction),
     }),
   );
 }

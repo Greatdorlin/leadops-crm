@@ -277,12 +277,13 @@ function FormCard({
                   <RotateCcw className="h-3.5 w-3.5" />
                   Restore as draft
                 </SmoothButton>
-                <SmoothButton variant="danger" size="sm" onClick={() => setDeleteOpen(true)} className="h-9 gap-1.5 rounded-xl px-3 text-xs">
-                  <Trash2 className="h-3.5 w-3.5" />
-                  Delete
-                </SmoothButton>
+
               </>
             )}
+            <SmoothButton variant="danger" size="sm" onClick={() => setDeleteOpen(true)} className="h-9 gap-1.5 rounded-xl px-3 text-xs">
+              <Trash2 className="h-3.5 w-3.5" />
+              Delete
+            </SmoothButton>
           </>
         ) : null}
       </div>

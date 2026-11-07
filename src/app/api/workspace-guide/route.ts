@@ -1,3 +1,4 @@
+import {isSameWorkspaceOrigin} from "@/lib/http/same-origin";
 import { leadStore } from "@/lib/storage";
 import {
   scopeLeadListFilters,
@@ -101,7 +102,7 @@ export async function GET() {
   }
 }
 export async function POST(request: Request) {
-  if (request.headers.get("origin") !== new URL(request.url).origin)
+  if (!isSameWorkspaceOrigin(request))
     return NextResponse.json(
       { error: "Open the guide from your workspace." },
       { status: 403 },

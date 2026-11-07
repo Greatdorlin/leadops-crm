@@ -63,6 +63,7 @@ export async function POST(request: Request) {
     else if (message.method === "tools/list")
       result = {
         tools: toolDefinitions
+          .filter(t => !["list_workspace_automations", "propose_workspace_automation"].includes(t.name) || (actor.owner && (t.name !== "propose_workspace_automation" || canWrite)))
           .filter(
             (t) =>
               t.name !== "propose_lead_change" ||

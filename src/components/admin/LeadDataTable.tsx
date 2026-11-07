@@ -127,7 +127,7 @@ function resolvePreviewFieldValue(
     case "name":
       return lead.displayName;
     case "phone":
-      return lead.phone ? <PhoneActions number={lead.phone}/> : "No phone yet";
+      return lead.phone ? <PhoneActions number={lead.phone} email={lead.email}/> : "No phone yet";
     case "email":
       return lead.email || "No email yet";
     case "company":
@@ -366,7 +366,7 @@ export function LeadDataTable({
               <div className="flex items-start gap-2.5">
                 <PhoneCall className="mt-0.5 h-4 w-4 shrink-0 text-emerald-300" />
                 <p className="min-w-0 text-white/76 [overflow-wrap:anywhere]">
-                  {lead.phone ? <PhoneActions number={lead.phone}/> : "No phone yet"}
+                  {lead.phone ? <PhoneActions number={lead.phone} email={lead.email}/> : "No phone yet"}
                 </p>
               </div>
               <div className="grid gap-3 text-xs uppercase tracking-[0.14em] text-white/70 sm:grid-cols-2">

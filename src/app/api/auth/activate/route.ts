@@ -3,8 +3,9 @@ import { z } from "zod";
 import {
   activateInvitation,
   GENERIC_ACTIVATION_ERROR,
-  validateNewPassword,
 } from "@/lib/auth-credentials";
+
+import { newPasswordError } from "@/lib/security/password-policy";
 
 const activationSchema = z.object({
   token: z.string().trim().min(1).max(256),
@@ -14,8 +15,13 @@ const activationSchema = z.object({
 export async function POST(request: Request) {
   const payload = await request.json().catch(() => null);
   const parsed = activationSchema.safeParse(payload);
-  if (!parsed.success || !validateNewPassword(parsed.data.password)) {
+  if (!parsed.success) {
     return NextResponse.json({ error: GENERIC_ACTIVATION_ERROR }, { status: 400 });
+  }
+
+  const passwordError = newPasswordError(parsed.data.password);
+  if (passwordError) {
+    return NextResponse.json({ error: passwordError }, { status: 400 });
   }
 
   try {

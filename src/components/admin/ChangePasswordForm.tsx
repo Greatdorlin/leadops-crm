@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { KeyRound } from "lucide-react";
 
+import { newPasswordError } from "@/lib/security/password-policy";
+
 export function ChangePasswordForm({ disabled = false }: { disabled?: boolean }) {
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -16,6 +18,11 @@ export function ChangePasswordForm({ disabled = false }: { disabled?: boolean })
     setSuccess(false);
     if (newPassword !== confirmPassword) {
       setMessage("New passwords do not match.");
+      return;
+    }
+    const passwordError = newPasswordError(newPassword);
+    if (passwordError) {
+      setMessage(passwordError);
       return;
     }
     setBusy(true);
@@ -59,11 +66,11 @@ export function ChangePasswordForm({ disabled = false }: { disabled?: boolean })
         </label>
         <label className="space-y-2">
           <span className="text-xs font-semibold uppercase tracking-[0.14em] text-white/70">New password</span>
-          <input type="password" autoComplete="new-password" required minLength={12} maxLength={128} value={newPassword} onChange={(event) => setNewPassword(event.target.value)} className="admin-input h-12 w-full rounded-2xl px-4 text-sm outline-none" />
+          <input type="password" autoComplete="new-password" required minLength={12} maxLength={72} value={newPassword} onChange={(event) => setNewPassword(event.target.value)} className="admin-input h-12 w-full rounded-2xl px-4 text-sm outline-none" />
         </label>
         <label className="space-y-2">
           <span className="text-xs font-semibold uppercase tracking-[0.14em] text-white/70">Confirm password</span>
-          <input type="password" autoComplete="new-password" required minLength={12} maxLength={128} value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} className="admin-input h-12 w-full rounded-2xl px-4 text-sm outline-none" />
+          <input type="password" autoComplete="new-password" required minLength={12} maxLength={72} value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} className="admin-input h-12 w-full rounded-2xl px-4 text-sm outline-none" />
         </label>
       </div>
       <div className="flex flex-wrap items-center gap-3">

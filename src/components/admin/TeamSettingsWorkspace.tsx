@@ -198,7 +198,7 @@ export function TeamSettingsWorkspace({
             Sales operators
           </p>
           <p className="mt-3 text-3xl font-semibold tracking-[-0.05em] text-white">{summary.salesOperators}</p>
-          <p className="mt-2 text-sm text-white/70 max-sm:hidden">Team leads and reps carrying active lead work.</p>
+          <p className="mt-2 text-sm text-white/70 max-sm:hidden">Team members with active leads.</p>
         </GlassCard>
         <GlassCard glassStyle="soft" className="p-4 sm:p-5">
           <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/70">

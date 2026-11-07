@@ -36,7 +36,7 @@ Compatibility material remains where it is required for safe upgrades:
 - historical Drizzle migrations and snapshots preserve the original database lineage
 - the release migration archives retired fields before removing them
 - source-label normalization still recognizes old stored values
-- `NeonLeadStore` remains a transitional internal class name, while runtime database access uses the provider-neutral `DATABASE_URL` contract
+- `PostgresLeadStore` is the runtime storage class. The old `NeonLeadStore` export remains only as an internal compatibility alias. Database access uses `DATABASE_URL`
 
 Important:
 

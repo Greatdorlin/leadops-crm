@@ -1,3 +1,4 @@
+import {isSameWorkspaceOrigin} from "@/lib/http/same-origin";
 import { NextResponse } from "next/server";
 import { z, ZodError } from "zod";
 import { getAdminRequestContext } from "@/lib/admin";
@@ -144,7 +145,7 @@ export async function GET(request: Request) {
 }
 export async function POST(request: Request) {
   try {
-    if (request.headers.get("origin") !== new URL(request.url).origin)
+    if (!isSameWorkspaceOrigin(request))
       throw new InboxError("Open this action from your workspace.", 403);
     const id = await userId();
     const b = await readBoundedJsonObject(request, 32 * 1024);

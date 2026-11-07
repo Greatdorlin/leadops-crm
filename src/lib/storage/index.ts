@@ -1,9 +1,7 @@
-import { NeonLeadStore } from "./neon-store";
+import { PostgresLeadStore } from "./postgres-store";
 import type { LeadStore } from "./types";
 
-// Transitional alias: the runtime is Postgres-compatible, while the concrete
-// implementation class still carries inherited Neon naming.
-export const PostgresLeadStore = NeonLeadStore;
+export { PostgresLeadStore };
 
 let sharedLeadStore: LeadStore | null = null;
 

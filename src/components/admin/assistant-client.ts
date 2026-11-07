@@ -1,9 +1,11 @@
 type Pending = {
   targetName: string;
+  summary?: string | null;
   id: string;
   action: {
     kind: string;
-    leadId: string;
+    leadId?: string;
+    rule?: {name:string;conditionField:string;conditionValue:string;conditionOperator:string;actionType:string;actionValue:string};
     note?: string;
     title?: string;
     priority?: string;

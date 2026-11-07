@@ -1,8 +1,8 @@
 "use client";
 import { useRef, useState } from "react";
-import { Phone, MessageSquare, MessageCircle } from "lucide-react";
+import { Phone, MessageSquare, MessageCircle, Mail } from "lucide-react";
 import { ResponsivePopover } from "./ResponsivePopover";
-export function PhoneActions({ number }: { number: string }) {
+export function PhoneActions({ number, email }: { number: string; email?: string | null }) {
   const ref = useRef<HTMLButtonElement>(null),
     [open, setOpen] = useState(false);
   const phone = number.trim().replace(/[^+\d]/g, "");
@@ -39,6 +39,7 @@ export function PhoneActions({ number }: { number: string }) {
               href: `https://wa.me/${phone.replace(/\D/g, "")}`,
               icon: MessageCircle,
             },
+            ...(email ? [{ label: "Email", href: `mailto:${email.trim()}`, icon: Mail }] : []),
           ].map((a) => (
             <a
               key={a.label}
@@ -50,6 +51,7 @@ export function PhoneActions({ number }: { number: string }) {
               {a.label}
             </a>
           ))}
+          <p className="mt-2 px-3 text-xs leading-5 text-white/50">Calls, texts and email open your device’s default apps. Change those apps in your device settings.</p>
         </div>
       </ResponsivePopover>
     </>

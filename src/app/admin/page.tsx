@@ -302,7 +302,7 @@ function buildDevelopmentDashboardData() {
       errorMessage: null,
       normalizedSummary: [
         { label: "Name", value: "Aurelia Systems" },
-        { label: "Interest", value: "Private sales command center" },
+        { label: "Interest", value: "CRM implementation" },
       ],
       rawPayload: null,
       createdAt: new Date(now.getTime() - 45 * 60 * 1000).toISOString(),
@@ -715,7 +715,7 @@ export default async function AdminPage({
             <SectionHeader
               eyebrow="Performance"
               title="Sales overview"
-              description="Key metrics and pipeline health at a glance."
+              description="Sales totals and open opportunities."
             />
             <div data-tour="dashboard-results" className="scroll-mt-24 ld-animate-fade-in-up">
               <SalesCommandOverview

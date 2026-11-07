@@ -25,6 +25,8 @@ export async function notifyCrmEvent(type: string, payload: NotificationPayload)
         payload,
       }),
       cache: "no-store",
+      redirect: "error",
+      signal: AbortSignal.timeout(5000),
     });
   } catch (error) {
     logNotification("notification_failed", {

@@ -23,6 +23,7 @@ import { AssistantError, nameSchema } from "@/lib/assistant/contracts";
 import { setWorkspaceAssistantEnabled } from "@/lib/assistant/management";
 import { body, failure, sameOrigin, origin } from "@/lib/assistant/http";
 import {
+  automationContext,
   approveChange,
   pendingChanges,
   performance,
@@ -222,6 +223,7 @@ export async function POST(request: Request) {
           "Ask the owner to grant assistant access.",
           403,
         );
+      if (raw.op === "automation_context") return NextResponse.json(await automationContext(actor));
       if (raw.op === "objections") return NextResponse.json({kind:"objections",data:await objections(actor, z.string().max(1000).parse(raw.question ?? ""))});
       if (raw.op === "performance")
         return NextResponse.json({

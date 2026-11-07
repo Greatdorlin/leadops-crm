@@ -69,7 +69,7 @@ export function SalesCommandReports({
             <SectionHeader
               eyebrow="Who needs attention"
               title="Rep follow-up load"
-              description="Owners carrying overdue follow-ups."
+              description="Overdue follow-ups by owner."
             />
             <div className="mt-4 grid min-w-0 gap-3">
               {summary.repPerformance.length > 0 ? (

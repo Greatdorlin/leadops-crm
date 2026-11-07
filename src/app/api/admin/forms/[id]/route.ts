@@ -1,3 +1,5 @@
+import {isSameWorkspaceOrigin} from "@/lib/http/same-origin";
+import {readBoundedJsonObject} from "@/lib/http/bounded-body";
 import { hasPublicFormFields } from "@/lib/crm/public-form";
 import { NextResponse } from "next/server";
 import { getAdminRequestContext } from "@/lib/admin";
@@ -38,6 +40,7 @@ export async function PUT(
   request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  if(!isSameWorkspaceOrigin(request)) return NextResponse.json({error:"Open this action from your workspace."},{status:403});
   const context = await getAdminRequestContext();
   if (!context) {
     return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
@@ -53,10 +56,9 @@ export async function PUT(
     return NextResponse.json({ error: "Form not found." }, { status: 404 });
   }
 
-  const payload = (await request.json().catch(() => null)) as Record<string, unknown> | null;
-  if (!payload) {
-    return NextResponse.json({ error: "Invalid request body." }, { status: 400 });
-  }
+  const body = await readBoundedJsonObject(request,32768);
+  if(!body.ok) return NextResponse.json({error:body.error},{status:body.status});
+  const payload = body.value;
 
   const parsed = formSettingsPayloadSchema.safeParse({
     name: existing.name,
@@ -151,6 +153,7 @@ export async function DELETE(
   request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  if(!isSameWorkspaceOrigin(request)) return NextResponse.json({error:"Open this action from your workspace."},{status:403});
   const context = await getAdminRequestContext();
   if (!context) {
     return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
@@ -161,7 +164,9 @@ export async function DELETE(
   }
 
   const { id } = await params;
-  const payload = (await request.json().catch(() => null)) as { confirmation?: unknown } | null;
+  const body = await readBoundedJsonObject(request,1024);
+  if(!body.ok) return NextResponse.json({error:body.error},{status:body.status});
+  const payload = body.value;
   if (payload?.confirmation !== "DELETE FORM") {
     return NextResponse.json({ error: "Type DELETE FORM to permanently delete this form." }, { status: 400 });
   }

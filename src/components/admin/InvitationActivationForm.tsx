@@ -3,6 +3,8 @@
 import { FormEvent, useState } from "react";
 import Link from "next/link";
 
+import { newPasswordError } from "@/lib/security/password-policy";
+
 export function InvitationActivationForm({ token }: { token: string }) {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -18,6 +20,11 @@ export function InvitationActivationForm({ token }: { token: string }) {
       return;
     }
 
+    const passwordError = newPasswordError(password);
+    if (passwordError) {
+      setMessage(passwordError);
+      return;
+    }
     setIsSubmitting(true);
     try {
       const response = await fetch("/api/auth/activate", {
@@ -56,12 +63,12 @@ export function InvitationActivationForm({ token }: { token: string }) {
     <form className="space-y-4" onSubmit={handleSubmit}>
       <div>
         <label className="mb-2 block text-sm font-medium text-white" htmlFor="new-password">Create password</label>
-        <input id="new-password" type="password" autoComplete="new-password" required minLength={12} maxLength={128} value={password} onChange={(event) => setPassword(event.target.value)} className="admin-input h-11 w-full rounded-xl px-3.5 text-sm outline-none" />
+        <input id="new-password" type="password" autoComplete="new-password" required minLength={12} maxLength={72} value={password} onChange={(event) => setPassword(event.target.value)} className="admin-input h-11 w-full rounded-xl px-3.5 text-sm outline-none" />
         <p className="mt-2 text-xs leading-5 text-white/60">Use 12 or more characters with at least one letter and one number.</p>
       </div>
       <div>
         <label className="mb-2 block text-sm font-medium text-white" htmlFor="confirm-password">Confirm password</label>
-        <input id="confirm-password" type="password" autoComplete="new-password" required minLength={12} maxLength={128} value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} className="admin-input h-11 w-full rounded-xl px-3.5 text-sm outline-none" />
+        <input id="confirm-password" type="password" autoComplete="new-password" required minLength={12} maxLength={72} value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} className="admin-input h-11 w-full rounded-xl px-3.5 text-sm outline-none" />
       </div>
       {message ? <p role="alert" className="text-sm text-rose-200">{message}</p> : null}
       <button type="submit" disabled={isSubmitting || !token} className="admin-button-primary inline-flex h-11 w-full items-center justify-center rounded-xl px-4 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-60">

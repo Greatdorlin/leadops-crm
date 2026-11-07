@@ -5,6 +5,8 @@ import { normalizeAdminEmail } from "@/lib/admin-access";
 import { getDb } from "@/lib/db/client";
 import { crmUsers, userCredentials, userInvitations } from "@/lib/db/schema";
 import { recordWorkspaceAuditEvent } from "@/lib/crm/workspace-audit";
+import { validateNewPassword } from "@/lib/security/password-policy";
+export { validateNewPassword } from "@/lib/security/password-policy";
 
 const BCRYPT_ROUNDS = 12;
 const MAX_FAILED_ATTEMPTS = 5;
@@ -23,14 +25,6 @@ export function hashInvitationToken(token: string) {
 export function createInvitationToken() {
   const token = randomBytes(32).toString("hex");
   return { token, tokenHash: hashInvitationToken(token) };
-}
-
-export function validateNewPassword(password: string) {
-  if (password.length < 12 || password.length > 128) {
-    return false;
-  }
-
-  return /[A-Za-z]/.test(password) && /\d/.test(password);
 }
 
 export function getInvitationTtlHours(value = process.env.AUTH_INVITATION_TTL_HOURS) {

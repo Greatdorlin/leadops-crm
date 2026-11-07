@@ -42,3 +42,11 @@ For an installation whose MFA columns were prepared outside the journal, obtain 
 ## Release status
 
 The commercial-readiness branch is a review candidate. Production promotion, infrastructure changes and account transfers require their documented approval and rollback checks. Hosted CI must pass the candidate commit before describing it as CI-verified. Workers bundle generation and a deployed Workers auth/database runtime are separate acceptance results.
+
+## Password length follow-up — 7 November 2026
+
+New passwords are limited to 72 UTF-8 bytes before bcrypt hashing. Both activation and password changes use the same browser-safe policy; the server enforces it independently. Multibyte boundary tests and an actual bcrypt truncation regression demonstrate why a character-only upper bound is insufficient. Existing credential verification remains compatible so this change does not lock out users with previously accepted passwords. Those older passwords still need a controlled reset campaign; this patch cannot recover their discarded suffixes. Password changes also reject foreign or missing request origins before authentication/database work. No production passwords or database schema changed.
+
+Authenticated mobile/desktop acceptance remains open: this session's cloud browser cannot reach the local test server (`ERR_CONNECTION_REFUSED`). This is a test-environment connection failure, not evidence about production availability.
+
+Follow-up validation: Node 24.22.1; 369 tests passed with zero failures, lint/type checks and coverage gates passed (repository lines 28.13%; business-contract lines 87.44%). Migration drift check passed; historical SQL, snapshots and journal remain unchanged. See the confidential review for the exact candidate and build evidence. Browser-level password-form interaction remains unverified.

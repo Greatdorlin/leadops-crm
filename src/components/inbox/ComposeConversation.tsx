@@ -181,6 +181,11 @@ export function ComposeConversation({
                     />
                     <span className="min-w-0 break-words">
                       {u.name || u.email}
+                      {u.name ? (
+                        <span className="mt-0.5 block text-xs text-white/40">
+                          {u.email}
+                        </span>
+                      ) : null}
                     </span>
                   </label>
                 ))}
@@ -308,8 +313,7 @@ export function ComposeConversation({
             {busy ? "Sending…" : "Start conversation"}
           </button>
           <p className="text-xs text-white/45">
-            Group name (optional)s and messages are encrypted in storage. Email
-            is not end-to-end encrypted.
+            Private to the people you choose. Messages are encrypted in storage.
           </p>
         </form>
       </div>

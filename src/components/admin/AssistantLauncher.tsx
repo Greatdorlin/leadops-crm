@@ -27,7 +27,7 @@ export function AssistantLauncher() {
       window.removeEventListener("assistant:name", update);
     };
   }, []);
-  if (!visible || pathname === "/assistant" || pathname?.startsWith("/assistant/") || pathname === "/settings/assistant") return null;
+  if (!visible || pathname === "/inbox" || pathname === "/assistant" || pathname?.startsWith("/assistant/") || pathname === "/settings/assistant") return null;
   return (
     <Link
       href="/assistant"

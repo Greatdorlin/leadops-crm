@@ -52,7 +52,7 @@ export function workspaceGuide(
     steps.push({
       title: "Understand what is working",
       description:
-        "Reports show sales outcomes in your access scope. Review the period and currency before comparing results.",
+        "Reports show sales outcomes in your access scope. Use the report sections to review pipeline, team performance and source quality.",
       href: "/reports",
       label: "Open reports",
     });
@@ -110,7 +110,8 @@ export function workspaceGuide(
             "Use search or filters to find a lead. Open a record to see notes and follow-ups.",
           "/tasks":
             "Switch between overdue, today and completed work to see what needs attention.",
-          "/reports": "Change the reporting period to compare results.",
+          "/reports":
+            "Use the report sections to compare outcomes and follow-up pressure.",
           "/inbox": "Use + to choose teammates and start a private message.",
           "/settings":
             "Open a setting to see its controls. The tour does not save any changes.",

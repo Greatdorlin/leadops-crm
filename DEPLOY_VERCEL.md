@@ -59,3 +59,8 @@ After deploy, confirm:
 - webhook intake works
 - notifications load
 - exports run correctly
+
+
+## Cloudflare
+
+For a Cloudflare domain or the tested adapter build, read [DEPLOY_CLOUDFLARE.md](./DEPLOY_CLOUDFLARE.md). The Workers bundle builds; production sign-in and database checks remain open.

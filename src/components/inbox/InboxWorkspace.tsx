@@ -317,9 +317,7 @@ export function InboxWorkspace() {
           <header className="flex items-center justify-between gap-3 px-4 pb-3 pt-5">
             <div>
               <h2 className="text-lg font-semibold tracking-tight">Messages</h2>
-              <p className="mt-1 text-xs text-white/45">
-                Your team, one conversation away.
-              </p>
+
             </div>
             <button
               ref={newButton}
@@ -471,18 +469,11 @@ export function InboxWorkspace() {
           {!selected ? (
             <div className="grid flex-1 place-items-center px-8 py-16">
               <div className="max-w-sm text-center">
-                <div className="mx-auto mb-6 grid size-16 place-items-center rounded-2xl border border-white/10 bg-white/5">
-                  <Users className="size-7 text-white/60" />
-                </div>
-                <p className="text-xs font-medium uppercase tracking-[.15em] text-white/40">
-                  Better together
-                </p>
                 <h2 className="mt-3 text-2xl font-semibold tracking-tight">
-                  Keep the conversation moving.
+                  Select a conversation
                 </h2>
                 <p className="mt-3 text-sm leading-7 text-white/55">
-                  Ask a teammate, share a lead handoff, or bring a small group
-                  together. Your conversations stay with the people you choose.
+                  Start a direct message or choose several teammates for a group.
                 </p>
                 <button
                   className="admin-button-primary mt-6 min-h-11 px-5 text-sm"

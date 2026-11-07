@@ -2,7 +2,6 @@ import type { ReactNode } from "react";
 
 export function AdminTopbar({
   title,
-  description,
   actions,
   searchSlot,
 }: {
@@ -18,7 +17,6 @@ export function AdminTopbar({
           <h1 className="break-words text-2xl font-semibold leading-tight tracking-[-0.035em] text-white sm:text-3xl">
             {title}
           </h1>
-          {description ? <p className="mt-1 max-w-2xl text-sm leading-6 text-white/70">{description}</p> : null}
         </div>
         {actions ? (
           <div className="flex min-w-0 max-w-full flex-wrap items-center gap-2 [&>*]:max-w-full">

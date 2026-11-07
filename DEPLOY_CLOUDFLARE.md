@@ -13,8 +13,17 @@ For a new installation, follow [INSTALL.md](./INSTALL.md) first. For a Docker se
 
 ## Hosting inside Cloudflare Workers
 
-Status on 7 November 2026: not certified for this release. The actual `npx vinext check` reports next-auth as incompatible with the proposed runtime, plus partial support for Sentry build instrumentation and webpack options. A successful Next.js build does not prove that sign-in works on Workers.
+OpenNext 1.20.16 successfully bundled this Next.js 16.4.5 app into `.open-next/worker.js` on 7 November 2026. This build keeps the existing NextAuth code. The earlier vinext compatibility warning applies to that different migration route.
 
-The remaining acceptance checks are a compatible sign-in implementation or adapter, a Worker production build, PostgreSQL connection lifecycle verification, encrypted Inbox checks, uploads, scoped reports and public forms. Keep the working deployment serving users until those checks pass. This release does not silently replace authentication or move a production database.
+Build the adapter bundle:
 
-Official migration instructions: https://developers.cloudflare.com/workers/static-assets/migration-guides/vercel-to-workers/nextjs/
+```sh
+npm ci
+npm run build:cloudflare
+```
+
+The generated bundle is a build artifact. Publishing it also needs a Workers entry point, static assets binding, production secrets and PostgreSQL connectivity. Keep secrets out of source files. Use a separate test database while checking sign-in, lead saving, encrypted Inbox, uploads, public forms and role restrictions in Workers.
+
+Workers runtime status: these production checks have not passed yet. Keep the current host serving the live workspace until they do. A successful bundle build does not certify a working deployment.
+
+Adapter documentation: https://opennext.js.org/cloudflare/get-started

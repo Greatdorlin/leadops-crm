@@ -249,7 +249,7 @@ export interface VerticalPresetDefinition {
   dashboardWidgets: DashboardWidgetKey[];
 }
 
-const requiredNavigationKeys = new Set<NavigationItemKey>(["dashboard", "leads", "settings"]);
+const requiredNavigationKeys = new Set<NavigationItemKey>(["settings"]);
 
 function clampNumber(value: number, minimum: number, maximum: number) {
   return Math.min(maximum, Math.max(minimum, value));

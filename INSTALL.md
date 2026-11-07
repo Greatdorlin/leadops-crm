@@ -10,7 +10,7 @@ Each company gets a separate installation and database. The steps below start wi
 4. Sign in, add a test lead, refresh, and check that it is still there.
 5. Invite one teammate and test Inbox before inviting the rest of the team.
 
-**Using Cloudflare?** To connect a domain to the current app, follow [the Cloudflare guide](./DEPLOY_CLOUDFLARE.md). Hosting the app inside Workers is a separate migration and is not yet certified: the compatibility check flags the current sign-in library. Do not move customer traffic to an untested Worker.
+**Using Cloudflare?** To connect a domain to the current app, follow [the Cloudflare guide](./DEPLOY_CLOUDFLARE.md). The OpenNext adapter bundle builds successfully. Workers sign-in and database checks still need to pass before migration. Do not move customer traffic to an untested Worker.
 
 ## Before you begin
 

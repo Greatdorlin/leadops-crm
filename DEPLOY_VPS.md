@@ -129,3 +129,8 @@ Before handover, confirm:
 - dashboard and reports load
 - backup job is scheduled
 - the representative load and capacity gate has passed for the promised client tier
+
+
+## Cloudflare
+
+For a Cloudflare domain or the tested adapter build, read [DEPLOY_CLOUDFLARE.md](./DEPLOY_CLOUDFLARE.md). The Workers bundle builds; production sign-in and database checks remain open.

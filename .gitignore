@@ -22,3 +22,6 @@ server.log
 *.log
 
 coverage/
+
+# Generated Cloudflare adapter output
+.open-next/

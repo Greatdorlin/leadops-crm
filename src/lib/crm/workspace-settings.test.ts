@@ -198,7 +198,6 @@ test("navigation customization keeps required items visible and ordered", () => 
     items.map((item) => ({ key: item.key, label: item.label })),
     [
       { key: "leads", label: "Pipeline" },
-      { key: "dashboard", label: "Dashboard" },
       { key: "settings", label: "Setup" },
     ],
   );

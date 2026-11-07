@@ -260,7 +260,7 @@ export default async function AdminSettingsPage() {
       userEmail={currentUser?.email || session.user?.email}
       userAvatarUrl={currentUser?.avatarUrl}
     >
-      <div className="space-y-6"><Link href="/settings/guide" className="admin-button-secondary inline-flex min-h-11 items-center px-4">Workspace guide</Link>
+      <div className="space-y-6"><div className="flex flex-wrap gap-3"><Link href="/settings/guide" className="admin-button-secondary inline-flex min-h-11 items-center px-4">Workspace guide</Link>{canOpenSystemStatus ? <Link href="/settings/install" className="admin-button-secondary inline-flex min-h-11 items-center px-4">Installation guide</Link> : null}</div>
         {pageData ? (
           <>
             <nav aria-label="Settings sections" className="flex flex-wrap gap-2">

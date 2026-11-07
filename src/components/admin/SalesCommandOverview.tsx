@@ -329,8 +329,8 @@ export function SalesCommandOverview({
                 >
                   <div className="grid h-24 w-24 place-items-center rounded-full bg-[#071226]/92 text-center shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] 2xl:h-28 2xl:w-28">
                     <div>
-                      <p className="text-[2rem] font-semibold tracking-[-0.06em] text-white 2xl:text-4xl">
-                        {targetProgress}%
+                      <p className="whitespace-nowrap text-[1.65rem] font-semibold tracking-[-0.04em] text-white tabular-nums">
+                        {Math.min(Math.max(targetProgress, 0), 100).toLocaleString(undefined, {maximumFractionDigits: 1})}%
                       </p>
                       <p className="mt-1 text-xs text-white/70">of target</p>
                     </div>
@@ -338,6 +338,7 @@ export function SalesCommandOverview({
                 </div>
               </div>
             </div>
+            {targetProgress > 100 ? <p className="mt-3 text-center text-sm text-white/70">{targetProgress.toLocaleString(undefined, {maximumFractionDigits: 1})}% achieved · {(targetProgress - 100).toLocaleString(undefined, {maximumFractionDigits: 1})}% above target</p> : null}
             <div className="mt-5 grid gap-3 text-sm">
               <div className="flex items-center justify-between gap-4">
                 <span className="text-white/70">Won value</span>
@@ -348,7 +349,7 @@ export function SalesCommandOverview({
                 <span className="font-semibold text-white">{formatShortMoney(summary.pipelineValue, currency)}</span>
               </div>
               <div className="flex items-center justify-between gap-4">
-                <span className="text-white/70">Remaining</span>
+                <span className="text-white/70">Remaining{summary.target && summary.target.currency !== currency ? ` (${summary.target.currency})` : ""}</span>
                 <span className="font-semibold text-white">
                   {summary.target ? (
                     summary.target.progressAvailable

@@ -5,18 +5,18 @@ export type NoteEvidence = {
   note: string;
   createdAt: Date;
 };
-const themes = [
+export const objectionThemes = [
   {
     key: "price",
     label: "Price or budget",
     pattern:
-      /\b(?:too expensive|too costly|cannot afford|can't afford|can’t afford|over (?:their |the |my )?budget|no budget|budget (?:constraint|issue|concern)|price (?:objection|concern|too high)|cost (?:concern|too high)|not affordable)\b/i,
+      /\b(?:too expensive|too costly|price is (?:high|too high|an issue)|pricing is (?:high|too high)|(?:it|this) costs too much|(?:the )?price (?:is |was )?beyond (?:their|my|our) budget|out of (?:their|my|our) budget|budget is (?:tight|limited)|cannot pay|can.t pay|payment plan|installments?|instalments?|cannot afford|can't afford|can’t afford|over (?:their |the |my )?budget|no budget|budget (?:constraint|issue|concern)|price (?:objection|concern|too high)|cost (?:concern|too high)|not affordable)\b/i,
   },
   {
     key: "timing",
     label: "Timing or readiness",
     pattern:
-      /\b(?:not ready|not (?:the )?right time|bad timing|buy later|decide later|need(?:s)? more time|delay(?:ing|ed)? (?:the )?(?:purchase|decision)|postpone)\b/i,
+      /\b(?:not ready|next (?:month|quarter|year)|after (?:payday|the holidays)|not (?:the )?right time|bad timing|buy later|decide later|need(?:s)? more time|delay(?:ing|ed)? (?:the )?(?:purchase|decision)|postpone)\b/i,
   },
   {
     key: "trust",
@@ -45,7 +45,7 @@ const themes = [
 ];
 /** Counts distinct leads, so repeated follow-up notes cannot inflate rankings. */
 export function analyzeObjectionNotes(notes: NoteEvidence[]) {
-  return themes
+  return objectionThemes
     .map((theme) => {
       const matched = notes.filter((row) =>
         row.note.split(/(?<=[.!?;\n])\s*/).some((sentence) => {

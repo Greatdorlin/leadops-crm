@@ -1,7 +1,7 @@
 "use client";
 
 import type { CSSProperties } from "react";
-import { startTransition, useEffect, useMemo, useState } from "react";
+import { createContext, useContext, startTransition, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowUpRight, Check, ImagePlus, RotateCcw, X } from "lucide-react";
@@ -436,6 +436,8 @@ function RangeControl({
   );
 }
 
+const AppearanceSection = createContext("Style");
+
 function ThemeSection({
   title,
   description,
@@ -447,6 +449,9 @@ function ThemeSection({
   children: React.ReactNode;
   delay?: number;
 }) {
+  const active = useContext(AppearanceSection);
+  const group = ["Quick Presets", "Colors", "Background"].includes(title) ? "Style" : title;
+  if (active !== group) return null;
   return (
     <AnimatedCard variant="default" animation="fadeInUp" delay={delay} className="p-5">
       <div className="mb-4 flex items-center gap-2.5">
@@ -501,6 +506,9 @@ export function AppearanceSettingsManager({
     loginSubheadline: initialSettings.loginSubheadline,
   });
   const [message, setMessage] = useState("");
+  const [section,setSection] = useState("Style");
+  const [lastSaved,setLastSaved] = useState(()=>JSON.stringify(draft));
+  const dirty = JSON.stringify(draft) !== lastSaved;
   const [isSaving, setIsSaving] = useState(false);
   const contrastIssues = useMemo(
     () => getWorkspaceAppearanceContrastIssues({ ...draft, themeMode: "dark" }),
@@ -575,7 +583,8 @@ export function AppearanceSettingsManager({
         return;
       }
 
-      setMessage("Theme saved.");
+      setLastSaved(JSON.stringify(draft));
+      setMessage("Theme saved. Your team will see it across the workspace.");
       setIsSaving(false);
       startTransition(() => router.refresh());
     } catch {
@@ -600,12 +609,11 @@ export function AppearanceSettingsManager({
   const glassStyle = getGlassStyle(draft);
 
   return (
-    <div className="space-y-5">
-        <AnimatedCard variant="elevated" animation="none" className="p-5 sm:p-6">
+    <AppearanceSection.Provider value={section}><div className="space-y-5">
+        <AnimatedCard variant="elevated" animation="none" className="z-20 p-4 shadow-lg sm:p-5 lg:sticky lg:top-24">
           <SectionHeader
-            eyebrow="Theme Studio"
-            title="Make it yours"
-            description="Brand the workspace, login screen, colors, glass, and layout."
+            title="Appearance"
+            description={dirty ? "You have unsaved changes. Preview below, then save when you’re ready." : "Choose a style, then adjust your branding and layout."}
             actions={
               <div className="flex flex-wrap gap-3">
                 <Link
@@ -619,7 +627,7 @@ export function AppearanceSettingsManager({
                   variant="primary"
                   size="md"
                   loading={isSaving}
-                  disabled={contrastIssues.length > 0}
+                  disabled={contrastIssues.length > 0 || !dirty}
                   onClick={() => void saveSettings()}
                 >
                   {isSaving ? "Saving..." : "Save theme"}
@@ -636,9 +644,18 @@ export function AppearanceSettingsManager({
             }
             variant="large"
           />
-          {message ? <p className="mt-4 text-sm text-white/70">{message}</p> : null}
+          {message ? <p role="status" className="mt-3 text-sm leading-6">{message}</p> : null}
+          {dirty ? <button className="mt-2 min-h-11 text-sm underline" onClick={()=>{setDraft(JSON.parse(lastSaved));setMessage("")}}>Discard unsaved changes</button> : null}
+          {contrastIssues.length ? <p role="alert" className="mt-2 text-sm text-amber-200">{contrastIssues.map(i=>i.message).join(" ")}</p> : null}
         </AnimatedCard>
 
+        <nav aria-label="Appearance sections" className="flex flex-wrap gap-2">{["Style","Brand","Layout","Glass","Login page","Celebrations"].map(name=><button key={name} aria-pressed={section===name} onClick={()=>setSection(name)} className={`ld-focus-ring min-h-11 rounded-xl border px-4 text-sm ${section===name?"border-[var(--ld-color-primary)] bg-white/10":"border-white/10 text-white/60"}`}>{name}</button>)}</nav>
+        <section aria-label="Theme preview" className="overflow-hidden rounded-2xl border" style={{background:draft.backgroundColor,borderColor:draft.borderColor,color:draft.textColor}}>
+          <div className="grid grid-cols-[4rem_minmax(0,1fr)] sm:grid-cols-[9rem_minmax(0,1fr)]">
+            <div className="p-3 sm:p-4" style={{background:draft.sidebarColor}}><p className="truncate text-sm font-semibold">{draft.companyName}</p><p className="mt-7 rounded-lg p-2 text-xs" style={{background:draft.primaryColor}}>Leads</p><p className="mt-4 text-xs opacity-60">Inbox</p></div>
+            <div className="p-4 sm:p-6"><p className="text-xs opacity-60">Preview with sample values</p><h3 className="mt-2 text-lg font-semibold">Your sales workspace</h3><div className="mt-4 grid grid-cols-2 gap-3">{[["Open leads","24"],["Won this month","€18,600"]].map(([label,value])=><div key={label} className="border p-3" style={{background:draft.cardColor,borderColor:draft.borderColor,borderRadius:Math.min(draft.borderRadius,24)}}><p className="text-xs opacity-65">{label}</p><p className="mt-2 font-semibold">{value}</p></div>)}</div><button type="button" className="mt-4 min-h-10 px-4 text-sm font-semibold" style={{background:draft.primaryColor,borderRadius:Math.min(draft.borderRadius,16)}}>Add lead</button></div>
+          </div>
+        </section>
         <ThemeSection title="Brand" description="Set the names and logos clients see." delay={0}>
           <TextControl label="Company name" value={draft.companyName} onChange={(value) => update("companyName", value)} />
           <div className="grid gap-4 sm:grid-cols-2">
@@ -669,7 +686,7 @@ export function AppearanceSettingsManager({
           </div>
         </ThemeSection>
 
-        <ThemeSection title="Quick Presets" description="One-click harmonious color combinations." delay={80}>
+        <ThemeSection title="Quick Presets" description="Choose a starting palette, then adjust individual colors below." delay={80}>
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
             {COLOR_PRESETS.map((preset) => (
               <button
@@ -876,7 +893,7 @@ export function AppearanceSettingsManager({
           </div>
         </ThemeSection>
 
-        <ThemeSection title="Celebrations" description="Add soul without overwhelming the team." delay={560}>
+        <ThemeSection title="Celebrations" description="Choose when the team sees a milestone notification." delay={560}>
           <div className="grid gap-3 sm:grid-cols-3">
             {[
               ["celebrationsEnabled", "All celebrations"],
@@ -940,6 +957,7 @@ export function AppearanceSettingsManager({
             </Link>
           </div>
         </AnimatedCard>
-      </div>
+          {dirty ? <div className="admin-surface sticky bottom-3 z-20 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-white/15 p-3 shadow-xl lg:hidden"><span className="text-xs">Unsaved changes</span><button className="admin-button-primary min-h-11 px-4 text-sm" disabled={isSaving||contrastIssues.length>0} onClick={()=>void saveSettings()}>{isSaving?"Saving…":"Save theme"}</button></div> : null}
+    </div></AppearanceSection.Provider>
   );
 }

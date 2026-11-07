@@ -57,3 +57,21 @@ test("objection indicators rank distinct leads and retain evidence without execu
   assert.ok(!result.flatMap((t) => t.evidence).some((n) => n.id === "6"));
   assert.deepEqual(analyzeObjectionNotes([]), []);
 });
+
+test("lead search strips conversational wrappers and keeps genuine company names", async () => {
+  const {leadSearchQuery,isLeadIdentityMatch}=await import('./search-query');
+  for (const q of ['search for a lead named Mathew','Can you find a lead called Mathew?','Find Mathew','look up Mathew','is there a lead named Mathew?']) assert.equal(leadSearchQuery(q),'Mathew',q);
+  assert.equal(leadSearchQuery('Leaden Consulting'),'Leaden Consulting');
+  assert.equal(isLeadIdentityMatch('Mathew',{firstName:'Jordan',lastName:'Ellis',email:'jordan@example.test',companyName:'Mathewston'}),true);
+  assert.equal(isLeadIdentityMatch('Mathew',{firstName:'Jordan',lastName:'Ellis',email:'jordan@example.test'}),false);
+  assert.equal(isLeadIdentityMatch('',{firstName:'Jordan'}),false);
+});
+test("note questions retain a named lead, topic and date window", async () => {
+  const {parseNoteQuestion}=await import('./note-query');
+  const now=new Date('2026-11-07T10:00:00Z');
+  const q=parseNoteQuestion('What objections from Mathew about pricing this month?',now);
+  assert.equal(q.leadQuery,'Mathew');assert.equal(q.topic,'price');assert.equal(q.since?.toISOString(),'2026-11-01T00:00:00.000Z');
+  assert.equal(parseNoteQuestion('What did Avery Chen say?').leadQuery,'Avery Chen');
+  assert.equal(parseNoteQuestion('What are our main objections?').leadQuery,undefined);
+  assert.equal(questionIntent('What did Mathew say?'),'notes');
+});

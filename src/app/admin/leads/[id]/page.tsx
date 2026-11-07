@@ -941,7 +941,7 @@ export default async function AdminLeadDetailPage({
           </div>
 
           <div className="space-y-6">
-            <section id="lead-notes" className="admin-surface rounded-[24px] p-5 ld-animate-fade-in-up" style={{animationDelay: "140ms"}}>
+            <section id="lead-notes" className="scroll-mt-24 admin-surface rounded-[24px] p-5 ld-animate-fade-in-up" style={{animationDelay: "140ms"}}>
               <SectionHeader
                 eyebrow="Notes"
                 title="Notes"

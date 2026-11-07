@@ -1,3 +1,8 @@
+import { leadStore } from "@/lib/storage";
+import {
+  scopeLeadListFilters,
+  canViewLeadRecord,
+} from "@/lib/admin-permissions";
 import { NextResponse } from "next/server";
 import { and, eq } from "drizzle-orm";
 import { getAdminRequestContext } from "@/lib/admin";
@@ -39,11 +44,52 @@ export async function GET() {
           eq(userGuides.version, GUIDE_VERSION),
         ),
       );
+    const steps = workspaceGuide(role, current.permissions);
+    if (current.permissions.includes("canViewLeads")) {
+      try {
+        const leads = await leadStore.list(
+          scopeLeadListFilters(
+            { limit: 1 },
+            current.accessLevel,
+            current.user.email,
+            current.user,
+          ),
+        );
+        const lead = leads.find(
+          (l) =>
+            !l.deletedAt &&
+            canViewLeadRecord(
+              current.accessLevel,
+              l,
+              current.user.email,
+              current.permissions,
+              current.user,
+            ),
+        );
+        if (lead) {
+          const index = steps.findIndex((s) => s.href === "/leads");
+          steps.splice(index + 1, 0, {
+            title: "The context behind every lead",
+            description:
+              "This is a real lead in your workspace. Notes keep what the person actually said beside their record, so the next teammate can pick up the conversation.",
+            href: `/leads/${lead.id}`,
+            label: "Open lead notes",
+            target: "#lead-notes",
+            action:
+              "Review the saved notes. Use tasks for the next action and record payments only when received.",
+          });
+        }
+      } catch {
+        /* A workspace without an available lead can still use the tour. */
+      }
+    }
     return NextResponse.json(
       {
         completed: !!saved,
+        userId: current.user.id,
+        version: GUIDE_VERSION,
         role,
-        steps: workspaceGuide(role, current.permissions),
+        steps,
       },
       { headers: { "Cache-Control": "private, no-store" } },
     );

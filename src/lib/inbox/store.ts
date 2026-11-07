@@ -39,24 +39,11 @@ export async function inboxDirectory(userId: string) {
     .where(and(eq(crmUsers.isActive, true), ne(crmUsers.id, userId)))
     .orderBy(crmUsers.fullName)
     .limit(1000);
-  const [mailbox] = await getDb()
-    .select({
-      verifiedAt: inboxMailboxes.verifiedAt,
-      lastSyncAt: inboxMailboxes.lastSyncAt,
-      lastError: inboxMailboxes.lastErrorCode,
-    })
-    .from(inboxMailboxes)
-    .where(eq(inboxMailboxes.id, "workspace"));
   return {
     users,
     currentUserId: userId,
     secure: encryptionReady(),
     canConfigure: actor.owner,
-    mailbox: {
-      connected: !!mailbox?.verifiedAt,
-      lastSyncAt: mailbox?.lastSyncAt?.toISOString() ?? null,
-      lastError: mailbox?.lastError ?? null,
-    },
   };
 }
 function messageView(row: typeof inboxMessages.$inferSelect, userId: string) {
@@ -93,7 +80,7 @@ export async function listThreads(userId: string, before?: string) {
           eq(inboxParticipants.userId, userId),
         ),
       )
-      .where(eq(inboxThreads.id, before))
+      .where(and(eq(inboxThreads.id, before), eq(inboxThreads.channel, "team")))
       .limit(1);
     if (!ownedCursor)
       throw new InboxError("Conversation cursor is not available.", 404);
@@ -103,6 +90,7 @@ export async function listThreads(userId: string, before?: string) {
     .select({
       thread: inboxThreads,
       member: inboxParticipants,
+      memberCount: sql<number>`(select count(*) from inbox_participants p where p.thread_id=${inboxThreads.id})`,
       unread: sql<number>`(select count(*) from inbox_messages m where m.thread_id=${inboxThreads.id} and (m.sender_user_id is null or m.sender_user_id != ${userId}::uuid) and m.created_at > coalesce(${inboxParticipants.lastReadAt}, '1970-01-01'::timestamptz))`,
     })
     .from(inboxThreads)
@@ -114,15 +102,18 @@ export async function listThreads(userId: string, before?: string) {
       ),
     )
     .where(
-      cursor
-        ? or(
-            lt(inboxThreads.updatedAt, cursor.updatedAt),
-            and(
-              eq(inboxThreads.updatedAt, cursor.updatedAt),
-              lt(inboxThreads.id, cursor.id),
-            ),
-          )
-        : undefined,
+      and(
+        eq(inboxThreads.channel, "team"),
+        cursor
+          ? or(
+              lt(inboxThreads.updatedAt, cursor.updatedAt),
+              and(
+                eq(inboxThreads.updatedAt, cursor.updatedAt),
+                lt(inboxThreads.id, cursor.id),
+              ),
+            )
+          : undefined,
+      ),
     )
     .orderBy(desc(inboxThreads.updatedAt), desc(inboxThreads.id))
     .limit(21);
@@ -144,6 +135,7 @@ export async function listThreads(userId: string, before?: string) {
       ),
       channel: row.thread.channel,
       leadId: row.thread.leadId,
+      memberCount: Number(row.memberCount),
       unread: Number(row.unread),
       updatedAt: row.thread.updatedAt.toISOString(),
     });

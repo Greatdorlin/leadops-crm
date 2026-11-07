@@ -322,7 +322,7 @@ export function WorkspaceTour() {
       <section
         role="region"
         aria-label="Workspace tour"
-        className="pointer-events-auto absolute bottom-3 left-3 right-3 max-h-[min(44svh,380px)] overflow-y-auto rounded-2xl border border-white/20 bg-[#101720]/95 p-4 shadow-2xl backdrop-blur-xl sm:bottom-5 sm:left-auto sm:right-5 sm:w-[400px] sm:p-5"
+        className="pointer-events-auto absolute bottom-3 left-3 right-3 max-h-[min(calc(100svh-90px),380px)] overflow-y-auto rounded-2xl border border-white/20 bg-[#101720]/95 p-4 shadow-2xl backdrop-blur-xl sm:bottom-5 sm:left-auto sm:right-5 sm:w-[400px] sm:p-5"
       >
         <div className="flex items-center gap-2">
           <Compass className="size-4 text-sky-200" />

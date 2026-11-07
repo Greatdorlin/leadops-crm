@@ -63,7 +63,7 @@ export function InboxWorkspace() {
       d = await inboxRequest<Conversation>(`?threadId=${id}`);
     } catch (error) {
       if (
-        [401, 403, 404].includes((error as { status?: number }).status ?? 0) &&
+        [401, 403, 404, 410].includes((error as { status?: number }).status ?? 0) &&
         activeThread.current === id
       ) {
         activeThread.current = null;

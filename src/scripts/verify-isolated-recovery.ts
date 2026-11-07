@@ -32,21 +32,32 @@ try{
   await tx`insert into lead_opportunities(lead_id,offer_label,estimated_value,currency) values(${lead},'Recovery opportunity',12500,'NGN')`;
   await tx`insert into lead_events(lead_id,event_type,event_data) values(${lead},'lead_created',${tx.json({source:"isolated-recovery"})})`;
   await tx`insert into workspace_audit_logs(event_type,actor_email,target_type,target_id) values('recovery.fixture','isolated@example.invalid','lead',${lead})`;
-  await tx`insert into inbox_threads(id,channel,subject_cipher,created_by) values(${thread},'team',${encryptMessage("Restore conversation",`thread:${thread}`)},${u})`;
+  await tx`insert into inbox_threads(id,channel,subject_cipher,created_by) values(${thread},'team',${encryptMessage("Restore conversation",`subject:${thread}`)},${u})`;
   await tx`insert into inbox_participants(thread_id,user_id) values(${thread},${u})`;
-  await tx`insert into inbox_messages(id,thread_id,request_id,sender_user_id,content_cipher) values(${message},${thread},${randomUUID()},${u},${encryptMessage({text:"Encrypted restore fixture"},`message:${message}`)})`;
+  await tx`insert into inbox_messages(id,thread_id,request_id,sender_user_id,content_cipher) values(${message},${thread},${randomUUID()},${u},${encryptMessage({text:"Encrypted restore fixture",author:"Isolated recovery fixture"},`message:${thread}:${message}`)})`;
  });
  const before=await fingerprint(db);
  command("pg_dump",["--format=custom","--no-owner","--file=/tmp/leads-isolated-recovery.dump"],source);
  command("pg_restore",["--exit-on-error","--no-owner","--dbname",target.pathname.slice(1),"/tmp/leads-isolated-recovery.dump"],target);
  assert.deepEqual(await fingerprint(restored),before);
  const [row]=await restored`select content_cipher from inbox_messages where id=${message}`;
- assert.deepEqual(decryptMessage(row.content_cipher,`message:${message}`),{text:"Encrypted restore fixture"});
+ assert.deepEqual(decryptMessage(row.content_cipher,`message:${thread}:${message}`),{text:"Encrypted restore fixture",author:"Isolated recovery fixture"});
  process.env.CRM_INBOX_DATA_KEY=randomBytes(32).toString("base64");delete process.env.CRM_INBOX_PREVIOUS_ENCRYPTION_KEYS;
- assert.throws(()=>decryptMessage(row.content_cipher,`message:${message}`));
+ assert.throws(()=>decryptMessage(row.content_cipher,`message:${thread}:${message}`));
  process.env.CRM_INBOX_DATA_KEY=key;
- assert.deepEqual(decryptMessage(row.content_cipher,`message:${message}`),{text:"Encrypted restore fixture"});
- console.log(JSON.stringify({passed:true,node:process.version,postgres:(await db`show server_version`)[0].server_version,pgDump:command("pg_dump",["--version"],source),tables:before,encryptedMessageAccessible:true,wrongKeyRejected:true,productionAccessed:false},null,2));
+ assert.deepEqual(decryptMessage(row.content_cipher,`message:${thread}:${message}`),{text:"Encrypted restore fixture",author:"Isolated recovery fixture"});
+ const previousDatabaseUrl=process.env.DATABASE_URL;
+ process.env.DATABASE_URL=target.toString();
+ try {
+   const {readThread}=await import("@/lib/inbox/store");
+   const view=await readThread(u,thread);
+   assert.equal(view.thread.subject,"Restore conversation");
+   assert.equal(view.messages[0].text,"Encrypted restore fixture");
+ } finally {
+   const {closeDb}=await import("@/lib/db/client");await closeDb();
+   process.env.DATABASE_URL=previousDatabaseUrl;
+ }
+ console.log(JSON.stringify({passed:true,node:process.version,postgres:(await db`show server_version`)[0].server_version,pgDump:command("pg_dump",["--version"],source),tables:before,encryptedMessageAccessible:true,applicationInboxRead:true,wrongKeyRejected:true,productionAccessed:false},null,2));
 }finally{if(keyBefore===undefined)delete process.env.CRM_INBOX_DATA_KEY;else process.env.CRM_INBOX_DATA_KEY=keyBefore;await db.end();await restored.end()}
 
 }

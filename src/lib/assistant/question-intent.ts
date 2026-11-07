@@ -3,6 +3,7 @@ export function questionIntent(input: string) {
   const text = input
     .trim()
     .replace(/^(?:(?:hi|hello|hey|yapper)[,!\s]+)+/i, "");
+  if (/\b(?:automation|automate|routing rule)\b/i.test(text)) return "automation";
   if (
     /\b(objections?|pushbacks?|hesitations?|concerns?|complaints?|push.?back|reasons? (?:for|why).*(?:lost|declin|reject)|why.*(?:not buying|not converting))\b/i.test(
       text,

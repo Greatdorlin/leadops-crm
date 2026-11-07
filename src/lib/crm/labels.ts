@@ -183,12 +183,8 @@ export function formatLeadStateLabel(value?: string | null) {
 export function formatLeadInterestLabel(
   lead: Pick<LeadRecord, "sourceDetail" | "campaignLabel" | "companyName">,
 ) {
-  return (
-    lead.sourceDetail?.trim() ||
-    lead.campaignLabel?.trim() ||
-    lead.companyName?.trim() ||
-    "Not set"
-  );
+  void lead;
+  return "Not recorded";
 }
 
 export function formatCrmRoleLabel(role?: CrmUserRole | null) {

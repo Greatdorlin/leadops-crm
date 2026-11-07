@@ -1,11 +1,13 @@
 import { leadSearchQuery, isLeadIdentityMatch } from "./search-query";
 import { objections } from "./objections";
+import { createWorkspaceAutomation, listWorkspaceAutomations } from "@/lib/crm/workspace-automations";
 import { origin } from "./http";
 import { z } from "zod";
-import { and, asc, desc, eq, gt, sql } from "drizzle-orm";
+import { and, or, asc, desc, eq, gt, sql } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
 import {
   assistantChanges,
+  crmUsers, leadStages, leadSources,
   companySettings,
   leadEvents,
   leadNotes,
@@ -19,6 +21,17 @@ import { canViewReports } from "@/lib/crm/authz";
 import { listLeadOpportunities } from "@/lib/crm/lead-opportunities";
 import { accessibleLead, actorForUser, scoped, type Actor } from "./access";
 import { AssistantError, changeSchema, proposalSchema } from "./contracts";
+export async function automationContext(actor: Actor) {
+  if(!actor.enabled || !actor.owner) throw new AssistantError("Only the workspace owner can manage automations.",403);
+  const db=getDb();
+  const [owners,stages,sources,rules]=await Promise.all([
+    db.select({id:crmUsers.id,label:crmUsers.fullName}).from(crmUsers).where(eq(crmUsers.isActive,true)).orderBy(asc(crmUsers.fullName)),
+    db.select({id:leadStages.id,label:leadStages.name,key:leadStages.key}).from(leadStages).where(eq(leadStages.archived,false)).orderBy(asc(leadStages.sortOrder)),
+    db.select({id:leadSources.id,label:leadSources.name,key:leadSources.key}).from(leadSources).where(eq(leadSources.archived,false)).orderBy(asc(leadSources.name)),
+    listWorkspaceAutomations(),
+  ]);
+  return {owners,stages,sources,rules};
+}
 export async function searchLeads(actor: Actor, query: string) {
   if (!actor.permissions.includes("canViewLeads"))
     throw new AssistantError("You cannot view leads.", 403);
@@ -79,7 +92,9 @@ export async function proposeChange(
   clientId: string | null = null,
 ) {
   const { requestId, action } = proposalSchema.parse(payload);
-  await accessibleLead(actor, action.leadId, true);
+  if (action.kind === "automation") {
+    if (!actor.enabled || !actor.canWrite || !actor.owner) throw new AssistantError("Only the workspace owner can create automations through the assistant.",403);
+  } else await accessibleLead(actor, action.leadId, true);
   return getDb().transaction(async (tx) => {
     await tx.execute(
       sql`select pg_advisory_xact_lock(hashtext(${"assistant-proposals:" + actor.user.id}))`,
@@ -158,6 +173,14 @@ export async function approveChange(
         409,
       );
     const action = changeSchema.parse(row.action);
+    if (action.kind === "automation") {
+      if (!fresh.owner) throw new AssistantError("Only the workspace owner can approve automations.",403);
+      const status = approve ? "applied" : "rejected";
+      const rule = approve ? await createWorkspaceAutomation(action.rule, fresh.user.email, tx) : null;
+      await tx.update(assistantChanges).set({status,result:{status,ruleId:rule?.id}}).where(eq(assistantChanges.id,row.id));
+      await tx.insert(workspaceAuditLogs).values({eventType:`assistant.automation.${status}`,actorUserId:fresh.user.id,actorEmail:fresh.user.email,targetType:"workspace_automation",targetId:rule?.id ?? row.id,details:{changeId:row.id,name:action.rule.name}});
+      return {status};
+    }
     // Lock the target and verify the same current scope used by normal CRM edits.
     const [lead] = await tx
       .select()
@@ -241,21 +264,24 @@ export async function pendingChanges(actor: Actor) {
     !actor.permissions.includes("canViewLeads")
   )
     return [];
-  return getDb()
+  const rows = await getDb()
     .select({
       id: assistantChanges.id,
-      targetName: sql<string>`trim(concat_ws(' ', ${leads.firstName}, ${leads.lastName}))`,
+      targetName: sql<string>`case when ${assistantChanges.action}->>'kind' = 'automation' then ${assistantChanges.action}->'rule'->>'name' else trim(concat_ws(' ', ${leads.firstName}, ${leads.lastName})) end`,
       action: assistantChanges.action,
       expiresAt: assistantChanges.expiresAt,
     })
     .from(assistantChanges)
-    .innerJoin(
+    .leftJoin(
       leads,
       sql`${leads.id} = (${assistantChanges.action}->>'leadId')::uuid`,
     )
     .where(
       and(
-        ...buildLeadListConditions(scoped(actor)),
+        or(
+          and(sql`${assistantChanges.action}->>'kind' <> 'automation'`, ...buildLeadListConditions(scoped(actor))),
+          actor.owner ? sql`${assistantChanges.action}->>'kind' = 'automation'` : sql`false`,
+        ),
         eq(assistantChanges.userId, actor.user.id),
         eq(assistantChanges.status, "pending"),
         gt(assistantChanges.expiresAt, new Date()),
@@ -263,8 +289,21 @@ export async function pendingChanges(actor: Actor) {
     )
     .orderBy(desc(assistantChanges.createdAt))
     .limit(30);
+  const context = actor.owner && rows.some(row => row.action.kind === "automation") ? await automationContext(actor) : null;
+  return rows.map(row => {
+    const action = changeSchema.parse(row.action);
+    if(action.kind !== "automation" || !context) return {...row,summary:null};
+    const rule=action.rule;
+    const label=(value:string, options:Array<{id:string;label:string|null;key?:string}>) => options.find(o=>o.id===value||o.key===value)?.label ?? "Unavailable";
+    const condition=rule.conditionField === "source" ? label(rule.conditionValue,context.sources) : rule.conditionField === "stage" ? label(rule.conditionValue,context.stages) : rule.conditionValue;
+    const target=rule.actionType === "assign_owner" ? label(rule.actionValue,context.owners) : rule.actionType === "set_stage" ? label(rule.actionValue,context.stages) : rule.actionValue;
+    const actionLabel=rule.actionType === "assign_owner" ? "assign to" : rule.actionType === "set_stage" ? "move to" : "set priority to";
+    return {...row,summary:`When ${rule.conditionField.replaceAll("_"," ")} ${rule.conditionOperator === "not_equals" ? "is not" : "is"} ${condition}, ${actionLabel} ${target}. Applies to new leads only.`};
+  });
 }
 export const toolDefinitions = [
+  {name:"list_workspace_automations",description:"Read the workspace's lead intake rules. Owner access required. Rules run when a new lead is created.",inputSchema:{type:"object",properties:{},additionalProperties:false},annotations:{readOnlyHint:true}},
+  {name:"propose_workspace_automation",description:"Prepare a new lead intake rule for the owner to review and approve. It applies only to future new leads. Use valid source/stage/user IDs from the workspace, never guess IDs. No rule is created until approval.",inputSchema:{type:"object",properties:{requestId:{type:"string",format:"uuid"},action:z.toJSONSchema(changeSchema.options[0])},required:["requestId","action"],additionalProperties:false},annotations:{readOnlyHint:false,destructiveHint:false,idempotentHint:true,openWorldHint:false}},
   {
     name: "get_change_status",
     description:
@@ -337,7 +376,7 @@ export const toolDefinitions = [
       type: "object",
       properties: {
         requestId: { type: "string", format: "uuid" },
-        action: z.toJSONSchema(changeSchema),
+        action: z.toJSONSchema(z.discriminatedUnion("kind",[changeSchema.options[1],changeSchema.options[2],changeSchema.options[3]])),
       },
       required: ["requestId", "action"],
       additionalProperties: false,
@@ -357,6 +396,16 @@ export async function callTool(
   clientId: string,
   write: boolean,
 ) {
+  if (name === "list_workspace_automations") {
+    z.object({}).strict().parse(args);
+    if (!actor.owner) throw new AssistantError("Only the workspace owner can view automation settings.",403);
+    return automationContext(actor);
+  }
+  if (name === "propose_workspace_automation" && write) {
+    const value=proposalSchema.parse(args);
+    if(value.action.kind!=="automation") throw new AssistantError("Choose an automation rule.",400);
+    return proposeChange(actor,value,clientId);
+  }
   if (name === "workspace_context") {
     z.object({}).strict().parse(args);
     return workspaceContext();
@@ -374,7 +423,10 @@ export async function callTool(
         ),
       );
     if (!row) throw new AssistantError("Change not available.", 404);
-    await accessibleLead(actor, changeSchema.parse(row.action).leadId);
+    const action = changeSchema.parse(row.action);
+    if (action.kind === "automation") {
+      if (!actor.owner) throw new AssistantError("Automation not available.",403);
+    } else await accessibleLead(actor, action.leadId);
     return {
       id: row.id,
       status:
@@ -422,8 +474,11 @@ export async function callTool(
       notes,
     };
   }
-  if (name === "propose_lead_change" && write)
-    return proposeChange(actor, args, clientId);
+  if (name === "propose_lead_change" && write) {
+    const value=proposalSchema.parse(args);
+    if(value.action.kind==="automation") throw new AssistantError("Use the workspace automation tool.",400);
+    return proposeChange(actor,value,clientId);
+  }
   throw new AssistantError(
     "This tool is not available with your current permissions.",
     403,

@@ -7,13 +7,13 @@ import { eq, is } from "drizzle-orm";
 import { PgTable, getTableConfig } from "drizzle-orm/pg-core";
 import * as schema from "@/lib/db/schema";
 import type { DatabaseExecutor } from "@/lib/db/client";
-import { NeonLeadStore } from "./neon-store";
+import { PostgresLeadStore } from "./postgres-store";
 
 // Real in-process PostgreSQL, no network, external database, credentials, or live CRM writes.
 const client = new PGlite();
 const db = drizzle(client, { schema });
 // Both adapters implement the same query API; only their transport/session types differ.
-const store = new NeonLeadStore(() => db as unknown as DatabaseExecutor);
+const store = new PostgresLeadStore(() => db as unknown as DatabaseExecutor);
 function session(connection: PGlite): MigrationSession {
   return {
     execute: (sql, params = []) => connection.query(sql, params),
@@ -407,6 +407,10 @@ test("form creation, publication, duplication and submission retries preserve on
     forms.createFormSubmission({ id, formId: differentForm.id, data: {} }),
     /could not be recovered/,
   );
+  await forms.deleteForm(built.form.id);
+  assert.equal(await forms.getFormById(built.form.id),null);
+  assert.equal((await forms.listFormFields(built.form.id)).length,0);
+  assert.ok(await store.getById(first!.leadId!));
 });
 
 
@@ -429,4 +433,14 @@ test("fresh database boolean defaults match the typed schema, including inactive
   }
   assert.deepEqual(mismatches, []);
   assert.ok(checked > 20);
+});
+
+test("interest reports count recorded needs instead of source metadata, with scoped and normalized locations", async () => {
+  const [field] = await db.insert(schema.customFields).values({key:"interest",label:"Interest",type:"text"}).onConflictDoUpdate({target:schema.customFields.key,set:{archived:false}}).returning();
+  const one = await store.createExternalLead({source:"manual_entry",email:"interest-one@example.invalid",sourceDetail:"form:general-contact",city:"lagos",assignedTo:"interests@example.invalid"});
+  const two = await store.createExternalLead({source:"manual_entry",email:"interest-two@example.invalid",sourceDetail:"demo_seed",city:"Lagos",assignedTo:"interests@example.invalid"});
+  await db.insert(schema.leadCustomFieldValues).values([{leadId:one.id,customFieldId:field.id,value:"Office space",displayValue:"Office space"},{leadId:two.id,customFieldId:field.id,value:"Office space",displayValue:"Office space"}]);
+  const report=await store.getLeadDistributionReport({assignedTo:"interests@example.invalid"});
+  assert.deepEqual(report.interestReport,[{label:"Office space",value:2}]);
+  assert.deepEqual(report.locationReport,[{label:"Lagos",value:2}]);
 });

@@ -8,7 +8,7 @@ This is an engineering handover for the November 2026 hardening release. It is n
 | --- | --- | --- |
 | Single CI job; no explicit typecheck | Separate cached lint, typecheck, test/coverage, migration, build, security, and fresh-install jobs with aggregate release gate | Local commands and the PR workflow |
 | Workflow watched main, while production uses master | Watch master, development, test, main, and working codex branches | Committed workflow triggers |
-| Large Postgres storage implementation | Preserve NeonLeadStore facade; move operations into entity/domain modules with injected database executor | Typecheck and existing tests; real SQL regression tests |
+| Large Postgres storage implementation | Use PostgresLeadStore with a compatibility export; move operations into entity/domain modules with injected database executor | Typecheck and existing tests; real SQL regression tests |
 | Large Drizzle schema | Domain table modules behind the original schema.ts entry point | The module split generated no schema changes; follow-up migration 0027 aligns inactive form/user defaults |
 | Fresh installation migration failure | Commit each journaled migration separately, serialize CLI migrations with a Postgres advisory lock | Fresh in-process PostgreSQL migration and journal rerun/tamper tests; CI Postgres service |
 | No full coverage report | c8 includes every TS/TSX source file, including untested pages | LCOV, JSON summary, CI artifact, whole-repository baseline gate |

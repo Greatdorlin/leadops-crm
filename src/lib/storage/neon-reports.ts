@@ -59,43 +59,39 @@ export async function getLeadDistributionReport(
   const db = getDatabase();
   const conditions = buildLeadListConditions(filters);
   const where = conditions.length > 0 ? and(...conditions) : undefined;
-  const interestLabel = sql<string>`coalesce(
-      nullif(trim(coalesce(${leads.sourceDetail}, '')), ''),
-      nullif(trim(coalesce(${leads.campaignLabel}, '')), ''),
-      nullif(trim(coalesce(${leads.companyName}, '')), ''),
-      'Not set'
-    )`;
-  const locationLabel = sql<string>`coalesce(
+  // Source tags and campaign names are acquisition metadata, not customer needs.
+  const interestLabel = sql<string>`coalesce((
+    select nullif(trim(v.display_value), '')
+    from lead_custom_field_values v
+    join custom_fields f on f.id = v.custom_field_id
+    where v.lead_id = ${sql.raw('"leads"."id"')} and f.archived = false
+      and (lower(f.key) in ('interest', 'interest_label', 'lead_interest', 'offer_interest', 'property_type', 'coverage_type', 'program_interest', 'service_type') or lower(f.label) = 'interest')
+    order by f.sort_order, f.id limit 1
+  ), 'Not recorded')`;
+  const locationLabel = sql<string>`initcap(coalesce(
       nullif(trim(coalesce(${leads.city}, '')), ''),
+      nullif(trim(coalesce(${leads.state}, '')), ''),
       nullif(trim(coalesce(${leads.region}, '')), ''),
       nullif(trim(coalesce(${leads.country}, '')), ''),
-      'Not yet set'
-    )`;
+      'Not recorded'
+    ))`;
   const leadCount = sql<number>`count(*)`;
 
+  const interestGroups = db.select({label:interestLabel.as("label")}).from(leads).where(where).as("interest_groups");
+  const locationGroups = db.select({label:locationLabel.as("label")}).from(leads).where(where).as("location_groups");
   const [interestRows, locationRows] = await Promise.all([
-    db
-      .select({ label: interestLabel, value: leadCount })
-      .from(leads)
-      .where(where)
-      .groupBy(interestLabel)
-      .orderBy(desc(leadCount))
-      .limit(10),
-    db
-      .select({ label: locationLabel, value: leadCount })
-      .from(leads)
-      .where(where)
-      .groupBy(locationLabel)
-      .orderBy(desc(leadCount))
-      .limit(10),
+    db.select({label:interestGroups.label,value:leadCount}).from(interestGroups)
+      .groupBy(interestGroups.label).orderBy(desc(leadCount),interestGroups.label).limit(10),
+    db.select({label:locationGroups.label,value:leadCount}).from(locationGroups)
+      .groupBy(locationGroups.label).orderBy(desc(leadCount),locationGroups.label).limit(10),
   ]);
 
   return {
-    interestReport: interestRows.map((row) => ({
+    interestReport: interestRows.filter(row => row.label !== "Not recorded").map((row) => ({
       label: row.label,
       value: Number(row.value),
     })),
-    locationReport: locationRows.map((row) => ({
+    locationReport: locationRows.filter(row => row.label !== "Not Recorded").map((row) => ({
       label: row.label,
       value: Number(row.value),
     })),

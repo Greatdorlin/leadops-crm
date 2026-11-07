@@ -1,3 +1,4 @@
+import {preparedMfaExists} from "./prepared-mfa";
 import { readMigrationFiles } from "drizzle-orm/migrator";
 
 export interface MigrationSession {
@@ -13,6 +14,7 @@ export interface MigrationSession {
 export async function applyMigrations(
   session: MigrationSession,
   folder = "drizzle",
+  options: {acceptPreparedMfa?:boolean} = {},
 ) {
   const migrations = readMigrationFiles({ migrationsFolder: folder });
   await session.execute('CREATE SCHEMA IF NOT EXISTS "drizzle"');
@@ -33,7 +35,10 @@ export async function applyMigrations(
   for (const migration of migrations) {
     if (migration.folderMillis <= latest) continue;
     await session.transaction(async (transaction) => {
-      for (const statement of migration.sql) {
+      const index=migrations.indexOf(migration);
+      const prepared=options.acceptPreparedMfa && (index===32 || index===33)
+        ? await preparedMfaExists(transaction,index) : false;
+      if(!prepared) for (const statement of migration.sql) {
         if (statement.trim()) await transaction.execute(statement);
       }
       await transaction.execute(

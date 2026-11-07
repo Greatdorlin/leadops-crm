@@ -591,3 +591,27 @@ test("native note questions filter named leads and dates, and missing searches r
   assert.ok(JSON.stringify(mcp).includes('Budget is tight'));
   assert.ok(!JSON.stringify(mcp).includes('specific-jordan'));
 });
+
+test("automation proposals require owner approval, apply once, and route future leads",async()=>{
+  const owner=await user("automation-owner@example.test","admin");
+  const actor=await actorForUser(owner.id);
+  const before=await leadStore.createExternalLead({source:"manual_entry",email:"before-automation@example.test",priority:"high"});
+  const requestId=crypto.randomUUID();
+  const action={kind:"automation",rule:{name:"Escalate high priority leads",conditionField:"priority",conditionOperator:"equals",conditionValue:"high",actionType:"set_priority",actionValue:"urgent",isActive:true,sortOrder:0}};
+  const proposal=await proposeChange(actor,{requestId,action});
+  assert.equal((await db.select().from(schema.workspaceAutomationRules)).length,0);
+  assert.equal((await proposeChange(actor,{requestId,action})).id,proposal.id);
+  assert.ok((await pendingChanges(actor)).some(p=>p.id===proposal.id&&p.summary?.includes("set priority to urgent")));
+  await Promise.all([approveChange(actor,proposal.id,true),approveChange(actor,proposal.id,true)]);
+  assert.equal((await db.select().from(schema.workspaceAutomationRules)).length,1);
+  assert.equal((await leadStore.getById(before.id))?.priority,"high");
+  const {lead:after}=await leadStore.upsertExternalLead({source:"manual_entry",email:"after-automation@example.test",priority:"high"});
+  assert.equal((await leadStore.getById(after.id))?.priority,"urgent");
+  const rep=await user("automation-rep@example.test");await grant(rep.id);
+  const repActor=await actorForUser(rep.id);
+  await assert.rejects(()=>proposeChange(repActor,{requestId:crypto.randomUUID(),action}));
+  const bad=await proposeChange(actor,{requestId:crypto.randomUUID(),action:{...action,rule:{...action.rule,actionType:"assign_owner",actionValue:crypto.randomUUID()}}});
+  await assert.rejects(()=>approveChange(actor,bad.id,true));
+  assert.equal((await db.select().from(schema.assistantChanges).where(eq(schema.assistantChanges.id,bad.id)))[0].status,"pending");
+  assert.equal((await db.select().from(schema.workspaceAutomationRules)).length,1);
+});

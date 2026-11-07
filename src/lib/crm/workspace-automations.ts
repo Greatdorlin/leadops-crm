@@ -1,4 +1,4 @@
-import { and, asc, eq } from "drizzle-orm";
+import { and, or, asc, eq } from "drizzle-orm";
 import { z } from "zod";
 import { LEAD_PRIORITIES } from "@/lib/crm/constants";
 import { getDb, type DatabaseExecutor } from "@/lib/db/client";
@@ -46,7 +46,30 @@ export async function listWorkspaceAutomations() {
     .orderBy(asc(workspaceAutomationRules.sortOrder), asc(workspaceAutomationRules.createdAt));
 }
 
+export async function validateWorkspaceAutomationTargets(input: WorkspaceAutomationPayload, db: DatabaseExecutor = getDb()) {
+  if (input.actionType === "set_priority" && !LEAD_PRIORITIES.includes(input.actionValue as typeof LEAD_PRIORITIES[number])) throw new Error("Choose a valid priority.");
+  if (input.conditionField === "priority" && !LEAD_PRIORITIES.includes(input.conditionValue as typeof LEAD_PRIORITIES[number])) throw new Error("Choose a valid priority condition.");
+  if (input.conditionField === "customer_type" && !["direct","business"].includes(input.conditionValue)) throw new Error("Choose an individual or company lead.");
+  if (input.actionType === "assign_owner") {
+    if (!z.string().uuid().safeParse(input.actionValue).success) throw new Error("Choose an active owner.");
+    const [owner] = await db.select({id:crmUsers.id}).from(crmUsers).where(and(eq(crmUsers.id,input.actionValue),eq(crmUsers.isActive,true))).limit(1);
+    if (!owner) throw new Error("Choose an active owner.");
+  }
+  if(input.actionType === "set_stage" && !z.string().uuid().safeParse(input.actionValue).success) throw new Error("Choose an active stage ID.");
+  const stageValues = [...(input.conditionField === "stage" ? [input.conditionValue] : []), ...(input.actionType === "set_stage" ? [input.actionValue] : [])];
+  for (const value of stageValues) {
+    const [stage] = await db.select({id:leadStages.id}).from(leadStages).where(and(eq(leadStages.archived,false),or(eq(leadStages.key,value),z.string().uuid().safeParse(value).success ? eq(leadStages.id,value) : undefined))).limit(1);
+    if (!stage) throw new Error("Choose an active stage.");
+  }
+  if(input.conditionField === "source") {
+    const value=input.conditionValue;
+    const [source]=await db.select({id:leadSources.id}).from(leadSources).where(and(eq(leadSources.archived,false),or(eq(leadSources.key,value),z.string().uuid().safeParse(value).success ? eq(leadSources.id,value) : undefined))).limit(1);
+    if(!source) throw new Error("Choose an active source.");
+  }
+}
+
 export async function createWorkspaceAutomation(input: WorkspaceAutomationPayload, actorEmail: string, db: DatabaseExecutor = getDb()) {
+  await validateWorkspaceAutomationTargets(input, db);
   const [created] = await db.insert(workspaceAutomationRules).values({
     ...input,
     createdBy: actorEmail,
@@ -55,6 +78,7 @@ export async function createWorkspaceAutomation(input: WorkspaceAutomationPayloa
 }
 
 export async function updateWorkspaceAutomation(id: string, input: WorkspaceAutomationPayload, db: DatabaseExecutor = getDb()) {
+  await validateWorkspaceAutomationTargets(input, db);
   const [updated] = await db.update(workspaceAutomationRules).set({
     ...input,
     updatedAt: new Date(),
@@ -121,7 +145,9 @@ export async function applyWorkspaceAutomationsToNewLead(
 
     for (const rule of rules) {
       const actual = resolveConditionValue(lead, rule, source ?? null, stage ?? null);
-      if (!workspaceAutomationMatches(actual, rule.conditionValue, rule.conditionOperator)) continue;
+      const expected = rule.conditionField === "source" && source?.key === rule.conditionValue ? source.id
+        : rule.conditionField === "stage" && stage?.key === rule.conditionValue ? stage.id : rule.conditionValue;
+      if (!workspaceAutomationMatches(actual, expected, rule.conditionOperator)) continue;
 
       if (rule.actionType === "assign_owner") {
         const owner = await transaction.query.crmUsers.findFirst({

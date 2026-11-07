@@ -31,7 +31,8 @@
     "db:prepare:inbox": "node --import tsx src/scripts/prepare-inbox.ts",
     "inbox:sync": "node --import tsx src/scripts/inbox-sync.ts",
     "build:cloudflare": "npm run build && opennextjs-cloudflare build --skipBuild --skipWranglerConfigCheck",
-    "security:database": "node scripts/security-database-audit.mjs"
+    "security:database": "node scripts/security-database-audit.mjs",
+    "verify:recovery": "node --import tsx src/scripts/verify-isolated-recovery.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.4.0",
@@ -42,9 +43,7 @@
     "drizzle-orm": "^0.45.2",
     "framer-motion": "^12.40.0",
     "googleapis": "^172.0.0",
-    "imapflow": "^2.11.0",
     "lucide-react": "^1.16.0",
-    "mailparser": "^3.14.2",
     "next": "16.4.5",
     "next-auth": "4.24.15",
     "nodemailer": "^10.3.1",
@@ -76,7 +75,6 @@
     "@modelcontextprotocol/sdk": "^1.32.2",
     "@opennextjs/cloudflare": "1.20.16",
     "@tailwindcss/postcss": "^4",
-    "@types/mailparser": "^3.9.0",
     "@types/node": "^20",
     "@types/nodemailer": "^8.0.2",
     "@types/react": "^19",

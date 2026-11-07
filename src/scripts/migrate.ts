@@ -31,7 +31,7 @@ async function main() {
   }
   try {
     await connection`SELECT pg_advisory_lock(1734452457)`;
-    const result = await applyMigrations(session(connection));
+    const result = await applyMigrations(session(connection), "drizzle", {acceptPreparedMfa:process.argv.includes("--accept-prepared-mfa")});
     logger.info(
       { scope: "db:migrate", ...result },
       "Database migrations complete",

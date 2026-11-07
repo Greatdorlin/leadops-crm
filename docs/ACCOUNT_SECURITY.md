@@ -25,10 +25,10 @@ Before promotion, verify enrollment, sign-out, wrong code, correct code, single-
 
 Run `npm run security:database` with the **runtime** `DATABASE_URL`. It reads role and policy metadata in a read-only transaction, prints no lead content or credentials, and exits unsuccessfully when RLS is not enforced for the runtime connection. A successful metadata check still needs negative access tests: two representatives, separate teams, notes, tasks, Inbox participants, exports, and assistant queries.
 
-The current application uses server-enforced user scopes. This is not proof of database-enforced RLS. The live RLS audit is blocked in the current environment by database DNS access; no production role or policy changes have been made.
+The current application uses server-enforced user scopes. This is not proof of database-enforced RLS. The live audit through Vercel found 51 public tables without enforced RLS. The runtime connection has BYPASSRLS and CREATEROLE. No role or policy changes have been made.
 
 Before claiming RLS protection, finish a staged rollout with a separate migration role and a least-privilege runtime role; transaction-local trusted actor context; policies covering parent records and their dependent rows; explicit service access for login, webhooks and background jobs; and direct SQL tests proving forbidden reads and writes fail. Never set pooled connection actor state outside a transaction. Superusers and BYPASSRLS roles bypass policies; table owners also normally bypass them unless forced. Enabling RLS without wiring every service path can stop the application.
 
 ## Release status
 
-MFA source and migration tests are implemented. Production migration, browser enrollment verification, database RLS enforcement, and Workers authentication/database runtime checks remain release blockers. These checks must pass before calling this release sales-ready. Security review reduces risk; it cannot guarantee that no vulnerability exists.
+MFA source and migration tests are implemented. The nine additive MFA columns were prepared through a Vercel sandbox, preserving existing account values. Deployment sign-in verification, database RLS enforcement, and Workers authentication/database runtime checks still need release evidence. These checks must pass before calling this release sales-ready. Security review reduces risk; it cannot guarantee that no vulnerability exists.

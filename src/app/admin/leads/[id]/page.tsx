@@ -496,11 +496,11 @@ export default async function AdminLeadDetailPage({
                   <div className="min-w-0">
                     <p className="text-sm font-medium text-white/60">WhatsApp number</p>
                     <p className="mt-1 text-[1.05rem] leading-8 text-white [overflow-wrap:anywhere]">
-                      {lead.whatsappNumber ? <PhoneActions number={lead.whatsappNumber}/> : "No WhatsApp number yet"}
+                      {lead.whatsappNumber ? <PhoneActions number={lead.whatsappNumber} email={lead.email}/> : "No WhatsApp number yet"}
                     </p>
                     <p className="mt-3 text-sm font-medium text-white/60">Call number</p>
                     <p className="mt-1 text-[1.05rem] leading-8 text-white [overflow-wrap:anywhere]">
-                      {lead.callNumber ? <PhoneActions number={lead.callNumber}/> : "No call number yet"}
+                      {lead.callNumber ? <PhoneActions number={lead.callNumber} email={lead.email}/> : "No call number yet"}
                     </p>
                   </div>
                 </div>

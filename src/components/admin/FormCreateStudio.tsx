@@ -245,7 +245,8 @@ export function FormCreateStudio() {
                       key={template.key}
                       type="button"
                       onClick={() => applyTemplate(template)}
-                      className="text-left"
+                      className="ld-focus-ring min-w-0 rounded-[20px] text-left"
+                      aria-pressed={isActive}
                     >
                       <AnimatedCard
                         variant={isActive ? "elevated" : "subtle"}
@@ -258,10 +259,20 @@ export function FormCreateStudio() {
                             : "hover:bg-white/[0.07]",
                         )}
                       >
+                        <div aria-hidden="true" className="mb-4 overflow-hidden rounded-xl border border-white/10 bg-slate-100 p-4 text-slate-900">
+                          <div className="mb-3 h-1 w-8 rounded-full bg-slate-800" />
+                          <p className="truncate text-[11px] font-semibold">{template.suggestedName}</p>
+                          <div className="mt-3 space-y-2">
+                            {template.fields.slice(0,2).map((field,fieldIndex)=><div key={fieldIndex}><p className="mb-1 truncate text-[9px] text-slate-500">{field.label}</p><div className="h-5 rounded border border-slate-200 bg-white" /></div>)}
+                            {template.fields.length===0?<div className="flex h-20 items-center justify-center rounded border border-dashed border-slate-300 text-xs text-slate-500">Add your questions</div>:null}
+                          </div>
+                          {template.fields.length>0?<div className="mt-3 w-fit rounded bg-slate-900 px-3 py-1 text-[9px] font-medium text-white">Send request</div>:null}
+                        </div>
                         <div className="flex items-start justify-between gap-3">
                           <div className="min-w-0">
                             <p className="truncate text-sm font-semibold text-white">{template.label}</p>
-                            <p className="mt-1 line-clamp-1 text-xs text-white/52">{template.tagline}</p>
+                            <p className="mt-1 text-xs leading-5 text-white/52">{template.tagline}</p>
+                            <p className="mt-2 text-xs text-white/40">{template.fields.length} fields · Editable</p>
                           </div>
                           {isActive ? (
                             <span className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[var(--ld-color-accent)]/18 text-[var(--ld-color-accent)]">

@@ -29,7 +29,7 @@ Open pipeline excludes lost/closed outcomes according to the reporting contract.
 
 Database constraints enforce foreign keys, source identifiers, valid opportunity ranges and form configuration bounds. Application Zod validation supplements these constraints and permissions; SQL typing alone does not validate an HTTP request. Workflow changes and audit events share a transaction where implemented. An external HTTP provider call is not part of a database transaction and cannot be rolled back by PostgreSQL.
 
-Schema modules live in src/lib/db/schema with a stable schema.ts export. Storage operations live in focused src/lib/storage/neon-* modules behind the existing NeonLeadStore facade; its database factory can carry the same transaction executor through calls. The class name is a compatibility name, not a hosting requirement.
+Schema modules live in src/lib/db/schema with a stable schema.ts export. Storage operations live in focused src/lib/storage/neon-* modules behind the neutral PostgresLeadStore facade; its database factory can carry the same transaction executor through calls. The old NeonLeadStore export is a compatibility alias, not a hosting requirement.
 
 Migration SQL is the historical lineage. Do not regenerate an existing client's schema from only the latest TypeScript definitions. Use npm run db:migrate, a session-compatible connection, a tested backup and a restored rehearsal database. The runner validates applied hashes and commits each version atomically. The regression suite migrates an empty in-process PostgreSQL database, reruns without changes, rejects tampered history, and verifies rollback of a failing version.
 

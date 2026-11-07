@@ -107,7 +107,7 @@ export default async function AdminTeamPage() {
           <MetricCard
             label="Active reps"
             value={safeNumber(teamRows.length)}
-            supporting="Team members currently carrying active lead or task work."
+            supporting="Team members with assigned leads or tasks."
             tone="accent"
           />
           <MetricCard
@@ -140,7 +140,7 @@ export default async function AdminTeamPage() {
               <SectionHeader
                 eyebrow="Sales rep performance"
                 title="Rep performance"
-                description="See who is carrying the queue, where follow-ups are slipping, and who has room for more."
+                description="View assigned leads and overdue follow-ups for each teammate."
               />
               {teamRows.length > 0 ? (
                 <div className="mt-4 grid gap-3 md:hidden">

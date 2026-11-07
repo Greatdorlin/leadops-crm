@@ -244,7 +244,7 @@ function buildInterestLabel(
 ) {
   return (
     customFields.find((field) =>
-      ["interest", "interest_label", "lead_interest"].includes(field.key.toLowerCase()) ||
+      ["interest", "interest_label", "lead_interest", "offer_interest", "property_type", "coverage_type", "program_interest", "service_type"].includes(field.key.toLowerCase()) ||
       field.label.toLowerCase() === "interest"
     )?.displayValue ??
     formatLeadInterestLabel(lead)
